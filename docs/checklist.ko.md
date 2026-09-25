@@ -33,6 +33,9 @@
   종료 코드 0. 완료 기준: 매니페스트에는 AGENTS.md의 여덟 크레이트만 있고 모든 크레이트가 edition 2024로
   컴파일된다. `check`는 Rust 형식 오류, Clippy 경고, 의존성 발견 사항, 부적절한 기록·용어, 문서 쌍·링크 오류,
   실패하거나 시간 초과한 테스트에서 실패한다. `bench`는 실행할 수 있는 목표다.
+- [o] S-1-1 문서·용어 검사의 범위를 관리되는 소스로 제한한다. `node_modules`의 설치된 패키지 파일은 의존성이며
+  제품 기록으로 검사하지 않는다. 의존: S-1. 증거: 검사기가 관리되는 문서의 오류를 보고하고 중첩된
+  `node_modules`의 패키지 README는 무시하며, 패키지 설치 후 `make check` 종료 코드가 0이다.
 - [ ] S-2 `ssr-core`를 구현한다: 렌더 모드 `ssr` 또는 `csr`을 가진 `POST /_render`의 렌더 호출
   `Page{render,title,language,props,state}`, 결과(HTML과 출력 상태), 오류. 캐시 헤더는 소비자의 정책이며 이 크레이트에
   포함하지 않는다. 의존: S-1. 증거: JSON fixture가 ordered-json으로 왕복.

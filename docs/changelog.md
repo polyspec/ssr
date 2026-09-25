@@ -9,3 +9,5 @@
 - Create the Rust 1.98.1 workspace with eight crates and the check and bench commands. The check
   command validates records, terminology, documents, dependencies and unit tests because these
   requirements apply to every crate.
+- Exclude installed package documents from record and terminology checks because packages are
+  dependencies outside the maintained source.

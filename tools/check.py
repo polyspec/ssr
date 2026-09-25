@@ -18,7 +18,8 @@ STATE = re.compile(r"^- \[([ ~o!])\] (S-\d+(?:-\d+)?)\b", re.MULTILINE)
 
 
 def markdown_files(root):
-    return sorted(path for path in root.rglob("*.md") if "var" not in path.relative_to(root).parts and "target" not in path.relative_to(root).parts)
+    excluded = {"var", "target", "node_modules"}
+    return sorted(path for path in root.rglob("*.md") if not excluded.intersection(path.relative_to(root).parts))
 
 
 def check_pairs_and_links(root):
