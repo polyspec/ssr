@@ -1,4 +1,5 @@
 import pathlib
+import subprocess
 import tempfile
 import unittest
 
@@ -79,6 +80,24 @@ class WorkspaceTest(unittest.TestCase):
             (root / "record.md").write_text("orphan site [missing](absent.md)\n")
             self.assertEqual(len(check.check_pairs_and_links(root)), 2)
             self.assertEqual(len(check.check_words(root)), 2)
+
+    def test_license_exceptions_are_exact_versions(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            (root / "src").mkdir()
+            (root / "src/lib.rs").write_text("")
+            manifest = root / "Cargo.toml"
+            prefix = '[package]\nname = "license-verification"\nversion = "0.0.1"\nedition = "2024"\nlicense = "MIT"\n'
+            for version, accepted in (("0.8.18", True), ("0.8.17", False)):
+                manifest.write_text(prefix + f'\n[dependencies]\nxxhash-rust = "={version}"\ndragonbox_ecma = "=0.1.12"\n')
+                subprocess.run(["cargo", "generate-lockfile", "--manifest-path", str(manifest)],
+                               capture_output=True, text=True, check=True)
+                result = subprocess.run([
+                    "cargo", "deny", "--manifest-path", str(manifest),
+                    "--config", str(ROOT / "deny.toml"), "--locked", "check", "licenses",
+                    "--hide-inclusion-graph",
+                ], capture_output=True, text=True, check=False)
+                self.assertEqual(result.returncode == 0, accepted, result.stderr)
 
 
 if __name__ == "__main__":
