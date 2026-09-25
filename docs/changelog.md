@@ -18,3 +18,5 @@
   beyond MIT. Unknown licenses remain errors.
 - Allow BSL-1.0 for xxhash-rust 0.8.18 and Apache-2.0 with the LLVM exception for
   dragonbox_ecma 0.1.12 because the build depends on these exact crate versions.
+- Verify React TSX server and client bundles, CSS imports and hashed asset output with Rust APIs.
+  Package CSS resolution and URL replacement require explicit source and asset handling.
