@@ -1,0 +1,16 @@
+[workspace]
+members = [
+    "crates/ssr-core",
+    "crates/ssr-build",
+    "crates/ssr-runtime",
+    "crates/ssr-adapter-react",
+    "crates/ssr-adapter-vue",
+    "crates/ssr-adapter-svelte",
+    "crates/ssr-adapter-vanilla",
+    "crates/ssr-server",
+]
+resolver = "3"
+
+[workspace.package]
+version = "0.0.1"
+license = "MIT"
