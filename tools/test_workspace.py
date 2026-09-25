@@ -41,6 +41,17 @@ class WorkspaceTest(unittest.TestCase):
             errors = check.check_pairs_and_links(root)
             self.assertEqual(len(errors), 2)
 
+    def test_document_checks_compare_temporary_bypass_state(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            (root / "docs").mkdir()
+            (root / "docs/checklist.md").write_text("- [!] S-0-2 cause; retry condition\n")
+            (root / "docs/checklist.ko.md").write_text("- [ ] S-0-2 원인; 재시도 조건\n")
+            self.assertIn(
+                "docs/checklist.md: item IDs or states differ from Korean document",
+                check.check_pairs_and_links(root),
+            )
+
     def test_record_and_term_checks_report_prohibited_words(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = pathlib.Path(temporary)

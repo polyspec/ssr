@@ -2,7 +2,10 @@
 
 # Checklist
 
-States: `[ ]` waiting, `[~]` in progress, `[o]` complete. [AGENTS.md](../AGENTS.md) governs the
+States: `[ ]` waiting, `[~]` in progress, `[o]` complete, `[!]` temporarily bypassed. A bypass
+requires an explicit reason and is not completion. Record its cause and retry condition in the
+item, resume without permission when the condition is met, and audit only `[!]` items and those
+records without repeating unrelated full test suites. [AGENTS.md](../AGENTS.md) governs the
 procedure. Each item names its dependencies and its completion evidence.
 
 ## Requirements
@@ -28,6 +31,9 @@ procedure. Each item names its dependencies and its completion evidence.
 - [o] S-0-1 Add the requirements of the first consumer, the build and engine checks before
   implementation, and order the items by that consumer. Depends on: S-0. Evidence: this change is
   committed.
+- [o] S-0-2 Define the temporary bypass state in both language versions of the procedure and
+  checklist, and include it in the checklist state check. Depends on: S-0-1. Evidence: the document
+  check validates both language versions and this change is committed.
 - [o] S-1 Create the Cargo workspace (`rust-toolchain.toml` with Rust 1.98.1, edition 2024) with the
   crates of [AGENTS.md](../AGENTS.md) and the Makefile targets `check` (rustfmt, clippy with
   `-D warnings`, `cargo deny check`, the record, terminology and document checks, the unit tests with
