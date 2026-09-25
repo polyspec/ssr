@@ -3,3 +3,14 @@ name = "ssr-build"
 version.workspace = true
 edition = "2024"
 license.workspace = true
+
+[dependencies]
+ordered-json.workspace = true
+rolldown.workspace = true
+rolldown_common.workspace = true
+rolldown_plugin_utils.workspace = true
+lightningcss.workspace = true
+sha2.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

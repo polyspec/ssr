@@ -28,3 +28,6 @@
   from a local source checkout. Registry dependencies remain subject to the license policy.
 - Reject repeated decoded object keys in page JSON at every depth because retaining only the
   last value discards request input.
+- Build React TSX server and client bundles, CSS and hashed assets in `ssr-build`. The build
+  returns all files and an ordered-json manifest; the asset URL hook gives both bundles the public
+  absolute URL because a chunk-relative URL does not identify the file from a page document.

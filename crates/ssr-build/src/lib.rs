@@ -1,1 +1,198 @@
 #![forbid(unsafe_code)]
+
+mod asset_url;
+mod css;
+mod js;
+mod manifest;
+
+pub use manifest::{BuildFile, Manifest};
+
+use std::collections::BTreeMap;
+use std::fmt;
+use std::io;
+use std::path::{Path, PathBuf};
+
+use sha2::{Digest, Sha256};
+
+#[derive(Debug, Clone)]
+pub struct BuildConfig {
+    pub root: PathBuf,
+    pub server_entry: PathBuf,
+    pub client_entry: PathBuf,
+    pub css_entry: PathBuf,
+    pub asset_route: String,
+}
+
+#[derive(Debug)]
+pub struct Build {
+    pub manifest: Manifest,
+    pub files: BTreeMap<String, Vec<u8>>,
+}
+
+#[derive(Debug)]
+pub enum Error {
+    InvalidInput(String),
+    Io(io::Error),
+    JavaScript(String),
+    Css(String),
+    Manifest(ordered_json::Error),
+    DuplicateOutput(String),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidInput(message) => write!(f, "invalid build input: {message}"),
+            Self::Io(error) => write!(f, "build I/O failed: {error}"),
+            Self::JavaScript(message) => write!(f, "JavaScript build failed: {message}"),
+            Self::Css(message) => write!(f, "CSS build failed: {message}"),
+            Self::Manifest(error) => write!(f, "manifest failed: {error}"),
+            Self::DuplicateOutput(path) => write!(f, "duplicate build output: {path}"),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Io(error) => Some(error),
+            Self::Manifest(error) => Some(error),
+            _ => None,
+        }
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
+impl From<ordered_json::Error> for Error {
+    fn from(error: ordered_json::Error) -> Self {
+        Self::Manifest(error)
+    }
+}
+
+pub(crate) fn digest(bytes: &[u8]) -> String {
+    Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
+pub(crate) fn public_url(route: &str, filename: &str) -> String {
+    if route == "/" {
+        format!("/{filename}")
+    } else {
+        format!("{route}/{filename}")
+    }
+}
+
+fn validate_entry(root: &Path, path: &Path) -> Result<(), Error> {
+    if !path.is_absolute() || !path.starts_with(root) || !path.is_file() {
+        return Err(Error::InvalidInput(format!(
+            "entry must be a file under application root: {}",
+            path.display()
+        )));
+    }
+    if path.canonicalize()? != path {
+        return Err(Error::InvalidInput(format!(
+            "entry must not contain symbolic links: {}",
+            path.display()
+        )));
+    }
+    Ok(())
+}
+
+fn validate(config: &BuildConfig) -> Result<(), Error> {
+    if !config.root.is_absolute()
+        || !config.root.is_dir()
+        || config.root.canonicalize()? != config.root
+    {
+        return Err(Error::InvalidInput(
+            "root must be an absolute directory without symbolic links".into(),
+        ));
+    }
+    for path in [
+        &config.server_entry,
+        &config.client_entry,
+        &config.css_entry,
+    ] {
+        validate_entry(&config.root, path)?;
+    }
+    let route = &config.asset_route;
+    if !route.starts_with('/')
+        || (route != "/" && route.ends_with('/'))
+        || route.contains("//")
+        || (route != "/"
+            && route.split('/').skip(1).any(|part| {
+                part.is_empty()
+                    || part == "."
+                    || part == ".."
+                    || !part.bytes().all(|byte| {
+                        byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.')
+                    })
+            }))
+    {
+        return Err(Error::InvalidInput(format!("invalid asset route: {route}")));
+    }
+    Ok(())
+}
+
+impl Build {
+    pub(crate) fn insert(
+        &mut self,
+        path: String,
+        bytes: Vec<u8>,
+        public_route: Option<&str>,
+    ) -> Result<BuildFile, Error> {
+        if let Some(existing) = self.files.get(&path) {
+            if existing != &bytes {
+                return Err(Error::DuplicateOutput(path));
+            }
+            return BuildFile::new(&path, &bytes, public_route);
+        }
+        let artifact = BuildFile::new(&path, &bytes, public_route)?;
+        self.files.insert(path, bytes);
+        Ok(artifact)
+    }
+}
+
+pub async fn build(config: &BuildConfig) -> Result<Build, Error> {
+    validate(config)?;
+    let mut result = Build {
+        manifest: Manifest::empty(),
+        files: BTreeMap::new(),
+    };
+    js::bundle(config, &config.server_entry, "server", &mut result).await?;
+    js::bundle(config, &config.client_entry, "client", &mut result).await?;
+    let style = css::bundle(config, &mut result)?;
+    result.manifest.styles.push(style);
+    result.manifest.sort();
+    Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Build, Error, Manifest};
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn duplicate_output_is_an_error() {
+        let mut build = Build {
+            manifest: Manifest::empty(),
+            files: BTreeMap::new(),
+        };
+        build
+            .insert("client/app.js".into(), b"one".to_vec(), Some("/assets"))
+            .unwrap();
+        build
+            .insert("client/app.js".into(), b"one".to_vec(), Some("/assets"))
+            .unwrap();
+        assert!(matches!(
+            build.insert("client/app.js".into(), b"two".to_vec(), Some("/assets")),
+            Err(Error::DuplicateOutput(_))
+        ));
+    }
+}

@@ -1,0 +1,153 @@
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use ordered_json::parse_bytes;
+use sha2::{Digest, Sha256};
+use ssr_build::{BuildConfig, build};
+
+fn fixture() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tools/build-probe/tests/fixtures")
+        .canonicalize()
+        .unwrap()
+}
+
+fn config() -> BuildConfig {
+    let root = fixture();
+    BuildConfig {
+        server_entry: root.join("server.tsx"),
+        client_entry: root.join("client.tsx"),
+        css_entry: root.join("app.css"),
+        root,
+        asset_route: "/assets".into(),
+    }
+}
+
+#[tokio::test]
+async fn sample_build_has_stable_files_and_manifest() {
+    let config = config();
+    assert!(
+        config.root.join("node_modules/react").is_dir(),
+        "install sample packages before tests"
+    );
+    let first = build(&config).await.unwrap();
+    let second = build(&config).await.unwrap();
+    assert_eq!(first.files, second.files);
+    assert_eq!(first.manifest, second.manifest);
+    assert_eq!(
+        first.manifest.to_json().unwrap(),
+        second.manifest.to_json().unwrap()
+    );
+    let json = first.manifest.to_json().unwrap();
+    let decoded = parse_bytes(&json).unwrap();
+    assert_eq!(decoded.compact().as_bytes(), json);
+
+    let manifest = &first.manifest;
+    assert!(manifest.server.path.starts_with("server/server-"));
+    assert!(manifest.client.path.starts_with("client/client-"));
+    assert_eq!(manifest.server.url, None);
+    assert!(
+        manifest
+            .client
+            .url
+            .as_ref()
+            .unwrap()
+            .starts_with("/assets/client-")
+    );
+    assert!(!manifest.styles.is_empty());
+    assert!(!manifest.server_chunks.is_empty());
+    assert!(manifest.assets.iter().any(|a| a.path.contains("extra-")));
+    let server = String::from_utf8(first.files[&manifest.server.path].clone()).unwrap();
+    let client = String::from_utf8(first.files[&manifest.client.path].clone()).unwrap();
+    assert!(server.contains("renderToString"));
+    assert!(client.contains("createRoot"));
+    let style = String::from_utf8(first.files[&manifest.styles[0].path].clone()).unwrap();
+    assert!(style.contains("font-family: Inter"));
+    for extension in [
+        "png", "svg", "jpg", "gif", "webp", "avif", "ico", "woff", "woff2", "ttf",
+    ] {
+        let source = fs::read(config.root.join(format!("assets/sample.{extension}"))).unwrap();
+        assert!(
+            manifest
+                .assets
+                .iter()
+                .any(|a| a.path.ends_with(&format!(".{extension}"))
+                    && first.files[&a.path] == source),
+            "missing {extension}"
+        );
+    }
+    for asset in &manifest.assets {
+        if asset.path.starts_with("client/assets/sample-")
+            && !asset.path.contains(&asset.sha256[..16])
+        {
+            let url = asset.url.as_ref().expect("sample assets are public");
+            assert!(client.contains(url), "client does not reference {url}");
+            assert!(server.contains(url), "server does not reference {url}");
+        }
+    }
+    for artifact in std::iter::once(&manifest.server)
+        .chain(std::iter::once(&manifest.client))
+        .chain(manifest.styles.iter())
+        .chain(manifest.server_chunks.iter())
+        .chain(manifest.assets.iter())
+    {
+        let bytes = &first.files[&artifact.path];
+        let digest = Sha256::digest(bytes)
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>();
+        assert_eq!(artifact.sha256, digest, "{}", artifact.path);
+        if artifact.path.contains(&artifact.sha256[..16])
+            && (artifact.path.ends_with(".svg") || artifact.path.ends_with(".woff2"))
+        {
+            let url = artifact.url.as_ref().expect("CSS assets are public");
+            assert!(style.contains(url));
+        }
+    }
+    let listed_count =
+        2 + manifest.styles.len() + manifest.server_chunks.len() + manifest.assets.len();
+    assert_eq!(
+        first.files.len(),
+        listed_count,
+        "every output must be listed"
+    );
+}
+
+#[tokio::test]
+async fn invalid_entries_imports_and_route_fail() {
+    let mut config = config();
+    config.asset_route = "//external".into();
+    assert!(build(&config).await.is_err());
+    config.asset_route = "/assets".into();
+    config.server_entry = config.root.join("absent.tsx");
+    assert!(build(&config).await.is_err());
+    config.server_entry = config.root.join("server.tsx");
+    config.client_entry = config.root.join("missing.tsx");
+    assert!(build(&config).await.is_err());
+    config.client_entry = config.root.join("client.tsx");
+    config.css_entry = config.root.join("missing.css");
+    assert!(build(&config).await.is_err());
+    config.css_entry = config.root.join("missing-url.css");
+    assert!(build(&config).await.is_err());
+    config.css_entry = config.root.join("app.css");
+    config.client_entry = config.root.join("query.tsx");
+    assert!(build(&config).await.is_err());
+}
+
+#[tokio::test]
+async fn root_asset_route_has_one_leading_slash() {
+    let mut config = config();
+    config.asset_route = "/".into();
+    let output = build(&config).await.unwrap();
+    let client = String::from_utf8(output.files[&output.manifest.client.path].clone()).unwrap();
+    for asset in &output.manifest.assets {
+        if asset.path.starts_with("client/assets/sample-")
+            && !asset.path.contains(&asset.sha256[..16])
+        {
+            let url = asset.url.as_ref().unwrap();
+            assert!(url.starts_with("/assets/"));
+            assert!(!url.starts_with("//"));
+            assert!(client.contains(url));
+        }
+    }
+}
