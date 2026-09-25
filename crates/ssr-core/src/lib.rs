@@ -69,7 +69,7 @@ impl From<ordered_json::Error> for Error {
 
 impl Page {
     pub fn from_json(source: &[u8]) -> Result<Self, Error> {
-        let value = ordered_json::parse_bytes(source)?;
+        let value = ordered_json::parse_bytes_reject_duplicates(source)?;
         let members = value.members().ok_or(Error::InvalidField("page"))?;
         let render = match required(&value, "render")?.string_value() {
             Ok(value) if value == "ssr" => Render::Ssr,

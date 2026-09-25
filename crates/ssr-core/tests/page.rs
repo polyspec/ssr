@@ -71,3 +71,15 @@ fn page_rejects_invalid_constructed_props() {
     page.props = ordered_json::Value::null();
     assert!(matches!(page.to_json(), Err(Error::InvalidField("props"))));
 }
+
+#[test]
+fn page_rejects_duplicate_object_keys_at_any_depth() {
+    for source in [
+        r#"{"render":"ssr","title":"T","language":"en","props":{},"state":null,"render":"csr"}"#,
+        r#"{"render":"ssr","title":"T","language":"en","props":{"a":1,"a":2},"state":null}"#,
+        r#"{"render":"ssr","title":"T","language":"en","props":{"a":1,"\u0061":2},"state":null}"#,
+        r#"{"render":"csr","title":"T","language":"en","props":{},"state":[{"x":1,"x":2}]}"#,
+    ] {
+        assert!(Page::from_json(source.as_bytes()).is_err(), "{source}");
+    }
+}

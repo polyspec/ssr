@@ -7,9 +7,10 @@ JSON 요청 본문은 정확히 다섯 필드가 있는 페이지 객체이며, 
 `language`, `props`, `state`다. `render`는 `ssr` 또는 `csr`이고, `title`과 `language`는
 문자열이며, `props`는 객체이고, `state`는 모든 JSON 값이 가능하다. 모든 필드는 필수다.
 추가 필드, 누락 필드, 잘못된 타입, 알 수 없는 렌더 모드와 잘못된 JSON은 오류를 반환한다.
-JSON 키가 반복되면 ordered-json이 첫 키 위치와 마지막 값을 유지한다.
+모든 깊이에서 해석된 객체 키가 반복되면 오류를 반환하며, 같은 키로 해석되는 이스케이프 표기도 포함한다.
 `state`를 조용히 null로 바꾸지 않는다. JSON 파싱과 인코딩은 ordered-json을 사용하며
-`props`와 `state`의 필드 순서 및 숫자 토큰을 유지한다.
+`props`와 `state`의 필드 순서 및 숫자 토큰을 유지한다. 페이지 파싱은 중복 키를 거부하는
+ordered-json 바이트 API를 사용한다.
 
 렌더 결과는 HTML 바이트와 JSON 값인 출력 상태를 포함한다. 렌더링 구성 요소가 이 상태를
 선택한다. 출력 상태는 입력 상태와 별개이며 브라우저가 hydration에 사용한다. `ssr-core`는

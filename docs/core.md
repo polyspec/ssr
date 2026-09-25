@@ -7,10 +7,12 @@
 in this order when encoded: `render`, `title`, `language`, `props`, `state`. `render`
 is `ssr` or `csr`; `title` and `language` are strings; `props` is an object;
 `state` is any JSON value. Every field is required. Unknown fields, missing fields,
-wrong types, unknown render modes and invalid JSON return errors. For repeated
-JSON keys, ordered-json retains the first key position and the last value. `state` is never
+wrong types, unknown render modes and invalid JSON return errors. A repeated
+decoded object key at any depth returns an error, including an escape sequence
+that decodes to a key already present. `state` is never
 silently replaced with null. JSON parsing and encoding use ordered-json and retain
-the member order and number tokens of `props` and `state`.
+the member order and number tokens of `props` and `state`. Page parsing uses
+the ordered-json byte API that rejects duplicate keys.
 
 The render result contains HTML bytes and the output state as a JSON value. The
 rendering component chooses that state. It is distinct from the input state and
