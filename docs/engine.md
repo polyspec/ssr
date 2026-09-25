@@ -33,23 +33,32 @@ of the verification program. Omitting `--fetch` requires an existing archive in
 `var/v8`. A missing archive, changed digest, failed download, failed build or
 timeout is an error.
 
+`make verify-engine-linux-arm64` builds an ARM64 Linux container image from the
+Rust 1.98.1 Bookworm image digest
+`sha256:5b993f23fb69746405496e76f91e511d96c82b5b23304fd5d20b4a80a8b223ea`.
+It downloads a missing archive and verifies its digest before mounting this
+checkout read only. It keeps the Cargo cache and target directory in the
+container's writable filesystem, builds the program and executes it. The image,
+container and hostname use the permitted test
+installation name. The native GNU linker retains the Rust target's link
+arguments.
+
 ## Build evidence
 
-The build host was macOS arm64 with Rust 1.98.1 and Zig 0.16.0. These results
-distinguish a full target build and link from execution on the target operating
-system.
+The macOS and Linux x86_64 builds ran on macOS arm64 with Rust 1.98.1 and Zig
+0.16.0. The Linux AArch64 build ran in the ARM64 Linux container with Rust
+1.98.1. These results distinguish a full target build and link from execution
+on the target operating system.
 
 | Target | Full build and link | Execution | Evidence |
 | --- | --- | --- | --- |
 | `aarch64-apple-darwin` | Pass | Pass on the host | Mach-O arm64 executable |
 | `x86_64-apple-darwin` | Pass | Pass through Rosetta | Mach-O x86_64 executable |
 | `x86_64-unknown-linux-gnu` | Pass with the Zig cross linker | Not run on Linux | ELF x86-64 executable |
-| `aarch64-unknown-linux-gnu` | Fail at final link | Not run on Linux | Zig 0.16.0 rejects `--fix-cortex-a53-843419` |
+| `aarch64-unknown-linux-gnu` | Pass in an ARM64 Linux container | Pass in the same container | ELF AArch64 executable; SHA-256 `3441cc6717b47e05969ae39844612bbc4ff213dd88ec7df14b89943bf65ef1bb` |
 
-The AArch64 Linux Rust target supplies `--fix-cortex-a53-843419` to its linker.
-The installed Zig linker rejects that argument. The installed LLVM linker
-accepts it, but the LLVM Clang driver has no AArch64 GNU startup files or
-libraries. S-4 remains in progress. Retry the full AArch64 Linux build with an
-AArch64 GNU linker and libraries that accept the Rust target's link arguments,
-or in an isolated AArch64 Linux build environment. Record the resulting linked
-executable before completing S-4.
+The native AArch64 Linux build completed with Rust 1.98.1 and the archive digest
+listed above. The source mount was read only, and the build wrote to the
+container's Cargo cache and target directory. Linux x86_64 was fully linked
+through a cross linker on macOS; execution on Linux x86_64 was outside this
+build criterion.

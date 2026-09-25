@@ -1,0 +1,18 @@
+name: soksakim-test
+
+services:
+  engine:
+    image: localhost/soksakim-test:0.0.1
+    command: ["sleep", "infinity"]
+    environment:
+      CARGO_HOME: /cargo
+      CARGO_TARGET_DIR: /target
+      RUSTY_V8_ARCHIVE: /src/var/v8/librusty_v8_simdutf_release_aarch64-unknown-linux-gnu.a.gz
+    volumes:
+      - ${SSR_SOURCE_DIR}:/src:ro
+    cpus: "4"
+    mem_limit: 8g
+    healthcheck:
+      test: ["CMD", "/usr/local/cargo/bin/cargo", "--version"]
+      timeout: 10s
+      retries: 1

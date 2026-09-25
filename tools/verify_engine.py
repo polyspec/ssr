@@ -3,6 +3,7 @@
 import hashlib
 import os
 from pathlib import Path
+import platform
 import subprocess
 import sys
 import time
@@ -18,17 +19,30 @@ ARCHIVES = {
 }
 
 
-def verify(target: str, fetch: bool) -> int:
+def verify(target: str, fetch: bool, archive_only: bool) -> int:
     if target not in ARCHIVES:
         print(f"FAIL unsupported target {target}", file=sys.stderr)
         return 2
     archive = ROOT / "var/v8" / f"librusty_v8_simdutf_release_{target}.a.gz"
-    print(f"START engine build {target}", flush=True)
+    operation = "engine archive" if archive_only else "engine build"
+    print(f"START {operation} {target}", flush=True)
     start = time.monotonic()
 
     def fail(message: str) -> int:
-        print(f"FAIL engine build {target} {time.monotonic() - start:.1f}s: {message}", file=sys.stderr)
+        print(f"FAIL {operation} {target} {time.monotonic() - start:.1f}s: {message}", file=sys.stderr)
         return 1
+
+    native_linux = False
+    if not archive_only:
+        native_linux = (
+            platform.system() == "Linux"
+            and target == f"{platform.machine()}-unknown-linux-gnu"
+        )
+        if target == "aarch64-unknown-linux-gnu" and not native_linux:
+            return fail("this target requires a native AArch64 Linux build environment")
+        target_dir = Path(os.environ.get("CARGO_TARGET_DIR", ROOT / "verification/engine/target"))
+        if not target_dir.is_absolute():
+            return fail(f"CARGO_TARGET_DIR must be absolute: {target_dir}")
 
     if fetch and not archive.is_file():
         archive.parent.mkdir(parents=True, exist_ok=True)
@@ -52,13 +66,15 @@ def verify(target: str, fetch: bool) -> int:
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
     if digest != ARCHIVES[target]:
         return fail(f"archive SHA-256: {digest}")
+    if archive_only:
+        print(f"PASS engine archive {target} {time.monotonic() - start:.1f}s SHA-256={digest}")
+        return 0
     env = os.environ.copy()
     env["RUSTY_V8_ARCHIVE"] = str(archive)
-    if target.endswith("unknown-linux-gnu"):
+    if target.endswith("unknown-linux-gnu") and not native_linux:
         env[f"CARGO_TARGET_{target.upper().replace('-', '_')}_LINKER"] = str(
             ROOT / "tools" / f"zig-linker-{target.split('-')[0]}"
         )
-        env["CXXSTDLIB"] = "c++"
     command = [
         "cargo", "build", "--manifest-path", str(ROOT / "verification/engine/Cargo.toml"),
         "--locked", "--target", target,
@@ -72,11 +88,32 @@ def verify(target: str, fetch: bool) -> int:
     if result.returncode:
         return fail(f"exit={result.returncode}")
     print(f"PASS engine build {target} {elapsed:.1f}s SHA-256={digest}")
+    if native_linux:
+        executable = target_dir / target / "debug/ssr-engine-verification"
+        print(f"START engine execution {target}", flush=True)
+        execution_start = time.monotonic()
+        try:
+            execution = subprocess.run([str(executable)], env=env, timeout=30, check=False)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            print(
+                f"FAIL engine execution {target} {time.monotonic() - execution_start:.1f}s: {error}",
+                file=sys.stderr,
+            )
+            return 1
+        if execution.returncode:
+            print(
+                f"FAIL engine execution {target} {time.monotonic() - execution_start:.1f}s: "
+                f"exit={execution.returncode}",
+                file=sys.stderr,
+            )
+            return 1
+        print(f"PASS engine execution {target} {time.monotonic() - execution_start:.1f}s")
     return 0
 
 
 if __name__ == "__main__":
-    if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] != "--fetch"):
-        print("usage: python3 tools/verify_engine.py TARGET [--fetch]", file=sys.stderr)
+    if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] not in ("--fetch", "--fetch-only")):
+        print("usage: python3 tools/verify_engine.py TARGET [--fetch|--fetch-only]", file=sys.stderr)
         sys.exit(2)
-    sys.exit(verify(sys.argv[1], len(sys.argv) == 3))
+    option = sys.argv[2] if len(sys.argv) == 3 else ""
+    sys.exit(verify(sys.argv[1], bool(option), option == "--fetch-only"))

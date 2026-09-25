@@ -66,13 +66,10 @@ procedure. Each item names its dependencies and its completion evidence.
   Record the result and the chosen API in `docs/build.md`; an unsupported case is written there with
   its replacement before S-4 starts. Depends on: S-1. Evidence: the sample build of each case and the
   document.
-- [~] S-4 Verify the engine: build deno_core 0.412.0 with deno_webidl 0.259.0 and deno_web 0.290.0
+- [o] S-4 Verify the engine: build deno_core 0.412.0 with deno_webidl 0.259.0 and deno_web 0.290.0
   on aarch64 and x86_64 macOS and Linux, record how `deno_v8` 0.4.0 obtains its prebuilt archive,
   the variable that selects a local archive and its SHA-256. Depends on: S-1. Evidence: the builds
-  and `docs/engine.md`. Cause: the installed Zig linker rejects the AArch64 Linux Rust target's
-  `--fix-cortex-a53-843419` argument, so that target has no completed link. Retry the full build
-  with an AArch64 GNU linker and libraries that accept the target's arguments, or in an isolated
-  AArch64 Linux build environment; record its linked executable before marking S-4 complete.
+  and `docs/engine.md`.
 - [ ] S-5 Implement `ssr-build` as decided by S-3: server and client bundles, CSS, hashed assets and
   the manifest. Depends on: S-2, S-3. Evidence: a sample application builds; the hashes are stable
   across two builds.
