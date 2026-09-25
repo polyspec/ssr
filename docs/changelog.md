@@ -16,3 +16,5 @@
   container.
 - Allow the specified dependency licenses in cargo-deny because build dependencies use licenses
   beyond MIT. Unknown licenses remain errors.
+- Allow BSL-1.0 for xxhash-rust 0.8.18 and Apache-2.0 with the LLVM exception for
+  dragonbox_ecma 0.1.12 because the build depends on these exact crate versions.

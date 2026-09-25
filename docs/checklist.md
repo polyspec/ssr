@@ -53,8 +53,12 @@ procedure. Each item names its dependencies and its completion evidence.
   in nested `node_modules`; `make check` exits with 0 after packages are installed.
 - [o] S-1-2 Allow the specified dependency licenses in the dependency check. A license outside
   MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Unicode-3.0, Zlib and MPL-2.0 remains an
-  error. Depends on: S-1. Evidence: `make check` exits with 0; cargo-deny retains the license
-  check.
+  error unless an exact crate exception is recorded. Depends on: S-1. Evidence: `make check` exits
+  with 0; cargo-deny retains the license check.
+- [o] S-1-3 Review required build dependency licenses and allow the two exact crate versions in
+  `deny.toml`. All other crates and versions retain the common license policy. Depends on: S-1-2.
+  Evidence: the selected versions pass the license check; another version fails it; `make check`
+  exits with 0.
 - [ ] S-2 Implement `ssr-core`: the render call `Page{render,title,language,props,state}` of
   `POST /_render` with the render mode `ssr` or `csr`, its result (HTML and the output state), and its
   errors. Cache headers are the policy of the consumer and are not part of this crate. Depends on:

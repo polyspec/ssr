@@ -18,3 +18,7 @@ Rust 1.98.1 is the pinned [Rust release](https://github.com/rust-lang/rust/relea
 cargo-nextest 0.9.146 is the pinned [test runner release](https://github.com/nextest-rs/nextest/releases/tag/cargo-nextest-0.9.146).
 The dependency check allows MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Unicode-3.0,
 Zlib and MPL-2.0. Other licenses fail the check.
+The [xxhash-rust 0.8.18](https://crates.io/crates/xxhash-rust/0.8.18) metadata declares BSL-1.0.
+The [dragonbox_ecma 0.1.12](https://crates.io/crates/dragonbox_ecma/0.1.12) metadata declares
+Apache-2.0 with the LLVM exception or BSL-1.0. The dependency check allows BSL-1.0 only for
+xxhash-rust 0.8.18 and Apache-2.0 with the LLVM exception only for dragonbox_ecma 0.1.12.
