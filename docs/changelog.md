@@ -11,3 +11,6 @@
   requirements apply to every crate.
 - Exclude installed package documents from record and terminology checks because packages are
   dependencies outside the maintained source.
+- Verify the engine dependency versions and V8 archive digests. Full builds link for macOS arm64,
+  macOS x86_64 and Linux x86_64. The Linux AArch64 build remains incomplete because the available
+  linker rejects a required Rust target argument.
