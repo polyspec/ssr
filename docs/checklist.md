@@ -28,11 +28,14 @@ procedure. Each item names its dependencies and its completion evidence.
 - [o] S-0-1 Add the requirements of the first consumer, the build and engine checks before
   implementation, and order the items by that consumer. Depends on: S-0. Evidence: this change is
   committed.
-- [ ] S-1 Create the Cargo workspace (`rust-toolchain.toml` with Rust 1.98.1, edition 2024) with the
+- [o] S-1 Create the Cargo workspace (`rust-toolchain.toml` with Rust 1.98.1, edition 2024) with the
   crates of [AGENTS.md](../AGENTS.md) and the Makefile targets `check` (rustfmt, clippy with
   `-D warnings`, `cargo deny check`, the record, terminology and document checks, the unit tests with
   cargo-nextest 0.9.146 and a timeout per test) and `bench`. Depends on: S-0-1. Evidence:
-  `make check` exits with 0.
+  `make check` exits with 0. Acceptance: the manifest has exactly the eight crates in AGENTS.md;
+  every crate compiles as edition 2024; `check` fails for invalid Rust formatting, Clippy warnings,
+  dependency findings, invalid records or terms, broken document pairs or links, and failed or
+  timed-out tests; `bench` is an executable target.
 - [ ] S-2 Implement `ssr-core`: the render call `Page{render,title,language,props,state}` of
   `POST /_render` with the render mode `ssr` or `csr`, its result (HTML and the output state), and its
   errors. Cache headers are the policy of the consumer and are not part of this crate. Depends on:
@@ -77,8 +80,8 @@ procedure. Each item names its dependencies and its completion evidence.
 - [ ] S-12 Pin the V8 archive by path and SHA-256 as recorded by S-4; a failed download is an error.
   Depends on: S-4. Evidence: a build without network succeeds.
 - [ ] S-13 Stream React output with `renderToReadableStream`: status and headers are fixed when the
-  shell is ready; an error before the shell answers 500 with an error page; an error after the shell
-  renders the error boundary in the stream and is logged; every inline script and style carries the
+  shell is ready; an error before the shell returns 500 with an error page; an error after the shell
+  renders the error boundary in the stream and is logged; every inline script and style includes the
   nonce of the call. Depends on: S-7. Evidence: the three cases pass.
 - [ ] S-14 Implement the development mode with notify 8.2.0: a file change rebuilds the bundles and
   replaces the pool. Depends on: S-9. Evidence: the output changes after a file change.

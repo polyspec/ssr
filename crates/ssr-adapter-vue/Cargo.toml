@@ -1,0 +1,5 @@
+[package]
+name = "ssr-adapter-vue"
+version.workspace = true
+edition = "2024"
+license.workspace = true

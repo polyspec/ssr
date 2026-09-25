@@ -23,10 +23,12 @@
   `.gitignore`를 둔다. 의존: 없음. 증거: 첫 커밋, `git remote -v` 출력 없음.
 - [o] S-0-1 첫 소비자의 요구 사항, 구현 전 빌드·엔진 검증을 추가하고 항목을 그 소비자 기준으로 정렬한다. 의존:
   S-0. 증거: 이 변경이 커밋됨.
-- [ ] S-1 [AGENTS.ko.md](../AGENTS.ko.md)의 크레이트로 Cargo 워크스페이스(`rust-toolchain.toml`: Rust 1.98.1,
+- [o] S-1 [AGENTS.ko.md](../AGENTS.ko.md)의 크레이트로 Cargo 워크스페이스(`rust-toolchain.toml`: Rust 1.98.1,
   edition 2024)와 Makefile 목표 `check`(rustfmt, clippy `-D warnings`, `cargo deny check`, 기록·용어·문서 검사,
   테스트별 타임아웃을 가진 cargo-nextest 0.9.146 단위 테스트), `bench`를 만든다. 의존: S-0-1. 증거: `make check`
-  종료 코드 0.
+  종료 코드 0. 완료 기준: 매니페스트에는 AGENTS.md의 여덟 크레이트만 있고 모든 크레이트가 edition 2024로
+  컴파일된다. `check`는 Rust 형식 오류, Clippy 경고, 의존성 발견 사항, 부적절한 기록·용어, 문서 쌍·링크 오류,
+  실패하거나 시간 초과한 테스트에서 실패한다. `bench`는 실행할 수 있는 목표다.
 - [ ] S-2 `ssr-core`를 구현한다: 렌더 모드 `ssr` 또는 `csr`을 가진 `POST /_render`의 렌더 호출
   `Page{render,title,language,props,state}`, 결과(HTML과 출력 상태), 오류. 캐시 헤더는 소비자의 정책이며 이 크레이트에
   포함하지 않는다. 의존: S-1. 증거: JSON fixture가 ordered-json으로 왕복.

@@ -1,0 +1,15 @@
+[graph]
+all-features = true
+
+[advisories]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+[licenses]
+allow = ["MIT"]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

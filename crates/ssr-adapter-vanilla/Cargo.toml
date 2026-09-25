@@ -1,0 +1,5 @@
+[package]
+name = "ssr-adapter-vanilla"
+version.workspace = true
+edition = "2024"
+license.workspace = true
