@@ -14,3 +14,5 @@ Rust 1.98.1 워크스페이스는 AGENTS.md에 적힌 여덟 크레이트로 구
 
 Rust 1.98.1은 고정한 [Rust 배포](https://github.com/rust-lang/rust/releases/tag/1.98.1)이다.
 cargo-nextest 0.9.146은 고정한 [테스트 실행기 배포](https://github.com/nextest-rs/nextest/releases/tag/cargo-nextest-0.9.146)다.
+의존성 검사는 MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Unicode-3.0, Zlib,
+MPL-2.0을 허용한다. 다른 라이선스는 검사에서 실패한다.

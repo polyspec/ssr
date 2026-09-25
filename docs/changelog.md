@@ -16,3 +16,5 @@
   linker rejects a required Rust target argument.
 - Continue the Linux AArch64 engine build verification under S-4 because an isolated target build
   is in progress.
+- Allow the specified dependency licenses in cargo-deny because build dependencies use licenses
+  beyond MIT. Unknown licenses remain errors.
