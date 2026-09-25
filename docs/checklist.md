@@ -51,6 +51,10 @@ procedure. Each item names its dependencies and its completion evidence.
   under `node_modules` are dependencies and must not be checked as product records. Depends on:
   S-1. Evidence: the checker reports an invalid maintained document and ignores a package README
   in nested `node_modules`; `make check` exits with 0 after packages are installed.
+- [o] S-1-2 Allow the specified dependency licenses in the dependency check. A license outside
+  MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Unicode-3.0, Zlib and MPL-2.0 remains an
+  error. Depends on: S-1. Evidence: `make check` exits with 0; cargo-deny retains the license
+  check.
 - [ ] S-2 Implement `ssr-core`: the render call `Page{render,title,language,props,state}` of
   `POST /_render` with the render mode `ssr` or `csr`, its result (HTML and the output state), and its
   errors. Cache headers are not part of this crate. Depends on:
