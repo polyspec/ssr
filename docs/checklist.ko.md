@@ -44,7 +44,7 @@
   포함한 CSS를 묶고, 글꼴과 이미지(png, svg, jpg, gif, webp, avif, ico, woff, woff2, ttf)를 해시 파일로 산출한다.
   결과와 선택한 API를 `docs/build.md`에 기록하며, 지원되지 않는 경우는 S-4 시작 전에 대체 방법과 함께 적는다.
   의존: S-1. 증거: 경우별 샘플 빌드와 문서.
-- [!] S-4 엔진을 검증한다: deno_core 0.412.0을 deno_webidl 0.259.0, deno_web 0.290.0과 함께 aarch64·x86_64
+- [~] S-4 엔진을 검증한다: deno_core 0.412.0을 deno_webidl 0.259.0, deno_web 0.290.0과 함께 aarch64·x86_64
   macOS와 Linux에서 빌드하고, `deno_v8` 0.4.0이 prebuilt 아카이브를 얻는 방법, 로컬 아카이브를 고르는 변수, 그
   SHA-256을 기록한다. 의존: S-1. 증거: 빌드와 `docs/engine.md`. 원인: 설치된 Zig 링커가 AArch64 Linux Rust
   대상의 `--fix-cortex-a53-843419` 인자를 거부하여 이 대상의 링크가 완료되지 않았다. 대상 인자를 받는 AArch64

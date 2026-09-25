@@ -14,3 +14,5 @@
 - Verify the engine dependency versions and V8 archive digests. Full builds link for macOS arm64,
   macOS x86_64 and Linux x86_64. The Linux AArch64 build remains incomplete because the available
   linker rejects a required Rust target argument.
+- Continue the Linux AArch64 engine build verification under S-4 because an isolated target build
+  is in progress.
