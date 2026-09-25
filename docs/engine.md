@@ -37,11 +37,14 @@ timeout is an error.
 Rust 1.98.1 Bookworm image digest
 `sha256:5b993f23fb69746405496e76f91e511d96c82b5b23304fd5d20b4a80a8b223ea`.
 It downloads a missing archive and verifies its digest before mounting this
-checkout read only. It keeps the Cargo cache and target directory in the
-container's writable filesystem, builds the program and executes it. The image,
-container and hostname use the permitted test
-installation name. The native GNU linker retains the Rust target's link
-arguments.
+checkout read only at `/src`. It bind mounts the host's ignored
+`var/engine-cargo` and `var/engine-target` directories at `/cargo` and `/target`
+with write access, builds the program and executes it. `make` supplies absolute
+host paths in the ignored `var/engine-compose.yaml` file so that later
+`containerctl status` calls can read the same mount configuration. The host can inspect these directories, and
+replacing the container preserves their contents. The image, container and
+hostname use the permitted test installation name. The native GNU linker
+retains the Rust target's link arguments.
 
 ## Build evidence
 
@@ -58,7 +61,13 @@ on the target operating system.
 | `aarch64-unknown-linux-gnu` | Pass in an ARM64 Linux container | Pass in the same container | ELF AArch64 executable; SHA-256 `3441cc6717b47e05969ae39844612bbc4ff213dd88ec7df14b89943bf65ef1bb` |
 
 The native AArch64 Linux build completed with Rust 1.98.1 and the archive digest
-listed above. The source mount was read only, and the build wrote to the
-container's Cargo cache and target directory. Linux x86_64 was fully linked
+listed above. Mount inspection confirmed `/src` as read only and `/cargo` and
+`/target` as writable host mounts. `containerctl status` read the generated
+Compose file without a project error. After replacing only the engine container,
+the cached `deno_core 0.412.0` source and linked program remained visible on the
+host. The repeated Cargo build finished in 0.51 seconds without compiling a
+crate; the executable still had SHA-256
+`3441cc6717b47e05969ae39844612bbc4ff213dd88ec7df14b89943bf65ef1bb`
+and ran in the replacement container. No named volume is required. Linux x86_64 was fully linked
 through a cross linker on macOS; execution on Linux x86_64 was outside this
 build criterion.

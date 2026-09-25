@@ -58,6 +58,9 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 7. Performance claims are measured by the maintained benchmark (`make bench`) with recorded limits.
 8. No polling where an event exists, no symbolic links, no relative paths in configuration and no
    temporary scripts for repeatable work: repeatable commands are make targets or tools in Git.
+9. Containerctl verification mounts source checkouts read only. When a build needs host inspection
+   and cache persistence across container replacement, mount writable caches and build output from
+   absolute host paths under ignored `var/`; verify mount access and cache reuse after replacement.
 
 ## Records
 
