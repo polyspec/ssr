@@ -59,6 +59,16 @@ class WorkspaceTest(unittest.TestCase):
             errors = check.check_words(root)
             self.assertEqual(len(errors), 2)
 
+    def test_nested_installed_package_documents_are_excluded(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            package = root / "crates" / "sample" / "node_modules" / "package"
+            package.mkdir(parents=True)
+            (package / "README.md").write_text("orphan site [missing](absent.md)\n")
+            (root / "record.md").write_text("orphan site [missing](absent.md)\n")
+            self.assertEqual(len(check.check_pairs_and_links(root)), 2)
+            self.assertEqual(len(check.check_words(root)), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

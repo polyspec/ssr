@@ -42,6 +42,10 @@ procedure. Each item names its dependencies and its completion evidence.
   every crate compiles as edition 2024; `check` fails for invalid Rust formatting, Clippy warnings,
   dependency findings, invalid records or terms, broken document pairs or links, and failed or
   timed-out tests; `bench` is an executable target.
+- [o] S-1-1 Limit document and terminology checks to maintained sources. Installed package files
+  under `node_modules` are dependencies and must not be checked as product records. Depends on:
+  S-1. Evidence: the checker reports an invalid maintained document and ignores a package README
+  in nested `node_modules`; `make check` exits with 0 after packages are installed.
 - [ ] S-2 Implement `ssr-core`: the render call `Page{render,title,language,props,state}` of
   `POST /_render` with the render mode `ssr` or `csr`, its result (HTML and the output state), and its
   errors. Cache headers are not part of this crate. Depends on:
