@@ -22,3 +22,7 @@
   dragonbox_ecma 0.1.12 because the build depends on these exact crate versions.
 - Verify React TSX server and client bundles, CSS imports and hashed asset output with Rust APIs.
   Package CSS resolution and URL replacement require explicit source and asset handling.
+- Define the page JSON contract and render result in `ssr-core`. Ordered JSON preserves object
+  order and number tokens; invalid fields and input return errors.
+- Exclude unpublished local packages from the license check because the JSON package is consumed
+  from a local source checkout. Registry dependencies remain subject to the license policy.

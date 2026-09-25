@@ -3,6 +3,10 @@
 version = 4
 
 [[package]]
+name = "ordered-json"
+version = "0.0.1"
+
+[[package]]
 name = "ssr-adapter-react"
 version = "0.0.1"
 
@@ -25,6 +29,9 @@ version = "0.0.1"
 [[package]]
 name = "ssr-core"
 version = "0.0.1"
+dependencies = [
+ "ordered-json",
+]
 
 [[package]]
 name = "ssr-runtime"

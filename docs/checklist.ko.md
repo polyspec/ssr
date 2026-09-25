@@ -47,9 +47,12 @@
 - [o] S-1-3 필요한 빌드 의존성의 라이선스를 검토하고 `deny.toml`에 두 크레이트의 정확한 버전만
   허용한다. 다른 크레이트와 버전에는 공통 라이선스 정책을 유지한다. 의존: S-1-2.
   증거: 지정된 버전의 라이선스 검사는 통과하고 다른 버전은 실패하며, `make check` 종료 코드 0.
-- [ ] S-2 `ssr-core`를 구현한다: 렌더 모드 `ssr` 또는 `csr`을 가진 `POST /_render`의 렌더 호출
+- [o] S-2 `ssr-core`를 구현한다: 렌더 모드 `ssr` 또는 `csr`을 가진 `POST /_render`의 렌더 호출
   `Page{render,title,language,props,state}`, 결과(HTML과 출력 상태), 오류. 캐시 헤더는 이 크레이트에
-  포함하지 않는다. 의존: S-1. 증거: JSON fixture가 ordered-json으로 왕복.
+  포함하지 않는다. 의존: S-1. 증거: JSON fixture가 ordered-json으로 왕복. 완료 기준: 필수 필드가
+  정확히 다섯 개이고 `render`는 `ssr` 또는 `csr`, `title`과 `language`는 문자열, `props`는 객체,
+  `state`는 모든 JSON 값이다. 필드 누락·추가, 잘못된 타입과 JSON은 오류를 반환한다.
+  [렌더 계약](core.ko.md)을 따른다.
 - [o] S-3 번들러를 검증한다: rolldown 1.2.11의 Rust API로 React TSX에서 코드 분할과 내용 해시 이름을 가진 서버
   번들과 클라이언트 번들을 만들고, lightningcss 1.0.0-alpha.72로 `node_modules`의 `@import`와 `url()` 재작성을
   포함한 CSS를 묶고, 글꼴과 이미지(png, svg, jpg, gif, webp, avif, ico, woff, woff2, ttf)를 해시 파일로 산출한다.

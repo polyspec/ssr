@@ -14,3 +14,6 @@ resolver = "3"
 [workspace.package]
 version = "0.0.1"
 license = "MIT"
+
+[workspace.dependencies]
+ordered-json = { path = "/opt/polyspec/ordered-json/rust", version = "=0.0.1" }
