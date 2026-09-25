@@ -59,10 +59,13 @@ procedure. Each item names its dependencies and its completion evidence.
   `deny.toml`. All other crates and versions retain the common license policy. Depends on: S-1-2.
   Evidence: the selected versions pass the license check; another version fails it; `make check`
   exits with 0.
-- [ ] S-2 Implement `ssr-core`: the render call `Page{render,title,language,props,state}` of
+- [o] S-2 Implement `ssr-core`: the render call `Page{render,title,language,props,state}` of
   `POST /_render` with the render mode `ssr` or `csr`, its result (HTML and the output state), and its
   errors. Cache headers are the policy of the consumer and are not part of this crate. Depends on:
-  S-1. Evidence: the JSON fixtures round-trip through ordered-json.
+  S-1. Evidence: the JSON fixtures round-trip through ordered-json. Acceptance: exactly five
+  required fields; `render` is `ssr` or `csr`; `title` and `language` are strings; `props` is an
+  object; `state` is any JSON value. Missing or extra fields, invalid types and invalid JSON
+  return errors. See [render contract](core.md).
 - [o] S-3 Verify the bundler: with the Rust API of rolldown 1.2.11, build a server bundle and a
   client bundle from TSX with React, code splitting and content-hashed names, and with
   lightningcss 1.0.0-alpha.72 bundle CSS with `@import` from `node_modules` and `url()` rewriting,

@@ -3,3 +3,6 @@ name = "ssr-core"
 version.workspace = true
 edition = "2024"
 license.workspace = true
+
+[dependencies]
+ordered-json.workspace = true
