@@ -23,7 +23,11 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 - `docs/checklist.md` is the only task tracker. `docs/checklist.ko.md` has identical task IDs and
   states. Do not create another checklist. Split an item into numbered sub-items or add items when
   needed.
-- States: `[ ]` waiting, `[~]` in progress, `[o]` complete.
+- States: `[ ]` waiting, `[~]` in progress, `[o]` complete, `[!]` temporarily bypassed.
+  Use `[!]` only with an explicit reason. A bypass is not completion. Record the cause and retry
+  condition in the item, and resume it without waiting for permission when the retry condition is
+  met. Audit only `[!]` items and their causes and retry conditions; do not repeat unrelated full
+  test suites for that audit.
 - Work in parallel and control work in progress. Independent items A, B, C and D may run at the same
   time; starting new work is not restricted. Do not advance existing items partially while adding
   more `[~]` items so that only the number of unfinished items grows. For example, A[~] and D[~]

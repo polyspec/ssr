@@ -11,7 +11,7 @@ RECORD_WORDS = (
 )
 TERM_WORDS = ("site", "endpoint", "skin", "setting", "사이트", "엔드포인트", "스킨")
 LINK = re.compile(r"(?<!!)\[[^]]*\]\(([^)]+)\)")
-STATE = re.compile(r"^- \[([ ~o])\] (S-\d+(?:-\d+)?)\b", re.MULTILINE)
+STATE = re.compile(r"^- \[([ ~o!])\] (S-\d+(?:-\d+)?)\b", re.MULTILINE)
 
 
 def markdown_files(root):
