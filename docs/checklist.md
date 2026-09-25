@@ -101,11 +101,11 @@ procedure. Each item names its dependencies and its completion evidence.
   identifies the server entry, client entry, client styles, server chunks and public assets with
   SHA-256 digests. Evidence: a sample application builds; the manifest and bytes match; the hashes
   and output bytes are stable across two builds.
-- [ ] S-6 Implement `ssr-runtime`: a pool of isolates with one isolate per worker thread and a
+- [o] S-6 Implement `ssr-runtime`: a pool of isolates with one isolate per worker thread and a
   bounded queue, the bundle compiled once per isolate, own operations for `console` and
   `crypto.getRandomValues` from the operating system, no fetch, I/O timers, files or network, a
   timeout that terminates a running script, and global state reset between requests. Depends on:
-  S-2, S-4. Evidence: a global change of request A is absent in request B; a script that does not end
+  S-2, S-4, S-4-2. Evidence: a global change of request A is absent in request B; a script that does not end
   is terminated at the timeout; a full queue returns an error; the Web API cases pass.
 - [ ] S-7 Implement the React adapter for the first consumer: SSR renders HTML with the render state
   output; CSR returns the static shell of the same client bundle; the client hydrates the SSR HTML
