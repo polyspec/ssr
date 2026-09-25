@@ -3,3 +3,14 @@ name = "ssr-runtime"
 version.workspace = true
 edition = "2024"
 license.workspace = true
+
+[dependencies]
+ssr-core = { path = "../ssr-core", version = "=0.0.1" }
+deno_core.workspace = true
+crossbeam-channel.workspace = true
+getrandom.workspace = true
+ordered-json.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+wait-timeout.workspace = true
