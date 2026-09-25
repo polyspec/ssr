@@ -10,3 +10,6 @@ deno_webidl = "=0.259.0"
 deno_web = "=0.290.0"
 
 [workspace]
+
+[patch.crates-io]
+v8 = { path = "/Users/maxkwon/soksakim-project/v8-local" }

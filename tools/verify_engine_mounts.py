@@ -6,7 +6,12 @@ import sys
 import time
 
 
-EXPECTED = {"/src": "ro", "/cargo": "rw", "/target": "rw"}
+EXPECTED = {
+    "/src": "ro",
+    "/Users/maxkwon/soksakim-project/v8-local": "ro",
+    "/cargo": "rw",
+    "/target": "rw",
+}
 
 
 def main() -> int:

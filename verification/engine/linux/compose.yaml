@@ -10,6 +10,7 @@ services:
       RUSTY_V8_ARCHIVE: /src/var/v8/librusty_v8_simdutf_release_aarch64-unknown-linux-gnu.a.gz
     volumes:
       - ${SSR_SOURCE_DIR}:/src:ro
+      - ${SSR_V8_DIR}:/Users/maxkwon/soksakim-project/v8-local:ro
       - ${SSR_CARGO_DIR}:/cargo
       - ${SSR_TARGET_DIR}:/target
     cpus: "4"

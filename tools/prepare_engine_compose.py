@@ -13,11 +13,16 @@ OUTPUT = ROOT / "var/engine-compose.yaml"
 def main() -> int:
     cargo = ROOT / "var/engine-cargo"
     target = ROOT / "var/engine-target"
+    v8 = Path("/Users/maxkwon/soksakim-project/v8-local")
+    if not (v8 / "Cargo.toml").is_file():
+        print(f"FAIL engine Compose preparation: missing V8 source {v8}", file=sys.stderr)
+        return 1
     cargo.mkdir(parents=True, exist_ok=True)
     target.mkdir(parents=True, exist_ok=True)
     try:
         content = Template(TEMPLATE.read_text()).substitute(
             SSR_SOURCE_DIR=ROOT,
+            SSR_V8_DIR=v8,
             SSR_CARGO_DIR=cargo,
             SSR_TARGET_DIR=target,
         )

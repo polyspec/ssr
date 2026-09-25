@@ -20,6 +20,13 @@ variable selects an absolute local archive path. The build script accepts this
 path without checking SHA-256; `tools/verify_engine.py` verifies the compressed
 archive before invoking Cargo.
 
+The V8 source checkout keeps version 150.4.0 and selects `pastey 0.2.3` as
+the compile-time `paste` macro dependency. The previous macro package has a
+maintenance advisory and no patched release. The replacement changes the
+dependency package, not the V8 Rust macro calls or the prebuilt archive.
+The engine verification workspace uses the absolute local V8 checkout. Engine
+verification checks all four target builds and links after the dependency change.
+
 | Target | Compressed archive SHA-256 |
 | --- | --- |
 | `aarch64-apple-darwin` | `5aeffd8d5a0c1b79ac1d70af83d5b19099655fd9c645a794dc43f101f779838c` |
@@ -45,6 +52,8 @@ host paths in the ignored `var/engine-compose.yaml` file so that later
 replacing the container preserves their contents. The image, container and
 hostname use the permitted test installation name. The native GNU linker
 retains the Rust target's link arguments.
+The local V8 checkout is also mounted read only at its absolute Cargo patch
+path. The container cannot modify either source checkout.
 
 ## Build evidence
 
@@ -55,19 +64,19 @@ on the target operating system.
 
 | Target | Full build and link | Execution | Evidence |
 | --- | --- | --- | --- |
-| `aarch64-apple-darwin` | Pass | Pass on the host | Mach-O arm64 executable |
-| `x86_64-apple-darwin` | Pass | Pass through Rosetta | Mach-O x86_64 executable |
-| `x86_64-unknown-linux-gnu` | Pass with the Zig cross linker | Not run on Linux | ELF x86-64 executable |
-| `aarch64-unknown-linux-gnu` | Pass in an ARM64 Linux container | Pass in the same container | ELF AArch64 executable; SHA-256 `3441cc6717b47e05969ae39844612bbc4ff213dd88ec7df14b89943bf65ef1bb` |
+| `aarch64-apple-darwin` | Pass | Pass on the host | Mach-O arm64; SHA-256 `39cd07f5f6a87f16cda29737753b8936244435ff391e5d8a3faff4dc0bdc3ad3` |
+| `x86_64-apple-darwin` | Pass | Pass through Rosetta | Mach-O x86_64; SHA-256 `acb98063a9b95ed015a289918ecfd956d26b5085ab9ef6a78d4536a2a769eb1b` |
+| `x86_64-unknown-linux-gnu` | Pass with the Zig cross linker | Not run on Linux | ELF x86-64; SHA-256 `7d6be12196b0baea76a2118948f914eebe807ca4e0b5e0d7c31bad87e938f40a` |
+| `aarch64-unknown-linux-gnu` | Pass in an ARM64 Linux container | Pass in the same container | ELF AArch64; SHA-256 `c4687edd8619e2e9cb04cf639d86e1b8532485f9c29e08bdfc3ec10866282258` |
 
-The native AArch64 Linux build completed with Rust 1.98.1 and the archive digest
-listed above. Mount inspection confirmed `/src` as read only and `/cargo` and
-`/target` as writable host mounts. `containerctl status` read the generated
-Compose file without a project error. After replacing only the engine container,
-the cached `deno_core 0.412.0` source and linked program remained visible on the
-host. The repeated Cargo build finished in 0.51 seconds without compiling a
-crate; the executable still had SHA-256
-`3441cc6717b47e05969ae39844612bbc4ff213dd88ec7df14b89943bf65ef1bb`
-and ran in the replacement container. No named volume is required. Linux x86_64 was fully linked
-through a cross linker on macOS; execution on Linux x86_64 was outside this
-build criterion.
+The four builds used V8 150.4.0 with the maintained macro package. The native
+AArch64 Linux build completed with Rust 1.98.1 and the archive digest listed
+above. Mount inspection confirmed `/src` and the V8 checkout as read only and
+`/cargo` and `/target` as writable host mounts. `containerctl status` read the
+absolute Compose path without a project error. After replacing only the engine
+container, the cached source and linked program remained visible on the host.
+The repeated Cargo build compiled no crates and finished in 0.50 seconds; the
+executable retained its SHA-256 digest and ran in the replacement container.
+`make verify-engine-deps` reports no advisory, license, source or ban error.
+No named volume is required. Linux x86_64 was fully linked through a cross
+linker on macOS; execution on Linux x86_64 was outside this build criterion.

@@ -1,4 +1,4 @@
-.PHONY: check bench verify-engine-linux-arm64 verify-build
+.PHONY: check bench verify-engine-linux-arm64 verify-engine-deps verify-build
 
 check:
 	npm ci --prefix tools/build-probe/tests/fixtures --ignore-scripts --no-audit --no-fund
@@ -7,6 +7,7 @@ check:
 	cargo fmt --all -- --check
 	cargo clippy --workspace --all-targets --locked -- -D warnings
 	cargo deny check
+	$(MAKE) verify-engine-deps
 	cargo nextest run --workspace --locked --no-tests fail
 
 bench:
@@ -20,6 +21,9 @@ verify-engine-linux-arm64:
 	python3 tools/verify_engine_status.py
 	container exec -w /src soksakim-test-engine python3 /src/tools/verify_engine_mounts.py
 	container exec -w /src soksakim-test-engine python3 /src/tools/verify_engine.py aarch64-unknown-linux-gnu
+
+verify-engine-deps:
+	cargo deny --manifest-path verification/engine/Cargo.toml --config deny.toml check --hide-inclusion-graph
 
 verify-build:
 	npm ci --prefix tools/build-probe/tests/fixtures --ignore-scripts --no-audit --no-fund
