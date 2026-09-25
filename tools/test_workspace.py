@@ -52,6 +52,17 @@ class WorkspaceTest(unittest.TestCase):
                 check.check_pairs_and_links(root),
             )
 
+    def test_document_checks_compare_nested_subitem_state(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            (root / "docs").mkdir()
+            (root / "docs/checklist.md").write_text("- [o] S-0-2-1 Define the threshold.\n")
+            (root / "docs/checklist.ko.md").write_text("- [ ] S-0-2-1 기준 정의.\n")
+            self.assertIn(
+                "docs/checklist.md: item IDs or states differ from Korean document",
+                check.check_pairs_and_links(root),
+            )
+
     def test_record_and_term_checks_report_prohibited_words(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = pathlib.Path(temporary)
