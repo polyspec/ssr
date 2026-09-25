@@ -14,6 +14,8 @@
 - Verify the engine dependency versions and V8 archive digests. Full builds link for macOS arm64,
   macOS x86_64, Linux x86_64 and Linux AArch64. The Linux AArch64 program executes in a native
   container.
+- Bind the engine verification Cargo cache and build output to ignored host directories. The
+  source remains read only, and a replacement engine container reuses the linked program.
 - Allow the specified dependency licenses in cargo-deny because build dependencies use licenses
   beyond MIT. Unknown licenses remain errors.
 - Allow BSL-1.0 for xxhash-rust 0.8.18 and Apache-2.0 with the LLVM exception for

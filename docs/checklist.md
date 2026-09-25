@@ -74,6 +74,13 @@ procedure. Each item names its dependencies and its completion evidence.
   on aarch64 and x86_64 macOS and Linux, record how `deno_v8` 0.4.0 obtains its prebuilt archive,
   the variable that selects a local archive and its SHA-256. Depends on: S-1. Evidence: the builds
   and `docs/engine.md`.
+- [o] S-4-1 Mount the engine verification source read only and the Cargo home and target as writable
+  host directories under ignored `var/`. The host inspects the files directly, and a replacement of
+  the engine container retains the cached crates and build output. Depends on: S-4. Acceptance: all
+  three mounts have the stated access, `containerctl status` reads the absolute path configuration,
+  the second build after container replacement reuses the linked program without compiling crates,
+  and no named volume is created. Evidence: the mount and status inspections, two builds and host
+  file inspection recorded in `docs/engine.md`.
 - [ ] S-5 Implement `ssr-build` as decided by S-3: server and client bundles, CSS, hashed assets and
   the manifest. Depends on: S-2, S-3. Evidence: a sample application builds; the hashes are stable
   across two builds.
