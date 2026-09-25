@@ -16,6 +16,10 @@
   container.
 - Bind the engine verification Cargo cache and build output to ignored host directories. The
   source remains read only, and a replacement engine container reuses the linked program.
+- Select the maintained compile-time identifier macro package in the local V8 source checkout.
+  Rebuild and link the engine on four targets, mount that checkout read only in the test container,
+  and retain the cached build across container replacement because the previous macro package has
+  no maintained release.
 - Allow the specified dependency licenses in cargo-deny because build dependencies use licenses
   beyond MIT. Unknown licenses remain errors.
 - Allow BSL-1.0 for xxhash-rust 0.8.18 and Apache-2.0 with the LLVM exception for
