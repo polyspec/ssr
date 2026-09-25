@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "name": "ssr-build-verification",
+  "version": "0.0.1",
+  "dependencies": {
+    "@fontsource/inter": "5.2.5",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  }
+}

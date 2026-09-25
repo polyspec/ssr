@@ -63,13 +63,13 @@ procedure. Each item names its dependencies and its completion evidence.
   `POST /_render` with the render mode `ssr` or `csr`, its result (HTML and the output state), and its
   errors. Cache headers are not part of this crate. Depends on:
   S-1. Evidence: the JSON fixtures round-trip through ordered-json.
-- [ ] S-3 Verify the bundler: with the Rust API of rolldown 1.2.11, build a server bundle and a
+- [o] S-3 Verify the bundler: with the Rust API of rolldown 1.2.11, build a server bundle and a
   client bundle from TSX with React, code splitting and content-hashed names, and with
   lightningcss 1.0.0-alpha.72 bundle CSS with `@import` from `node_modules` and `url()` rewriting,
   and emit fonts and images (png, svg, jpg, gif, webp, avif, ico, woff, woff2, ttf) as hashed files.
   Record the result and the chosen API in `docs/build.md`; an unsupported case is written there with
-  its replacement before S-4 starts. Depends on: S-1. Evidence: the sample build of each case and the
-  document.
+  its replacement before S-5 starts. Depends on: S-1. Evidence: the sample build of each case and the
+  document. Completion requires a supported CSS bundler dependency and a passing `make check`.
 - [o] S-4 Verify the engine: build deno_core 0.412.0 with deno_webidl 0.259.0 and deno_web 0.290.0
   on aarch64 and x86_64 macOS and Linux, record how `deno_v8` 0.4.0 obtains its prebuilt archive,
   the variable that selects a local archive and its SHA-256. Depends on: S-1. Evidence: the builds

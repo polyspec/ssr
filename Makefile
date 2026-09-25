@@ -1,4 +1,4 @@
-.PHONY: check bench verify-engine-linux-arm64
+.PHONY: check bench verify-engine-linux-arm64 verify-build
 
 check:
 	python3 tools/run_tests.py
@@ -16,3 +16,10 @@ verify-engine-linux-arm64:
 	container build --platform linux/arm64 -f verification/engine/linux/Dockerfile -t localhost/ssr-engine-test:0.0.1 verification/engine/linux
 	SSR_SOURCE_DIR=$(CURDIR) containerctl -f verification/engine/linux/compose.yaml up
 	container exec -w /src ssr-engine-test-engine python3 /src/tools/verify_engine.py aarch64-unknown-linux-gnu
+
+verify-build:
+	npm ci --prefix tools/build-probe/tests/fixtures --ignore-scripts --no-audit --no-fund
+	cargo fmt --manifest-path tools/build-probe/Cargo.toml -- --check
+	CARGO_TARGET_DIR=$(CURDIR)/target cargo clippy --manifest-path tools/build-probe/Cargo.toml --all-targets --locked -- -D warnings
+	CARGO_TARGET_DIR=$(CURDIR)/target cargo nextest run --manifest-path tools/build-probe/Cargo.toml --config-file $(CURDIR)/.config/nextest.toml --test build_verification --locked --no-tests fail
+	cargo deny --manifest-path tools/build-probe/Cargo.toml --config deny.toml --locked check --hide-inclusion-graph

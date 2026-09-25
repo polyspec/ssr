@@ -1,0 +1,13 @@
+[package]
+name = "ssr-build-verification"
+version = "0.0.1"
+edition = "2024"
+license = "MIT"
+
+[workspace]
+
+[dependencies]
+rolldown = "=1.2.11"
+lightningcss = { version = "=1.0.0-alpha.72", path = "/opt/ssr/lightningcss-local", default-features = false, features = ["bundler"] }
+tokio = { version = "=1.53.1", features = ["macros", "rt-multi-thread"] }
+sha2 = "=0.11.0"

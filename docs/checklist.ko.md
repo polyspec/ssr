@@ -50,11 +50,12 @@
 - [ ] S-2 `ssr-core`를 구현한다: 렌더 모드 `ssr` 또는 `csr`을 가진 `POST /_render`의 렌더 호출
   `Page{render,title,language,props,state}`, 결과(HTML과 출력 상태), 오류. 캐시 헤더는 이 크레이트에
   포함하지 않는다. 의존: S-1. 증거: JSON fixture가 ordered-json으로 왕복.
-- [ ] S-3 번들러를 검증한다: rolldown 1.2.11의 Rust API로 React TSX에서 코드 분할과 내용 해시 이름을 가진 서버
+- [o] S-3 번들러를 검증한다: rolldown 1.2.11의 Rust API로 React TSX에서 코드 분할과 내용 해시 이름을 가진 서버
   번들과 클라이언트 번들을 만들고, lightningcss 1.0.0-alpha.72로 `node_modules`의 `@import`와 `url()` 재작성을
   포함한 CSS를 묶고, 글꼴과 이미지(png, svg, jpg, gif, webp, avif, ico, woff, woff2, ttf)를 해시 파일로 산출한다.
-  결과와 선택한 API를 `docs/build.md`에 기록하며, 지원되지 않는 경우는 S-4 시작 전에 대체 방법과 함께 적는다.
-  의존: S-1. 증거: 경우별 샘플 빌드와 문서.
+  결과와 선택한 API를 `docs/build.md`에 기록하며, 지원되지 않는 경우는 S-5 시작 전에 대체 방법과 함께 적는다.
+  의존: S-1. 증거: 경우별 샘플 빌드와 문서. 완료하려면 지원되는 CSS 번들러 의존성과
+  `make check` 통과가 필요하다.
 - [o] S-4 엔진을 검증한다: deno_core 0.412.0을 deno_webidl 0.259.0, deno_web 0.290.0과 함께 aarch64·x86_64
   macOS와 Linux에서 빌드하고, `deno_v8` 0.4.0이 prebuilt 아카이브를 얻는 방법, 로컬 아카이브를 고르는 변수, 그
   SHA-256을 기록한다. 의존: S-1. 증거: 빌드와 `docs/engine.md`.

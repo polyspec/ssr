@@ -15,3 +15,5 @@
   지정되지 않은 라이선스는 계속 오류다.
 - 빌드가 두 크레이트의 정확한 버전에 의존하므로 xxhash-rust 0.8.18의 BSL-1.0과
   dragonbox_ecma 0.1.12의 LLVM 예외가 적용된 Apache-2.0을 허용한다.
+- Rust API로 React TSX 서버·클라이언트 번들, CSS import와 해시 자산 출력을 검증한다.
+  패키지 CSS 해석과 URL 치환에는 명시적인 소스·자산 처리가 필요하다.
