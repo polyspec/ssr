@@ -66,6 +66,10 @@ procedure. Each item names its dependencies and its completion evidence.
   required fields; `render` is `ssr` or `csr`; `title` and `language` are strings; `props` is an
   object; `state` is any JSON value. Missing or extra fields, invalid types and invalid JSON
   return errors. See [render contract](core.md).
+- [o] S-2-1 Reject duplicate decoded object keys at every depth of a page JSON request,
+  including keys with equivalent escape sequences. Depends on: S-2. Evidence: tracked
+  tracked duplicate-key cases fail parsing through ordered-json; unique fixtures still round-trip;
+  `make check` exits with 0.
 - [o] S-3 Verify the bundler: with the Rust API of rolldown 1.2.11, build a server bundle and a
   client bundle from TSX with React, code splitting and content-hashed names, and with
   lightningcss 1.0.0-alpha.72 bundle CSS with `@import` from `node_modules` and `url()` rewriting,

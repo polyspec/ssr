@@ -26,3 +26,5 @@
   order and number tokens; invalid fields and input return errors.
 - Exclude unpublished local packages from the license check because the JSON package is consumed
   from a local source checkout. Registry dependencies remain subject to the license policy.
+- Reject repeated decoded object keys in page JSON at every depth because retaining only the
+  last value discards request input.
