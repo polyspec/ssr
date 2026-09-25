@@ -10,6 +10,14 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   `ssr-adapter-react`, `ssr-adapter-vue`, `ssr-adapter-svelte`, `ssr-adapter-vanilla` and `ssr-server`.
 - The library runs no Node process: bundling and rendering run inside the Rust process.
 
+## Vocabulary and design
+
+- Do not create new words for the public API or documents beyond the names in the checklist. When a
+  new name is needed, collect every needed name and ask the user once for approval.
+- Keep no backward compatibility, fallback or hidden error; invalid input is an error.
+- When a decision of the agent is shown wrong, the report names that decision first.
+- `var/handoff/work.md` lists the specification sources of each item; it is not tracked.
+
 ## Checklist
 
 - `docs/checklist.md` is the only task tracker. `docs/checklist.ko.md` has identical task IDs and
@@ -49,7 +57,10 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 
 - Records are the commit log, documentation, comments, i18n text and `docs/changelog.md`
   (+ `.ko.md`). They describe the current product and its changes with explicit subjects, actions
-  and objects, in plain wording without metaphors.
+  and objects, in plain wording without metaphors, personification or colloquial words. Operation
+  names are used directly (create, publish, receive, register, remove, return, fail). A cause is
+  stated in one sentence. Words such as envelope, gate, orphan, adopt, retire, dead, first-class,
+  carries, speaks and answers are not used for product behavior.
 - A record states a defect as a fact about ssr itself: the input, the behaviour and the expected
   behaviour. It names no reporter, no source and nothing outside ssr, and holds no origin of the
   code, no porting or migration history, no authorship or tool attribution (including Co-Authored-By
