@@ -2,6 +2,30 @@
 
 # Build verification
 
+## Product build contract
+
+`ssr-build` accepts absolute paths to the application root, server TSX entry, client TSX entry
+and CSS entry, plus a local absolute URL path for public assets. The route may be `/` or contain
+segments of ASCII letters, digits, hyphens, underscores and periods; empty, `.` and `..` segments
+are invalid. The entries and CSS must remain
+inside the application root. The build returns a manifest and a map of output paths to bytes; it
+does not publish those bytes. The manifest JSON is created with ordered-json and identifies the
+server entry, client entry, styles, server chunks and public assets with their paths, URLs where
+public, content types and full SHA-256 digests. JavaScript output keeps Rolldown's content-hashed
+names; CSS and CSS URL assets use SHA-256 names. Identical server and client assets share one
+public file. A path collision with different bytes is an error.
+
+JavaScript asset imports use Rolldown's `load` and `resolve_file_url` hooks. The load hook emits
+the file, and the URL hook returns a JavaScript string literal containing the public absolute URL.
+Server and client code therefore reference the same public asset route. The build rejects an asset
+outside the application root and an unsupported asset query or fragment.
+
+The tracked sample must build twice with identical files and manifest bytes. Every manifest digest
+must match its bytes. The client entry must contain React client code, the server entry must contain
+React rendering code, a dynamic import must emit a separate chunk, and all ten listed image and
+font types must preserve their source bytes. Package CSS and local CSS `url()` values must refer to
+the corresponding public files. Missing entries, imports or URL assets must fail.
+
 ## Acceptance
 
 The tracked sample must use rolldown 1.2.11 through its Rust API to build separate server and

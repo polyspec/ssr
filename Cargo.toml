@@ -17,3 +17,9 @@ license = "MIT"
 
 [workspace.dependencies]
 ordered-json = { path = "/Users/maxkwon/ordered-json/rust", version = "=0.0.1" }
+rolldown = "=1.2.11"
+rolldown_common = "=1.2.11"
+rolldown_plugin_utils = "=1.2.11"
+lightningcss = { version = "=1.0.0-alpha.72", path = "/Users/maxkwon/soksakim-project/lightningcss-local", default-features = false, features = ["bundler"] }
+tokio = { version = "=1.53.1", features = ["macros", "rt-multi-thread"] }
+sha2 = "=0.11.0"

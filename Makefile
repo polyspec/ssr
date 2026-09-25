@@ -1,6 +1,7 @@
 .PHONY: check bench verify-engine-linux-arm64 verify-build
 
 check:
+	npm ci --prefix tools/build-probe/tests/fixtures --ignore-scripts --no-audit --no-fund
 	python3 tools/run_tests.py
 	python3 tools/check.py
 	cargo fmt --all -- --check
