@@ -57,7 +57,7 @@ procedure. Each item names its dependencies and its completion evidence.
   Record the result and the chosen API in `docs/build.md`; an unsupported case is written there with
   its replacement before S-4 starts. Depends on: S-1. Evidence: the sample build of each case and the
   document.
-- [!] S-4 Verify the engine: build deno_core 0.412.0 with deno_webidl 0.259.0 and deno_web 0.290.0
+- [~] S-4 Verify the engine: build deno_core 0.412.0 with deno_webidl 0.259.0 and deno_web 0.290.0
   on aarch64 and x86_64 macOS and Linux, record how `deno_v8` 0.4.0 obtains its prebuilt archive,
   the variable that selects a local archive and its SHA-256. Depends on: S-1. Evidence: the builds
   and `docs/engine.md`. Cause: the installed Zig linker rejects the AArch64 Linux Rust target's

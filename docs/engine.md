@@ -49,7 +49,7 @@ system.
 The AArch64 Linux Rust target supplies `--fix-cortex-a53-843419` to its linker.
 The installed Zig linker rejects that argument. The installed LLVM linker
 accepts it, but the LLVM Clang driver has no AArch64 GNU startup files or
-libraries. S-4 is temporarily bypassed. Retry the full AArch64 Linux build with an
+libraries. S-4 remains in progress. Retry the full AArch64 Linux build with an
 AArch64 GNU linker and libraries that accept the Rust target's link arguments,
 or in an isolated AArch64 Linux build environment. Record the resulting linked
 executable before completing S-4.
