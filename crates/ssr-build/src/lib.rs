@@ -4,8 +4,10 @@ mod asset_url;
 mod css;
 mod js;
 mod manifest;
+mod public;
 
 pub use manifest::{BuildFile, Manifest};
+pub use public::{PublicFile, PublicFiles, PublishError};
 
 use std::collections::BTreeMap;
 use std::fmt;
