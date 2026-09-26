@@ -2,13 +2,9 @@
 
 # Checklist
 
-States: `[ ]` waiting, `[~]` in progress, `[o]` complete, `[!]` temporarily bypassed. Use `[!]`
-only when an unfinished item must be deliberately bypassed because work otherwise cannot advance
-to the next checklist item; do not defer a difficult item while work remains possible. A bypass is
-not completion. Record its cause and retry condition in the item, resume without permission when
-the condition is met, and audit only `[!]` items and those records without repeating unrelated
-full test suites. [AGENTS.md](../AGENTS.md) governs the
-procedure. Each item names its dependencies and its completion evidence.
+States: `[ ]` waiting, `[~]` in progress, `[o]` complete, `[!]` temporarily bypassed.
+[AGENTS.md](../AGENTS.md) defines the work procedure. Each item names its dependencies and
+completion evidence.
 
 ## Requirements
 
@@ -30,15 +26,12 @@ procedure. Each item names its dependencies and its completion evidence.
 - [o] S-0 Initialize the local Git repository with the author `min-median-max`, `AGENTS.md`, this
   checklist, the changelog and `.gitignore`. Depends on: none. Evidence: the first commit;
   `git remote -v` prints nothing.
-- [o] S-0-1 Add the requirements of the first consumer, the build and engine checks before
-  implementation, and order the items by that consumer. Depends on: S-0. Evidence: this change is
-  committed.
+- [o] S-0-1 Specify the first consumer's render, build, and engine requirements and their
+  verification items. Depends on: S-0. Evidence: the requirements above and the build and engine
+  acceptance criteria in S-3 and S-4 are committed.
 - [o] S-0-2 Define the temporary bypass state in both language versions of the procedure and
   checklist, and include it in the checklist state check. Depends on: S-0-1. Evidence: the document
   check validates both language versions and this change is committed.
-- [o] S-0-2-1 Limit temporary bypass to an unfinished item that prevents progress to the next
-  checklist item; prohibit deferring a difficult item while work remains possible. Depends on:
-  S-0-2. Evidence: the document check includes this sub-item and this change is committed.
 - [o] S-1 Create the Cargo workspace (`rust-toolchain.toml` with Rust 1.98.1, edition 2024) with the
   crates of [AGENTS.md](../AGENTS.md) and the Makefile targets `check` (rustfmt, clippy with
   `-D warnings`, `cargo deny check`, the record, terminology and document checks, the unit tests with
@@ -59,6 +52,11 @@ procedure. Each item names its dependencies and its completion evidence.
   `deny.toml`. All other crates and versions retain the common license policy. Depends on: S-1-2.
   Evidence: the selected versions pass the license check; another version fails it; `make check`
   exits with 0.
+- [ ] S-1-4 Enforce test ownership across the workspace. For each declared shared behavior,
+  run a base test in its owning crate and an actual use test in every consuming crate. Reject a
+  missing, misplaced, empty, failed, or timed-out test and a declaration that only names a file.
+  Depends on: S-1. Evidence: mutation cases fail for each invalid declaration, the declared tests
+  execute in their own crates, and `make check` runs the ownership check.
 - [o] S-2 Implement `ssr-core`: the render call `Page{render,title,language,props,state}` of
   `POST /_render` with the render mode `ssr` or `csr`, its result (HTML and the output state), and its
   errors. Cache headers are the policy of the consumer and are not part of this crate. Depends on:

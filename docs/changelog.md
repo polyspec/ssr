@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Remove procedure-only S-0-2-1 from the checklist and keep the priority and test placement
+  rules in AGENTS.md. Checklist items require a repository artifact and verifiable completion
+  evidence.
+
 - Require a `head` string in every runtime render result and preserve its bytes. Missing or
   invalid values fail because render output must remain complete. React, Vue and vanilla return
   an empty head and reject nonempty head output without a document placement rule.
