@@ -5,11 +5,16 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 ## Repository
 
 - This repository is developed locally. Do not add remotes and do not push.
-- After integrating a branch into `main`, verify its commits or equivalent changes are present,
-  its worktree is clean, and needed ignored inputs exist elsewhere; then remove the worktree and
-  local branch immediately. Preserve unintegrated or active work.
-- When a test-only branch has served its purpose, cherry-pick any useful changes into the owning
-  branch and discard the rest; then remove its worktree and local branch.
+- Name branches `{type}/{shortname}-{checklist ID}` and worktrees
+  `{project}-{shortname}-{checklist ID}`. After integrating a branch into `main`, verify its commits
+  or equivalent changes are present and its worktree is clean. Before removal, preserve any files
+  excluded by `.gitignore` that exist only in that worktree and are still needed. Then remove the
+  worktree and local branch immediately.
+  Preserve unintegrated or active work.
+- Before committing the related feature, cherry-pick useful commits from a test-only branch that
+  cannot be integrated into `main`, discard the remaining test-only changes, and remove its worktree
+  and branch. If removal is impossible, first add a numbered sub-item to the owning checklist with
+  the cause and exact removal condition.
 - JSON documents of the public contract use ordered-json.
 - Develop one `0.0.1` library. The crates are `ssr-core`, `ssr-build`, `ssr-runtime`,
   `ssr-adapter-react`, `ssr-adapter-vue`, `ssr-adapter-svelte`, `ssr-adapter-vanilla` and `ssr-server`.
