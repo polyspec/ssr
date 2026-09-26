@@ -59,6 +59,9 @@
   Restore each request context from the snapshot because rebuilding server globals on each
   render repeats initialization. Changed keys create snapshots; unused snapshot bytes are released.
   Bundle initialization returns an error at the configured timeout.
+- Create an independent V8 isolate group for each server snapshot and restore its worker isolates
+  in that group. The release source build provides separate pointer cages and external code space so
+  distinct application snapshots restore concurrently; unavailable group support fails.
 - Provide UTF-8 `TextEncoder` in every render context because the React server bundle requires it.
   Encoding and bounded `encodeInto` handle non-ASCII text and unpaired surrogates; invalid calls
   fail without adding file, network or timer operations.

@@ -3411,6 +3411,7 @@ dependencies = [
  "ssr-build",
  "ssr-core",
  "tokio",
+ "v8",
  "wait-timeout",
 ]
 
@@ -3881,6 +3882,7 @@ version = "150.4.0"
 dependencies = [
  "bindgen 0.72.1",
  "bitflags",
+ "cc",
  "fslock",
  "gzip-header",
  "home",

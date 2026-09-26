@@ -26,6 +26,7 @@ impl Key {
 
 pub(crate) struct Snapshot {
     bytes: Vec<u8>,
+    group: Arc<v8::IsolateGroup>,
 }
 
 impl Snapshot {
@@ -33,7 +34,7 @@ impl Snapshot {
         let parameters = v8::CreateParams::default()
             .external_references(Cow::Owned(web::external_references()))
             .snapshot_blob(v8::StartupData::from(self.bytes.clone()));
-        v8::Isolate::new(parameters)
+        self.group.new_isolate(parameters)
     }
 }
 
@@ -51,18 +52,27 @@ fn get_with_key(bundle: &str, key: Key, timeout: Duration) -> Result<Arc<Snapsho
     if let Some(snapshot) = cache.get(&key).and_then(Weak::upgrade) {
         return Ok(snapshot);
     }
+    JsRuntime::init_platform(None);
+    let group = Arc::new(
+        v8::IsolateGroup::create()
+            .ok_or(Error::Snapshot("independent isolate group unavailable"))?,
+    );
     let snapshot = Arc::new(Snapshot {
-        bytes: create(bundle, timeout)?,
+        bytes: create(&group, bundle, timeout)?,
+        group,
     });
     cache.retain(|_, entry| entry.strong_count() > 0);
     cache.insert(key, Arc::downgrade(&snapshot));
     Ok(snapshot)
 }
 
-fn create(bundle: &str, timeout: Duration) -> Result<Vec<u8>, Error> {
-    JsRuntime::init_platform(None);
-    let mut creator =
-        v8::Isolate::snapshot_creator(Some(Cow::Owned(web::external_references())), None);
+fn create(group: &v8::IsolateGroup, bundle: &str, timeout: Duration) -> Result<Vec<u8>, Error> {
+    let mut creator = v8::Isolate::snapshot_creator_in_group(
+        group,
+        Some(Cow::Owned(web::external_references())),
+        None,
+        None,
+    );
     let context = {
         v8::scope!(let scope, &mut creator);
         let context = v8::Context::new(scope, Default::default());
@@ -145,8 +155,9 @@ fn create(bundle: &str, timeout: Duration) -> Result<Vec<u8>, Error> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Key, get_with_key};
-    use std::sync::Arc;
+    use super::{Key, get, get_with_key};
+    use deno_core::v8;
+    use std::sync::{Arc, Barrier};
     use std::time::Duration;
 
     #[test]
@@ -204,5 +215,48 @@ mod tests {
         )
         .unwrap();
         assert!(!Arc::ptr_eq(&first, &changed_library));
+    }
+
+    #[test]
+    fn different_application_snapshots_restore_in_parallel() {
+        let values = ["Ada", "Bea", "Cia"];
+        let snapshots: Vec<_> = values
+            .iter()
+            .map(|value| {
+                get(
+                    &format!(
+                        "globalThis.marker = '{value}'; globalThis.render = (props, state) => ({{head:'', html:props.name, state}});"
+                    ),
+                    Duration::from_secs(10),
+                )
+                .unwrap()
+            })
+            .collect();
+        for _ in 0..10 {
+            let barrier = Arc::new(Barrier::new(values.len()));
+            std::thread::scope(|threads| {
+                let workers: Vec<_> = snapshots
+                    .iter()
+                    .zip(values)
+                    .map(|(snapshot, expected)| {
+                        let barrier = Arc::clone(&barrier);
+                        threads.spawn(move || {
+                            barrier.wait();
+                            let mut isolate = snapshot.isolate();
+                            v8::scope!(let scope, &mut isolate);
+                            let context = v8::Context::new(scope, Default::default());
+                            let scope = &mut v8::ContextScope::new(scope, context);
+                            let source = v8::String::new(scope, "globalThis.marker").unwrap();
+                            let script = v8::Script::compile(scope, source, None).unwrap();
+                            let actual = script.run(scope).unwrap().to_rust_string_lossy(scope);
+                            assert_eq!(actual, expected);
+                        })
+                    })
+                    .collect();
+                for worker in workers {
+                    worker.join().unwrap();
+                }
+            });
+        }
     }
 }

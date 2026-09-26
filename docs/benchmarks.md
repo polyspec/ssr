@@ -11,15 +11,16 @@ context creation. Memory is the change in live V8 heap bytes immediately around 
 not process resident memory. The command reports the largest observed change.
 
 The following output was measured on macOS 26.6.2, Apple M3 Pro, 36 GiB memory, Rust 1.98.1,
-using the Cargo development profile on 2026-09-26. The benchmark includes worker communication,
+using the Cargo development profile and the release V8 source build on 2026-09-26. The V8 build
+uses separate pointer cages and external code space. The benchmark includes worker communication,
 JSON parsing and result validation in call latency; it does not include bundle compilation or
 HTTP transport.
 
 | Concurrent calls | Calls | Renders/s | p50 ms | p99 ms | Reset p50 ms | Reset p99 ms | Peak heap change bytes |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | 128 | 4,632.2 | 0.212 | 0.292 | 0.189 | 0.221 | 201,200 |
-| 4 | 512 | 18,974.9 | 0.193 | 0.644 | 0.172 | 0.620 | 200,328 |
-| 16 | 2,048 | 32,586.9 | 0.439 | 1.271 | 0.182 | 1.008 | 203,288 |
+| 1 | 128 | 5,339.1 | 0.179 | 0.249 | 0.160 | 0.204 | 104,088 |
+| 4 | 512 | 15,582.5 | 0.195 | 0.486 | 0.167 | 0.408 | 104,312 |
+| 16 | 2,048 | 22,100.2 | 0.666 | 1.835 | 0.195 | 1.173 | 104,420 |
 
 The maintained benchmark enforces these limits for each scenario. The limits allow concurrent
 host work while still failing for a substantial regression from the measured run.
