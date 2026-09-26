@@ -51,6 +51,10 @@ async fn publish_creates_public_files_preserves_equal_files_and_rejects_changes(
     for chunk in &build.manifest.server_chunks {
         assert!(!dir.join(&chunk.path).exists());
     }
+    for map in &build.manifest.source_maps {
+        assert!(!dir.join(&map.path).exists());
+        assert!(map.url.is_none());
+    }
 
     let original_inode = fs::metadata(&client_path).unwrap().ino();
     public.publish(&dir).unwrap();
@@ -139,5 +143,9 @@ async fn public_files_reject_invalid_manifest_or_bytes() {
 
     let mut output = build(&config()).await.unwrap();
     output.manifest.styles[0].url = output.manifest.client.url.clone();
+    assert!(PublicFiles::new(&output).is_err());
+
+    let mut output = build(&config()).await.unwrap();
+    output.manifest.source_maps[0].url = Some("/assets/server.js.map".into());
     assert!(PublicFiles::new(&output).is_err());
 }

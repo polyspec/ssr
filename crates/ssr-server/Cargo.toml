@@ -7,6 +7,14 @@ license.workspace = true
 [dependencies]
 http.workspace = true
 ssr-build = { path = "../ssr-build", version = "=0.0.1" }
+ssr-core = { path = "../ssr-core", version = "=0.0.1" }
+ssr-runtime = { path = "../ssr-runtime", version = "=0.0.1" }
+ssr-adapter-react = { path = "../ssr-adapter-react", version = "=0.0.1" }
+sourcemap.workspace = true
+tracing.workspace = true
+sha2.workspace = true
 
 [dev-dependencies]
 sha2.workspace = true
+tracing-subscriber = { version = "=0.3.23", default-features = false, features = ["fmt"] }
+tokio.workspace = true

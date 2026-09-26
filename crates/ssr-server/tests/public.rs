@@ -20,6 +20,7 @@ fn files() -> PublicFiles {
                 sha256: String::new(),
                 content_type: "text/javascript; charset=utf-8".into(),
             },
+            source_maps: Vec::new(),
             client: BuildFile {
                 path: "client/app.js".into(),
                 url: Some("/assets/app.js".into()),

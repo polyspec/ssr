@@ -86,6 +86,11 @@ impl PublicFiles {
                 .server_chunks
                 .iter()
                 .any(|file| file.url.is_some())
+            || build
+                .manifest
+                .source_maps
+                .iter()
+                .any(|file| file.url.is_some())
         {
             return Err(PublishError::Invalid(
                 "server output has a public URL".into(),
