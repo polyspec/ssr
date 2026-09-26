@@ -123,10 +123,16 @@ procedure. Each item names its dependencies and its completion evidence.
   close a script element; invalid local client or style URLs and static shell values fail. Evidence:
   [React adapter](react.md) documents the contract, and a real Chrome browser verifies SSR
   hydration, CSR rendering, script input and static shell reuse at two paths.
-- [ ] S-8 Implement publication and serving: the public build files are written into a directory
+- [o] S-8 Implement publication and serving: the public build files are written into a directory
   atomically; an existing file with equal content stays; an existing file with other content is an
-  error; the build files are served with their content types. Depends on: S-5. Evidence: the three
-  publication cases and a serving case.
+  error; the build files are served with their content types. Depends on: S-5. Acceptance: only
+  manifest entries with public URLs are selected; their bytes and SHA-256 digests must agree; URL
+  paths must be safe and unique. Publication requires an existing absolute directory, preserves
+  equal files and unrelated files, rejects different bytes and nonregular targets, and makes each
+  new file visible only after its complete contents have been written. Serving handles GET and
+  HEAD for exact public URLs, returns the manifest content type and bytes, returns 404 for unknown
+  paths, and returns 405 for other methods. Evidence: the three publication cases, invalid input
+  cases and HTTP serving cases.
 - [ ] S-9 Implement `ssr-server`: `POST /_render`, tracing metrics for render time, pool wait and
   heap, and stack traces mapped through source maps with sourcemap 9.3.2. Depends on: S-7, S-8.
   Evidence: the HTTP cases and a mapped stack trace test.

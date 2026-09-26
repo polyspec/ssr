@@ -15,6 +15,17 @@ public, content types and full SHA-256 digests. JavaScript output keeps Rolldown
 names; CSS and CSS URL assets use SHA-256 names. Identical server and client assets share one
 public file. A path collision with different bytes is an error.
 
+`PublicFiles::new` selects only the client entry, styles and assets with public URLs. It verifies
+each URL, output byte sequence, SHA-256 digest and content type before publication or serving.
+`PublicFiles::publish` requires an existing absolute directory without symbolic links. It writes
+each public file under its URL path. Before writing, it rejects a different existing file or a
+nonregular target; equal files retain their existing file identity. A new file is written and
+synced under a temporary name in its destination directory, then linked to its final name without
+replacing an existing file. Unrelated files remain. The HTTP serving function in `ssr-server`
+accepts GET and HEAD for exact public URLs and returns the build bytes, content type, content
+length, digest ETag and immutable cache header. It returns 404 for other paths and 405 for other
+methods. Server bundles and server chunks are never public.
+
 JavaScript asset imports use Rolldown's `load` and `resolve_file_url` hooks. The load hook emits
 the file, and the URL hook returns a JavaScript string literal containing the public absolute URL.
 Server and client code therefore reference the same public asset route. The build rejects an asset

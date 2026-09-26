@@ -46,3 +46,6 @@
   CSR returns an empty root with unchanged input state, and a static shell can serve multiple paths.
   Escaped JSON prevents a request from closing its script element. A browser verifies hydration,
   CSR rendering and shell reuse because bundle inspection cannot verify DOM behavior.
+- Publish verified public build files into an absolute directory. Publication preserves equal
+  files and rejects changed files because published URLs must keep their bytes. Serve exact public
+  URLs with their content types and digests; server output remains private.
