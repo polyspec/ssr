@@ -180,10 +180,11 @@ completion evidence.
   reject a Promise that has no scheduled completion. Verify that React can render an application
   component without exposing a framework timer to that application. Depends on: S-6, S-7.
   Evidence: fulfilled, rejected and pending Promise tests, a React component test, and `make check` pass.
-- [ ] S-13-2 Provide isolated React scheduling and Web Streams, carry stream chunks from the V8
+- [o] S-13-2 Provide isolated React scheduling and Web Streams, carry stream chunks from the V8
   worker to the HTTP response after the shell is ready, and apply the request nonce to inline
   scripts and styles. Depends on: S-13-1, S-13-2-1, S-13-2-2, S-13-2-2-3. Evidence: the S-13 cases pass
-  with progressive chunks and fixed status and headers.
+  with progressive chunks and fixed status and headers. A reader rejection after the first body
+  chunk returns an explicit body error while the response keeps its initial status and headers.
 - [o] S-13-2-1 Build a separate private React framework bundle and an application server bundle
   that imports the same React instance. Validate the absolute framework entry,
   manifest bytes and SHA-256, source map and absence of a public URL. Depends on: S-13-1.
