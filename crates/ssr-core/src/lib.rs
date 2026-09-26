@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
-use ordered_json::{Kind, OrderedMap, Value};
+pub use ordered_json::Value;
+use ordered_json::{Kind, OrderedMap};
 use std::fmt;
 
 pub const CALL_PATH: &str = "/_render";

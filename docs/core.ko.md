@@ -11,6 +11,8 @@ JSON 요청 본문은 정확히 다섯 필드가 있는 페이지 객체이며, 
 `state`를 조용히 null로 바꾸지 않는다. JSON 파싱과 인코딩은 ordered-json을 사용하며
 `props`와 `state`의 필드 순서 및 숫자 토큰을 유지한다. 페이지 파싱은 중복 키를 거부하는
 ordered-json 바이트 API를 사용한다.
+`Page`와 `RenderResult`가 사용하는 `Value` 타입도 `ssr-core`가 내보내므로 어댑터는
+core 의존성을 통해 페이지 계약을 사용할 수 있다.
 
 렌더 결과는 HTML 바이트와 JSON 값인 출력 상태를 포함한다. 렌더링 구성 요소가 이 상태를
 선택한다. 출력 상태는 입력 상태와 별개이며 브라우저가 hydration에 사용한다. `ssr-core`는

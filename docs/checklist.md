@@ -113,10 +113,16 @@ procedure. Each item names its dependencies and its completion evidence.
   destination; invalid receivers and destinations fail. The interface remains available after
   context reset and adds no file, network or timer API. Evidence: Web API tests and execution of a
   React server bundle.
-- [ ] S-7 Implement the React adapter for the first consumer: SSR renders HTML with the render state
+- [o] S-7 Implement the React adapter for the first consumer: SSR renders HTML with the render state
   output; CSR returns the static shell of the same client bundle; the client hydrates the SSR HTML
-  or renders the CSR shell. Depends on: S-5, S-6. Evidence: SSR, CSR and hydration cases in a browser
-  test.
+  or renders the CSR shell. Depends on: S-5, S-6, S-6-1. Acceptance: the adapter supplies server and client
+  React entries for one application component and uses one client URL in both documents; SSR passes
+  the input state to the component and returns and embeds its output state; CSR leaves the root empty,
+  embeds the unchanged input state and does not enter the runtime pool; a static CSR shell has empty
+  props and null state and can be reused for different request paths; JSON embedded in HTML cannot
+  close a script element; invalid local client or style URLs and static shell values fail. Evidence:
+  [React adapter](react.md) documents the contract, and a real Chrome browser verifies SSR
+  hydration, CSR rendering, script input and static shell reuse at two paths.
 - [ ] S-8 Implement publication and serving: the public build files are written into a directory
   atomically; an existing file with equal content stays; an existing file with other content is an
   error; the build files are served with their content types. Depends on: S-5. Evidence: the three

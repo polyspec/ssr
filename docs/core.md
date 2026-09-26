@@ -13,6 +13,8 @@ that decodes to a key already present. `state` is never
 silently replaced with null. JSON parsing and encoding use ordered-json and retain
 the member order and number tokens of `props` and `state`. Page parsing uses
 the ordered-json byte API that rejects duplicate keys.
+The `Value` type used by `Page` and `RenderResult` is also exported by `ssr-core` so
+adapters can use the page contract through their core dependency.
 
 The render result contains HTML bytes and the output state as a JSON value. The
 rendering component chooses that state. It is distinct from the input state and

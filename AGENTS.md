@@ -61,6 +61,8 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 9. Containerctl verification mounts source checkouts read only. When a build needs host inspection
    and cache persistence across container replacement, mount writable caches and build output from
    absolute host paths under ignored `var/`; verify mount access and cache reuse after replacement.
+10. A hydration acceptance test runs in a browser and verifies that the server DOM node remains
+    the same node after client hydration. Bundle text inspection does not prove hydration.
 
 ## Records
 
