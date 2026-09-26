@@ -45,7 +45,7 @@ fn app_import(path: &str) -> Result<String, Error> {
 pub fn server_entry(application: &str) -> Result<String, Error> {
     let application = app_import(application)?;
     Ok(format!(
-        "import {{ render as renderApplication }} from {application};\nconst appRender = renderApplication;\nglobalThis.render = (props, state) => {{ const renderState = {{input: state, output: null}}; const html = appRender(props, renderState); return {{html, head: '', state: renderState.output}}; }};\n"
+        "import {{ render as renderApplication }} from {application};\nexport function render(props, state) {{ const renderState = {{input: state, output: null}}; const html = renderApplication(props, renderState); return {{html, head: '', state: renderState.output}}; }}\n"
     ))
 }
 

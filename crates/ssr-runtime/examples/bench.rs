@@ -1,10 +1,10 @@
 use ssr_core::Page;
-use ssr_runtime::{Pool, RenderMetrics};
+use ssr_runtime::{Pool, RenderMetrics, ServerBundle};
 use std::error::Error;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-const BUNDLE: &str = "function render(props, state) { return {head:'', html: '<main>' + props.text + '</main>', state}; }";
+const BUNDLE: &str = "export function render(props, state) { return {head:'', html: '<main>' + props.text + '</main>', state}; }";
 const PAGE: &str = r#"{"render":"ssr","title":"Benchmark","language":"en","props":{"text":"fixed page"},"state":{"value":1}}"#;
 const CALLS_PER_THREAD: usize = 128;
 const CONCURRENCY: [usize; 3] = [1, 4, 16];
@@ -129,7 +129,11 @@ fn run(index: usize, pool: Arc<Pool>, page: &Page) -> Result<(), Box<dyn Error>>
 fn main() -> Result<(), Box<dyn Error>> {
     let page = Page::from_json(PAGE.as_bytes())?;
     let pool = Arc::new(Pool::new(
-        BUNDLE.as_bytes().to_vec(),
+        ServerBundle {
+            entry_path: "server/bench.js".into(),
+            entry_bytes: BUNDLE.as_bytes().to_vec(),
+            chunks: Vec::new(),
+        },
         16,
         16,
         Duration::from_secs(10),

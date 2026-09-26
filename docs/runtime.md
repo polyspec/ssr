@@ -2,10 +2,20 @@
 
 # Runtime
 
-`Pool::new` accepts a server bundle, a nonzero worker count, a queue capacity and a
-nonzero execution timeout. It initializes the bundle in a V8 snapshot, and each worker
-owns one isolate created from that snapshot on one thread. The bundle defines a global
-`render(props, state)` function. It returns an object with required string `html` and `head`
+`Pool::new` accepts `ServerBundle` with `entry_path`, `entry_bytes` and `chunks` containing exact
+private server paths and bytes, a nonzero worker count, a queue capacity and a nonzero execution timeout. It evaluates the entry as a V8 module in
+a snapshot, and each worker owns one isolate created from that snapshot on one thread. The entry
+exports `render(props, state)`; the function is kept in context data and is absent from the global
+object. Every supplied server file is compiled and its static imports are resolved during pool
+construction. Dynamic chunks are evaluated when imported. Static and dynamic relative imports
+resolve only to supplied server files. A missing or
+duplicate file, invalid path, import attribute, failed evaluation or unfinished top-level await is
+an error. A JavaScript syntax failure returns the V8 `SyntaxError` diagnostic as a JavaScript error.
+A server file path begins with `server/`, ends with `.js`, and has no empty or dot
+component, backslash, colon or control character. Import specifiers are relative paths without
+query or fragment syntax. Valid static import cycles follow V8 module evaluation. Every file uses its manifest
+path as its JavaScript source name, so its own source map resolves stack locations. Render returns
+an object with required string `html` and `head`
 values and a JSON `state` value, directly or through a Promise. A missing or invalid head is an
 error; its UTF-8 bytes remain in `RenderResult`. The runtime completes queued V8 microtasks
 before reading a Promise result. It returns a JavaScript error with the rejection message
@@ -16,7 +26,7 @@ receives `RenderResult`.
 The library workspace selects the same V8 150.4.0 source checkout verified by
 S-4-2 and pins its maintained identifier macro dependency in `Cargo.lock`.
 
-The snapshot cache key contains the server bundle SHA-256, the pinned deno_core version
+The snapshot cache key contains the ordered server file paths and bytes SHA-256, the pinned deno_core version
 from the workspace manifest and the library package version. Equal keys reuse the snapshot
 while a pool holds it; changed keys create new snapshots. The cache holds weak references,
 so unused snapshot bytes are released. A failed bundle initialization or snapshot creation

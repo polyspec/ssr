@@ -3,9 +3,10 @@
 # HTTP server
 
 `Server::new` accepts a build, adapter selection, worker count, queue capacity and render
-timeout. It verifies the public files, server JavaScript bytes and SHA-256, and the matching
-private source map
-before creating a pool. A missing, duplicate, changed or invalid server source map is an error.
+timeout. It verifies the public files, every server JavaScript file's bytes and SHA-256, and each
+file's matching private source map before creating a pool. A missing, duplicate, changed or invalid
+server source map is an error. A JavaScript stack frame uses the source map for the exact server
+file path in that frame.
 The server uses the build's client and style URLs to create the selected document adapter.
 `Adapter::React` selects the React adapter. The server keeps this selection separate from the
 page contract so additional specified adapters use the same HTTP route and page result.
@@ -21,7 +22,7 @@ have `Cache-Control: no-store` and a byte-accurate content length.
 An exhausted pool or unavailable worker returns 503; a render timeout returns 504; other render
 failures return 500. JavaScript errors include their message and source-mapped stack in the
 response and tracing event. A stack
-mapping failure is reported with its cause and original stack. Server construction fails if the
+mapping failure is reported with its cause and original stack. Server construction fails if a
 source map cannot be decoded. Successful SSR renders record render time, pool wait and live V8
 heap bytes in a tracing event. CSR records render time without a pool measurement.
 

@@ -65,6 +65,10 @@
 - Verify a separate local V8 source archive and its generated binding by SHA-256 before routine
   checks and benchmarks link them.
   Direct source verification remains explicit because repeated GN generation can rebuild the archive.
+- Evaluate private server entries and chunks as ECMAScript modules. Generated entries export
+  `render` without a global property; relative imports resolve only to supplied server files.
+  Restore module data per request context and map each file's JavaScript stack through its own
+  source map. Missing files and unfinished evaluation fail because the render code is incomplete.
 - Provide UTF-8 `TextEncoder` in every render context because the React server bundle requires it.
   Encoding and bounded `encodeInto` handle non-ASCII text and unpaired surrogates; invalid calls
   fail without adding file, network or timer operations.

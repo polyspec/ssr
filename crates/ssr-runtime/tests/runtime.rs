@@ -1,6 +1,6 @@
 use ssr_build::{BuildConfig, build};
 use ssr_core::{Page, Render};
-use ssr_runtime::{Error, Pool};
+use ssr_runtime::{Error, Pool, ServerBundle};
 use std::fs;
 use std::io::Read;
 use std::path::Path;
@@ -14,10 +14,43 @@ fn page(props: &str) -> Page {
     Page::from_json(format!(r#"{{"render":"ssr","title":"T","language":"en","props":{props},"state":{{"input":3}}}}"#).as_bytes()).unwrap()
 }
 
+fn make_pool(
+    entry_bytes: Vec<u8>,
+    worker_count: usize,
+    queue_capacity: usize,
+    timeout: Duration,
+) -> Result<Pool, Error> {
+    Pool::new(
+        ServerBundle {
+            entry_path: "server/entry.js".into(),
+            entry_bytes,
+            chunks: Vec::new(),
+        },
+        worker_count,
+        queue_capacity,
+        timeout,
+    )
+}
+
+#[test]
+fn named_render_constant_is_supported() {
+    let pool = make_pool(
+        b"export const render = (props, state) => ({head:'', html:props.name, state});".to_vec(),
+        1,
+        0,
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    assert_eq!(
+        pool.render(&page(r#"{"name":"Ada"}"#)).unwrap().html,
+        b"Ada"
+    );
+}
+
 #[test]
 fn promise_render_result_settles_or_reports_its_failure() {
-    let fulfilled = Pool::new(
-        b"function render(props, state) { return Promise.resolve().then(() => ({head:'', html: props.name, state})); }".to_vec(),
+    let fulfilled = make_pool(
+        b"export function render(props, state) { return Promise.resolve().then(() => ({head:'', html: props.name, state})); }".to_vec(),
         1,
         0,
         Duration::from_secs(2),
@@ -28,8 +61,9 @@ fn promise_render_result_settles_or_reports_its_failure() {
         b"Ada"
     );
 
-    let rejected = Pool::new(
-        b"function render() { return Promise.reject(new Error('promise failed')); }".to_vec(),
+    let rejected = make_pool(
+        b"export function render() { return Promise.reject(new Error('promise failed')); }"
+            .to_vec(),
         1,
         0,
         Duration::from_secs(2),
@@ -41,8 +75,8 @@ fn promise_render_result_settles_or_reports_its_failure() {
             if message.contains("promise failed") && stack.contains("promise failed")
     ));
 
-    let pending = Pool::new(
-        b"function render() { return new Promise(() => {}); }".to_vec(),
+    let pending = make_pool(
+        b"export function render() { return new Promise(() => {}); }".to_vec(),
         1,
         0,
         Duration::from_secs(2),
@@ -56,7 +90,7 @@ fn promise_render_result_settles_or_reports_its_failure() {
 
 #[test]
 fn request_context_does_not_retain_globals() {
-    let pool = Pool::new(b"globalThis.count = 0; function render(props, state) { globalThis.count++; return {head:'', html: String(globalThis.count), state}; }".to_vec(), 1, 1, Duration::from_secs(2)).unwrap();
+    let pool = make_pool(b"globalThis.count = 0; export function render(props, state) { globalThis.count++; return {head:'', html: String(globalThis.count), state}; }".to_vec(), 1, 1, Duration::from_secs(2)).unwrap();
     let first = pool.render(&page("{} ")).unwrap();
     let second = pool.render(&page("{} ")).unwrap();
     assert_eq!(first.html, b"1");
@@ -68,13 +102,13 @@ fn request_context_does_not_retain_globals() {
 fn snapshot_restores_initialized_bundle_without_reexecuting_it() {
     let source = br#"
       globalThis.initial = Array.from(crypto.getRandomValues(new Uint8Array(16))).join(',');
-      function render(props, state) {
+      export function render(props, state) {
         const html = globalThis.initial;
         globalThis.initial = 'changed';
         return {head:'', html, state};
       }
     "#;
-    let pool = Pool::new(source.to_vec(), 1, 0, Duration::from_secs(3)).unwrap();
+    let pool = make_pool(source.to_vec(), 1, 0, Duration::from_secs(3)).unwrap();
     let first = pool.render(&page("{}")).unwrap();
     let second = pool.render(&page("{}")).unwrap();
     assert_eq!(first.html, second.html);
@@ -84,17 +118,22 @@ fn snapshot_restores_initialized_bundle_without_reexecuting_it() {
 #[test]
 fn snapshot_initialization_failure_is_returned() {
     assert!(matches!(
-        Pool::new(b"function render(".to_vec(), 1, 0, Duration::from_secs(2)),
-        Err(Error::InvalidBundle("bundle compilation failed"))
+        make_pool(
+            b"export function render(".to_vec(),
+            1,
+            0,
+            Duration::from_secs(2)
+        ),
+        Err(Error::JavaScript { message, .. }) if message.contains("SyntaxError")
     ));
     assert!(matches!(
-        Pool::new(
+        make_pool(
             b"throw new Error('initialization failed')".to_vec(),
             1,
             0,
             Duration::from_secs(2),
         ),
-        Err(Error::InvalidBundle("bundle initialization failed"))
+        Err(Error::JavaScript { message, .. }) if message.contains("initialization failed")
     ));
 }
 
@@ -102,12 +141,12 @@ fn snapshot_initialization_failure_is_returned() {
 fn snapshot_initialization_obeys_pool_timeout() {
     let started = Instant::now();
     assert!(matches!(
-        Pool::new(b"for (;;) {}".to_vec(), 1, 0, Duration::from_millis(100)),
+        make_pool(b"for (;;) {}".to_vec(), 1, 0, Duration::from_millis(100)),
         Err(Error::Timeout)
     ));
     assert!(started.elapsed() < Duration::from_secs(2));
-    let pool = Pool::new(
-        b"function render(props, state) { return {head:'', html:'ready', state}; }".to_vec(),
+    let pool = make_pool(
+        b"export function render(props, state) { return {head:'', html:'ready', state}; }".to_vec(),
         1,
         0,
         Duration::from_secs(2),
@@ -118,8 +157,8 @@ fn snapshot_initialization_obeys_pool_timeout() {
 
 #[test]
 fn render_metrics_report_wait_and_live_heap() {
-    let pool = Pool::new(
-        b"function render(props, state) { return {head:'', html:'ok', state}; }".to_vec(),
+    let pool = make_pool(
+        b"export function render(props, state) { return {head:'', html:'ok', state}; }".to_vec(),
         1,
         0,
         Duration::from_secs(2),
@@ -135,7 +174,7 @@ fn render_metrics_report_wait_and_live_heap() {
 
 #[test]
 fn running_script_is_terminated_and_worker_recovers() {
-    let pool = Pool::new(b"function render(props, state) { if (props.loop) { for(;;) {} } return {head:'', html:'ok', state}; }".to_vec(), 1, 0, Duration::from_millis(100)).unwrap();
+    let pool = make_pool(b"export function render(props, state) { if (props.loop) { for(;;) {} } return {head:'', html:'ok', state}; }".to_vec(), 1, 0, Duration::from_millis(100)).unwrap();
     assert!(matches!(
         pool.render(&page(r#"{"loop":true}"#)),
         Err(Error::Timeout)
@@ -145,7 +184,7 @@ fn running_script_is_terminated_and_worker_recovers() {
 
 #[test]
 fn full_queue_returns_explicit_error() {
-    let pool = Arc::new(Pool::new(b"function render(props, state) { if (props.loop) { for(;;) {} } return {head:'', html:'ok',state}; }".to_vec(), 1, 0, Duration::from_millis(300)).unwrap());
+    let pool = Arc::new(make_pool(b"export function render(props, state) { if (props.loop) { for(;;) {} } return {head:'', html:'ok',state}; }".to_vec(), 1, 0, Duration::from_millis(300)).unwrap());
     let barrier = Arc::new(Barrier::new(3));
     let handles: Vec<_> = (0..2)
         .map(|_| {
@@ -178,7 +217,7 @@ fn full_queue_returns_explicit_error() {
 
 #[test]
 fn web_apis_and_forbidden_apis() {
-    let source = r#"function render(props, state) {
+    let source = r#"export function render(props, state) {
       const bytes = new Uint8Array(16);
       const returned = crypto.getRandomValues(bytes);
       if (returned !== bytes || bytes.every(x => x === 0)) throw new Error('random values missing');
@@ -194,7 +233,7 @@ fn web_apis_and_forbidden_apis() {
         randomUUID: typeof crypto.randomUUID
       }};
     }"#;
-    let pool = Pool::new(source.as_bytes().to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
+    let pool = make_pool(source.as_bytes().to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
     let result = pool.render(&page("{}")).unwrap();
     assert_eq!(result.html, b"ready");
     assert_eq!(
@@ -205,7 +244,7 @@ fn web_apis_and_forbidden_apis() {
 
 #[test]
 fn text_encoder_is_utf8_in_every_render_context() {
-    let source = r#"function render() {
+    let source = r#"export function render() {
       const encoder = new TextEncoder();
       const bytes = Array.from(encoder.encode('Aé😀\uD800'));
       const short = new Uint8Array(4);
@@ -221,7 +260,7 @@ fn text_encoder_is_utf8_in_every_render_context() {
       return {head:'', html: 'ok', state: {encoding: encoder.encoding, bytes, into, short: Array.from(short), fullResult, full: Array.from(full), receiverError, getterError, destinationError,
         fetch: typeof fetch, timeout: typeof setTimeout, file: typeof Deno}};
     }"#;
-    let pool = Pool::new(source.as_bytes().to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
+    let pool = make_pool(source.as_bytes().to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
     for _ in 0..2 {
         let result = pool.render(&page("{}")).unwrap();
         assert_eq!(result.html, b"ok");
@@ -245,7 +284,7 @@ async fn react_server_bundle_executes_with_text_encoder() {
     let generated = root.join("node_modules/.ssr-runtime");
     fs::create_dir_all(&generated).unwrap();
     let server_entry = generated.join("server.tsx");
-    fs::write(&server_entry, "import React from 'react'; import {renderToString} from 'react-dom/server.edge'; import App from '../../ReactRuntimeApp'; globalThis.render = (props, state) => ({head:'', html: renderToString(<App {...props}/>), state});").unwrap();
+    fs::write(&server_entry, "import React from 'react'; import {renderToString} from 'react-dom/server.edge'; import App from '../../ReactRuntimeApp'; export const render = (props, state) => ({head:'', html: renderToString(<App {...props}/>), state});").unwrap();
     let output = build(&BuildConfig {
         root: root.clone(),
         server_entry,
@@ -256,7 +295,16 @@ async fn react_server_bundle_executes_with_text_encoder() {
     })
     .await
     .unwrap();
-    let bundle = output.files[&output.manifest.server.path].clone();
+    let bundle = ServerBundle {
+        entry_path: output.manifest.server.path.clone(),
+        entry_bytes: output.files[&output.manifest.server.path].clone(),
+        chunks: output
+            .manifest
+            .server_chunks
+            .iter()
+            .map(|file| (file.path.clone(), output.files[&file.path].clone()))
+            .collect(),
+    };
     let pool = Pool::new(bundle, 1, 0, Duration::from_secs(10)).unwrap();
     let request = Page::from_json(br#"{"render":"ssr","title":"T","language":"en","props":{"name":"Ada"},"state":{"count":4}}"#).unwrap();
     let result = pool.render(&request).unwrap();
@@ -271,8 +319,8 @@ async fn react_server_bundle_executes_with_text_encoder() {
 #[test]
 fn console_writes_to_stderr() {
     if std::env::var_os("SSR_CONSOLE_CHILD").is_some() {
-        let pool = Pool::new(
-            b"function render(props, state) { console.log('runtime console', state.input); return {head:'', html:'ok', state}; }".to_vec(),
+        let pool = make_pool(
+            b"export function render(props, state) { console.log('runtime console', state.input); return {head:'', html:'ok', state}; }".to_vec(),
             1,
             0,
             Duration::from_secs(2),
@@ -310,15 +358,15 @@ fn console_writes_to_stderr() {
 #[test]
 fn invalid_input_and_result_fail() {
     assert!(matches!(
-        Pool::new(Vec::new(), 1, 0, Duration::from_secs(1)),
+        make_pool(Vec::new(), 1, 0, Duration::from_secs(1)),
         Err(Error::InvalidBundle(_))
     ));
     assert!(matches!(
-        Pool::new(b"x".to_vec(), 0, 0, Duration::from_secs(1)),
+        make_pool(b"x".to_vec(), 0, 0, Duration::from_secs(1)),
         Err(Error::InvalidConfiguration(_))
     ));
-    let pool = Pool::new(
-        b"function render() { return {head:'', html: 1, state: null}; }".to_vec(),
+    let pool = make_pool(
+        b"export function render() { return {head:'', html: 1, state: null}; }".to_vec(),
         1,
         0,
         Duration::from_secs(2),
@@ -331,8 +379,8 @@ fn invalid_input_and_result_fail() {
     let mut csr = page("{}");
     csr.render = Render::Csr;
     assert!(matches!(pool.render(&csr), Err(Error::InvalidPage(_))));
-    let pool = Pool::new(
-        b"function render() { return {head:'', html: 'ok', state: {kept: 1, lost: undefined}}; }"
+    let pool = make_pool(
+        b"export function render() { return {head:'', html: 'ok', state: {kept: 1, lost: undefined}}; }"
             .to_vec(),
         1,
         0,
@@ -343,8 +391,8 @@ fn invalid_input_and_result_fail() {
         pool.render(&page("{}")),
         Err(Error::JavaScript { .. })
     ));
-    let pool = Pool::new(
-        b"function render() { return {head:'', html: 'ok', state: {value: NaN}}; }".to_vec(),
+    let pool = make_pool(
+        b"export function render() { return {head:'', html: 'ok', state: {value: NaN}}; }".to_vec(),
         1,
         0,
         Duration::from_secs(2),
@@ -357,9 +405,37 @@ fn invalid_input_and_result_fail() {
 }
 
 #[test]
+fn server_bundle_rejects_duplicate_and_invalid_files() {
+    let entry =
+        b"export function render(props, state) { return {html:'ok', head:'', state}; }".to_vec();
+    for bundle in [
+        ServerBundle {
+            entry_path: "server/entry.js".into(),
+            entry_bytes: entry.clone(),
+            chunks: vec![("server/entry.js".into(), b"export const value = 1".to_vec())],
+        },
+        ServerBundle {
+            entry_path: "server/../entry.js".into(),
+            entry_bytes: entry.clone(),
+            chunks: Vec::new(),
+        },
+        ServerBundle {
+            entry_path: "server/entry.js".into(),
+            entry_bytes: entry,
+            chunks: vec![("server/chunk.js".into(), vec![0xff])],
+        },
+    ] {
+        assert!(matches!(
+            Pool::new(bundle, 1, 0, Duration::from_secs(2)),
+            Err(Error::InvalidBundle(_))
+        ));
+    }
+}
+
+#[test]
 fn render_head_is_required_and_preserved() {
-    let pool = Pool::new(
-        b"function render(props, state) { return {html:'<main>ok</main>', head:'<meta name=\"section\" content=\"news\">', state}; }".to_vec(),
+    let pool = make_pool(
+        b"export function render(props, state) { return {html:'<main>ok</main>', head:'<meta name=\"section\" content=\"news\">', state}; }".to_vec(),
         1,
         0,
         Duration::from_secs(2),
@@ -367,11 +443,11 @@ fn render_head_is_required_and_preserved() {
     let result = pool.render(&page("{}")).unwrap();
     assert_eq!(result.head, b"<meta name=\"section\" content=\"news\">");
     for source in [
-        "function render() { return {html:'ok', state:null}; }",
-        "function render() { return {html:'ok', head:1, state:null}; }",
-        "function render() { return {html:'ok', head:'\\uD800', state:null}; }",
+        "export function render() { return {html:'ok', state:null}; }",
+        "export function render() { return {html:'ok', head:1, state:null}; }",
+        "export function render() { return {html:'ok', head:'\\uD800', state:null}; }",
     ] {
-        let pool = Pool::new(source.as_bytes().to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
+        let pool = make_pool(source.as_bytes().to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
         assert!(
             matches!(pool.render(&page("{}")), Err(Error::InvalidResult(_))),
             "{source}"

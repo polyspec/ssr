@@ -1,7 +1,10 @@
-use crate::{Command, ContextRender, Error, WorkerReply, snapshot::Snapshot, state_from_json};
+use crate::{
+    Command, ContextRender, Error, WorkerReply, module, snapshot::Snapshot, state_from_json,
+};
 use crossbeam_channel::Receiver;
 use deno_core::v8;
 use ssr_core::RenderResult;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::sync::mpsc::SyncSender;
 use std::time::Instant;
@@ -30,6 +33,8 @@ pub(crate) fn worker(
     requests: Receiver<Command>,
     ready: SyncSender<Result<v8::IsolateHandle, Error>>,
 ) {
+    let sources = snapshot.sources();
+    let module_indices = snapshot.module_indices().clone();
     let mut runtime = snapshot.isolate();
     let handle = runtime.thread_safe_handle();
     let serializer = match compile(
@@ -53,7 +58,14 @@ pub(crate) fn worker(
                 state,
                 reply,
             } => {
-                let result = render(&mut runtime, &serializer, &props, &state);
+                let result = render(
+                    &mut runtime,
+                    &serializer,
+                    Arc::clone(&sources),
+                    &module_indices,
+                    &props,
+                    &state,
+                );
                 let heap_used_bytes = runtime.get_heap_statistics().used_heap_size();
                 runtime.cancel_terminate_execution();
                 let _ = reply.send(WorkerReply {
@@ -106,6 +118,8 @@ fn compile(
 fn render(
     runtime: &mut v8::OwnedIsolate,
     serializer: &v8::Global<v8::UnboundScript>,
+    sources: Arc<module::Sources>,
+    module_indices: &BTreeMap<String, usize>,
     props: &str,
     state: &str,
 ) -> Result<ContextRender, Error> {
@@ -113,19 +127,14 @@ fn render(
     let heap_before = scope.get_heap_statistics().used_heap_size() as i128;
     let reset_started = Instant::now();
     let context = v8::Context::new(scope, Default::default());
+    let scope = &mut v8::ContextScope::new(scope, context);
+    module::install_sources(scope, context, sources, module_indices)?;
+    let _module_context = module::ContextModules::new(context);
     let context_reset = reset_started.elapsed();
     let context_heap_delta_bytes =
         scope.get_heap_statistics().used_heap_size() as i128 - heap_before;
-    let scope = &mut v8::ContextScope::new(scope, context);
     v8::tc_scope!(let scope, scope);
-    let name =
-        v8::String::new(scope, "render").ok_or(Error::InvalidBundle("render name unavailable"))?;
-    let value = context
-        .global(scope)
-        .get(scope, name.into())
-        .ok_or_else(|| caught!(scope))?;
-    let function = v8::Local::<v8::Function>::try_from(value)
-        .map_err(|_| Error::InvalidBundle("global render function required"))?;
+    let function = module::render(scope, context)?;
     let props = parse(scope, props).ok_or_else(|| caught!(scope))?;
     let state = parse(scope, state).ok_or_else(|| caught!(scope))?;
     let value = function

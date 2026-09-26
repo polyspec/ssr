@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod engine;
+mod module;
 #[cfg(test)]
 mod realm_tests;
 mod snapshot;
@@ -130,6 +131,12 @@ pub struct Pool {
     timeout: Duration,
 }
 
+pub struct ServerBundle {
+    pub entry_path: String,
+    pub entry_bytes: Vec<u8>,
+    pub chunks: Vec<(String, Vec<u8>)>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RenderMetrics {
     pub pool_wait: Duration,
@@ -153,7 +160,7 @@ impl Drop for Lease<'_> {
 
 impl Pool {
     pub fn new(
-        bundle: Vec<u8>,
+        bundle: ServerBundle,
         worker_count: usize,
         queue_capacity: usize,
         timeout: Duration,
@@ -164,12 +171,7 @@ impl Pool {
         if timeout.is_zero() {
             return Err(Error::InvalidConfiguration("timeout must be nonzero"));
         }
-        let bundle = std::str::from_utf8(&bundle)
-            .map_err(|_| Error::InvalidBundle("UTF-8 required"))?
-            .to_owned();
-        if bundle.is_empty() {
-            return Err(Error::InvalidBundle("bundle is empty"));
-        }
+        let bundle = module::Sources::new((bundle.entry_path, bundle.entry_bytes), bundle.chunks)?;
         let snapshot = snapshot::get(&bundle, timeout)?;
         let (available_tx, available_rx) = bounded(worker_count);
         let (closed_tx, closed_rx) = bounded(0);
@@ -470,7 +472,11 @@ mod tests {
     fn timeout_covers_queue_wait_and_execution() {
         let pool = Arc::new(
             Pool::new(
-                b"function render(props, state) { const until = Date.now() + 1800; while (Date.now() < until) {} return {head:'', html:'ok', state}; }".to_vec(),
+                ServerBundle {
+                    entry_path: "server/entry.js".into(),
+                    entry_bytes: b"export function render(props, state) { const until = Date.now() + 1800; while (Date.now() < until) {} return {head:'', html:'ok', state}; }".to_vec(),
+                    chunks: Vec::new(),
+                },
                 1,
                 1,
                 Duration::from_secs(2),

@@ -45,7 +45,7 @@ fn app_import(path: &str) -> Result<String, Error> {
 pub fn server_entry(application: &str) -> Result<String, Error> {
     let application = app_import(application)?;
     Ok(format!(
-        "import React from 'react';\nimport {{renderToString}} from 'react-dom/server.edge';\nimport App from {application};\nglobalThis.render = (props, state) => {{ const renderState = {{input: state, output: null}}; const html = renderToString(<App {{...props}} renderState={{renderState}} />); return {{html, head: '', state: renderState.output}}; }};\n"
+        "import React from 'react';\nimport {{renderToString}} from 'react-dom/server.edge';\nimport App from {application};\nexport function render(props, state) {{ const renderState = {{input: state, output: null}}; const html = renderToString(<App {{...props}} renderState={{renderState}} />); return {{html, head: '', state: renderState.output}}; }}\n"
     ))
 }
 

@@ -1,7 +1,7 @@
 use ssr_adapter_vanilla::{VanillaAdapter, client_entry, server_entry};
-use ssr_build::{BuildConfig, build};
+use ssr_build::{Build, BuildConfig, build};
 use ssr_core::Page;
-use ssr_runtime::Pool;
+use ssr_runtime::{Pool, ServerBundle};
 use std::collections::BTreeMap;
 use std::fs;
 use std::io::{BufRead, BufReader, Read, Write};
@@ -25,13 +25,32 @@ fn shell_page() -> Page {
     .unwrap()
 }
 
+fn fixture(entry_bytes: &[u8]) -> ServerBundle {
+    ServerBundle {
+        entry_path: "server/fixture.js".into(),
+        entry_bytes: entry_bytes.to_vec(),
+        chunks: Vec::new(),
+    }
+}
+
+fn built_bundle(build: &Build) -> ServerBundle {
+    ServerBundle {
+        entry_path: build.manifest.server.path.clone(),
+        entry_bytes: build.files[&build.manifest.server.path].clone(),
+        chunks: build
+            .manifest
+            .server_chunks
+            .iter()
+            .map(|file| (file.path.clone(), build.files[&file.path].clone()))
+            .collect(),
+    }
+}
+
 #[test]
 fn entries_render_both_modes_and_reject_invalid_input() {
-    assert!(
-        server_entry("/application/server.js")
-            .unwrap()
-            .contains("globalThis.render")
-    );
+    let server = server_entry("/application/server.js").unwrap();
+    assert!(server.contains("export function render(props, state)"));
+    assert!(!server.contains("globalThis.render"));
     assert!(
         client_entry("/application/client.js")
             .unwrap()
@@ -40,7 +59,7 @@ fn entries_render_both_modes_and_reject_invalid_input() {
     assert!(server_entry("relative/server.js").is_err());
     assert!(client_entry("relative/client.js").is_err());
 
-    let pool = Pool::new(b"function render(props, state) { return {head:'', html: '<main>' + props.name + '</main>', state: {count: state.count + 1}}; }".to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
+    let pool = Pool::new(fixture(b"export function render(props, state) { return {head:'', html: '<main>' + props.name + '</main>', state: {count: state.count + 1}}; }"), 1, 0, Duration::from_secs(2)).unwrap();
     let adapter = VanillaAdapter::new("/assets/client.js", &["/assets/style.css"]).unwrap();
     let ssr = adapter.render(&page("ssr"), &pool).unwrap();
     assert_eq!(ssr.state.compact(), r#"{"count":5}"#);
@@ -64,7 +83,7 @@ fn entries_render_both_modes_and_reject_invalid_input() {
     assert!(VanillaAdapter::new("//other/client.js", &[]).is_err());
     assert!(VanillaAdapter::new("/assets/client.js", &["/assets/../style.css"]).is_err());
     let pool = Pool::new(
-        b"function render(props, state) { return {html:'ok', head:'<script>unsafe()</script>', state}; }".to_vec(),
+        fixture(b"export function render(props, state) { return {html:'ok', head:'<script>unsafe()</script>', state}; }"),
         1, 0, Duration::from_secs(2),
     ).unwrap();
     assert!(adapter.render(&page("ssr"), &pool).is_err());
@@ -114,13 +133,7 @@ async fn browser_preserves_server_dom_and_renders_csr_and_shells() {
     })
     .await
     .unwrap();
-    let pool = Pool::new(
-        output.files[&output.manifest.server.path].clone(),
-        1,
-        0,
-        Duration::from_secs(10),
-    )
-    .unwrap();
+    let pool = Pool::new(built_bundle(&output), 1, 0, Duration::from_secs(10)).unwrap();
     let adapter = VanillaAdapter::new(
         output.manifest.client.url.as_ref().unwrap(),
         &output
