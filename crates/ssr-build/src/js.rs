@@ -41,12 +41,16 @@ pub(crate) async fn bundle(
         code_splitting: Some(CodeSplittingMode::Bool(
             name == "client" || (name == "server" && !react_application),
         )),
-        external: react_application.then(|| IsExternal::from(vec!["react".to_owned()])),
+        external: react_application
+            .then(|| IsExternal::from(vec!["react".to_owned(), "react/jsx-runtime".to_owned()])),
         globals: react_application.then(|| {
             GlobalsOutputOption::FxHashMap(
-                [("react".to_owned(), "__ssrReact".to_owned())]
-                    .into_iter()
-                    .collect(),
+                [
+                    ("react".to_owned(), "__ssrReact".to_owned()),
+                    ("react/jsx-runtime".to_owned(), "__ssrJsxRuntime".to_owned()),
+                ]
+                .into_iter()
+                .collect(),
             )
         }),
         sourcemap: (name != "client").then_some(SourceMapType::Hidden),

@@ -19,7 +19,13 @@ fn render(development: &Development) -> Result<String, String> {
         .handle(request)
         .map_err(|error| error.to_string())?;
     assert_eq!(response.status(), StatusCode::OK);
-    Ok(String::from_utf8(response.into_body()).unwrap())
+    Ok(String::from_utf8(
+        response
+            .into_body()
+            .collect_bytes()
+            .map_err(|error| error.to_string())?,
+    )
+    .unwrap())
 }
 
 fn client_url(document: &str) -> &str {
@@ -35,6 +41,8 @@ fn client(development: &Development, url: &str) -> Vec<u8> {
         .handle(Request::builder().uri(url).body(Vec::new()).unwrap())
         .unwrap()
         .into_body()
+        .collect_bytes()
+        .unwrap()
 }
 
 fn write(path: &Path, source: &str) {
@@ -56,16 +64,18 @@ async fn changes_replace_render_and_public_files_and_fail_explicitly() {
         .unwrap()
         .as_nanos();
     let server_entry = root.join(format!("development-{unique}.tsx"));
+    let framework_entry = root.join(format!("development-framework-{unique}.tsx"));
     let client_entry = root.join(format!("development-client-{unique}.tsx"));
+    write(&server_entry, "globalThis.__ssrApp = () => '<p>one</p>';");
     write(
-        &server_entry,
-        "export function render(_, state) { return {head:'', html:'<p>one</p>', state}; }",
+        &framework_entry,
+        "globalThis.__ssrReact = {}; globalThis.__ssrJsxRuntime = {}; globalThis.render = async (App, _props, state) => { const html = App(); let sent = false; return { stream: { getReader() { return { read() { if (sent) return Promise.resolve({done:true}); sent = true; return Promise.resolve({done:false, value:new TextEncoder().encode(html)}); } }; } }, state }; };",
     );
     write(&client_entry, "window.marker = 'one';");
     let config = BuildConfig {
         root: root.clone(),
         server_entry: server_entry.clone(),
-        react_framework_entry: None,
+        react_framework_entry: Some(framework_entry.clone()),
         client_entry: client_entry.clone(),
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
@@ -79,10 +89,7 @@ async fn changes_replace_render_and_public_files_and_fail_explicitly() {
     let first_client = client(&development, client_url(&first));
     assert!(String::from_utf8_lossy(&first_client).contains("one"));
 
-    write(
-        &server_entry,
-        "export function render(_, state) { return {head:'', html:'<p>two</p>', state}; }",
-    );
+    write(&server_entry, "globalThis.__ssrApp = () => '<p>two</p>';");
     write(&client_entry, "window.marker = 'two';");
     let deadline = std::time::Instant::now() + Duration::from_secs(20);
     loop {
@@ -107,10 +114,7 @@ async fn changes_replace_render_and_public_files_and_fail_explicitly() {
     };
     assert!(failure.to_string().contains("JavaScript"), "{failure}");
     assert!(render(&development).unwrap_err().contains("JavaScript"));
-    write(
-        &server_entry,
-        "export function render(_, state) { return {head:'', html:'<p>three</p>', state}; }",
-    );
+    write(&server_entry, "globalThis.__ssrApp = () => '<p>three</p>';");
     let deadline = std::time::Instant::now() + Duration::from_secs(20);
     loop {
         let remaining = deadline.saturating_duration_since(std::time::Instant::now());
@@ -122,5 +126,6 @@ async fn changes_replace_render_and_public_files_and_fail_explicitly() {
     }
     drop(development);
     fs::remove_file(server_entry).unwrap();
+    fs::remove_file(framework_entry).unwrap();
     fs::remove_file(client_entry).unwrap();
 }

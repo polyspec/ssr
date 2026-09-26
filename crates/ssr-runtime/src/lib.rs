@@ -2,6 +2,7 @@
 
 mod engine;
 mod module;
+mod react_stream;
 #[cfg(test)]
 mod realm_tests;
 mod snapshot;
@@ -77,6 +78,14 @@ enum Command {
         state: String,
         reply: Sender<WorkerReply>,
     },
+    Stream {
+        props: String,
+        state: String,
+        nonce: String,
+        events: Sender<StreamEvent>,
+        available: Sender<usize>,
+        index: usize,
+    },
     Stop,
 }
 struct ContextRender {
@@ -87,6 +96,71 @@ struct ContextRender {
 struct WorkerReply {
     result: Result<ContextRender, Error>,
     heap_used_bytes: usize,
+}
+
+enum StreamEvent {
+    Shell(Value, usize),
+    Chunk(Vec<u8>),
+    End,
+    Failed(Error),
+}
+
+pub struct Stream {
+    events: Receiver<StreamEvent>,
+    handle: v8::IsolateHandle,
+    deadline: Instant,
+    metrics: StreamMetrics,
+    finished: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StreamMetrics {
+    pub pool_wait: Duration,
+    pub heap_used_bytes: usize,
+}
+
+impl Stream {
+    pub fn metrics(&self) -> StreamMetrics {
+        self.metrics
+    }
+}
+
+impl Iterator for Stream {
+    type Item = Result<Vec<u8>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.finished {
+            return None;
+        }
+        let remaining = self.deadline.saturating_duration_since(Instant::now());
+        match self.events.recv_timeout(remaining) {
+            Ok(StreamEvent::Chunk(chunk)) => Some(Ok(chunk)),
+            Ok(StreamEvent::End) => {
+                self.finished = true;
+                None
+            }
+            Ok(StreamEvent::Failed(error)) => {
+                self.finished = true;
+                Some(Err(error))
+            }
+            Ok(StreamEvent::Shell(_, _)) => {
+                self.finished = true;
+                Some(Err(Error::InvalidResult("duplicate stream shell")))
+            }
+            Err(crossbeam_channel::RecvTimeoutError::Timeout) => {
+                self.finished = true;
+                if self.handle.terminate_execution() {
+                    Some(Err(Error::Timeout))
+                } else {
+                    Some(Err(Error::WorkerStopped))
+                }
+            }
+            Err(crossbeam_channel::RecvTimeoutError::Disconnected) => {
+                self.finished = true;
+                Some(Err(Error::WorkerStopped))
+            }
+        }
+    }
 }
 struct Worker {
     command: Sender<Command>,
@@ -173,6 +247,59 @@ impl Pool {
         }
         let bundle = module::Sources::new((bundle.entry_path, bundle.entry_bytes), bundle.chunks)?;
         let snapshot = snapshot::get(&bundle, timeout)?;
+        Self::from_snapshot(snapshot, worker_count, queue_capacity, timeout)
+    }
+
+    pub fn new_react(
+        framework: (String, Vec<u8>),
+        application: ServerBundle,
+        worker_count: usize,
+        queue_capacity: usize,
+        timeout: Duration,
+    ) -> Result<Self, Error> {
+        if worker_count == 0 || timeout.is_zero() {
+            return Err(Error::InvalidConfiguration(
+                "worker count and timeout must be nonzero",
+            ));
+        }
+        if !module::valid_path(&framework.0) || !module::valid_path(&application.entry_path) {
+            return Err(Error::InvalidBundle(
+                "React server JavaScript path is invalid",
+            ));
+        }
+        if framework.0 == application.entry_path {
+            return Err(Error::InvalidBundle(
+                "React framework and application paths must differ",
+            ));
+        }
+        if !application.chunks.is_empty() {
+            return Err(Error::InvalidBundle(
+                "React server chunks are unsupported by the IIFE build",
+            ));
+        }
+        let framework_source = std::str::from_utf8(&framework.1)
+            .map_err(|_| Error::InvalidBundle("React framework UTF-8 required"))?;
+        let application_source = std::str::from_utf8(&application.entry_bytes)
+            .map_err(|_| Error::InvalidBundle("React application UTF-8 required"))?;
+        if framework_source.is_empty() || application_source.is_empty() {
+            return Err(Error::InvalidBundle("React bundles must be nonempty"));
+        }
+        let snapshot = snapshot::get_react(
+            &framework.0,
+            framework_source,
+            &application.entry_path,
+            application_source,
+            timeout,
+        )?;
+        Self::from_snapshot(snapshot, worker_count, queue_capacity, timeout)
+    }
+
+    fn from_snapshot(
+        snapshot: std::sync::Arc<snapshot::Snapshot>,
+        worker_count: usize,
+        queue_capacity: usize,
+        timeout: Duration,
+    ) -> Result<Self, Error> {
         let (available_tx, available_rx) = bounded(worker_count);
         let (closed_tx, closed_rx) = bounded(0);
         let mut workers = Vec::with_capacity(worker_count);
@@ -312,6 +439,77 @@ impl Pool {
                 Err(Error::WorkerStopped)
             }
         }
+    }
+
+    pub fn render_stream(&self, page: &Page, nonce: &str) -> Result<(Value, Stream), Error> {
+        if page.render != Render::Ssr || page.props.kind() != Kind::Object {
+            return Err(Error::InvalidPage("stream requires SSR and object props"));
+        }
+        if nonce.is_empty()
+            || !nonce
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
+        {
+            return Err(Error::InvalidPage("nonce must be nonempty URL-safe text"));
+        }
+        let deadline = Instant::now()
+            .checked_add(self.timeout)
+            .ok_or(Error::InvalidConfiguration("timeout exceeds clock range"))?;
+        let waiting_since = Instant::now();
+        let mut lease = self.acquire(deadline)?;
+        let pool_wait = waiting_since.elapsed();
+        let worker = &self.workers[lease.index];
+        let (events_tx, events_rx) = bounded(1);
+        let command = Command::Stream {
+            props: page.props.compact(),
+            state: page.state.compact(),
+            nonce: nonce.to_owned(),
+            events: events_tx,
+            available: self.available_tx.clone(),
+            index: lease.index,
+        };
+        match worker
+            .command
+            .send_timeout(command, deadline.saturating_duration_since(Instant::now()))
+        {
+            Ok(()) => lease.release = false,
+            Err(crossbeam_channel::SendTimeoutError::Timeout(_)) => {
+                self.mark_lost(&mut lease, 2);
+                return Err(Error::WorkerUnresponsive);
+            }
+            Err(crossbeam_channel::SendTimeoutError::Disconnected(_)) => {
+                self.mark_lost(&mut lease, 1);
+                return Err(Error::WorkerStopped);
+            }
+        }
+        let (state, heap_used_bytes) =
+            match events_rx.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+                Ok(StreamEvent::Shell(state, heap_used_bytes)) => (state, heap_used_bytes),
+                Ok(StreamEvent::Failed(error)) => return Err(error),
+                Ok(_) => return Err(Error::InvalidResult("stream shell required before body")),
+                Err(crossbeam_channel::RecvTimeoutError::Timeout) => {
+                    if !worker.handle.terminate_execution() {
+                        return Err(Error::WorkerStopped);
+                    }
+                    return Err(Error::Timeout);
+                }
+                Err(crossbeam_channel::RecvTimeoutError::Disconnected) => {
+                    return Err(Error::WorkerStopped);
+                }
+            };
+        Ok((
+            state,
+            Stream {
+                events: events_rx,
+                handle: worker.handle.clone(),
+                deadline,
+                metrics: StreamMetrics {
+                    pool_wait,
+                    heap_used_bytes,
+                },
+                finished: false,
+            },
+        ))
     }
 
     fn lost_error(&self) -> Error {

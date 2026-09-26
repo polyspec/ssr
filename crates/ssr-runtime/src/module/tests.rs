@@ -138,13 +138,8 @@ fn dynamic_chunk_restores_in_three_workers_without_shared_state() {
                     .map(|_| {
                         let context = v8::Context::new(scope, Default::default());
                         let scope = &mut v8::ContextScope::new(scope, context);
-                        install_sources(
-                            scope,
-                            context,
-                            snapshot.sources(),
-                            snapshot.module_indices(),
-                        )
-                        .unwrap();
+                        let (sources, indices) = snapshot.module_data().unwrap();
+                        install_sources(scope, context, sources, &indices).unwrap();
                         let _context_modules = ContextModules::new(context);
                         let function = render(scope, context).unwrap();
                         let value = function
@@ -178,14 +173,14 @@ fn incomplete_snapshot_module_index_is_an_error() {
     )
     .unwrap();
     let snapshot = snapshot::get(&sources, Duration::from_secs(5)).unwrap();
-    let mut indices = snapshot.module_indices().clone();
+    let (sources, mut indices) = snapshot.module_data().unwrap();
     indices.remove("server/chunk.js");
     let mut isolate = snapshot.isolate();
     v8::scope!(let scope, &mut isolate);
     let context = v8::Context::new(scope, Default::default());
     let scope = &mut v8::ContextScope::new(scope, context);
     assert!(matches!(
-        install_sources(scope, context, snapshot.sources(), &indices),
+        install_sources(scope, context, sources, &indices),
         Err(Error::Snapshot("server module snapshot indices differ"))
     ));
 }
@@ -283,13 +278,8 @@ fn missing_dynamic_import_rejects_render() {
     v8::scope!(let scope, &mut isolate);
     let context = v8::Context::new(scope, Default::default());
     let scope = &mut v8::ContextScope::new(scope, context);
-    install_sources(
-        scope,
-        context,
-        snapshot.sources(),
-        snapshot.module_indices(),
-    )
-    .unwrap();
+    let (sources, indices) = snapshot.module_data().unwrap();
+    install_sources(scope, context, sources, &indices).unwrap();
     let _context_modules = ContextModules::new(context);
     let function = render(scope, context).unwrap();
     let value = function
@@ -325,13 +315,8 @@ fn unfinished_dynamic_chunk_rejects_render() {
     v8::scope!(let scope, &mut isolate);
     let context = v8::Context::new(scope, Default::default());
     let scope = &mut v8::ContextScope::new(scope, context);
-    install_sources(
-        scope,
-        context,
-        snapshot.sources(),
-        snapshot.module_indices(),
-    )
-    .unwrap();
+    let (sources, indices) = snapshot.module_data().unwrap();
+    install_sources(scope, context, sources, &indices).unwrap();
     let _context_modules = ContextModules::new(context);
     let function = render(scope, context).unwrap();
     let value = function

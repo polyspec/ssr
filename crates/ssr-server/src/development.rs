@@ -1,4 +1,4 @@
-use crate::{Adapter, Server};
+use crate::{Adapter, Body, Server};
 use http::{Request, Response};
 use notify::event::EventKind;
 use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
@@ -110,7 +110,7 @@ impl Development {
         ))
     }
 
-    pub fn handle(&self, request: Request<Vec<u8>>) -> Result<Response<Vec<u8>>, DevelopmentError> {
+    pub fn handle(&self, request: Request<Vec<u8>>) -> Result<Response<Body>, DevelopmentError> {
         let server = self
             .current
             .read()

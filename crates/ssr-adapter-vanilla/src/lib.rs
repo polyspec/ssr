@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 
 use ssr_core::{Page, Render, RenderResult, Value};
-use ssr_runtime::Pool;
+use ssr_runtime::{Pool, RenderMetrics};
 use std::fmt;
 use std::path::Path;
 
@@ -93,20 +93,38 @@ impl VanillaAdapter {
     }
 
     pub fn render(&self, page: &Page, pool: &Pool) -> Result<RenderResult, Error> {
-        let rendered = match page.render {
-            Render::Ssr => pool.render(page)?,
-            Render::Csr => RenderResult {
-                html: Vec::new(),
-                head: Vec::new(),
-                state: page.state.clone(),
-            },
+        self.render_with_metrics(page, pool)
+            .map(|(result, _)| result)
+    }
+
+    pub fn render_with_metrics(
+        &self,
+        page: &Page,
+        pool: &Pool,
+    ) -> Result<(RenderResult, Option<RenderMetrics>), Error> {
+        let (rendered, metrics) = match page.render {
+            Render::Ssr => {
+                let (rendered, metrics) = pool.render_with_metrics(page)?;
+                (rendered, Some(metrics))
+            }
+            Render::Csr => (
+                RenderResult {
+                    html: Vec::new(),
+                    head: Vec::new(),
+                    state: page.state.clone(),
+                },
+                None,
+            ),
         };
         let html = self.document(page, &rendered.html, &rendered.head, &rendered.state)?;
-        Ok(RenderResult {
-            html,
-            head: rendered.head,
-            state: rendered.state,
-        })
+        Ok((
+            RenderResult {
+                html,
+                head: rendered.head,
+                state: rendered.state,
+            },
+            metrics,
+        ))
     }
 
     pub fn static_shell(&self, page: &Page) -> Result<Vec<u8>, Error> {

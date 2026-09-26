@@ -1,5 +1,6 @@
 use crate::{
-    Command, ContextRender, Error, WorkerReply, module, snapshot::Snapshot, state_from_json,
+    Command, ContextRender, Error, StreamEvent, WorkerReply, module, react_stream,
+    snapshot::Snapshot, state_from_json,
 };
 use crossbeam_channel::Receiver;
 use deno_core::v8;
@@ -33,8 +34,8 @@ pub(crate) fn worker(
     requests: Receiver<Command>,
     ready: SyncSender<Result<v8::IsolateHandle, Error>>,
 ) {
-    let sources = snapshot.sources();
-    let module_indices = snapshot.module_indices().clone();
+    let is_react = snapshot.is_react();
+    let module_data = snapshot.module_data();
     let mut runtime = snapshot.isolate();
     let handle = runtime.thread_safe_handle();
     let serializer = match compile(
@@ -58,14 +59,19 @@ pub(crate) fn worker(
                 state,
                 reply,
             } => {
-                let result = render(
-                    &mut runtime,
-                    &serializer,
-                    Arc::clone(&sources),
-                    &module_indices,
-                    &props,
-                    &state,
-                );
+                let result = match &module_data {
+                    Some((sources, module_indices)) => render(
+                        &mut runtime,
+                        &serializer,
+                        Arc::clone(sources),
+                        module_indices,
+                        &props,
+                        &state,
+                    ),
+                    None => Err(Error::InvalidConfiguration(
+                        "React pool requires stream rendering",
+                    )),
+                };
                 let heap_used_bytes = runtime.get_heap_statistics().used_heap_size();
                 runtime.cancel_terminate_execution();
                 let _ = reply.send(WorkerReply {
@@ -73,12 +79,33 @@ pub(crate) fn worker(
                     heap_used_bytes,
                 });
             }
+            Command::Stream {
+                props,
+                state,
+                nonce,
+                events,
+                available,
+                index,
+            } => {
+                let result = if is_react {
+                    react_stream::render(&mut runtime, &serializer, &props, &state, &nonce, &events)
+                } else {
+                    Err(Error::InvalidConfiguration(
+                        "stream rendering requires a React pool",
+                    ))
+                };
+                runtime.cancel_terminate_execution();
+                if let Err(error) = result {
+                    let _ = events.send(StreamEvent::Failed(error));
+                }
+                let _ = available.send(index);
+            }
             Command::Stop => break,
         }
     }
 }
 
-fn compile(
+pub(crate) fn compile(
     runtime: &mut v8::OwnedIsolate,
     source: &str,
     name: &str,
@@ -198,7 +225,7 @@ fn render(
     })
 }
 
-fn settle<'s>(
+pub(crate) fn settle<'s>(
     scope: &mut v8::PinScope<'s, '_>,
     value: v8::Local<'s, v8::Value>,
 ) -> Result<v8::Local<'s, v8::Value>, Error> {
@@ -249,7 +276,10 @@ fn settle<'s>(
     }
 }
 
-fn parse<'s>(scope: &mut v8::PinScope<'s, '_>, input: &str) -> Option<v8::Local<'s, v8::Value>> {
+pub(crate) fn parse<'s>(
+    scope: &mut v8::PinScope<'s, '_>,
+    input: &str,
+) -> Option<v8::Local<'s, v8::Value>> {
     let text = v8::String::new(scope, input)?;
     v8::json::parse(scope, text)
 }

@@ -25,7 +25,10 @@ It must differ from `server_entry`. The build emits a private, hashed React fram
 its private source map, then emits the application server bundle as an IIFE with `react` resolved
 to the shared React object supplied by the framework bundle. The two bundles execute in one V8
 context and use the same React instance during application module initialization and rendering.
-The manifest records the framework path, bytes digest and map; the
+The React application server build does not split code and its manifest contains no server
+chunks. Server construction rejects a React build that lists server chunks; it never discards
+their bytes. The ordinary server build uses ECMAScript modules and resolves its listed server
+chunks through `ServerBundle`. The manifest records the framework path, bytes digest and map; the
 framework file has no public URL. A missing or equal framework entry fails. A build without a
 React framework entry produces the ordinary single server bundle and records null for the
 framework field.

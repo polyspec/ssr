@@ -1,6 +1,6 @@
-use ssr_adapter_react::{ReactAdapter, client_entry, server_entry};
+use ssr_adapter_react::{ReactAdapter, client_entry, framework_entry, server_entry};
 use ssr_build::{Build, BuildConfig, build};
-use ssr_core::Page;
+use ssr_core::{Page, RenderResult};
 use ssr_runtime::{Pool, ServerBundle};
 use std::collections::BTreeMap;
 use std::fs;
@@ -25,47 +25,50 @@ fn shell_page() -> Page {
     .unwrap()
 }
 
-fn fixture(entry_bytes: &[u8]) -> ServerBundle {
-    ServerBundle {
-        entry_path: "server/fixture.js".into(),
-        entry_bytes: entry_bytes.to_vec(),
-        chunks: Vec::new(),
+fn stream_document(adapter: &ReactAdapter, page: &Page, pool: &Pool) -> RenderResult {
+    let (state, stream) = pool.render_stream(page, "sample_nonce").unwrap();
+    let (mut prefix, suffix) = adapter.stream_parts(page, &state).unwrap();
+    let body = stream.collect::<Result<Vec<_>, _>>().unwrap().concat();
+    prefix.extend_from_slice(&body);
+    prefix.extend_from_slice(&suffix);
+    RenderResult {
+        html: prefix,
+        head: Vec::new(),
+        state,
     }
 }
 
-fn built_bundle(build: &Build) -> ServerBundle {
-    ServerBundle {
-        entry_path: build.manifest.server.path.clone(),
-        entry_bytes: build.files[&build.manifest.server.path].clone(),
-        chunks: build
-            .manifest
-            .server_chunks
-            .iter()
-            .map(|file| (file.path.clone(), build.files[&file.path].clone()))
-            .collect(),
-    }
+fn react_pool(build: &Build) -> Pool {
+    assert!(build.manifest.server_chunks.is_empty());
+    let framework = build.manifest.react_framework.as_ref().unwrap();
+    let app_source = std::str::from_utf8(&build.files[&build.manifest.server.path]).unwrap();
+    assert!(!app_source.contains("require(\"react\")"));
+    Pool::new_react(
+        (framework.path.clone(), build.files[&framework.path].clone()),
+        ServerBundle {
+            entry_path: build.manifest.server.path.clone(),
+            entry_bytes: build.files[&build.manifest.server.path].clone(),
+            chunks: Vec::new(),
+        },
+        1,
+        0,
+        Duration::from_secs(10),
+    )
+    .unwrap()
 }
 
 #[test]
 fn server_result_and_csr_state_follow_the_same_client_build() {
     let server = server_entry("/application/App.tsx").unwrap();
     let client = client_entry("/application/App.tsx").unwrap();
-    assert!(server.contains("renderToString"));
-    assert!(server.contains("export function render(props, state)"));
-    assert!(!server.contains("globalThis.render"));
+    assert!(server.contains("__ssrApp"));
+    assert!(framework_entry().contains("renderToReadableStream"));
     assert!(client.contains("hydrateRoot"));
     assert!(client.contains("createRoot"));
 
-    let pool = Pool::new(fixture(b"export function render(props, state) { return {head:'', html: '<main>' + props.name + '</main>', state: {count: state.count + 1}}; }"), 1, 0, Duration::from_secs(2)).unwrap();
     let adapter = ReactAdapter::new("/assets/client.js", &["/assets/style.css"]).unwrap();
-    let ssr = adapter.render(&page("ssr"), &pool).unwrap();
-    assert_eq!(ssr.state.compact(), r#"{"count":5}"#);
-    let ssr_html = String::from_utf8(ssr.html).unwrap();
-    assert!(ssr_html.contains("<main>Ada</main>"));
-    assert!(ssr_html.contains("/assets/client.js"));
-    assert!(ssr_html.contains(r#"{"count":5}"#));
-
-    let csr = adapter.render(&page("csr"), &pool).unwrap();
+    assert!(adapter.render(&page("ssr")).is_err());
+    let csr = adapter.render(&page("csr")).unwrap();
     assert_eq!(csr.state.compact(), r#"{"count":4}"#);
     let csr_html = String::from_utf8(csr.html).unwrap();
     assert!(csr_html.contains("<div id=\"root\"></div>"));
@@ -104,11 +107,7 @@ fn invalid_entry_urls_and_shell_values_fail() {
     let adapter = ReactAdapter::new("/assets/client.js", &[]).unwrap();
     assert!(adapter.static_shell(&page("csr")).is_err());
     assert!(adapter.static_shell(&page("ssr")).is_err());
-    let pool = Pool::new(
-        fixture(b"export function render(props, state) { return {html:'ok', head:'<script>unsafe()</script>', state}; }"),
-        1, 0, Duration::from_secs(2),
-    ).unwrap();
-    assert!(adapter.render(&page("ssr"), &pool).is_err());
+    assert!(adapter.render(&page("ssr")).is_err());
 }
 
 #[tokio::test]
@@ -125,12 +124,14 @@ async fn generated_react_entries_build_and_execute() {
     fs::create_dir_all(&generated).unwrap();
     let application = root.join("ReactApp.tsx");
     let server_path = generated.join("server.tsx");
+    let framework_path = generated.join("framework.tsx");
     let client_path = generated.join("client.tsx");
     fs::write(
         &server_path,
         server_entry(application.to_str().unwrap()).unwrap(),
     )
     .unwrap();
+    fs::write(&framework_path, framework_entry()).unwrap();
     fs::write(
         &client_path,
         client_entry(application.to_str().unwrap()).unwrap(),
@@ -139,14 +140,14 @@ async fn generated_react_entries_build_and_execute() {
     let output = build(&BuildConfig {
         root: root.clone(),
         server_entry: server_path,
-        react_framework_entry: None,
+        react_framework_entry: Some(framework_path),
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
     })
     .await
     .unwrap();
-    let pool = Pool::new(built_bundle(&output), 1, 0, Duration::from_secs(10)).unwrap();
+    let pool = react_pool(&output);
     let adapter = ReactAdapter::new(
         output.manifest.client.url.as_ref().unwrap(),
         &output
@@ -157,12 +158,66 @@ async fn generated_react_entries_build_and_execute() {
             .collect::<Vec<_>>(),
     )
     .unwrap();
-    let ssr = adapter.render(&page("ssr"), &pool).unwrap();
+    let ssr = stream_document(&adapter, &page("ssr"), &pool);
     assert_eq!(ssr.state.compact(), r#"{"count":5}"#);
     let html = String::from_utf8(ssr.html).unwrap();
     assert!(html.contains("<h1>Ada</h1>"), "{html}");
-    let csr = adapter.render(&page("csr"), &pool).unwrap();
+    let csr = adapter.render(&page("csr")).unwrap();
     assert_eq!(csr.state.compact(), r#"{"count":4}"#);
+}
+
+#[tokio::test]
+async fn suspense_failure_keeps_fallback_and_client_recovery_in_stream() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tools/build-probe/tests/fixtures")
+        .canonicalize()
+        .unwrap();
+    assert!(
+        root.join("node_modules/react").is_dir(),
+        "sample packages are required"
+    );
+    let generated = root.join("node_modules/.ssr-adapter-react-stream");
+    fs::create_dir_all(&generated).unwrap();
+    let application = root.join("ReactStreamApp.tsx");
+    let server_path = generated.join("server.tsx");
+    let framework_path = generated.join("framework.tsx");
+    let client_path = generated.join("client.tsx");
+    fs::write(
+        &server_path,
+        server_entry(application.to_str().unwrap()).unwrap(),
+    )
+    .unwrap();
+    fs::write(&framework_path, framework_entry()).unwrap();
+    fs::write(
+        &client_path,
+        client_entry(application.to_str().unwrap()).unwrap(),
+    )
+    .unwrap();
+    let output = build(&BuildConfig {
+        root: root.clone(),
+        server_entry: server_path,
+        react_framework_entry: Some(framework_path),
+        client_entry: client_path,
+        css_entry: root.join("app.css"),
+        asset_route: "/assets".into(),
+    })
+    .await
+    .unwrap();
+    let pool = react_pool(&output);
+    let page = Page::from_json(br#"{"render":"ssr","title":"Stream","language":"en","props":{"failClient":false},"state":{"count":4}}"#).unwrap();
+    let (state, mut stream) = pool.render_stream(&page, "stream_nonce").unwrap();
+    assert_eq!(state.compact(), r#"{"count":4}"#);
+    let shell = String::from_utf8(stream.next().unwrap().unwrap()).unwrap();
+    assert!(shell.contains("<h1>Ready</h1>"), "{shell}");
+    assert!(shell.contains("id=\"fallback\""), "{shell}");
+    let remaining =
+        String::from_utf8(stream.collect::<Result<Vec<_>, _>>().unwrap().concat()).unwrap();
+    let document = format!("{shell}{remaining}");
+    assert!(
+        document.contains("<!--$!--><template data-msg="),
+        "{document}"
+    );
+    assert!(document.contains("late server failure"), "{document}");
 }
 
 #[cfg(target_os = "macos")]
@@ -231,12 +286,14 @@ async fn browser_hydrates_ssr_and_renders_csr_and_static_shells() {
     fs::create_dir_all(&generated).unwrap();
     let application = root.join("ReactApp.tsx");
     let server_path = generated.join("server.tsx");
+    let framework_path = generated.join("framework.tsx");
     let client_path = generated.join("client.tsx");
     fs::write(
         &server_path,
         server_entry(application.to_str().unwrap()).unwrap(),
     )
     .unwrap();
+    fs::write(&framework_path, framework_entry()).unwrap();
     fs::write(
         &client_path,
         client_entry(application.to_str().unwrap()).unwrap(),
@@ -245,14 +302,14 @@ async fn browser_hydrates_ssr_and_renders_csr_and_static_shells() {
     let output = build(&BuildConfig {
         root: root.clone(),
         server_entry: server_path,
-        react_framework_entry: None,
+        react_framework_entry: Some(framework_path),
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
     })
     .await
     .unwrap();
-    let pool = Pool::new(built_bundle(&output), 1, 0, Duration::from_secs(10)).unwrap();
+    let pool = react_pool(&output);
     let adapter = ReactAdapter::new(
         output.manifest.client.url.as_ref().unwrap(),
         &output
@@ -274,17 +331,17 @@ async fn browser_hydrates_ssr_and_renders_csr_and_static_shells() {
             (file.content_type.clone(), output.files[&file.path].clone()),
         );
     }
-    let ssr = adapter.render(&page("ssr"), &pool).unwrap();
+    let ssr = stream_document(&adapter, &page("ssr"), &pool);
     let mut ssr_html = String::from_utf8(ssr.html).unwrap();
     ssr_html = ssr_html.replace("</div><script id=\"__SSR_PROPS__\"", "</div><script>window.__before = document.querySelector('#root main');</script><script id=\"__SSR_PROPS__\"");
     responses.insert(
         "/ssr".into(),
         ("text/html; charset=utf-8".into(), ssr_html.into_bytes()),
     );
-    let csr = adapter.render(&page("csr"), &pool).unwrap();
+    let csr = adapter.render(&page("csr")).unwrap();
     responses.insert("/csr".into(), ("text/html; charset=utf-8".into(), csr.html));
     let escaped_page = Page::from_json(br#"{"render":"csr","title":"<&>","language":"en","props":{"name":"</script><script>window.attack=1</script>"},"state":{"count":4}}"#).unwrap();
-    let escaped = adapter.render(&escaped_page, &pool).unwrap();
+    let escaped = adapter.render(&escaped_page).unwrap();
     let escaped_html = String::from_utf8(escaped.html).unwrap();
     assert!(!escaped_html.contains("</script><script>window.attack=1"));
     responses.insert(
