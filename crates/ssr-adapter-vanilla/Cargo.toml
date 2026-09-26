@@ -3,3 +3,12 @@ name = "ssr-adapter-vanilla"
 version.workspace = true
 edition = "2024"
 license.workspace = true
+
+[dependencies]
+ssr-core = { path = "../ssr-core", version = "=0.0.1" }
+ssr-runtime = { path = "../ssr-runtime", version = "=0.0.1" }
+
+[dev-dependencies]
+ssr-build = { path = "../ssr-build", version = "=0.0.1" }
+tokio.workspace = true
+wait-timeout.workspace = true

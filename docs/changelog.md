@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Add the vanilla adapter with server and client entries, SSR output state, CSR documents and
+  static shells. A browser verifies server DOM identity and client event handling because generated
+  source alone cannot establish hydration behavior.
+
 - Add the development procedures (`AGENTS.md`), the checklist and this changelog.
 - Synchronize the combined pool wait and execution timeout case on queue admission because a
   thread start signal does not establish which render owns the worker.
