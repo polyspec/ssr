@@ -31,6 +31,10 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 - `docs/checklist.md` is the only task tracker. `docs/checklist.ko.md` has identical task IDs and
   states. Do not create another checklist. Split an item into numbered sub-items or add items when
   needed.
+- Record repository-specific work with a concrete artifact and verifiable completion evidence in
+  the checklist. Keep standing instructions for how to work in this file. A requested policy change
+  updates this file; it becomes a checklist item only when it also requires a separate repository
+  implementation or check. Classify each new request before adding an item.
 - States: `[ ]` waiting, `[~]` in progress, `[o]` complete, `[!]` temporarily bypassed.
   Use `[!]` only when an unfinished item must be deliberately bypassed because work otherwise
   cannot advance to the next checklist item. Do not use it to defer a difficult item while work
@@ -43,6 +47,11 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   more `[~]` items so that only the number of unfinished items grows. For example, A[~] and D[~]
   together are allowed; starting D after part of A, then E, F and G after part of D, is not. Prefer
   completing items in progress over starting new ones, so that `[o]` grows continuously.
+- For repository work or a newly found defect, record its priority, acceptance criteria, and
+  dependencies in this checklist and update the specification before implementation. Finish current work unless
+  the user explicitly requires immediate action or the defect must be fixed first. Run independent
+  items in parallel without adding another task list. An uncommitted worktree covers one item;
+  commit that item's implementation, tests, and records when marking it `[o]`.
 - A newly found issue in a completed item is added as a numbered sub-item; the completed item does
   not go back to `[~]`.
 - Marking an item `[o]` requires its implementation, tests and records to be committed in the same
@@ -53,6 +62,8 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 1. Define or update the specification and acceptance criteria before implementation. Do not weaken
    a correct criterion to pass a test.
 2. Reproduce a defect or missing behavior with a tracked test, then correct the cause.
+   Put a behavior's base tests in its owning crate and test its actual use in each consuming crate.
+   Both tests execute; the presence of a test file alone is not completion evidence.
 3. Choose the simplest complete implementation. No compatibility layers, fallbacks, data
    conversion or abstractions for unspecified requirements. Invalid input is an error, never a
    plausible default.
