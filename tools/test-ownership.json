@@ -1,0 +1,28 @@
+{
+  "behaviors": [
+    {
+      "id": "page",
+      "owner": {"crate": "ssr-core", "target": "page", "test": "page_fixtures_round_trip"},
+      "consumers": [
+        {"crate": "ssr-runtime", "target": "runtime", "test": "named_render_constant_is_supported"},
+        {"crate": "ssr-adapter-react", "target": "react", "test": "server_result_and_csr_state_follow_the_same_client_build"},
+        {"crate": "ssr-adapter-vue", "target": "vue", "test": "entries_and_documents_follow_the_page_contract"},
+        {"crate": "ssr-adapter-svelte", "target": "svelte", "test": "entries_and_documents_follow_the_page_contract"},
+        {"crate": "ssr-adapter-vanilla", "target": "vanilla", "test": "entries_render_both_modes_and_reject_invalid_input"},
+        {"crate": "ssr-server", "target": "render", "test": "render_http_maps_status_bodies_and_metrics"}
+      ]
+    },
+    {
+      "id": "build",
+      "owner": {"crate": "ssr-build", "target": "build", "test": "sample_build_has_stable_files_and_manifest"},
+      "consumers": [
+        {"crate": "ssr-runtime", "target": "runtime", "test": "react_server_bundle_executes_with_text_encoder"},
+        {"crate": "ssr-adapter-react", "target": "react", "test": "generated_react_entries_build_and_execute"},
+        {"crate": "ssr-adapter-vue", "target": "vue", "test": "browser_preserves_server_dom_and_renders_csr_and_shells"},
+        {"crate": "ssr-adapter-svelte", "target": "svelte", "test": "browser_preserves_server_dom_and_renders_csr_and_shells"},
+        {"crate": "ssr-adapter-vanilla", "target": "vanilla", "test": "browser_preserves_server_dom_and_renders_csr_and_shells"},
+        {"crate": "ssr-server", "target": "render", "test": "generated_source_map_maps_a_live_render_failure"}
+      ]
+    }
+  ]
+}

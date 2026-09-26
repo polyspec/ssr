@@ -52,11 +52,13 @@ completion evidence.
   `deny.toml`. All other crates and versions retain the common license policy. Depends on: S-1-2.
   Evidence: the selected versions pass the license check; another version fails it; `make check`
   exits with 0.
-- [ ] S-1-4 Enforce test ownership across the workspace. For each declared shared behavior,
+- [o] S-1-4 Enforce test ownership across the workspace. For each declared shared behavior,
   run a base test in its owning crate and an actual use test in every consuming crate. Reject a
   missing, misplaced, empty, failed, or timed-out test and a declaration that only names a file.
-  Depends on: S-1. Evidence: mutation cases fail for each invalid declaration, the declared tests
-  execute in their own crates, and `make check` runs the ownership check.
+  Depends on: S-1. Acceptance: the declarations cover the shared page and build behavior and every
+  direct workspace consumer of each owner; each case names one integration test target and exact
+  test function in its crate. Evidence: mutation cases fail for each invalid declaration, the
+  declared tests execute in their own crates, and `make check` runs the ownership check.
 - [o] S-2 Implement `ssr-core`: the render call `Page{render,title,language,props,state}` of
   `POST /_render` with the render mode `ssr` or `csr`, its result (HTML and the output state), and its
   errors. Cache headers are the policy of the consumer and are not part of this crate. Depends on:
