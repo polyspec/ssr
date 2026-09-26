@@ -107,6 +107,12 @@ procedure. Each item names its dependencies and its completion evidence.
   timeout that terminates a running script, and global state reset between requests. Depends on:
   S-2, S-4, S-4-2. Evidence: a global change of request A is absent in request B; a script that does not end
   is terminated at the timeout; a full queue returns an error; the Web API cases pass.
+- [o] S-6-1 Expose the UTF-8 `TextEncoder` interface in every render context so a React server
+  bundle executes. Depends on: S-6. Acceptance: construction, `encoding`, `encode` and
+  `encodeInto` follow their UTF-8 behavior for ASCII, non-ASCII text, lone surrogates and a short
+  destination; invalid receivers and destinations fail. The interface remains available after
+  context reset and adds no file, network or timer API. Evidence: Web API tests and execution of a
+  React server bundle.
 - [ ] S-7 Implement the React adapter for the first consumer: SSR renders HTML with the render state
   output; CSR returns the static shell of the same client bundle; the client hydrates the SSR HTML
   or renders the CSR shell. Depends on: S-5, S-6. Evidence: SSR, CSR and hydration cases in a browser

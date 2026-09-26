@@ -47,7 +47,37 @@ pub(crate) fn install(scope: &mut PinScope, context: Local<v8::Context>) -> Resu
     if global.set(scope, name.into(), crypto.into()) != Some(true) {
         return Err(Error::InvalidBundle("crypto initialization failed"));
     }
+    let encoder = v8::Function::builder(encode_utf8)
+        .build(scope)
+        .ok_or(Error::InvalidBundle("UTF-8 callback initialization failed"))?;
+    let name = v8::String::new(scope, "__ssrEncodeUtf8")
+        .ok_or(Error::InvalidBundle("UTF-8 callback name unavailable"))?;
+    if global.set(scope, name.into(), encoder.into()) != Some(true) {
+        return Err(Error::InvalidBundle("UTF-8 callback initialization failed"));
+    }
+    let source = v8::String::new(scope, include_str!("text_encoder.js"))
+        .ok_or(Error::InvalidBundle("TextEncoder source unavailable"))?;
+    let script = v8::Script::compile(scope, source, None)
+        .ok_or(Error::InvalidBundle("TextEncoder initialization failed"))?;
+    script
+        .run(scope)
+        .ok_or(Error::InvalidBundle("TextEncoder initialization failed"))?;
     Ok(())
+}
+
+fn encode_utf8(scope: &mut PinScope, args: FunctionCallbackArguments, mut result: ReturnValue) {
+    let Some(input) = args.get(0).to_string(scope) else {
+        return;
+    };
+    let bytes = input.to_rust_string_lossy(scope).into_bytes();
+    let length = bytes.len();
+    let store = v8::ArrayBuffer::new_backing_store_from_vec(bytes).make_shared();
+    let buffer = v8::ArrayBuffer::with_backing_store(scope, &store);
+    let Some(array) = v8::Uint8Array::new(scope, buffer, 0, length) else {
+        throw_type_error(scope, "UTF-8 output exceeds typed array limit");
+        return;
+    };
+    result.set(array.into());
 }
 
 fn console_write(scope: &mut PinScope, args: FunctionCallbackArguments, _result: ReturnValue) {
