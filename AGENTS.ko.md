@@ -17,6 +17,8 @@
 - `0.0.1` 라이브러리 하나를 개발한다. 크레이트는 `ssr-core`, `ssr-build`, `ssr-runtime`, `ssr-adapter-react`,
   `ssr-adapter-vue`, `ssr-adapter-svelte`, `ssr-adapter-vanilla`, `ssr-server`다.
 - 라이브러리는 Node 프로세스를 실행하지 않는다. 번들링과 렌더링은 Rust 프로세스 안에서 실행한다.
+- 생성한 JavaScript, 컴포넌트 CSS와 서버 head를 정의된 위치에 반영한다. 필수 출력 누락과
+  컴파일러 경고는 빌드 또는 렌더 실패다. 최종 출력의 위치를 정확히 표시하는 소스맵만 게시한다.
 
 ## 용어와 설계
 

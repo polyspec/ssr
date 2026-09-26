@@ -4,7 +4,7 @@
 
 ## Product build contract
 
-`ssr-build` accepts absolute paths to the application root, server TSX entry, client TSX entry
+`ssr-build` accepts absolute paths to the application root, server JavaScript entry, client JavaScript entry
 and CSS entry, plus a local absolute URL path for public assets. The route may be `/` or contain
 segments of ASCII letters, digits, hyphens, underscores and periods; empty, `.` and `..` segments
 are invalid. The entries and CSS must remain
@@ -32,6 +32,19 @@ chunks through `ServerBundle`. The manifest records the framework path, bytes di
 framework file has no public URL. A missing or equal framework entry fails. A build without a
 React framework entry produces the ordinary single server bundle and records null for the
 framework field.
+
+An entry may import `.svelte` files. The build executes the installed Svelte compiler inside the
+Rust process for server and client output. Compiler warnings and errors fail the build. Generated
+component CSS is processed by Lightning CSS and published as a content-hashed style file in the
+manifest. Server and client component CSS must match. A missing compiler result or source map
+fails the build. `node:async_hooks` is external only for Svelte's server render context; other
+imports of that name fail. The synchronous server render path does not execute that import, as
+verified by the Svelte render case.
+Svelte returns an AST and metadata for compiler tooling; neither is a runtime or published build
+artifact. It also returns a CSS source map for its generated CSS. Lightning CSS changes those CSS
+positions, so publishing the original map would report incorrect locations. This build does not
+publish a CSS source map. The JavaScript source map is passed to Rolldown and included in the
+private server bundle map.
 
 `PublicFiles::new` selects only the client entry, styles and assets with public URLs. It verifies
 each URL, output byte sequence, SHA-256 digest and content type before publication or serving.

@@ -10,8 +10,10 @@ file path in that frame.
 The server uses the build's client and style URLs to create the selected document adapter.
 `Adapter::React` selects the React framework and IIFE application stream path. It requires the
 private framework bundle and rejects server chunks. `Adapter::Vanilla` selects the ECMAScript
-module server bundle and evaluates every listed server chunk. It rejects a React framework bundle.
-Both adapters use the same HTTP route and page result.
+module server bundle and evaluates every listed server chunk. `Adapter::Svelte` uses the same ESM
+bundle and inserts Svelte head output in the document head. Both reject a React framework bundle.
+All adapters use the same HTTP route and page result. The public route serves generated component
+CSS from the build manifest.
 
 `Server::handle` accepts an HTTP request with a byte body. `POST /_render` requires
 `Content-Type: application/json`, optionally with `charset=utf-8`, and the exact page JSON

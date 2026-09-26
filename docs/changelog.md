@@ -22,6 +22,12 @@
 - Remove procedure-only S-0-2-1 from the checklist and keep the priority and test placement
   rules in AGENTS.md. Checklist items require a repository artifact and verifiable completion
   evidence.
+- Add Svelte source compilation inside the Rust build process and the Svelte adapter. The build
+  publishes component CSS with a content-hashed URL; the adapter places server head output in the
+  document. The HTTP server serves the ESM build and component CSS, applies a request nonce to
+  inline head and body content, and maps JavaScript failures through the build source maps.
+  Browser cases verify hydration, client events, head output, component style, CSR and static
+  shells because generated bundles alone do not establish browser behavior.
 
 - Require a `head` string in every runtime render result and preserve its bytes. Missing or
   invalid values fail because render output must remain complete. React, Vue and vanilla return
