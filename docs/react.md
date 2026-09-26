@@ -41,3 +41,15 @@ the SSR DOM node survives hydration, the CSR root renders, state values reach th
 the injected script does not execute, and no browser JavaScript error occurs.
 A separate browser case receives a Suspense fallback and React's client recovery instructions,
 then verifies successful client retry and an application error boundary when the retry fails.
+
+## Stream acceptance
+
+The React HTTP case verifies a 500 error document before the shell, 503 when the pool is full,
+504 on render timeout, progressive body chunks after a 200 shell response, structured
+`onError` details with the request nonce, and render metrics. A separate reader rejection case
+receives its first body chunk before an explicit body error and retains the initial response
+status and headers. The nonce cases verify operating-system random failure, one nonce on every
+inline script and style within a request, distinct nonces across requests, and split HTML tags.
+The runtime cases verify React hooks and application timer isolation. The browser recovery case
+verifies that Suspense fallback and React's client recovery instructions remain usable after a
+server error and that a failed client retry reaches the application error boundary.

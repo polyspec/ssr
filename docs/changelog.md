@@ -4,6 +4,8 @@
 
 ## 0.0.1
 
+- Verify React streaming across HTTP shell status, late body errors, request nonces, timer
+  isolation, render metrics, and browser recovery after a Suspense error.
 - Verify that a React stream reader rejection after a body chunk returns that chunk and an
   explicit body error while the initial HTTP status and headers remain fixed.
 - Correct the React adapter and runtime documents to name the framework and application entries,
