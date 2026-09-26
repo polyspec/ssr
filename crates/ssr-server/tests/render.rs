@@ -31,6 +31,7 @@ fn build(script: &str) -> Build {
     let client = b"window.app = true;".to_vec();
     Build {
         manifest: Manifest {
+            react_framework: None,
             server: file(
                 "server/server.js",
                 None,
@@ -214,6 +215,7 @@ async fn generated_source_map_maps_a_live_render_failure() {
     );
     let output = build_application(&BuildConfig {
         server_entry: root.join("server_error.tsx"),
+        react_framework_entry: None,
         client_entry: root.join("client.tsx"),
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),

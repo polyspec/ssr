@@ -78,3 +78,7 @@
   result contract; rejection returns its message and stack, and a result with no scheduled
   completion fails. A separate-context React test verifies that an application component renders
   without receiving a framework timer because framework scheduling must remain private.
+- Build a separate private React framework bundle and application server bundle with one shared
+  React instance because independent copies reject application hooks. The build validates the
+  framework input, records its digest and source map, and keeps it outside public files. A test
+  renders a component using `useId` in a context without the framework timer.

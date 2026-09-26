@@ -4,7 +4,8 @@ function App({ name }: { name: string }) {
   if (typeof setTimeout !== "undefined") {
     throw new Error("application timer is visible");
   }
-  return React.createElement("h1", null, name);
+  const id = React.useId();
+  return React.createElement("h1", { id }, name);
 }
 
 (globalThis as any).AppBridge = App;

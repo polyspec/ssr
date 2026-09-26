@@ -102,6 +102,7 @@ async fn browser_preserves_server_dom_and_renders_csr_and_shells() {
     let output = build(&BuildConfig {
         root: root.clone(),
         server_entry: server_path,
+        react_framework_entry: None,
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),

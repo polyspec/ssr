@@ -53,6 +53,7 @@ impl BuildFile {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Manifest {
     pub server: BuildFile,
+    pub react_framework: Option<BuildFile>,
     pub source_maps: Vec<BuildFile>,
     pub client: BuildFile,
     pub styles: Vec<BuildFile>,
@@ -70,6 +71,7 @@ impl Manifest {
         };
         Self {
             server: empty.clone(),
+            react_framework: None,
             source_maps: Vec::new(),
             client: empty,
             styles: Vec::new(),
@@ -106,6 +108,13 @@ impl Manifest {
         }
         let mut fields = OrderedMap::new();
         fields.insert(Value::string("server"), artifact(&self.server)?)?;
+        fields.insert(
+            Value::string("reactFramework"),
+            match &self.react_framework {
+                Some(file) => artifact(file)?,
+                None => Value::null(),
+            },
+        )?;
         fields.insert(Value::string("sourceMaps"), list(&self.source_maps)?)?;
         fields.insert(Value::string("client"), artifact(&self.client)?)?;
         fields.insert(Value::string("styles"), list(&self.styles)?)?;

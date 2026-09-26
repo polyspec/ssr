@@ -249,6 +249,7 @@ async fn react_server_bundle_executes_with_text_encoder() {
     let output = build(&BuildConfig {
         root: root.clone(),
         server_entry,
+        react_framework_entry: None,
         client_entry: root.join("client.tsx"),
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
