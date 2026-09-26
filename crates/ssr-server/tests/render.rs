@@ -89,8 +89,9 @@ impl Write for TraceOutput {
 
 #[test]
 fn render_http_maps_status_bodies_and_metrics() {
-    let build =
-        build("function render(props, state) { return {html:'<h1>'+props.name+'</h1>', state}; }");
+    let build = build(
+        "function render(props, state) { return {head:'', html:'<h1>'+props.name+'</h1>', state}; }",
+    );
     let server = Server::new(&build, Adapter::React, 1, 1, Duration::from_secs(2)).unwrap();
     let trace_bytes = Arc::new(Mutex::new(Vec::new()));
     let writer = TraceOutput(trace_bytes.clone());
@@ -180,7 +181,7 @@ fn javascript_stack_uses_source_map_and_invalid_map_fails_startup() {
 
 #[test]
 fn standard_utf8_json_media_type_and_head_semantics() {
-    let build = build("function render(props, state) { return {html:'ok', state}; }");
+    let build = build("function render(props, state) { return {head:'', html:'ok', state}; }");
     let server = Server::new(&build, Adapter::React, 1, 0, Duration::from_secs(2)).unwrap();
     let json_request = Request::builder()
         .method(Method::POST)

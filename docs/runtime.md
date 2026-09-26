@@ -5,8 +5,9 @@
 `Pool::new` accepts a server bundle, a nonzero worker count, a queue capacity and a
 nonzero execution timeout. It initializes the bundle in a V8 snapshot, and each worker
 owns one isolate created from that snapshot on one thread. The bundle defines a global
-`render(props, state)` function. It returns an object with string `html` and a JSON
-`state` value, directly or through a Promise. The runtime completes queued V8 microtasks
+`render(props, state)` function. It returns an object with required string `html` and `head`
+values and a JSON `state` value, directly or through a Promise. A missing or invalid head is an
+error; its UTF-8 bytes remain in `RenderResult`. The runtime completes queued V8 microtasks
 before reading a Promise result. It returns a JavaScript error with the rejection message
 and stack for a rejected Promise; a Promise still pending after its microtasks complete is
 an error because no external event source can complete it. An absent function, invalid
@@ -23,7 +24,7 @@ returns an error, and initialization obeys the configured timeout. Each call res
 separate V8 context from the snapshot in its worker isolate without executing the bundle
 again. The initialized server globals and Web APIs are available in each context, and
 changes made by one request cannot affect another.
-Props and input state enter as V8 values. HTML and output state leave as bytes; the
+Props and input state enter as V8 values. HTML, head and output state leave as bytes; the
 output state is parsed through ordered-json. Undefined, function, symbol, bigint
 and non-finite number values in the output state fail instead of being omitted
 or converted to null. The runtime reports malformed input or output instead of

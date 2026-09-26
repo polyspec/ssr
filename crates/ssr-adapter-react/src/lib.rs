@@ -45,7 +45,7 @@ fn app_import(path: &str) -> Result<String, Error> {
 pub fn server_entry(application: &str) -> Result<String, Error> {
     let application = app_import(application)?;
     Ok(format!(
-        "import React from 'react';\nimport {{renderToString}} from 'react-dom/server.edge';\nimport App from {application};\nglobalThis.render = (props, state) => {{ const renderState = {{input: state, output: null}}; const html = renderToString(<App {{...props}} renderState={{renderState}} />); return {{html, state: renderState.output}}; }};\n"
+        "import React from 'react';\nimport {{renderToString}} from 'react-dom/server.edge';\nimport App from {application};\nglobalThis.render = (props, state) => {{ const renderState = {{input: state, output: null}}; const html = renderToString(<App {{...props}} renderState={{renderState}} />); return {{html, head: '', state: renderState.output}}; }};\n"
     ))
 }
 
@@ -110,15 +110,17 @@ impl ReactAdapter {
             Render::Csr => (
                 RenderResult {
                     html: Vec::new(),
+                    head: Vec::new(),
                     state: page.state.clone(),
                 },
                 None,
             ),
         };
-        let html = self.document(page, &rendered.html, &rendered.state)?;
+        let html = self.document(page, &rendered.html, &rendered.head, &rendered.state)?;
         Ok((
             RenderResult {
                 html,
+                head: rendered.head,
                 state: rendered.state,
             },
             metrics,
@@ -134,12 +136,25 @@ impl ReactAdapter {
                 "static shell requires CSR, empty props and null state",
             ));
         }
-        self.document(page, &[], &page.state)
+        self.document(page, &[], &[], &page.state)
     }
 
-    fn document(&self, page: &Page, body: &[u8], state: &Value) -> Result<Vec<u8>, Error> {
+    fn document(
+        &self,
+        page: &Page,
+        body: &[u8],
+        head: &[u8],
+        state: &Value,
+    ) -> Result<Vec<u8>, Error> {
         let body = std::str::from_utf8(body)
             .map_err(|_| Error::InvalidInput("rendered HTML must be UTF-8"))?;
+        let head = std::str::from_utf8(head)
+            .map_err(|_| Error::InvalidInput("rendered head must be UTF-8"))?;
+        if !head.is_empty() {
+            return Err(Error::InvalidInput(
+                "React adapter cannot render head output",
+            ));
+        }
         if page.props.members().is_none() {
             return Err(Error::InvalidInput("props must be an object"));
         }

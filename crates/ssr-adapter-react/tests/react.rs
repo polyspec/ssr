@@ -33,7 +33,7 @@ fn server_result_and_csr_state_follow_the_same_client_build() {
     assert!(client.contains("hydrateRoot"));
     assert!(client.contains("createRoot"));
 
-    let pool = Pool::new(b"function render(props, state) { return {html: '<main>' + props.name + '</main>', state: {count: state.count + 1}}; }".to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
+    let pool = Pool::new(b"function render(props, state) { return {head:'', html: '<main>' + props.name + '</main>', state: {count: state.count + 1}}; }".to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
     let adapter = ReactAdapter::new("/assets/client.js", &["/assets/style.css"]).unwrap();
     let ssr = adapter.render(&page("ssr"), &pool).unwrap();
     assert_eq!(ssr.state.compact(), r#"{"count":5}"#);
@@ -81,6 +81,11 @@ fn invalid_entry_urls_and_shell_values_fail() {
     let adapter = ReactAdapter::new("/assets/client.js", &[]).unwrap();
     assert!(adapter.static_shell(&page("csr")).is_err());
     assert!(adapter.static_shell(&page("ssr")).is_err());
+    let pool = Pool::new(
+        b"function render(props, state) { return {html:'ok', head:'<script>unsafe()</script>', state}; }".to_vec(),
+        1, 0, Duration::from_secs(2),
+    ).unwrap();
+    assert!(adapter.render(&page("ssr"), &pool).is_err());
 }
 
 #[tokio::test]

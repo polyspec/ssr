@@ -55,9 +55,11 @@ fn page_preserves_state_and_render_result() {
     let output = ordered_json::parse(r#"{"selected":"output"}"#).unwrap();
     let result = RenderResult {
         html: b"<h1>News</h1>".to_vec(),
+        head: b"<meta name=\"section\" content=\"news\">".to_vec(),
         state: output,
     };
     assert_eq!(result.html, b"<h1>News</h1>");
+    assert_eq!(result.head, b"<meta name=\"section\" content=\"news\">");
     assert_eq!(result.state.compact(), r#"{"selected":"output"}"#);
     assert_eq!(
         Error::Render("script failed".into()).to_string(),

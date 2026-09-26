@@ -16,7 +16,7 @@ the ordered-json byte API that rejects duplicate keys.
 The `Value` type used by `Page` and `RenderResult` is also exported by `ssr-core` so
 adapters can use the page contract through their core dependency.
 
-The render result contains HTML bytes and the output state as a JSON value. The
+The render result contains HTML and head bytes and the output state as a JSON value. The
 rendering component chooses that state. It is distinct from the input state and
 is available to the browser for hydration. `ssr-core` does not set cache headers
 or choose HTTP status codes; the HTTP server maps invalid requests and render
@@ -25,7 +25,7 @@ failures to its responses. `CALL_PATH` is `/_render`.
 Acceptance: both [SSR fixture](../crates/ssr-core/tests/fixtures/ssr.json) and
 [CSR fixture](../crates/ssr-core/tests/fixtures/csr.json) parse, encode and parse
 again without changing values or object order. Invalid cases return errors. A
-render result retains its HTML and output state.
+render result retains its HTML, head and output state.
 
 The ordered-json dependency is a local unpublished Cargo package. The dependency
 check excludes unpublished local packages from license decisions; registry

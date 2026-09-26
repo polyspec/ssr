@@ -4,8 +4,7 @@ use std::error::Error;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-const BUNDLE: &str =
-    "function render(props, state) { return {html: '<main>' + props.text + '</main>', state}; }";
+const BUNDLE: &str = "function render(props, state) { return {head:'', html: '<main>' + props.text + '</main>', state}; }";
 const PAGE: &str = r#"{"render":"ssr","title":"Benchmark","language":"en","props":{"text":"fixed page"},"state":{"value":1}}"#;
 const CALLS_PER_THREAD: usize = 128;
 const CONCURRENCY: [usize; 3] = [1, 4, 16];

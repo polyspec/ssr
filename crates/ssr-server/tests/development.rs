@@ -59,7 +59,7 @@ async fn changes_replace_render_and_public_files_and_fail_explicitly() {
     let client_entry = root.join(format!("development-client-{unique}.tsx"));
     write(
         &server_entry,
-        "globalThis.render = (_, state) => ({html:'<p>one</p>', state});",
+        "globalThis.render = (_, state) => ({head:'', html:'<p>one</p>', state});",
     );
     write(&client_entry, "window.marker = 'one';");
     let config = BuildConfig {
@@ -81,7 +81,7 @@ async fn changes_replace_render_and_public_files_and_fail_explicitly() {
 
     write(
         &server_entry,
-        "globalThis.render = (_, state) => ({html:'<p>two</p>', state});",
+        "globalThis.render = (_, state) => ({head:'', html:'<p>two</p>', state});",
     );
     write(&client_entry, "window.marker = 'two';");
     let deadline = std::time::Instant::now() + Duration::from_secs(20);
@@ -109,7 +109,7 @@ async fn changes_replace_render_and_public_files_and_fail_explicitly() {
     assert!(render(&development).unwrap_err().contains("JavaScript"));
     write(
         &server_entry,
-        "globalThis.render = (_, state) => ({html:'<p>three</p>', state});",
+        "globalThis.render = (_, state) => ({head:'', html:'<p>three</p>', state});",
     );
     let deadline = std::time::Instant::now() + Duration::from_secs(20);
     loop {

@@ -470,7 +470,7 @@ mod tests {
     fn timeout_covers_queue_wait_and_execution() {
         let pool = Arc::new(
             Pool::new(
-                b"function render(props, state) { const until = Date.now() + 1800; while (Date.now() < until) {} return {html:'ok', state}; }".to_vec(),
+                b"function render(props, state) { const until = Date.now() + 1800; while (Date.now() < until) {} return {head:'', html:'ok', state}; }".to_vec(),
                 1,
                 1,
                 Duration::from_secs(2),

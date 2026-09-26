@@ -40,7 +40,7 @@ fn entries_and_documents_follow_the_page_contract() {
     assert!(server_entry("relative/server.js").is_err());
     assert!(client_entry("relative/client.js").is_err());
 
-    let pool = Pool::new(b"function render(props, state) { return {html: '<main>' + props.name + '</main>', state: {count: state.count + 1}}; }".to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
+    let pool = Pool::new(b"function render(props, state) { return {head:'', html: '<main>' + props.name + '</main>', state: {count: state.count + 1}}; }".to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
     let adapter = VueAdapter::new("/assets/client.js", &["/assets/style.css"]).unwrap();
     let ssr = adapter.render(&page("ssr"), &pool).unwrap();
     assert_eq!(ssr.state.compact(), r#"{"count":5}"#);
@@ -63,6 +63,11 @@ fn entries_and_documents_follow_the_page_contract() {
     );
     assert!(VueAdapter::new("//other/client.js", &[]).is_err());
     assert!(VueAdapter::new("/assets/client.js", &["/assets/../style.css"]).is_err());
+    let pool = Pool::new(
+        b"function render(props, state) { return {html:'ok', head:'<script>unsafe()</script>', state}; }".to_vec(),
+        1, 0, Duration::from_secs(2),
+    ).unwrap();
+    assert!(adapter.render(&page("ssr"), &pool).is_err());
 }
 
 #[cfg(target_os = "macos")]

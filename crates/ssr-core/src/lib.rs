@@ -33,6 +33,7 @@ pub struct Page {
 #[derive(Debug, Clone)]
 pub struct RenderResult {
     pub html: Vec<u8>,
+    pub head: Vec<u8>,
     pub state: Value,
 }
 

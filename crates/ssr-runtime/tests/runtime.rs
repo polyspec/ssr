@@ -17,7 +17,7 @@ fn page(props: &str) -> Page {
 #[test]
 fn promise_render_result_settles_or_reports_its_failure() {
     let fulfilled = Pool::new(
-        b"function render(props, state) { return Promise.resolve().then(() => ({html: props.name, state})); }".to_vec(),
+        b"function render(props, state) { return Promise.resolve().then(() => ({head:'', html: props.name, state})); }".to_vec(),
         1,
         0,
         Duration::from_secs(2),
@@ -56,7 +56,7 @@ fn promise_render_result_settles_or_reports_its_failure() {
 
 #[test]
 fn request_context_does_not_retain_globals() {
-    let pool = Pool::new(b"globalThis.count = 0; function render(props, state) { globalThis.count++; return {html: String(globalThis.count), state}; }".to_vec(), 1, 1, Duration::from_secs(2)).unwrap();
+    let pool = Pool::new(b"globalThis.count = 0; function render(props, state) { globalThis.count++; return {head:'', html: String(globalThis.count), state}; }".to_vec(), 1, 1, Duration::from_secs(2)).unwrap();
     let first = pool.render(&page("{} ")).unwrap();
     let second = pool.render(&page("{} ")).unwrap();
     assert_eq!(first.html, b"1");
@@ -71,7 +71,7 @@ fn snapshot_restores_initialized_bundle_without_reexecuting_it() {
       function render(props, state) {
         const html = globalThis.initial;
         globalThis.initial = 'changed';
-        return {html, state};
+        return {head:'', html, state};
       }
     "#;
     let pool = Pool::new(source.to_vec(), 1, 0, Duration::from_secs(3)).unwrap();
@@ -107,7 +107,7 @@ fn snapshot_initialization_obeys_pool_timeout() {
     ));
     assert!(started.elapsed() < Duration::from_secs(2));
     let pool = Pool::new(
-        b"function render(props, state) { return {html:'ready', state}; }".to_vec(),
+        b"function render(props, state) { return {head:'', html:'ready', state}; }".to_vec(),
         1,
         0,
         Duration::from_secs(2),
@@ -119,7 +119,7 @@ fn snapshot_initialization_obeys_pool_timeout() {
 #[test]
 fn render_metrics_report_wait_and_live_heap() {
     let pool = Pool::new(
-        b"function render(props, state) { return {html:'ok', state}; }".to_vec(),
+        b"function render(props, state) { return {head:'', html:'ok', state}; }".to_vec(),
         1,
         0,
         Duration::from_secs(2),
@@ -135,7 +135,7 @@ fn render_metrics_report_wait_and_live_heap() {
 
 #[test]
 fn running_script_is_terminated_and_worker_recovers() {
-    let pool = Pool::new(b"function render(props, state) { if (props.loop) { for(;;) {} } return {html:'ok', state}; }".to_vec(), 1, 0, Duration::from_millis(100)).unwrap();
+    let pool = Pool::new(b"function render(props, state) { if (props.loop) { for(;;) {} } return {head:'', html:'ok', state}; }".to_vec(), 1, 0, Duration::from_millis(100)).unwrap();
     assert!(matches!(
         pool.render(&page(r#"{"loop":true}"#)),
         Err(Error::Timeout)
@@ -145,7 +145,7 @@ fn running_script_is_terminated_and_worker_recovers() {
 
 #[test]
 fn full_queue_returns_explicit_error() {
-    let pool = Arc::new(Pool::new(b"function render(props, state) { if (props.loop) { for(;;) {} } return {html:'ok',state}; }".to_vec(), 1, 0, Duration::from_millis(300)).unwrap());
+    let pool = Arc::new(Pool::new(b"function render(props, state) { if (props.loop) { for(;;) {} } return {head:'', html:'ok',state}; }".to_vec(), 1, 0, Duration::from_millis(300)).unwrap());
     let barrier = Arc::new(Barrier::new(3));
     let handles: Vec<_> = (0..2)
         .map(|_| {
@@ -188,7 +188,7 @@ fn web_apis_and_forbidden_apis() {
       try { crypto.getRandomValues(new Uint8Array(65537)); } catch (e) { quota = [e.name, e.code, e instanceof DOMException]; }
       let receiver;
       try { const method = crypto.getRandomValues; method(new Uint8Array(1)); } catch (e) { receiver = e.name; }
-      return {html: 'ready', state: {
+      return {head:'', html: 'ready', state: {
         invalid, quota, receiver, dom: DOMException.name, fetch: typeof fetch, timeout: typeof setTimeout,
         interval: typeof setInterval, file: typeof Deno, network: typeof WebSocket,
         randomUUID: typeof crypto.randomUUID
@@ -218,7 +218,7 @@ fn text_encoder_is_utf8_in_every_render_context() {
       try { TextEncoder.prototype.encode.call({}); } catch (error) { receiverError = error instanceof TypeError; }
       try { Object.getOwnPropertyDescriptor(TextEncoder.prototype, 'encoding').get.call({}); } catch (error) { getterError = error instanceof TypeError; }
       try { encoder.encodeInto('x', new Uint16Array(2)); } catch (error) { destinationError = error instanceof TypeError; }
-      return {html: 'ok', state: {encoding: encoder.encoding, bytes, into, short: Array.from(short), fullResult, full: Array.from(full), receiverError, getterError, destinationError,
+      return {head:'', html: 'ok', state: {encoding: encoder.encoding, bytes, into, short: Array.from(short), fullResult, full: Array.from(full), receiverError, getterError, destinationError,
         fetch: typeof fetch, timeout: typeof setTimeout, file: typeof Deno}};
     }"#;
     let pool = Pool::new(source.as_bytes().to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
@@ -245,7 +245,7 @@ async fn react_server_bundle_executes_with_text_encoder() {
     let generated = root.join("node_modules/.ssr-runtime");
     fs::create_dir_all(&generated).unwrap();
     let server_entry = generated.join("server.tsx");
-    fs::write(&server_entry, "import React from 'react'; import {renderToString} from 'react-dom/server.edge'; import App from '../../ReactRuntimeApp'; globalThis.render = (props, state) => ({html: renderToString(<App {...props}/>), state});").unwrap();
+    fs::write(&server_entry, "import React from 'react'; import {renderToString} from 'react-dom/server.edge'; import App from '../../ReactRuntimeApp'; globalThis.render = (props, state) => ({head:'', html: renderToString(<App {...props}/>), state});").unwrap();
     let output = build(&BuildConfig {
         root: root.clone(),
         server_entry,
@@ -272,7 +272,7 @@ async fn react_server_bundle_executes_with_text_encoder() {
 fn console_writes_to_stderr() {
     if std::env::var_os("SSR_CONSOLE_CHILD").is_some() {
         let pool = Pool::new(
-            b"function render(props, state) { console.log('runtime console', state.input); return {html:'ok', state}; }".to_vec(),
+            b"function render(props, state) { console.log('runtime console', state.input); return {head:'', html:'ok', state}; }".to_vec(),
             1,
             0,
             Duration::from_secs(2),
@@ -318,7 +318,7 @@ fn invalid_input_and_result_fail() {
         Err(Error::InvalidConfiguration(_))
     ));
     let pool = Pool::new(
-        b"function render() { return {html: 1, state: null}; }".to_vec(),
+        b"function render() { return {head:'', html: 1, state: null}; }".to_vec(),
         1,
         0,
         Duration::from_secs(2),
@@ -332,7 +332,8 @@ fn invalid_input_and_result_fail() {
     csr.render = Render::Csr;
     assert!(matches!(pool.render(&csr), Err(Error::InvalidPage(_))));
     let pool = Pool::new(
-        b"function render() { return {html: 'ok', state: {kept: 1, lost: undefined}}; }".to_vec(),
+        b"function render() { return {head:'', html: 'ok', state: {kept: 1, lost: undefined}}; }"
+            .to_vec(),
         1,
         0,
         Duration::from_secs(2),
@@ -343,7 +344,7 @@ fn invalid_input_and_result_fail() {
         Err(Error::JavaScript { .. })
     ));
     let pool = Pool::new(
-        b"function render() { return {html: 'ok', state: {value: NaN}}; }".to_vec(),
+        b"function render() { return {head:'', html: 'ok', state: {value: NaN}}; }".to_vec(),
         1,
         0,
         Duration::from_secs(2),
@@ -353,4 +354,27 @@ fn invalid_input_and_result_fail() {
         pool.render(&page("{}")),
         Err(Error::JavaScript { .. })
     ));
+}
+
+#[test]
+fn render_head_is_required_and_preserved() {
+    let pool = Pool::new(
+        b"function render(props, state) { return {html:'<main>ok</main>', head:'<meta name=\"section\" content=\"news\">', state}; }".to_vec(),
+        1,
+        0,
+        Duration::from_secs(2),
+    ).unwrap();
+    let result = pool.render(&page("{}")).unwrap();
+    assert_eq!(result.head, b"<meta name=\"section\" content=\"news\">");
+    for source in [
+        "function render() { return {html:'ok', state:null}; }",
+        "function render() { return {html:'ok', head:1, state:null}; }",
+        "function render() { return {html:'ok', head:'\\uD800', state:null}; }",
+    ] {
+        let pool = Pool::new(source.as_bytes().to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
+        assert!(
+            matches!(pool.render(&page("{}")), Err(Error::InvalidResult(_))),
+            "{source}"
+        );
+    }
 }

@@ -11,8 +11,10 @@ public client and style URLs from the build manifest create `VueAdapter`. The fi
 details. [Vue's SSR API](https://vuejs.org/api/ssr) defines the Promise result.
 
 The component receives page props and `renderState` with input state and output initialized to
-null. SSR returns the rendered HTML and output state in the document. CSR returns an empty root
-and unchanged input state without calling the pool. Both modes use the same client URL. The client
+null. The server result contains a required empty `head` string. A nonempty `head` fails because
+this adapter has no document placement rule for that output. SSR returns the rendered HTML and
+output state in the document. CSR returns an empty root and unchanged input state without calling
+the pool. Both modes use the same client URL. The client
 entry calls `createSSRApp(...).mount(root)` for a nonempty root and `createApp(...).mount(root)` for
 an empty root. [Vue's SSR guide](https://vuejs.org/guide/scaling-up/ssr) defines the hydration
 mount operation. The browser case checks that the SSR `main` node remains the same node after
