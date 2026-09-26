@@ -182,7 +182,7 @@ completion evidence.
   Evidence: fulfilled, rejected and pending Promise tests, a React component test, and `make check` pass.
 - [ ] S-13-2 Provide isolated React scheduling and Web Streams, carry stream chunks from the V8
   worker to the HTTP response after the shell is ready, and apply the request nonce to inline
-  scripts and styles. Depends on: S-13-1, S-13-2-1, S-13-2-2. Evidence: the S-13 cases pass
+  scripts and styles. Depends on: S-13-1, S-13-2-1, S-13-2-2, S-13-2-2-3. Evidence: the S-13 cases pass
   with progressive chunks and fixed status and headers.
 - [o] S-13-2-1 Build a separate private React framework bundle and an application server bundle
   that imports the same React instance. Validate the absolute framework entry,
@@ -204,6 +204,12 @@ completion evidence.
   source-map cases. Depends on: S-13-2-1-1, S-13-2-2-1, S-13-2-2-1-1, S-13-2-2-2, S-15-1.
   Evidence: the shell, Suspense fallback, client recovery, HTTP 500/503/504, nonce, SSR metric
   and parallel restore cases pass in the runtime, server and browser.
+- [o] S-13-2-2-3 Correct the React adapter and runtime documents to describe the public
+  framework and application entry, `Pool::new_react`, `render_stream`, `stream_parts`, and CSR
+  contracts. Remove the obsolete synchronous React render description. This correction precedes
+  S-13 completion. Depends on: S-13-2-2. Evidence: a tracked contract check fails on the old
+  React document and passes on the corrected English and Korean documents; the public React
+  consumer test and `make check` pass.
 - [o] S-13-2-2-1 Create a V8 isolate group for each server snapshot and restore every worker
   isolate in that group. Keep separate application snapshots independent when workers restore
   them concurrently; do not serialize worker isolate creation. Build the pinned V8 source with

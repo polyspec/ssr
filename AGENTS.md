@@ -32,6 +32,9 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   initialization and rendering use one React instance. Give framework scheduling a lexical binding
   and remove it from the global before evaluating application code. Do not evaluate either bundle
   on each request.
+- Public API documents name the current entry, pool and render methods used by consumers. Check
+  the English and Korean contracts against executable use paths; remove descriptions of replaced
+  calls when the API changes.
 - When a decision of the agent is shown wrong, the report names that decision first.
 - `var/handoff/work.md` lists the specification sources of each item; it is not tracked.
 

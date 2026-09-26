@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- React 어댑터와 런타임 문서에 프레임워크·애플리케이션 진입점, `Pool::new_react`,
+  `Pool::render_stream`, `ReactAdapter::stream_parts`를 정확히 기록한다. 이전 React 풀 호출은
+  다른 렌더 경로를 설명하므로 기록 검사에서 거부한다.
 - React SSR 문서를 셸 준비 후 스트리밍한다. 프레임워크와 애플리케이션을 한 요청 context에서 복원하고
   애플리케이션 전역에는 작업 예약 함수를 두지 않으며, React Suspense 대체 내용과 클라이언트 복구 지시를
   보존한다. 요청마다 서로 다른 운영체제 난수 nonce를 생성해 출력 청크에 걸친 인라인 script와 style에
