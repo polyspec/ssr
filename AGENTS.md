@@ -5,6 +5,11 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 ## Repository
 
 - This repository is developed locally. Do not add remotes and do not push.
+- After integrating a branch into `main`, verify its commits or equivalent changes are present,
+  its worktree is clean, and needed ignored inputs exist elsewhere; then remove the worktree and
+  local branch immediately. Preserve unintegrated or active work.
+- When a test-only branch has served its purpose, cherry-pick any useful changes into the owning
+  branch and discard the rest; then remove its worktree and local branch.
 - JSON documents of the public contract use ordered-json.
 - Develop one `0.0.1` library. The crates are `ssr-core`, `ssr-build`, `ssr-runtime`,
   `ssr-adapter-react`, `ssr-adapter-vue`, `ssr-adapter-svelte`, `ssr-adapter-vanilla` and `ssr-server`.
