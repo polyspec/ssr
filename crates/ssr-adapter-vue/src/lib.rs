@@ -52,7 +52,7 @@ pub fn server_entry(application: &str) -> Result<String, Error> {
 pub fn client_entry(application: &str) -> Result<String, Error> {
     let application = app_import(application)?;
     Ok(format!(
-        "import {{ createApp, createSSRApp }} from 'vue';\nimport App from {application};\nconst props = JSON.parse(document.getElementById('__SSR_PROPS__').textContent);\nconst renderState = {{input: JSON.parse(document.getElementById('__SSR_STATE__').textContent), output: null}};\nconst root = document.getElementById('root');\nconst app = root.hasChildNodes() ? createSSRApp(App, {{...props, renderState}}) : createApp(App, {{...props, renderState}});\napp.mount(root);\n"
+        "import {{ createApp, createSSRApp }} from 'vue';\nimport App from {application};\nconst props = JSON.parse(document.getElementById('__SSR_PROPS__').textContent);\nconst renderState = {{input: JSON.parse(document.getElementById('__SSR_STATE__').textContent), output: null}};\nconst root = document.getElementById('root');\nconst app = root.dataset.render === 'ssr' ? createSSRApp(App, {{...props, renderState}}) : root.dataset.render === 'csr' ? createApp(App, {{...props, renderState}}) : null;\nif (app === null) throw new Error('Invalid render mode');\napp.mount(root);\n"
     ))
 }
 
@@ -146,7 +146,10 @@ impl VueAdapter {
         for style in &self.styles {
             document.push_str(&format!("<link rel=\"stylesheet\" href=\"{style}\">"));
         }
-        document.push_str("</head><body><div id=\"root\">");
+        document.push_str(match page.render {
+            Render::Ssr => "</head><body><div id=\"root\" data-render=\"ssr\">",
+            Render::Csr => "</head><body><div id=\"root\" data-render=\"csr\">",
+        });
         document.push_str(body);
         document.push_str("</div><script id=\"__SSR_PROPS__\" type=\"application/json\">");
         document.push_str(&script_json(&page.props));

@@ -40,7 +40,7 @@ pub fn framework_entry() -> &'static str {
 pub fn client_entry(application: &str) -> Result<String, Error> {
     let application = app_import(application)?;
     Ok(format!(
-        "import React from 'react';\nimport {{createRoot, hydrateRoot}} from 'react-dom/client';\nimport App from {application};\nconst props = JSON.parse(document.getElementById('__SSR_PROPS__').textContent);\nconst renderState = {{input: JSON.parse(document.getElementById('__SSR_STATE__').textContent), output: null}};\nconst root = document.getElementById('root');\nconst app = <App {{...props}} renderState={{renderState}} />;\nif (root.hasChildNodes()) hydrateRoot(root, app); else createRoot(root).render(app);\n"
+        "import React from 'react';\nimport {{createRoot, hydrateRoot}} from 'react-dom/client';\nimport App from {application};\nconst props = JSON.parse(document.getElementById('__SSR_PROPS__').textContent);\nconst renderState = {{input: JSON.parse(document.getElementById('__SSR_STATE__').textContent), output: null}};\nconst root = document.getElementById('root');\nconst app = <App {{...props}} renderState={{renderState}} />;\nif (root.dataset.render === 'ssr') hydrateRoot(root, app); else if (root.dataset.render === 'csr') createRoot(root).render(app); else throw new Error('Invalid render mode');\n"
     ))
 }
 
@@ -138,7 +138,10 @@ impl ReactAdapter {
         for style in &self.styles {
             prefix.push_str(&format!("<link rel=\"stylesheet\" href=\"{style}\">"));
         }
-        prefix.push_str("</head><body><div id=\"root\">");
+        prefix.push_str(match page.render {
+            Render::Ssr => "</head><body><div id=\"root\" data-render=\"ssr\">",
+            Render::Csr => "</head><body><div id=\"root\" data-render=\"csr\">",
+        });
         let suffix = format!(
             "</div><script id=\"__SSR_PROPS__\" type=\"application/json\">{}</script><script id=\"__SSR_STATE__\" type=\"application/json\">{}</script><script type=\"module\" src=\"{}\"></script></body></html>",
             script_json(&page.props),

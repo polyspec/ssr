@@ -18,6 +18,7 @@ try {
     await page.waitForSelector("#root button", { timeout: 5000 });
     assert.equal(await page.locator("#root h1").textContent(), label, path);
     assert.equal(await page.locator("#root button").textContent(), "0", path);
+    assert.equal(await page.evaluate(() => window.__clientRenderCall), hydration === "yes" ? "createSSRApp" : "createApp", path);
     assert.equal(await page.evaluate(() => JSON.parse(document.getElementById("__SSR_STATE__").textContent)?.count ?? 0), Number(count), path);
     if (hydration === "yes") {
       assert.equal(await page.evaluate(() => window.__before === document.querySelector("#root main")), true, path);
@@ -26,6 +27,24 @@ try {
     assert.equal(await page.locator("#root button").textContent(), "1", path);
     assert.deepEqual(errors, [], `${path}: browser JavaScript errors`);
     console.log(`PASS ${path}`);
+  }
+  await page.goto(base + "/empty-ssr", { waitUntil: "load", timeout: 5000 });
+  await page.waitForSelector("#root[data-render=ssr]", { state: "attached", timeout: 5000 });
+  assert.equal(await page.locator("#root").evaluate((root) => root.children.length), 0);
+  assert.equal(await page.evaluate(() => window.__clientRenderCall), "createSSRApp");
+  assert.deepEqual(errors, [], "empty SSR: browser JavaScript errors");
+  console.log("PASS /empty-ssr");
+  for (const path of ["/missing-mode", "/invalid-mode"]) {
+    const invalid = await browser.newPage();
+    try {
+      const failure = invalid.waitForEvent("pageerror", { timeout: 5000 });
+      await invalid.goto(base + path, { waitUntil: "load", timeout: 5000 });
+      assert.match((await failure).message, /Invalid render mode/, path);
+      assert.equal(await invalid.evaluate(() => window.__clientRenderCall), undefined, path);
+      console.log(`PASS ${path}`);
+    } finally {
+      await invalid.close();
+    }
   }
 } finally {
   await browser.close();

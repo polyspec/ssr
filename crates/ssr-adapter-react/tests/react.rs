@@ -65,13 +65,15 @@ fn server_result_and_csr_state_follow_the_same_client_build() {
     assert!(framework_entry().contains("renderToReadableStream"));
     assert!(client.contains("hydrateRoot"));
     assert!(client.contains("createRoot"));
+    assert!(client.contains("root.dataset.render === 'ssr'"));
+    assert!(!client.contains("hasChildNodes"));
 
     let adapter = ReactAdapter::new("/assets/client.js", &["/assets/style.css"]).unwrap();
     assert!(adapter.render(&page("ssr")).is_err());
     let csr = adapter.render(&page("csr")).unwrap();
     assert_eq!(csr.state.compact(), r#"{"count":4}"#);
     let csr_html = String::from_utf8(csr.html).unwrap();
-    assert!(csr_html.contains("<div id=\"root\"></div>"));
+    assert!(csr_html.contains("<div id=\"root\" data-render=\"csr\"></div>"));
     assert!(csr_html.contains("/assets/client.js"));
     assert!(!csr_html.contains("<main>Ada</main>"));
     assert_eq!(
@@ -268,7 +270,7 @@ fn run_browser(base: &str, script: &Path) {
             .unwrap()
             .matches("PASS ")
             .count(),
-        5
+        8
     );
 }
 
@@ -294,11 +296,13 @@ async fn browser_hydrates_ssr_and_renders_csr_and_static_shells() {
     )
     .unwrap();
     fs::write(&framework_path, framework_entry()).unwrap();
-    fs::write(
-        &client_path,
-        client_entry(application.to_str().unwrap()).unwrap(),
-    )
-    .unwrap();
+    let client = client_entry(application.to_str().unwrap()).unwrap();
+    let observed = client.replace(
+        "import {createRoot, hydrateRoot} from 'react-dom/client';",
+        "import {createRoot as frameworkCreateRoot, hydrateRoot as frameworkHydrateRoot} from 'react-dom/client';\nconst createRoot = (...args) => { window.__clientRenderCall = 'createRoot'; return frameworkCreateRoot(...args); };\nconst hydrateRoot = (...args) => { window.__clientRenderCall = 'hydrateRoot'; return frameworkHydrateRoot(...args); };",
+    );
+    assert_ne!(observed, client);
+    fs::write(&client_path, observed).unwrap();
     let output = build(&BuildConfig {
         root: root.clone(),
         server_entry: server_path,
@@ -338,7 +342,27 @@ async fn browser_hydrates_ssr_and_renders_csr_and_static_shells() {
         "/ssr".into(),
         ("text/html; charset=utf-8".into(), ssr_html.into_bytes()),
     );
+    let empty_page = Page::from_json(br#"{"render":"ssr","title":"Example","language":"en","props":{"name":"Ada","empty":true},"state":{"count":4}}"#).unwrap();
+    let empty = stream_document(&adapter, &empty_page, &pool);
+    let empty_html = String::from_utf8(empty.html).unwrap();
+    assert!(empty_html.contains("<div id=\"root\" data-render=\"ssr\"></div>"));
+    responses.insert(
+        "/empty-ssr".into(),
+        ("text/html; charset=utf-8".into(), empty_html.into_bytes()),
+    );
     let csr = adapter.render(&page("csr")).unwrap();
+    let csr_html = String::from_utf8(csr.html.clone()).unwrap();
+    for (path, marker) in [
+        ("/missing-mode", ""),
+        ("/invalid-mode", " data-render=\"other\""),
+    ] {
+        let invalid = csr_html.replace(" data-render=\"csr\"", marker);
+        assert_ne!(invalid, csr_html);
+        responses.insert(
+            path.into(),
+            ("text/html; charset=utf-8".into(), invalid.into_bytes()),
+        );
+    }
     responses.insert("/csr".into(), ("text/html; charset=utf-8".into(), csr.html));
     let escaped_page = Page::from_json(br#"{"render":"csr","title":"<&>","language":"en","props":{"name":"</script><script>window.attack=1</script>"},"state":{"count":4}}"#).unwrap();
     let escaped = adapter.render(&escaped_page).unwrap();

@@ -56,6 +56,9 @@ fn entries_render_both_modes_and_reject_invalid_input() {
             .unwrap()
             .contains("hydrate")
     );
+    let client = client_entry("/application/client.js").unwrap();
+    assert!(client.contains("root.dataset.render === 'ssr'"));
+    assert!(!client.contains("hasChildNodes"));
     assert!(server_entry("relative/server.js").is_err());
     assert!(client_entry("relative/client.js").is_err());
 
@@ -68,12 +71,25 @@ fn entries_render_both_modes_and_reject_invalid_input() {
             .unwrap()
             .contains("<main>Ada</main>")
     );
+    let empty_pool = Pool::new(
+        fixture(b"export function render(props, state) { return {head:'', html:'', state}; }"),
+        1,
+        0,
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    let empty = adapter.render(&page("ssr"), &empty_pool).unwrap();
+    assert!(
+        String::from_utf8(empty.html)
+            .unwrap()
+            .contains("<div id=\"root\" data-render=\"ssr\"></div>")
+    );
     let csr = adapter.render(&page("csr"), &pool).unwrap();
     assert_eq!(csr.state.compact(), r#"{"count":4}"#);
     assert!(
         String::from_utf8(csr.html)
             .unwrap()
-            .contains("<div id=\"root\"></div>")
+            .contains("<div id=\"root\" data-render=\"csr\"></div>")
     );
     assert!(adapter.static_shell(&page("csr")).is_err());
     assert_eq!(
@@ -164,8 +180,28 @@ async fn browser_preserves_server_dom_and_renders_csr_and_shells() {
         "/ssr".into(),
         ("text/html; charset=utf-8".into(), ssr_html.into_bytes()),
     );
+    let empty_page = Page::from_json(br#"{"render":"ssr","title":"Example","language":"en","props":{"name":"Ada","empty":true},"state":{"count":4}}"#).unwrap();
+    let empty = adapter.render(&empty_page, &pool).unwrap();
+    let empty_html = String::from_utf8(empty.html).unwrap();
+    assert!(empty_html.contains("<div id=\"root\" data-render=\"ssr\"></div>"));
+    responses.insert(
+        "/empty-ssr".into(),
+        ("text/html; charset=utf-8".into(), empty_html.into_bytes()),
+    );
     let csr = adapter.render(&page("csr"), &pool).unwrap();
     assert_eq!(csr.state.compact(), r#"{"count":4}"#);
+    let csr_html = String::from_utf8(csr.html.clone()).unwrap();
+    for (path, marker) in [
+        ("/missing-mode", ""),
+        ("/invalid-mode", " data-render=\"other\""),
+    ] {
+        let invalid = csr_html.replace(" data-render=\"csr\"", marker);
+        assert_ne!(invalid, csr_html);
+        responses.insert(
+            path.into(),
+            ("text/html; charset=utf-8".into(), invalid.into_bytes()),
+        );
+    }
     responses.insert("/csr".into(), ("text/html; charset=utf-8".into(), csr.html));
     let shell = adapter.static_shell(&shell_page()).unwrap();
     for path in ["/shell/first", "/shell/second"] {
@@ -250,7 +286,7 @@ async fn browser_preserves_server_dom_and_renders_csr_and_shells() {
             .unwrap()
             .matches("PASS ")
             .count(),
-        4
+        7
     );
     let mut stop = std::net::TcpStream::connect(address).unwrap();
     stop.write_all(b"GET /__stop HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")

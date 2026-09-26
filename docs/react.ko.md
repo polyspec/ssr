@@ -21,8 +21,9 @@ React SSR은 SSR 페이지와 요청 nonce를 `Pool::render_stream`에 전달한
 
 `ReactAdapter::render`는 CSR만 처리한다. root를 비워 두고 입력 상태를 변경하지 않고
 넣으며 런타임 풀을 호출하지 않는다. 두 모드 모두 같은 클라이언트 URL을 불러온다.
-클라이언트는 내용이 있는 root를 hydrate하고 빈 root를 렌더한다. 애플리케이션은 문서에
-담긴 상태를 `renderState.input`으로 사용한다.
+문서는 root 요소에 렌더 모드를 기록한다. 클라이언트는 HTML이 비어 있어도 SSR을 hydrate하고,
+CSR은 새 root에서 렌더하며, 모드가 없거나 잘못되면 실패한다. 애플리케이션은 문서에 담긴 상태를
+`renderState.input`으로 사용한다.
 
 `ReactAdapter::static_shell`은 빈 props와 null 상태를 가진 CSR `Page`를 받는다. 반환한
 문서 하나를 서로 다른 경로에 제공할 수 있으며 애플리케이션은 로드 뒤 브라우저 경로를
@@ -35,9 +36,10 @@ React SSR은 SSR 페이지와 요청 nonce를 `Pool::render_stream`에 전달한
 `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` 또는 Linux의
 `/usr/bin/google-chrome`에 설치된 Google Chrome을 사용한다. 패키지나 브라우저
 실행 파일이 없으면 테스트가 실패한다. Node는 브라우저만 제어하고 Rust 프로세스가
-빌드와 렌더를 수행한다. 테스트는 SSR, CSR, script 요소 입력, 두 경로에 있는 동일한
+빌드와 렌더를 수행한다. 테스트는 SSR, 빈 SSR, CSR, script 요소 입력, 두 경로에 있는 동일한
 정적 셸을 로드한다. SSR DOM 노드의 hydration 뒤 유지, CSR root 렌더, 클라이언트에
-도달한 상태 값, 삽입된 script의 미실행, 브라우저 JavaScript 오류 부재를 확인한다.
+도달한 상태 값, 삽입된 script의 미실행, 누락되거나 잘못된 렌더 모드의 실패, 올바른 페이지의
+브라우저 JavaScript 오류 부재를 확인한다.
 별도 브라우저 사례는 Suspense fallback과 React 클라이언트 복구 지시를 받은 뒤 정상 재시도와
 재시도 실패 시 애플리케이션 오류 경계를 확인한다.
 

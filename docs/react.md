@@ -20,9 +20,10 @@ same request nonce to every inline script and style in the complete document. Re
 return an `html` or `head` field.
 
 `ReactAdapter::render` handles CSR only. It leaves the root empty, inserts the unchanged input
-state, and does not call the runtime pool. Both modes load the same client URL. The client
-hydrates a nonempty root and renders an empty root. The application uses the state embedded in
-the document as `renderState.input`.
+state, and does not call the runtime pool. Both modes load the same client URL. The document
+records its render mode on the root element. The client hydrates SSR even when its HTML is empty,
+renders CSR from a new root, and fails when the mode is missing or invalid. The application uses
+the state embedded in the document as `renderState.input`.
 
 `ReactAdapter::static_shell` accepts a CSR `Page` with empty props and null state. It returns
 one document that a service can serve for different paths; the application can read the
@@ -35,9 +36,10 @@ The browser test uses `playwright-core` 1.63.0 installed by `npm ci` and an inst
 Google Chrome executable at `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
 on macOS or `/usr/bin/google-chrome` on Linux. Missing packages or browser executables fail
 the test. Node controls the browser only; the Rust process builds and renders. The test
-loads SSR, CSR, a script-element input, and the same static shell at two paths. It verifies
+loads SSR, empty SSR, CSR, a script-element input, and the same static shell at two paths. It verifies
 the SSR DOM node survives hydration, the CSR root renders, state values reach the client,
-the injected script does not execute, and no browser JavaScript error occurs.
+the injected script does not execute, missing or invalid render modes fail, and valid pages
+produce no browser JavaScript error.
 A separate browser case receives a Suspense fallback and React's client recovery instructions,
 then verifies successful client retry and an application error boundary when the retry fails.
 
