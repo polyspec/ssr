@@ -72,9 +72,18 @@ enum Command {
     Render {
         props: String,
         state: String,
-        reply: Sender<(Result<RenderResult, Error>, usize)>,
+        reply: Sender<WorkerReply>,
     },
     Stop,
+}
+struct ContextRender {
+    result: RenderResult,
+    context_reset: Duration,
+    context_heap_delta_bytes: i128,
+}
+struct WorkerReply {
+    result: Result<ContextRender, Error>,
+    heap_used_bytes: usize,
 }
 struct Worker {
     command: Sender<Command>,
@@ -123,6 +132,8 @@ pub struct Pool {
 pub struct RenderMetrics {
     pub pool_wait: Duration,
     pub heap_used_bytes: usize,
+    pub context_reset: Duration,
+    pub context_heap_delta_bytes: i128,
 }
 
 struct Lease<'a> {
@@ -254,15 +265,26 @@ impl Pool {
         }
         let remaining = deadline.saturating_duration_since(Instant::now());
         match reply_rx.recv_timeout(remaining) {
-            Ok((value, heap_used_bytes)) => value.map(|result| {
-                (
-                    result,
-                    RenderMetrics {
-                        pool_wait,
-                        heap_used_bytes,
-                    },
-                )
-            }),
+            Ok(WorkerReply {
+                result,
+                heap_used_bytes,
+            }) => result.map(
+                |ContextRender {
+                     result,
+                     context_reset,
+                     context_heap_delta_bytes,
+                 }| {
+                    (
+                        result,
+                        RenderMetrics {
+                            pool_wait,
+                            heap_used_bytes,
+                            context_reset,
+                            context_heap_delta_bytes,
+                        },
+                    )
+                },
+            ),
             Err(crossbeam_channel::RecvTimeoutError::Timeout) => {
                 if !worker.handle.terminate_execution() {
                     self.mark_lost(&mut lease, 1);

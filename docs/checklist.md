@@ -155,9 +155,14 @@ procedure. Each item names its dependencies and its completion evidence.
   request changes cannot reach later requests; equal keys reuse snapshot bytes and a changed
   bundle or version creates a new snapshot; snapshot failures return errors and initialization
   obeys the configured timeout. Evidence: mismatch, reset and initialization tests and `make check`.
-- [ ] S-11 Implement `make bench`: renders per second and p50/p99 latency for a fixed page with 1, 4
+- [o] S-11 Implement `make bench`: renders per second and p50/p99 latency for a fixed page with 1, 4
   and 16 concurrent calls, and time and memory of a context reset; record the limits in
-  `docs/benchmarks.md`. Depends on: S-9, S-10. Evidence: the benchmark output and the recorded limits.
+  `docs/benchmarks.md`. Depends on: S-9, S-10. Acceptance: run a fixed SSR page through the
+  snapshot runtime with a separate measured duration for each call; report every call or fail,
+  calculate nearest-rank p50/p99 and throughput from all successful calls, and measure context
+  creation time and the change in live V8 heap bytes during creation. Reject invalid sample counts,
+  render errors and measurements outside recorded limits. Evidence: failure and percentile cases,
+  measured output and recorded limits.
 - [o] S-12 Pin the V8 archive by path and SHA-256 as recorded by S-4; a failed download is an error.
   An explicit offline mode requires the existing verified archive and disables Cargo network access.
   Depends on: S-4. Evidence: missing, changed and failed-download cases and a build without network pass.

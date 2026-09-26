@@ -64,3 +64,5 @@
 - Add a development server that rebuilds bundles after file events and replaces its server and
   render pool together. Invalid changes make requests fail with the build cause until a valid
   change restores service because serving older output would hide the failed build.
+- Measure a fixed SSR page with concurrent calls in `make bench`. The command reports throughput,
+  call latency, context creation time and V8 heap change, and fails when a measured limit is exceeded.

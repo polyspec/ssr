@@ -9,9 +9,10 @@ check:
 	cargo deny check
 	$(MAKE) verify-engine-deps
 	cargo nextest run --workspace --locked --no-tests fail
+	cargo nextest run -p ssr-runtime --example bench --locked --no-tests fail
 
 bench:
-	cargo bench --workspace --locked
+	python3 tools/bench.py
 
 verify-engine-linux-arm64:
 	python3 tools/verify_engine.py aarch64-unknown-linux-gnu --fetch-only
