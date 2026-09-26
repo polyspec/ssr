@@ -4,6 +4,8 @@
 
 ## 0.0.1
 
+- React 스트림 reader가 본문 청크 뒤에 거부되면 해당 청크와 명시적 본문 오류를 반환하고
+  초기 HTTP 상태와 헤더를 유지하는지 검증한다.
 - React 어댑터와 런타임 문서에 프레임워크·애플리케이션 진입점, `Pool::new_react`,
   `Pool::render_stream`, `ReactAdapter::stream_parts`를 정확히 기록한다. 이전 React 풀 호출은
   다른 렌더 경로를 설명하므로 기록 검사에서 거부한다.

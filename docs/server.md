@@ -27,7 +27,9 @@ JavaScript error before the React shell returns 500 with an error document. Afte
 React sends its Suspense fallback and client recovery instructions. The server records each React
 `onError` callback in a structured tracing event with the request nonce and any component stack
 provided by React. A later transport or render failure ends the response body with an explicit
-stream error while its status stays fixed.
+stream error while its status and headers stay fixed. If a stream reader rejects after sending a
+chunk, the body yields that chunk before returning the JavaScript rejection as a body error. The
+body does not append the document suffix after that failure.
 Each request creates one nonce from operating-system random bytes and applies it to every inline
 script and style. Random failure is an error. JavaScript errors before the shell include their
 message and source-mapped stack in the response and tracing event. A stack
@@ -36,7 +38,8 @@ source map cannot be decoded. Successful SSR renders record render time, pool wa
 heap bytes in a tracing event. CSR records render time without a pool measurement.
 
 Acceptance: HTTP tests cover SSR shell timing, late errors, nonce rewriting across chunk
-boundaries, CSR, public files, invalid input and method responses.
+boundaries, CSR, public files, invalid input and method responses. A reader rejection after the
+first body chunk keeps the initial status and headers and returns an explicit body error.
 The JavaScript failure tests check a source location from a generated build map and a fixed map,
 and the metrics test checks the tracing fields. The build test verifies private deterministic
 maps and their digests.

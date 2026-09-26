@@ -4,6 +4,8 @@
 
 ## 0.0.1
 
+- Verify that a React stream reader rejection after a body chunk returns that chunk and an
+  explicit body error while the initial HTTP status and headers remain fixed.
 - Correct the React adapter and runtime documents to name the framework and application entries,
   `Pool::new_react`, `Pool::render_stream`, and `ReactAdapter::stream_parts`. A record check rejects
   the obsolete React pool call because it describes a different render path.
