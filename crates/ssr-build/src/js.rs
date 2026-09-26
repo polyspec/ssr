@@ -5,7 +5,8 @@ use rolldown::{
     AssetFilenamesOutputOption, Bundler, BundlerOptions, ChunkFilenamesOutputOption,
     CodeSplittingMode, InputItem, ModuleType, OutputFormat, Platform,
 };
-use rolldown_common::Output;
+use rolldown_common::{Output, SourceMapType};
+use sourcemap::{SourceMap, SourceMapBuilder};
 
 use crate::{Build, BuildConfig, Error, asset_url::AssetUrlPlugin};
 
@@ -33,6 +34,7 @@ pub(crate) async fn bundle(
         platform: Some(Platform::Browser),
         format: Some(OutputFormat::Esm),
         code_splitting: Some(CodeSplittingMode::Bool(true)),
+        sourcemap: (name == "server").then_some(SourceMapType::Hidden),
         entry_filenames: Some(ChunkFilenamesOutputOption::String(
             "[name]-[hash].js".into(),
         )),
@@ -81,13 +83,16 @@ pub(crate) async fn bundle(
             return Err(Error::JavaScript(format!("multiple {name} entries")));
         }
         let public = name == "client" || !filename.ends_with(".js");
+        let is_source_map = name == "server" && filename.ends_with(".js.map");
+        let public = public && !is_source_map;
         let directory = if public { "client" } else { "server" };
         let path = format!("{directory}/{filename}");
-        let artifact = result.insert(
-            path,
-            asset.content_as_bytes().to_vec(),
-            public.then_some(config.asset_route.as_str()),
-        )?;
+        let bytes = if is_source_map {
+            canonical_source_map(asset.content_as_bytes())?
+        } else {
+            asset.content_as_bytes().to_vec()
+        };
+        let artifact = result.insert(path, bytes, public.then_some(config.asset_route.as_str()))?;
         if is_entry {
             entry_found = true;
             if public {
@@ -97,6 +102,8 @@ pub(crate) async fn bundle(
             }
         } else if public {
             result.manifest.assets.push(artifact);
+        } else if is_source_map {
+            result.manifest.source_maps.push(artifact);
         } else if filename.ends_with(".js") {
             result.manifest.server_chunks.push(artifact);
         }
@@ -105,4 +112,42 @@ pub(crate) async fn bundle(
         return Err(Error::JavaScript(format!("{name} entry was not emitted")));
     }
     Ok(())
+}
+
+fn canonical_source_map(bytes: &[u8]) -> Result<Vec<u8>, Error> {
+    let map = SourceMap::from_slice(bytes).map_err(|error| Error::JavaScript(error.to_string()))?;
+    let mut builder = SourceMapBuilder::new(map.get_file());
+    builder.set_source_root(map.get_source_root());
+    builder.set_debug_id(map.get_debug_id());
+    let mut sources = (0..map.get_source_count())
+        .map(|index| {
+            map.get_source(index)
+                .map(|name| (name, index))
+                .ok_or_else(|| Error::JavaScript(format!("source map omits source {index}")))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    sources.sort_by(|left, right| left.0.cmp(right.0));
+    for (name, old_index) in sources {
+        let new_index = builder.add_source(name);
+        if map.ignore_list().any(|index| *index == old_index) {
+            builder.add_to_ignore_list(new_index);
+        }
+    }
+    for token in map.tokens() {
+        builder.add(
+            token.get_dst_line(),
+            token.get_dst_col(),
+            token.get_src_line(),
+            token.get_src_col(),
+            token.get_source(),
+            token.get_name(),
+            token.is_range(),
+        );
+    }
+    let mut output = Vec::new();
+    builder
+        .into_sourcemap()
+        .to_writer(&mut output)
+        .map_err(|error| Error::JavaScript(error.to_string()))?;
+    Ok(output)
 }

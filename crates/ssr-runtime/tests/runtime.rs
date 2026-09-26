@@ -25,6 +25,21 @@ fn request_context_does_not_retain_globals() {
 }
 
 #[test]
+fn render_metrics_report_wait_and_live_heap() {
+    let pool = Pool::new(
+        b"function render(props, state) { return {html:'ok', state}; }".to_vec(),
+        1,
+        0,
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    let (result, metrics) = pool.render_with_metrics(&page("{}")).unwrap();
+    assert_eq!(result.html, b"ok");
+    assert!(metrics.pool_wait < Duration::from_secs(2));
+    assert!(metrics.heap_used_bytes > 0);
+}
+
+#[test]
 fn running_script_is_terminated_and_worker_recovers() {
     let pool = Pool::new(b"function render(props, state) { if (props.loop) { for(;;) {} } return {html:'ok', state}; }".to_vec(), 1, 0, Duration::from_millis(100)).unwrap();
     assert!(matches!(

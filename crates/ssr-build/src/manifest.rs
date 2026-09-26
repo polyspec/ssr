@@ -23,6 +23,7 @@ impl BuildFile {
         };
         let content_type = match path.rsplit('.').next() {
             Some("js") => "text/javascript; charset=utf-8",
+            Some("map") => "application/json; charset=utf-8",
             Some("css") => "text/css; charset=utf-8",
             Some("png") => "image/png",
             Some("svg") => "image/svg+xml",
@@ -52,6 +53,7 @@ impl BuildFile {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Manifest {
     pub server: BuildFile,
+    pub source_maps: Vec<BuildFile>,
     pub client: BuildFile,
     pub styles: Vec<BuildFile>,
     pub server_chunks: Vec<BuildFile>,
@@ -68,6 +70,7 @@ impl Manifest {
         };
         Self {
             server: empty.clone(),
+            source_maps: Vec::new(),
             client: empty,
             styles: Vec::new(),
             server_chunks: Vec::new(),
@@ -76,6 +79,7 @@ impl Manifest {
     }
 
     pub(crate) fn sort(&mut self) {
+        self.source_maps.sort_by(|a, b| a.path.cmp(&b.path));
         self.styles.sort_by(|a, b| a.path.cmp(&b.path));
         self.server_chunks.sort_by(|a, b| a.path.cmp(&b.path));
         self.assets.sort_by(|a, b| a.path.cmp(&b.path));
@@ -102,6 +106,7 @@ impl Manifest {
         }
         let mut fields = OrderedMap::new();
         fields.insert(Value::string("server"), artifact(&self.server)?)?;
+        fields.insert(Value::string("sourceMaps"), list(&self.source_maps)?)?;
         fields.insert(Value::string("client"), artifact(&self.client)?)?;
         fields.insert(Value::string("styles"), list(&self.styles)?)?;
         fields.insert(Value::string("serverChunks"), list(&self.server_chunks)?)?;

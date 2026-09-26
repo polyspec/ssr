@@ -21,6 +21,9 @@ or converted to null. The runtime reports malformed input or output instead of
 substituting a default.
 
 The pool admits at most its configured waiting calls after all workers are busy.
+`render_with_metrics` returns the measured wait before worker acquisition and the V8
+used heap bytes measured by that worker after a successful render. The ordinary
+`render` call returns the same render result without metrics.
 A further call returns `QueueFull`. One deadline covers queue waiting and script
 execution. At that deadline the caller invokes V8 execution termination and allows
 up to one second for the worker to finish and clear termination. A worker that

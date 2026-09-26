@@ -41,7 +41,7 @@ pub(crate) fn worker(
     let _entered = scheduler.enter();
     let mut runtime = JsRuntime::new(RuntimeOptions::default());
     let handle = runtime.v8_isolate().thread_safe_handle();
-    let script = match compile(&mut runtime, source) {
+    let script = match compile(&mut runtime, source, "server.js") {
         Ok(script) => script,
         Err(error) => {
             let _ = ready.send(Err(error));
@@ -51,6 +51,7 @@ pub(crate) fn worker(
     let serializer = match compile(
         &mut runtime,
         "(value) => JSON.stringify(value, function (_key, item) { if (item === undefined || typeof item === 'function' || typeof item === 'symbol' || typeof item === 'bigint' || (typeof item === 'number' && !Number.isFinite(item))) { throw new TypeError('render state contains a non-JSON value'); } return item; })",
+        "state.js",
     ) {
         Ok(script) => script,
         Err(error) => {
@@ -69,22 +70,42 @@ pub(crate) fn worker(
                 reply,
             } => {
                 let result = render(&mut runtime, &script, &serializer, &props, &state);
+                let heap_used_bytes = runtime.v8_isolate().get_heap_statistics().used_heap_size();
                 runtime.v8_isolate().cancel_terminate_execution();
-                let _ = reply.send(result);
+                let _ = reply.send((result, heap_used_bytes));
             }
             Command::Stop => break,
         }
     }
 }
 
-fn compile(runtime: &mut JsRuntime, source: &str) -> Result<v8::Global<v8::UnboundScript>, Error> {
+fn compile(
+    runtime: &mut JsRuntime,
+    source: &str,
+    name: &str,
+) -> Result<v8::Global<v8::UnboundScript>, Error> {
     v8::scope!(let scope, runtime.v8_isolate());
     let context = v8::Context::new(scope, Default::default());
     let scope = &mut v8::ContextScope::new(scope, context);
     v8::tc_scope!(let scope, scope);
     let text = v8::String::new(scope, source)
         .ok_or(Error::InvalidBundle("bundle exceeds V8 string limit"))?;
-    let mut source = v8::script_compiler::Source::new(text, None);
+    let name = v8::String::new(scope, name)
+        .ok_or(Error::InvalidBundle("script name exceeds V8 string limit"))?;
+    let origin = v8::ScriptOrigin::new(
+        scope,
+        name.into(),
+        0,
+        0,
+        false,
+        0,
+        None,
+        false,
+        false,
+        false,
+        None,
+    );
+    let mut source = v8::script_compiler::Source::new(text, Some(&origin));
     let script = v8::script_compiler::compile_unbound_script(
         scope,
         &mut source,

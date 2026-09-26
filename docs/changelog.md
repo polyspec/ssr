@@ -49,3 +49,7 @@
 - Publish verified public build files into an absolute directory. Publication preserves equal
   files and rejects changed files because published URLs must keep their bytes. Serve exact public
   URLs with their content types and digests; server output remains private.
+- Record private deterministic server source maps in the build manifest. The server verifies the
+  map and server bundle, renders `POST /_render`, and returns explicit HTTP failures. It records
+  render time, pool wait and V8 heap use through tracing. JavaScript failures report source-mapped
+  stack locations because generated bundle positions do not identify application source lines.

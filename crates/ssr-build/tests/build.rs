@@ -32,7 +32,17 @@ async fn sample_build_has_stable_files_and_manifest() {
     );
     let first = build(&config).await.unwrap();
     let second = build(&config).await.unwrap();
-    assert_eq!(first.files, second.files);
+    assert_eq!(
+        first.files.keys().collect::<Vec<_>>(),
+        second.files.keys().collect::<Vec<_>>()
+    );
+    for (path, bytes) in &first.files {
+        assert_eq!(
+            Sha256::digest(bytes),
+            Sha256::digest(&second.files[path]),
+            "{path}"
+        );
+    }
     assert_eq!(first.manifest, second.manifest);
     assert_eq!(
         first.manifest.to_json().unwrap(),
@@ -56,6 +66,18 @@ async fn sample_build_has_stable_files_and_manifest() {
     );
     assert!(!manifest.styles.is_empty());
     assert!(!manifest.server_chunks.is_empty());
+    assert!(!manifest.source_maps.is_empty());
+    for javascript in std::iter::once(&manifest.server).chain(manifest.server_chunks.iter()) {
+        let map_path = format!("{}.map", javascript.path);
+        let source_map = manifest
+            .source_maps
+            .iter()
+            .find(|map| map.path == map_path)
+            .unwrap();
+        assert!(source_map.url.is_none());
+        let decoded = sourcemap::SourceMap::from_slice(&first.files[&map_path]).unwrap();
+        assert!(decoded.get_token_count() > 0);
+    }
     assert!(manifest.assets.iter().any(|a| a.path.contains("extra-")));
     let server = String::from_utf8(first.files[&manifest.server.path].clone()).unwrap();
     let client = String::from_utf8(first.files[&manifest.client.path].clone()).unwrap();
@@ -89,6 +111,7 @@ async fn sample_build_has_stable_files_and_manifest() {
         .chain(std::iter::once(&manifest.client))
         .chain(manifest.styles.iter())
         .chain(manifest.server_chunks.iter())
+        .chain(manifest.source_maps.iter())
         .chain(manifest.assets.iter())
     {
         let bytes = &first.files[&artifact.path];
@@ -104,8 +127,11 @@ async fn sample_build_has_stable_files_and_manifest() {
             assert!(style.contains(url));
         }
     }
-    let listed_count =
-        2 + manifest.styles.len() + manifest.server_chunks.len() + manifest.assets.len();
+    let listed_count = 2
+        + manifest.styles.len()
+        + manifest.server_chunks.len()
+        + manifest.source_maps.len()
+        + manifest.assets.len();
     assert_eq!(
         first.files.len(),
         listed_count,

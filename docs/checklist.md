@@ -133,9 +133,17 @@ procedure. Each item names its dependencies and its completion evidence.
   HEAD for exact public URLs, returns the manifest content type and bytes, returns 404 for unknown
   paths, and returns 405 for other methods. Evidence: the three publication cases, invalid input
   cases and HTTP serving cases.
-- [ ] S-9 Implement `ssr-server`: `POST /_render`, tracing metrics for render time, pool wait and
+- [o] S-9 Implement `ssr-server`: `POST /_render`, tracing metrics for render time, pool wait and
   heap, and stack traces mapped through source maps with sourcemap 9.3.2. Depends on: S-7, S-8.
-  Evidence: the HTTP cases and a mapped stack trace test.
+  Acceptance: the build records private source maps for the server entry and server chunks with
+  deterministic bytes and full SHA-256 digests. The runtime reports measured pool wait and live
+  V8 heap bytes; the server records those values and render duration in tracing for SSR. The
+  endpoint rejects an invalid method, content type, query and page, accepts a UTF-8 JSON media
+  type, returns an HTML document for SSR and CSR, and returns explicit errors for render failure.
+  JavaScript stack frames from the server
+  script name are mapped to source locations; a missing or invalid map fails server construction.
+  See the [HTTP server contract](server.md). Evidence: stable build output, runtime metrics, HTTP
+  cases, mapped stack and `make check`.
 - [ ] S-10 Implement snapshots keyed by the server bundle hash, the deno_core version and the library
   version; a context reset restores from the snapshot; a key mismatch creates a new snapshot.
   Depends on: S-6. Evidence: a mismatch test and a reset test.

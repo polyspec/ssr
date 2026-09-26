@@ -1602,6 +1602,11 @@ checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 [[package]]
 name = "ordered-json"
 version = "0.0.1"
+dependencies = [
+ "serde",
+ "serde_ignored",
+ "serde_json",
+]
 
 [[package]]
 name = "outref"
@@ -3097,6 +3102,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_ignored"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "115dffd5f3853e06e746965a20dcbae6ee747ae30b543d91b0e089668bb07798"
+dependencies = [
+ "serde",
+ "serde_core",
+]
+
+[[package]]
 name = "serde_json"
 version = "1.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3273,6 +3288,7 @@ dependencies = [
  "rolldown_common",
  "rolldown_plugin_utils",
  "sha2",
+ "sourcemap",
  "tokio",
 ]
 
@@ -3303,7 +3319,14 @@ version = "0.0.1"
 dependencies = [
  "http",
  "sha2",
+ "sourcemap",
+ "ssr-adapter-react",
  "ssr-build",
+ "ssr-core",
+ "ssr-runtime",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

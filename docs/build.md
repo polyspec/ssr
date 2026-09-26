@@ -10,10 +10,14 @@ segments of ASCII letters, digits, hyphens, underscores and periods; empty, `.` 
 are invalid. The entries and CSS must remain
 inside the application root. The build returns a manifest and a map of output paths to bytes; it
 does not publish those bytes. The manifest JSON is created with ordered-json and identifies the
-server entry, client entry, styles, server chunks and public assets with their paths, URLs where
+server entry, private server source maps, client entry, styles, server chunks and public assets with their paths, URLs where
 public, content types and full SHA-256 digests. JavaScript output keeps Rolldown's content-hashed
 names; CSS and CSS URL assets use SHA-256 names. Identical server and client assets share one
 public file. A path collision with different bytes is an error.
+Each server JavaScript output has a private `.map` file. The build orders source paths and
+mapping tokens consistently and omits embedded source text, which can vary among equal builds.
+The map retains generated and source locations for stack mapping. The manifest records each map
+with its SHA-256; public file selection excludes maps.
 
 `PublicFiles::new` selects only the client entry, styles and assets with public URLs. It verifies
 each URL, output byte sequence, SHA-256 digest and content type before publication or serving.

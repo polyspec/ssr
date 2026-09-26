@@ -69,7 +69,7 @@ enum Command {
     Render {
         props: String,
         state: String,
-        reply: Sender<Result<RenderResult, Error>>,
+        reply: Sender<(Result<RenderResult, Error>, usize)>,
     },
     Stop,
 }
@@ -114,6 +114,12 @@ pub struct Pool {
     closed_rx: Receiver<()>,
     queue_capacity: usize,
     timeout: Duration,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RenderMetrics {
+    pub pool_wait: Duration,
+    pub heap_used_bytes: usize,
 }
 
 struct Lease<'a> {
@@ -203,6 +209,10 @@ impl Pool {
     }
 
     pub fn render(&self, page: &Page) -> Result<RenderResult, Error> {
+        self.render_with_metrics(page).map(|(result, _)| result)
+    }
+
+    pub fn render_with_metrics(&self, page: &Page) -> Result<(RenderResult, RenderMetrics), Error> {
         if page.render != Render::Ssr {
             return Err(Error::InvalidPage("runtime requires SSR"));
         }
@@ -214,7 +224,9 @@ impl Pool {
         let deadline = Instant::now()
             .checked_add(self.timeout)
             .ok_or(Error::InvalidConfiguration("timeout exceeds clock range"))?;
+        let waiting_since = Instant::now();
         let mut lease = self.acquire(deadline)?;
+        let pool_wait = waiting_since.elapsed();
         let (reply_tx, reply_rx) = bounded(1);
         let worker = &self.workers[lease.index];
         let command = Command::Render {
@@ -238,7 +250,15 @@ impl Pool {
         }
         let remaining = deadline.saturating_duration_since(Instant::now());
         match reply_rx.recv_timeout(remaining) {
-            Ok(value) => value,
+            Ok((value, heap_used_bytes)) => value.map(|result| {
+                (
+                    result,
+                    RenderMetrics {
+                        pool_wait,
+                        heap_used_bytes,
+                    },
+                )
+            }),
             Err(crossbeam_channel::RecvTimeoutError::Timeout) => {
                 if !worker.handle.terminate_execution() {
                     self.mark_lost(&mut lease, 1);
