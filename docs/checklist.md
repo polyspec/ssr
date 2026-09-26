@@ -164,7 +164,7 @@ completion evidence.
 - [o] S-12 Pin the V8 archive by path and SHA-256 as recorded by S-4; a failed download is an error.
   An explicit offline mode requires the existing verified archive and disables Cargo network access.
   Depends on: S-4. Evidence: missing, changed and failed-download cases and a build without network pass.
-- [ ] S-13 Stream React output with `renderToReadableStream`: status and headers are fixed when the
+- [o] S-13 Stream React output with `renderToReadableStream`: status and headers are fixed when the
   shell is ready; a render or JavaScript error before the shell returns 500 with an error page.
   Pool exhaustion or an unavailable worker returns 503, and a render timeout returns 504. For an error inside a
   Suspense boundary after the shell, preserve its fallback and React's client recovery instructions
