@@ -61,7 +61,11 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 
 1. Define or update the specification and acceptance criteria before implementation. Do not weaken
    a correct criterion to pass a test.
-2. Reproduce a defect or missing behavior with a tracked test, then correct the cause.
+2. For a defect, reproduce the failure with a tracked RED test. For a plausible failure not yet
+   observed, first write a deterministic RED case for the input and required result that would
+   expose it. Confirm the test fails for the intended reason before changing the implementation;
+   then correct the cause and run the same case and relevant use-path tests to GREEN. If a case
+   cannot expose the problem, investigate it instead of weakening the criterion.
    Put a behavior's base tests in its owning crate and test its actual use in each consuming crate.
    Both tests execute; the presence of a test file alone is not completion evidence.
 3. Choose the simplest complete implementation. No compatibility layers, fallbacks, data
