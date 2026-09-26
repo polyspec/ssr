@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Correct the React adapter and runtime documents to name the framework and application entries,
+  `Pool::new_react`, `Pool::render_stream`, and `ReactAdapter::stream_parts`. A record check rejects
+  the obsolete React pool call because it describes a different render path.
 - Stream React SSR documents after the shell is ready. Restore the framework and application in
   one request context, keep scheduling outside the application global, and preserve React's
   Suspense fallback and client recovery instructions. Generate a distinct operating-system nonce

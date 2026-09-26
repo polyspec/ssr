@@ -75,11 +75,16 @@ sequence. Invalid receivers and destinations throw a TypeError. The interface
 supplies the encoding required by the React server bundle without exposing file,
 network or timer operations.
 
-The React execution boundary requires the framework and application bundles to run in one V8
-context so application module initialization can use the same React instance. The framework
-bundle runs as a function with its scheduling timer in a lexical argument. The timer is removed
-from the global before the application bundle executes. A fixture renders a top-level React class and context with
-`useId` and `useContext` and checks that application code cannot access `setTimeout`.
+`Pool::new_react` accepts the private framework path and bytes, an application `ServerBundle`
+with no server chunks, and the worker and timeout limits. It initializes the framework and
+application once in the same snapshot context, so application module initialization and rendering
+use the same React instance. The framework bundle runs as a function with scheduling and Web
+Streams in lexical arguments. The global `setTimeout` is removed before the application bundle
+executes. Application code cannot schedule I/O timers. Each `Pool::render_stream` call restores
+a separate request context, runs the render, and returns the output state and a stream when the
+shell is ready. The stream yields HTML chunks without rebuilding either bundle; a failure after
+the shell is an explicit stream error. A fixture renders a top-level React class and context
+with `useId` and `useContext` and checks the application timer boundary.
 
 Acceptance: tracked tests verify snapshot reuse and key mismatch, initialized state
 restoration, failed and timed-out initialization, request isolation, a nonterminating script,
@@ -89,3 +94,5 @@ values and argument errors, and absence of forbidden APIs. Every test has a
 timeout under `make check`; the stderr capture subprocess has its own timeout.
 Promise tests cover fulfillment, rejection with a stack and pending results. The
 React bundle case executes an application component with top-level React declarations.
+React stream cases verify repeated request contexts, three application snapshots restored
+concurrently, and preservation of a failed Suspense boundary for client recovery.

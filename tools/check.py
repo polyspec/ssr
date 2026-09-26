@@ -71,8 +71,41 @@ def check_words(root):
     return errors
 
 
+def check_react_document(root):
+    required = (
+        "`framework_entry`",
+        "`server_entry`",
+        "`client_entry`",
+        "`Pool::new_react`",
+        "`Pool::render_stream`",
+        "`ReactAdapter::stream_parts`",
+    )
+    errors = []
+    for name in ("react.md", "react.ko.md"):
+        path = root / "docs" / name
+        if not path.is_file():
+            errors.append(f"{path}: React adapter document is missing")
+            continue
+        content = path.read_text(encoding="utf-8")
+        for symbol in required:
+            if symbol not in content:
+                errors.append(f"{path}: React stream contract omits {symbol}")
+        if "`Pool::new`" in content:
+            errors.append(f"{path}: obsolete React Pool::new contract")
+    for name in ("runtime.md", "runtime.ko.md"):
+        path = root / "docs" / name
+        if not path.is_file():
+            errors.append(f"{path}: React runtime document is missing")
+            continue
+        content = path.read_text(encoding="utf-8")
+        for symbol in ("`Pool::new_react`", "`Pool::render_stream`", "`setTimeout`"):
+            if symbol not in content:
+                errors.append(f"{path}: React runtime contract omits {symbol}")
+    return errors
+
+
 def main():
-    errors = check_pairs_and_links(ROOT) + check_words(ROOT)
+    errors = check_pairs_and_links(ROOT) + check_words(ROOT) + check_react_document(ROOT)
     result = subprocess.run(["cargo", "nextest", "--version"], capture_output=True, text=True, check=False)
     if result.returncode or not result.stdout.startswith("cargo-nextest 0.9.146 "):
         errors.append("cargo-nextest 0.9.146 is required")
