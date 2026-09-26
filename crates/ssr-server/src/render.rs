@@ -47,6 +47,7 @@ impl std::error::Error for Error {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum Adapter {
     React,
 }

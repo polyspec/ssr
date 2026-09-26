@@ -29,3 +29,16 @@ Acceptance: HTTP tests cover SSR, CSR, public files, invalid input and method re
 The JavaScript failure tests check a source location from a generated build map and a fixed map,
 and the metrics test checks the tracing fields. The build test verifies private deterministic
 maps and their digests.
+
+## Development mode
+
+`Development::start` builds the initial server and watches an absolute application root with
+notify 8.2.0. Create, modify and remove events rebuild the server and client bundles, CSS and
+public files. A successful rebuild creates a new pool and replaces the server as one value.
+Requests already using the previous server may finish. New requests use the new server.
+The change receiver reports every rebuild result. A rebuild or watch error makes new requests
+fail with its cause until a later successful rebuild. An invalid initial build fails startup.
+Dropping the development server stops the watcher and joins its worker.
+
+Acceptance: a source change updates rendered and public output. An invalid source reports a
+build failure, prevents stale output, and a valid edit restores service.
