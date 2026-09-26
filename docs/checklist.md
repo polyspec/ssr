@@ -165,7 +165,10 @@ procedure. Each item names its dependencies and its completion evidence.
   shell is ready; an error before the shell returns 500 with an error page; an error after the shell
   renders the error boundary in the stream and is logged; every inline script and style includes the
   nonce of the call. Depends on: S-7. Evidence: the three cases pass.
-- [ ] S-14 Implement the development mode with notify 8.2.0: a file change rebuilds the bundles and
-  replaces the pool. Depends on: S-9. Evidence: the output changes after a file change.
+- [o] S-14 Implement the development mode with notify 8.2.0: a file change rebuilds the bundles and
+  replaces the pool. Depends on: S-9. Acceptance: construction builds the initial server and watches
+  the absolute application root; a source change rebuilds all bundles and replaces the server and pool
+  together; a failed rebuild reports its cause and does not serve an outdated build; a later valid change
+  restores service. Evidence: a file event changes rendered and public output; failure and recovery cases pass.
 - [ ] S-15 Implement the Vue, Svelte and vanilla adapters and `features.json`. Depends on: S-7.
   Evidence: every feature has evidence.

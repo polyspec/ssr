@@ -61,3 +61,6 @@
   map and server bundle, renders `POST /_render`, and returns explicit HTTP failures. It records
   render time, pool wait and V8 heap use through tracing. JavaScript failures report source-mapped
   stack locations because generated bundle positions do not identify application source lines.
+- Add a development server that rebuilds bundles after file events and replaces its server and
+  render pool together. Invalid changes make requests fail with the build cause until a valid
+  change restores service because serving older output would hide the failed build.
