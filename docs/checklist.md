@@ -266,9 +266,11 @@ completion evidence.
   nonempty head output until they define document placement. Evidence: runtime result and adapter
   rejection cases; `make check`.
 
-- [ ] S-15-4 Record supported features in `features.json`. Depends on: S-7, S-15-1, S-15-2,
-  S-15-3. Acceptance: each true feature names its executable evidence; no feature is inferred
-  solely from source inspection. Evidence: a checker runs every referenced case and `make check`.
+- [o] S-15-4 Record supported features in `features.json`. Depends on: S-7, S-15-1, S-15-2,
+  S-15-3. Acceptance: each true feature names an exact test package, binary and case; duplicate
+  declarations, missing cases, failed commands and timeouts fail; no feature is inferred solely
+  from source inspection. Evidence: a checker executes every referenced case with an exact match,
+  tracked negative checker cases and `make check`.
 - [o] S-15-5 Verify the React adapter with an empty nested repeated form. Priority: required
   for S-15 completion. Depends on: S-7, S-6, S-13. Acceptance: the tracked fixture
   `FormRowsApp.tsx` renders a repeated row group that holds a repeated child group; one server render

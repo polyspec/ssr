@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Record supported adapter rendering, public asset, source map and React form capabilities in
+  `features.json`. Each declared capability names one exact executable case. The feature checker
+  runs every case, rejects missing evidence or duplicate feature declarations and fails on a missing test, nonzero
+  command exit or timeout because a declaration or source inspection cannot establish support.
 - Verify React streaming across HTTP shell status, late body errors, request nonces, timer
   isolation, render metrics, and browser recovery after a Suspense error.
 - Verify that a React stream reader rejection after a body chunk returns that chunk and an
