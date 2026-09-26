@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod engine;
+mod snapshot;
 mod web;
 
 use crossbeam_channel::{Receiver, Sender, TryRecvError, bounded, select};
@@ -20,6 +21,7 @@ pub enum Error {
     InvalidPage(&'static str),
     InvalidBundle(&'static str),
     InvalidResult(&'static str),
+    Snapshot(&'static str),
     InvalidJson(ordered_json::Error),
     JavaScript {
         message: String,
@@ -39,6 +41,7 @@ impl fmt::Display for Error {
             Self::InvalidPage(v) => write!(f, "invalid page: {v}"),
             Self::InvalidBundle(v) => write!(f, "invalid server bundle: {v}"),
             Self::InvalidResult(v) => write!(f, "invalid render result: {v}"),
+            Self::Snapshot(v) => write!(f, "snapshot failed: {v}"),
             Self::InvalidJson(v) => write!(f, "invalid render JSON: {v}"),
             Self::JavaScript { message, stack } => {
                 write!(f, "JavaScript failed: {message}")?;
@@ -154,6 +157,7 @@ impl Pool {
         if bundle.is_empty() {
             return Err(Error::InvalidBundle("bundle is empty"));
         }
+        let snapshot = snapshot::get(&bundle, timeout)?;
         let (available_tx, available_rx) = bounded(worker_count);
         let (closed_tx, closed_rx) = bounded(0);
         let mut workers = Vec::with_capacity(worker_count);
@@ -161,11 +165,11 @@ impl Pool {
             let (command, requests) = bounded::<Command>(0);
             let (ready_tx, ready_rx) = mpsc::sync_channel(0);
             let (done_tx, done_rx) = bounded(1);
-            let source = bundle.clone();
+            let snapshot = snapshot.clone();
             let join = thread::Builder::new()
                 .name(format!("ssr-runtime-{index}"))
                 .spawn(move || {
-                    engine::worker(&source, requests, ready_tx);
+                    engine::worker(snapshot, requests, ready_tx);
                     let _ = done_tx.send(());
                 })
                 .map_err(Error::WorkerStartup)?;

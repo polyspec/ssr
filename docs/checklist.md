@@ -148,9 +148,13 @@ procedure. Each item names its dependencies and its completion evidence.
   script name are mapped to source locations; a missing or invalid map fails server construction.
   See the [HTTP server contract](server.md). Evidence: stable build output, runtime metrics, HTTP
   cases, mapped stack and `make check`.
-- [ ] S-10 Implement snapshots keyed by the server bundle hash, the deno_core version and the library
+- [o] S-10 Implement snapshots keyed by the server bundle hash, the deno_core version and the library
   version; a context reset restores from the snapshot; a key mismatch creates a new snapshot.
-  Depends on: S-6. Evidence: a mismatch test and a reset test.
+  Depends on: S-6. Acceptance: a snapshot includes initialized server globals and Web APIs;
+  every request restores a separate context from the snapshot without running the bundle again;
+  request changes cannot reach later requests; equal keys reuse snapshot bytes and a changed
+  bundle or version creates a new snapshot; snapshot failures return errors and initialization
+  obeys the configured timeout. Evidence: mismatch, reset and initialization tests and `make check`.
 - [ ] S-11 Implement `make bench`: renders per second and p50/p99 latency for a fixed page with 1, 4
   and 16 concurrent calls, and time and memory of a context reset; record the limits in
   `docs/benchmarks.md`. Depends on: S-9, S-10. Evidence: the benchmark output and the recorded limits.

@@ -3,17 +3,22 @@
 # Runtime
 
 `Pool::new` accepts a server bundle, a nonzero worker count, a queue capacity and a
-nonzero execution timeout. Each worker owns one V8 isolate on one thread and compiles
-the bundle once into an unbound script. The bundle defines a synchronous global
-`render(props, state)` function. It returns an object with string `html` and a JSON
+nonzero execution timeout. It initializes the bundle in a V8 snapshot, and each worker
+owns one isolate created from that snapshot on one thread. The bundle defines a synchronous
+global `render(props, state)` function. It returns an object with string `html` and a JSON
 `state` value. The runtime rejects an absent function, a promise, an invalid result,
 or a JavaScript exception. A caller passes an SSR `Page` and receives `RenderResult`.
 The library workspace selects the same V8 150.4.0 source checkout verified by
 S-4-2 and pins its maintained identifier macro dependency in `Cargo.lock`.
 
-Each call enters a new V8 context in the same isolate. The compiled script executes
-in that context before `render` runs, so global changes from earlier calls cannot
-affect a later call. S-10 replaces context initialization with a validated snapshot.
+The snapshot cache key contains the server bundle SHA-256, the pinned deno_core version
+from the workspace manifest and the library package version. Equal keys reuse the snapshot
+while a pool holds it; changed keys create new snapshots. The cache holds weak references,
+so unused snapshot bytes are released. A failed bundle initialization or snapshot creation
+returns an error, and initialization obeys the configured timeout. Each call restores a
+separate V8 context from the snapshot in its worker isolate without executing the bundle
+again. The initialized server globals and Web APIs are available in each context, and
+changes made by one request cannot affect another.
 Props and input state enter as V8 values. HTML and output state leave as bytes; the
 output state is parsed through ordered-json. Undefined, function, symbol, bigint
 and non-finite number values in the output state fail instead of being omitted
@@ -34,7 +39,7 @@ a blocked native callback; its thread can remain until process exit. When the
 last worker is lost, waiting calls wake and receive the worker error. Worker
 initialization and failure are errors, not missing output.
 
-Fresh contexts expose `console` methods that write diagnostics to stderr and
+Restored contexts expose `console` methods that write diagnostics to stderr and
 `crypto.getRandomValues` backed by operating system randomness. The latter accepts
 integer typed-array views of at most 65,536 bytes and writes only the view. Invalid
 arguments, non-integer views, and excess lengths throw errors. The two Web Crypto
@@ -50,7 +55,8 @@ sequence. Invalid receivers and destinations throw a TypeError. The interface
 supplies the encoding required by the React server bundle without exposing file,
 network or timer operations.
 
-Acceptance: tracked tests verify request isolation, a nonterminating script,
+Acceptance: tracked tests verify snapshot reuse and key mismatch, initialized state
+restoration, failed and timed-out initialization, request isolation, a nonterminating script,
 queue saturation, a combined queue and execution deadline, unresponsive worker
 removal and waiting-call notification, captured stderr console output, random
 values and argument errors, and absence of forbidden APIs. Every test has a

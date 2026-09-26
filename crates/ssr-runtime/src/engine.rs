@@ -1,7 +1,8 @@
-use crate::{Command, Error, state_from_json, web};
+use crate::{Command, Error, snapshot::Snapshot, state_from_json};
 use crossbeam_channel::Receiver;
-use deno_core::{JsRuntime, RuntimeOptions, v8};
+use deno_core::v8;
 use ssr_core::RenderResult;
+use std::sync::Arc;
 use std::sync::mpsc::SyncSender;
 
 macro_rules! caught {
@@ -24,30 +25,12 @@ macro_rules! caught {
 }
 
 pub(crate) fn worker(
-    source: &str,
+    snapshot: Arc<Snapshot>,
     requests: Receiver<Command>,
     ready: SyncSender<Result<v8::IsolateHandle, Error>>,
 ) {
-    let scheduler = match tokio::runtime::Builder::new_current_thread()
-        .enable_time()
-        .build()
-    {
-        Ok(scheduler) => scheduler,
-        Err(error) => {
-            let _ = ready.send(Err(Error::WorkerStartup(error)));
-            return;
-        }
-    };
-    let _entered = scheduler.enter();
-    let mut runtime = JsRuntime::new(RuntimeOptions::default());
-    let handle = runtime.v8_isolate().thread_safe_handle();
-    let script = match compile(&mut runtime, source, "server.js") {
-        Ok(script) => script,
-        Err(error) => {
-            let _ = ready.send(Err(error));
-            return;
-        }
-    };
+    let mut runtime = snapshot.isolate();
+    let handle = runtime.thread_safe_handle();
     let serializer = match compile(
         &mut runtime,
         "(value) => JSON.stringify(value, function (_key, item) { if (item === undefined || typeof item === 'function' || typeof item === 'symbol' || typeof item === 'bigint' || (typeof item === 'number' && !Number.isFinite(item))) { throw new TypeError('render state contains a non-JSON value'); } return item; })",
@@ -69,9 +52,9 @@ pub(crate) fn worker(
                 state,
                 reply,
             } => {
-                let result = render(&mut runtime, &script, &serializer, &props, &state);
-                let heap_used_bytes = runtime.v8_isolate().get_heap_statistics().used_heap_size();
-                runtime.v8_isolate().cancel_terminate_execution();
+                let result = render(&mut runtime, &serializer, &props, &state);
+                let heap_used_bytes = runtime.get_heap_statistics().used_heap_size();
+                runtime.cancel_terminate_execution();
                 let _ = reply.send((result, heap_used_bytes));
             }
             Command::Stop => break,
@@ -80,11 +63,11 @@ pub(crate) fn worker(
 }
 
 fn compile(
-    runtime: &mut JsRuntime,
+    runtime: &mut v8::OwnedIsolate,
     source: &str,
     name: &str,
 ) -> Result<v8::Global<v8::UnboundScript>, Error> {
-    v8::scope!(let scope, runtime.v8_isolate());
+    v8::scope!(let scope, runtime);
     let context = v8::Context::new(scope, Default::default());
     let scope = &mut v8::ContextScope::new(scope, context);
     v8::tc_scope!(let scope, scope);
@@ -117,19 +100,15 @@ fn compile(
 }
 
 fn render(
-    runtime: &mut JsRuntime,
-    compiled: &v8::Global<v8::UnboundScript>,
+    runtime: &mut v8::OwnedIsolate,
     serializer: &v8::Global<v8::UnboundScript>,
     props: &str,
     state: &str,
 ) -> Result<RenderResult, Error> {
-    v8::scope!(let scope, runtime.v8_isolate());
+    v8::scope!(let scope, runtime);
     let context = v8::Context::new(scope, Default::default());
     let scope = &mut v8::ContextScope::new(scope, context);
     v8::tc_scope!(let scope, scope);
-    web::install(scope, context)?;
-    let script = v8::Local::new(scope, compiled).bind_to_current_context(scope);
-    script.run(scope).ok_or_else(|| caught!(scope))?;
     let name =
         v8::String::new(scope, "render").ok_or(Error::InvalidBundle("render name unavailable"))?;
     let value = context

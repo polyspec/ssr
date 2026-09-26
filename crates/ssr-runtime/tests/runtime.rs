@@ -7,7 +7,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Barrier};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use wait_timeout::ChildExt;
 
 fn page(props: &str) -> Page {
@@ -22,6 +22,58 @@ fn request_context_does_not_retain_globals() {
     assert_eq!(first.html, b"1");
     assert_eq!(second.html, b"1");
     assert_eq!(first.state.compact(), r#"{"input":3}"#);
+}
+
+#[test]
+fn snapshot_restores_initialized_bundle_without_reexecuting_it() {
+    let source = br#"
+      globalThis.initial = Array.from(crypto.getRandomValues(new Uint8Array(16))).join(',');
+      function render(props, state) {
+        const html = globalThis.initial;
+        globalThis.initial = 'changed';
+        return {html, state};
+      }
+    "#;
+    let pool = Pool::new(source.to_vec(), 1, 0, Duration::from_secs(3)).unwrap();
+    let first = pool.render(&page("{}")).unwrap();
+    let second = pool.render(&page("{}")).unwrap();
+    assert_eq!(first.html, second.html);
+    assert_ne!(first.html, b"changed");
+}
+
+#[test]
+fn snapshot_initialization_failure_is_returned() {
+    assert!(matches!(
+        Pool::new(b"function render(".to_vec(), 1, 0, Duration::from_secs(2)),
+        Err(Error::InvalidBundle("bundle compilation failed"))
+    ));
+    assert!(matches!(
+        Pool::new(
+            b"throw new Error('initialization failed')".to_vec(),
+            1,
+            0,
+            Duration::from_secs(2),
+        ),
+        Err(Error::InvalidBundle("bundle initialization failed"))
+    ));
+}
+
+#[test]
+fn snapshot_initialization_obeys_pool_timeout() {
+    let started = Instant::now();
+    assert!(matches!(
+        Pool::new(b"for (;;) {}".to_vec(), 1, 0, Duration::from_millis(100)),
+        Err(Error::Timeout)
+    ));
+    assert!(started.elapsed() < Duration::from_secs(2));
+    let pool = Pool::new(
+        b"function render(props, state) { return {html:'ready', state}; }".to_vec(),
+        1,
+        0,
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    assert_eq!(pool.render(&page("{}")).unwrap().html, b"ready");
 }
 
 #[test]
