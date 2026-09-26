@@ -60,6 +60,25 @@ retains the Rust target's link arguments.
 The local V8 checkout is also mounted read only at its absolute Cargo patch
 path. The container cannot modify either source checkout.
 
+## Isolate group source archive
+
+On Apple arm64, the release V8 source archive used by runtime checks has SHA-256
+`b18bcc65f8cb5f3249bea722614caf8ac1a5f5cef35ee9e01a91b6ec245cb9a0`, and its generated
+binding has SHA-256 `e71f32a0f97f99e13566c5da28804ad09421a0ecd600fbb6b79f301b9759ee2a`.
+`make install-group-archive` verifies both outputs at the absolute Cargo target path before
+copying them to separate ignored `var/v8/librusty_v8_source_aarch64-apple-darwin.a` and
+`var/v8/src_binding_source_aarch64-apple-darwin.rs` paths. The copies are checked again before
+installation. A missing or changed source, a relative path or a source path equal to a destination
+is an error. `make verify-group-archive` checks both installed files. `make check` and `make bench`
+run that verification before using `RUSTY_V8_ARCHIVE` and `RUSTY_V8_SRC_BINDING_PATH`; neither
+command invokes GN or Ninja. A missing, changed or unsupported host file is an error.
+
+The V8 checkout's `tools/check-isolate-groups.py` remains the explicit source build and runtime
+verification command. It checks the effective `is_debug=false`, pointer compression, separate
+pointer cages and external code space settings, then exercises three distinct snapshots in
+parallel. Run it with an absolute `CARGO_TARGET_DIR` and the required compiler paths before
+installing a new source archive.
+
 ## Build evidence
 
 The macOS and Linux x86_64 builds ran on macOS arm64 with Rust 1.98.1 and Zig

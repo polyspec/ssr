@@ -11,7 +11,7 @@ context creation. Memory is the change in live V8 heap bytes immediately around 
 not process resident memory. The command reports the largest observed change.
 
 The following output was measured on macOS 26.6.2, Apple M3 Pro, 36 GiB memory, Rust 1.98.1,
-using the Cargo development profile and the release V8 source build on 2026-09-26. The V8 build
+using the Cargo development profile and the verified release V8 source archive on 2026-09-26. The V8 build
 uses separate pointer cages and external code space. The benchmark includes worker communication,
 JSON parsing and result validation in call latency; it does not include bundle compilation or
 HTTP transport.

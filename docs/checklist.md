@@ -190,7 +190,7 @@ procedure. Each item names its dependencies and its completion evidence.
   and repeated entries fail; build tests and `make check` pass.
 - [ ] S-13-2-2 Execute the two bundles with isolated scheduling and Web Streams, and stream the
   document through HTTP with the nonce and error behavior of S-13. Depends on: S-13-2-1,
-  S-13-2-2-1.
+  S-13-2-2-1, S-13-2-2-1-1.
   Evidence: the S-13 cases pass in the runtime and server.
 - [o] S-13-2-2-1 Create a V8 isolate group for each server snapshot and restore every worker
   isolate in that group. Keep separate application snapshots independent when workers restore
@@ -199,6 +199,12 @@ procedure. Each item names its dependencies and its completion evidence.
   are unavailable.
   Depends on: S-10. Evidence: three distinct snapshots restore concurrently in repeated rounds,
   existing snapshot and benchmark cases pass, and `make check` passes.
+- [o] S-13-2-2-1-1 Verify a separate absolute local V8 source archive and its generated binding
+  by their recorded SHA-256 values before `make check` and `make bench` link them. Reject a missing
+  or changed file and a source path equal to a Cargo output path. Keep direct source-build
+  verification available as an explicit command; routine checks reuse the verified files without
+  invoking GN or Ninja. Depends on: S-13-2-2-1. Evidence: missing, changed, identical-path and verified-copy cases,
+  two routine checks with no V8 source rebuild, and the existing benchmark limits pass.
 - [o] S-14 Implement the development mode with notify 8.2.0: a file change rebuilds the bundles and
   replaces the pool. Depends on: S-9. Acceptance: construction builds the initial server and watches
   the absolute application root; a source change rebuilds all bundles and replaces the server and pool

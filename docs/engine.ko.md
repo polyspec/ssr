@@ -58,6 +58,24 @@ Rust 1.98.1 Bookworm 이미지로 ARM64 Linux 컨테이너 이미지를 빌드�
 로컬 V8 체크아웃도 Cargo patch의 절대 경로에 읽기 전용으로 마운트한다. 컨테이너는
 두 소스 체크아웃을 수정할 수 없다.
 
+## Isolate group 소스 archive
+
+Apple arm64에서 런타임 검사에 사용하는 V8 release 소스 archive의 SHA-256은
+`b18bcc65f8cb5f3249bea722614caf8ac1a5f5cef35ee9e01a91b6ec245cb9a0`이고, 생성된 binding의
+SHA-256은 `e71f32a0f97f99e13566c5da28804ad09421a0ecd600fbb6b79f301b9759ee2a`이다.
+`make install-group-archive`는 절대 Cargo target 경로의 두 출력을 검증한 뒤 별도 무시된
+`var/v8/librusty_v8_source_aarch64-apple-darwin.a`와
+`var/v8/src_binding_source_aarch64-apple-darwin.rs` 경로로 복사한다. 복사본도 설치 전에 다시 검증한다.
+소스 누락·변경, 상대 경로, 소스와 대상의 동일 경로는 오류다. `make verify-group-archive`는 설치된
+두 파일을 검사한다. `make check`와 `make bench`는 `RUSTY_V8_ARCHIVE`와
+`RUSTY_V8_SRC_BINDING_PATH`를 사용하기 전에 이 검사를 실행하며 GN이나 Ninja를 호출하지 않는다.
+파일 누락·변경 또는 지원하지 않는 호스트는 오류다.
+
+V8 checkout의 `tools/check-isolate-groups.py`는 명시적인 소스 빌드·런타임 검증 명령으로 남는다.
+이 명령은 실제 `is_debug=false`, 포인터 압축, 별도 포인터 cage, 외부 코드 공간 설정을 검사한 뒤
+서로 다른 스냅샷 세 개를 병렬로 실행한다. 새 소스 archive를 설치하기 전에 절대
+`CARGO_TARGET_DIR`와 필요한 컴파일러 경로를 지정해 실행한다.
+
 ## 빌드 증거
 
 macOS와 Linux x86_64 빌드는 Rust 1.98.1과 Zig 0.16.0을 사용하는 macOS

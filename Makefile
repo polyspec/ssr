@@ -1,8 +1,19 @@
-.PHONY: check bench verify-engine-linux-arm64 verify-engine-deps verify-build
+.PHONY: check bench install-group-archive verify-group-archive verify-engine-linux-arm64 verify-engine-deps verify-build
 
-check bench: export V8_FROM_SOURCE := 1
-check bench: export GN_ARGS := is_debug=false v8_enable_pointer_compression=true v8_enable_pointer_compression_shared_cage=false v8_enable_external_code_space=true
+GROUP_TARGET := $(shell rustc -vV | sed -n 's/^host: //p')
+GROUP_ARCHIVE := $(CURDIR)/var/v8/librusty_v8_source_$(GROUP_TARGET).a
+GROUP_BINDING := $(CURDIR)/var/v8/src_binding_source_$(GROUP_TARGET).rs
+
+check bench install-group-archive verify-group-archive: export RUSTY_V8_ARCHIVE := $(GROUP_ARCHIVE)
+check bench install-group-archive verify-group-archive: export RUSTY_V8_SRC_BINDING_PATH := $(GROUP_BINDING)
 check bench: export CARGO_INCREMENTAL := 0
+check bench: verify-group-archive
+
+install-group-archive:
+	python3 tools/verify_group_archive.py install
+
+verify-group-archive:
+	python3 tools/verify_group_archive.py verify
 
 check:
 	npm ci --prefix tools/build-probe/tests/fixtures --ignore-scripts --no-audit --no-fund
