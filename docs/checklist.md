@@ -240,7 +240,7 @@ completion evidence.
   the absolute application root; a source change rebuilds all bundles and replaces the server and pool
   together; a failed rebuild reports its cause and does not serve an outdated build; a later valid change
   restores service. Evidence: a file event changes rendered and public output; failure and recovery cases pass.
-- [ ] S-15 Implement the Vue, Svelte and vanilla adapters and `features.json`. Depends on: S-15-1,
+- [o] S-15 Implement the Vue, Svelte and vanilla adapters and `features.json`. Depends on: S-15-1,
   S-15-2, S-15-3, S-15-4, S-15-5, S-15-6. Evidence: every declared feature has an executable case.
 - [o] S-15-1 Implement the vanilla adapter. Depends on: S-7. Acceptance: absolute server and client
   application paths produce bundle entries; SSR returns HTML and output state, CSR preserves input

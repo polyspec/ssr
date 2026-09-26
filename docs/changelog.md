@@ -4,6 +4,8 @@
 
 ## 0.0.1
 
+- Complete the Vue, Svelte and vanilla adapters. `features.json` names an exact executable case for
+  every supported feature, and `make check` runs every declared case.
 - Record supported adapter rendering, public asset, source map and React form capabilities in
   `features.json`. Each declared capability names one exact executable case. The feature checker
   runs every case, rejects missing evidence or duplicate feature declarations and fails on a missing test, nonzero
