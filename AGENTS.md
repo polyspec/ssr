@@ -113,6 +113,7 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
     document, including when SSR HTML is empty. Missing or invalid modes fail. A hydration
     acceptance test runs in a browser and verifies that the server DOM node remains the same node
     after client hydration. Bundle text inspection does not prove hydration.
+11. Concurrent tests that generate application entry files use separate directories for each test.
 
 ## Records
 
