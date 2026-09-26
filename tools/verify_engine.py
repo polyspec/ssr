@@ -19,7 +19,7 @@ ARCHIVES = {
 }
 
 
-def verify(target: str, fetch: bool, archive_only: bool) -> int:
+def verify(target: str, fetch: bool, archive_only: bool, offline: bool) -> int:
     if target not in ARCHIVES:
         print(f"FAIL unsupported target {target}", file=sys.stderr)
         return 2
@@ -71,6 +71,8 @@ def verify(target: str, fetch: bool, archive_only: bool) -> int:
         return 0
     env = os.environ.copy()
     env["RUSTY_V8_ARCHIVE"] = str(archive)
+    if offline:
+        env["CARGO_NET_OFFLINE"] = "true"
     if target.endswith("unknown-linux-gnu") and not native_linux:
         env[f"CARGO_TARGET_{target.upper().replace('-', '_')}_LINKER"] = str(
             ROOT / "tools" / f"zig-linker-{target.split('-')[0]}"
@@ -112,8 +114,8 @@ def verify(target: str, fetch: bool, archive_only: bool) -> int:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] not in ("--fetch", "--fetch-only")):
-        print("usage: python3 tools/verify_engine.py TARGET [--fetch|--fetch-only]", file=sys.stderr)
+    if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] not in ("--fetch", "--fetch-only", "--offline")):
+        print("usage: python3 tools/verify_engine.py TARGET [--fetch|--fetch-only|--offline]", file=sys.stderr)
         sys.exit(2)
     option = sys.argv[2] if len(sys.argv) == 3 else ""
-    sys.exit(verify(sys.argv[1], bool(option), option == "--fetch-only"))
+    sys.exit(verify(sys.argv[1], option in ("--fetch", "--fetch-only"), option == "--fetch-only", option == "--offline"))

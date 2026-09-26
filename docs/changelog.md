@@ -16,6 +16,8 @@
 - Verify the engine dependency versions and V8 archive digests. Full builds link for macOS arm64,
   macOS x86_64, Linux x86_64 and Linux AArch64. The Linux AArch64 program executes in a native
   container.
+- Build with a verified local V8 archive and Cargo network access disabled. Missing or changed
+  archives and failed downloads return errors.
 - Bind the engine verification Cargo cache and build output to ignored host directories. The
   source remains read only, and a replacement engine container reuses the linked program.
 - Select the maintained compile-time identifier macro package in the local V8 source checkout.
