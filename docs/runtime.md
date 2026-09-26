@@ -40,6 +40,13 @@ are absent. An OS failure does not modify the view. `fetch`, file and network
 access, and I/O timers are absent.
 The source bundle is trusted application code and does not gain process isolation.
 
+Every render context also exposes `TextEncoder` with UTF-8 `encoding`, `encode` and
+`encodeInto`. Encoding replaces an unpaired surrogate with U+FFFD. `encodeInto`
+reports UTF-16 code units read and bytes written without writing a partial UTF-8
+sequence. Invalid receivers and destinations throw a TypeError. The interface
+supplies the encoding required by the React server bundle without exposing file,
+network or timer operations.
+
 Acceptance: tracked tests verify request isolation, a nonterminating script,
 queue saturation, a combined queue and execution deadline, unresponsive worker
 removal and waiting-call notification, captured stderr console output, random

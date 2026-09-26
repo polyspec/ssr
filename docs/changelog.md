@@ -39,3 +39,6 @@
   once, resets global state with a new context for each request, terminates scripts at the timeout,
   and provides console output and operating system random values. Invalid results and unavailable
   Web APIs return explicit errors because output must not be omitted or changed silently.
+- Provide UTF-8 `TextEncoder` in every render context because the React server bundle requires it.
+  Encoding and bounded `encodeInto` handle non-ASCII text and unpaired surrogates; invalid calls
+  fail without adding file, network or timer operations.
