@@ -10,6 +10,8 @@ build manifest to `ReactAdapter::new` and the server entry bytes to `Pool::new`.
 
 The server entry calls the application with props and `renderState` containing the input
 state and an output field initialized to null. It returns React HTML and the output state.
+The server result also contains a required empty `head` string. The adapter rejects a nonempty
+`head` because it has no document placement rule for that output.
 `ReactAdapter::render` inserts that HTML and output state into the SSR document. For CSR it
 leaves the root empty, inserts the unchanged input state, and does not call the runtime pool.
 Both modes load the same client URL. The client hydrates a nonempty root and renders an empty

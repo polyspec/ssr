@@ -9,7 +9,8 @@
 서버 진입점 바이트를 `Pool::new`에 전달한다.
 
 서버 진입점은 props와 입력 상태 및 null로 초기화한 출력 필드를 가진 `renderState`를
-애플리케이션에 전달하고 React HTML과 출력 상태를 반환한다. `ReactAdapter::render`는
+애플리케이션에 전달하고 React HTML과 출력 상태, 필수인 빈 `head` 문자열을 반환한다.
+문서 배치 기준이 없는 비어 있지 않은 `head`는 어댑터가 거부한다. `ReactAdapter::render`는
 SSR 문서에 HTML과 출력 상태를 넣는다. CSR에서는 root를 비워 두고 입력 상태를 변경하지
 않고 넣으며 런타임 풀을 호출하지 않는다. 두 모드 모두 같은 클라이언트 URL을 불러온다.
 클라이언트는 내용이 있는 root를 hydrate하고 빈 root를 렌더한다. 애플리케이션은 문서에

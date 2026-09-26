@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Require a `head` string in every runtime render result and preserve its bytes. Missing or
+  invalid values fail because render output must remain complete. React, Vue and vanilla return
+  an empty head and reject nonempty head output without a document placement rule.
+
 - Add the Vue adapter with Promise-based server rendering and browser hydration. The browser
   verifies the original server DOM node and an attached event handler because a generated bundle
   does not establish hydration behavior.

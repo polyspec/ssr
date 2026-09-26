@@ -4,8 +4,9 @@
 
 `Pool::new`은 서버 번들, 0보다 큰 워커 수, 대기열 용량, 0보다 큰 실행 제한 시간을 받는다.
 풀은 V8 스냅샷에서 번들을 초기화하고, 워커마다 하나의 스레드에서 스냅샷으로 만든
-isolate를 소유한다. 번들은 전역 함수 `render(props, state)`를 정의한다. 함수는 문자열
-`html`과 JSON `state` 값이 있는 객체를 직접 또는 Promise로 반환한다. 런타임은
+isolate를 소유한다. 번들은 전역 함수 `render(props, state)`를 정의한다. 함수는 필수 문자열
+`html`, `head`와 JSON `state` 값이 있는 객체를 직접 또는 Promise로 반환한다. head 누락이나
+잘못된 값은 오류이며 UTF-8 바이트가 `RenderResult`에 남는다. 런타임은
 Promise의 결과를 읽기 전에 대기 중인 V8 microtask를 완료한다. Promise가 거부되면
 메시지와 stack을 가진 JavaScript 오류를 반환한다. microtask 완료 후에도 대기하는
 Promise는 이를 완료할 외부 이벤트 원천이 없으므로 오류다. 함수 부재, 잘못된 결과,
@@ -21,7 +22,7 @@ JavaScript 예외도 오류다. 호출자는 SSR `Page`를 전달하고 `RenderR
 워커 isolate 안에 스냅샷에서 별도 V8 context를 복원하며 번들을 다시 실행하지 않는다.
 초기화한 서버 전역과 Web API는 각 context에 제공되고, 한 요청에서 바꾼 값은 다른 요청에
 영향을 주지 않는다. Props와 입력 상태는 V8 값으로
-전달한다. HTML과 출력 상태는 바이트로 가져오고, 출력 상태는 ordered-json으로 파싱한다.
+전달한다. HTML, head, 출력 상태는 바이트로 가져오고, 출력 상태는 ordered-json으로 파싱한다.
 출력 상태에 undefined, 함수, symbol, bigint 또는 유한하지 않은 숫자가 있으면
 조용히 제외하거나 null로 바꾸지 않고 실패한다. 잘못된 입출력은 기본값으로 바꾸지 않고
 오류를 반환한다.

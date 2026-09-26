@@ -172,14 +172,14 @@ mod tests {
 
     #[test]
     fn matching_key_reuses_snapshot_and_mismatch_creates_one() {
-        let bundle = "function render(props, state) { return {html:'ok', state}; }";
+        let bundle = "function render(props, state) { return {head:'', html:'ok', state}; }";
         let key = Key::new(bundle.as_bytes());
         let first = get_with_key(bundle, key.clone(), Duration::from_secs(2)).unwrap();
         let reused = get_with_key(bundle, key.clone(), Duration::from_secs(2)).unwrap();
         assert!(Arc::ptr_eq(&first, &reused));
         let changed_bundle = get_with_key(
-            "function render(props, state) { return {html:'changed', state}; }",
-            Key::new(b"function render(props, state) { return {html:'changed', state}; }"),
+            "function render(props, state) { return {head:'', html:'changed', state}; }",
+            Key::new(b"function render(props, state) { return {head:'', html:'changed', state}; }"),
             Duration::from_secs(2),
         )
         .unwrap();

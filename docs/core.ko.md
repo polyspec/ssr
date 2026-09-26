@@ -14,14 +14,14 @@ ordered-json 바이트 API를 사용한다.
 `Page`와 `RenderResult`가 사용하는 `Value` 타입도 `ssr-core`가 내보내므로 어댑터는
 core 의존성을 통해 페이지 계약을 사용할 수 있다.
 
-렌더 결과는 HTML 바이트와 JSON 값인 출력 상태를 포함한다. 렌더링 구성 요소가 이 상태를
+렌더 결과는 HTML·head 바이트와 JSON 값인 출력 상태를 포함한다. 렌더링 구성 요소가 이 상태를
 선택한다. 출력 상태는 입력 상태와 별개이며 브라우저가 hydration에 사용한다. `ssr-core`는
 캐시 헤더나 HTTP 상태 코드를 결정하지 않는다. HTTP 서버가 잘못된 요청 및 렌더 실패를
 응답으로 변환한다. `CALL_PATH`는 `/_render`다.
 
 완료 기준: [SSR 페이지 fixture](../crates/ssr-core/tests/fixtures/ssr.json)와
 [CSR fixture](../crates/ssr-core/tests/fixtures/csr.json)는 파싱, 인코딩, 재파싱 후에도
-값과 객체 순서를 유지한다. 잘못된 사례는 오류를 반환한다. 렌더 결과는 HTML과 출력 상태를
+값과 객체 순서를 유지한다. 잘못된 사례는 오류를 반환한다. 렌더 결과는 HTML, head, 출력 상태를
 유지한다.
 
 ordered-json 의존성은 로컬에서 사용하며 Cargo 레지스트리에 게시하지 않는 패키지다.

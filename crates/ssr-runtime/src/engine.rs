@@ -149,6 +149,21 @@ fn render(
         return Err(Error::InvalidResult("html contains an unpaired surrogate"));
     }
     let html = html_text.into_bytes();
+    let head_name =
+        v8::String::new(scope, "head").ok_or(Error::InvalidResult("head key unavailable"))?;
+    let head = object
+        .get(scope, head_name.into())
+        .ok_or_else(|| caught!(scope))?;
+    if !head.is_string() {
+        return Err(Error::InvalidResult("head must be a string"));
+    }
+    let head_text = head.to_rust_string_lossy(scope);
+    let head_roundtrip = v8::String::new(scope, &head_text)
+        .ok_or(Error::InvalidResult("head exceeds V8 string limit"))?;
+    if !head.strict_equals(head_roundtrip.into()) {
+        return Err(Error::InvalidResult("head contains an unpaired surrogate"));
+    }
+    let head = head_text.into_bytes();
     let state_name =
         v8::String::new(scope, "state").ok_or(Error::InvalidResult("state key unavailable"))?;
     let state = object
@@ -168,7 +183,7 @@ fn render(
         .map_err(|_| Error::InvalidResult("state serialization did not return JSON"))?;
     let state = state_from_json(json.to_rust_string_lossy(scope).as_bytes())?;
     Ok(ContextRender {
-        result: RenderResult { html, state },
+        result: RenderResult { html, head, state },
         context_reset,
         context_heap_delta_bytes,
     })
