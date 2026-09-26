@@ -18,6 +18,7 @@ verify-group-archive:
 check:
 	npm ci --prefix tools/build-probe/tests/fixtures --install-links --ignore-scripts --no-audit --no-fund
 	python3 tools/run_tests.py
+	python3 tools/test_ownership.py
 	python3 tools/check.py
 	cargo fmt --all -- --check
 	cargo clippy --workspace --all-targets --locked -- -D warnings
