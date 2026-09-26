@@ -188,5 +188,23 @@ procedure. Each item names its dependencies and its completion evidence.
   the absolute application root; a source change rebuilds all bundles and replaces the server and pool
   together; a failed rebuild reports its cause and does not serve an outdated build; a later valid change
   restores service. Evidence: a file event changes rendered and public output; failure and recovery cases pass.
-- [ ] S-15 Implement the Vue, Svelte and vanilla adapters and `features.json`. Depends on: S-7.
-  Evidence: every feature has evidence.
+- [ ] S-15 Implement the Vue, Svelte and vanilla adapters and `features.json`. Depends on: S-15-1,
+  S-15-2, S-15-3, S-15-4. Evidence: every declared feature has an executable case.
+- [o] S-15-1 Implement the vanilla adapter. Depends on: S-7. Acceptance: absolute server and client
+  application paths produce bundle entries; SSR returns HTML and output state, CSR preserves input
+  state without using the pool, both use one client URL, and a static CSR shell accepts only empty
+  props and null state. Invalid paths, URLs, HTML and input return errors. The browser test verifies
+  that hydration retains the server DOM node and CSR renders. Evidence: build, render and browser
+  cases; `make check`.
+- [ ] S-15-2 Implement the Vue adapter. Depends on: S-7 and Promise-capable runtime rendering.
+  Acceptance: one application component produces server and client entries; SSR awaits Vue
+  `renderToString`, returns HTML and output state, and the browser hydrates the existing DOM node.
+  CSR and static shells follow S-15-1. Evidence: build, render and browser cases; `make check`.
+- [ ] S-15-3 Compile Svelte application source for both server and client inside the Rust build
+  process and implement the Svelte adapter. Depends on: S-7. Acceptance: source compilation needs
+  no Node process; SSR and CSR share the client build; the browser retains the server DOM node
+  after hydration; output state and static shells follow S-15-1. Compiler, build and render errors
+  fail explicitly. Evidence: source build, render and browser cases; `make check`.
+- [ ] S-15-4 Record supported features in `features.json`. Depends on: S-7, S-15-1, S-15-2,
+  S-15-3. Acceptance: each true feature names its executable evidence; no feature is inferred
+  solely from source inspection. Evidence: a checker runs every referenced case and `make check`.
