@@ -1,0 +1,64 @@
+{
+  "features": [
+    {
+      "name": "react-ssr",
+      "supported": true,
+      "test": { "package": "ssr-adapter-react", "binary": "react", "case": "generated_react_entries_build_and_execute" }
+    },
+    {
+      "name": "react-stream",
+      "supported": true,
+      "test": { "package": "ssr-adapter-react", "binary": "react", "case": "suspense_failure_keeps_fallback_and_client_recovery_in_stream" }
+    },
+    {
+      "name": "react-csr-hydration",
+      "supported": true,
+      "test": { "package": "ssr-adapter-react", "binary": "react", "case": "browser_hydrates_ssr_and_renders_csr_and_static_shells" }
+    },
+    {
+      "name": "vue-ssr",
+      "supported": true,
+      "test": { "package": "ssr-adapter-vue", "binary": "vue", "case": "browser_preserves_server_dom_and_renders_csr_and_shells" }
+    },
+    {
+      "name": "vue-csr-hydration",
+      "supported": true,
+      "test": { "package": "ssr-adapter-vue", "binary": "vue", "case": "browser_preserves_server_dom_and_renders_csr_and_shells" }
+    },
+    {
+      "name": "svelte-ssr-head-css-nonce",
+      "supported": true,
+      "test": { "package": "ssr-server", "binary": "svelte", "case": "svelte_http_preserves_head_css_and_request_nonce" }
+    },
+    {
+      "name": "svelte-csr-hydration",
+      "supported": true,
+      "test": { "package": "ssr-adapter-svelte", "binary": "svelte", "case": "browser_preserves_server_dom_and_renders_csr_and_shells" }
+    },
+    {
+      "name": "vanilla-ssr",
+      "supported": true,
+      "test": { "package": "ssr-adapter-vanilla", "binary": "vanilla", "case": "browser_preserves_server_dom_and_renders_csr_and_shells" }
+    },
+    {
+      "name": "vanilla-csr-hydration",
+      "supported": true,
+      "test": { "package": "ssr-adapter-vanilla", "binary": "vanilla", "case": "browser_preserves_server_dom_and_renders_csr_and_shells" }
+    },
+    {
+      "name": "public-assets",
+      "supported": true,
+      "test": { "package": "ssr-build", "binary": "public", "case": "serving_uses_exact_public_url_bytes_and_content_type" }
+    },
+    {
+      "name": "source-maps",
+      "supported": true,
+      "test": { "package": "ssr-server", "binary": "render", "case": "generated_source_map_maps_a_live_render_failure" }
+    },
+    {
+      "name": "react-crudui-form",
+      "supported": true,
+      "test": { "package": "ssr-adapter-react", "binary": "crudui", "case": "repeated_form_rows_have_distinct_keys_across_two_server_renders" }
+    }
+  ]
+}

@@ -25,6 +25,7 @@ check:
 	cargo deny check
 	$(MAKE) verify-engine-deps
 	cargo nextest run --workspace --locked --no-tests fail
+	python3 tools/check_features.py
 	cargo nextest run -p ssr-runtime --example bench --locked --no-tests fail
 
 bench:
