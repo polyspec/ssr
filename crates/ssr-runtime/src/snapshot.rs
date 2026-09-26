@@ -7,6 +7,25 @@ use std::sync::{Arc, Mutex, OnceLock, Weak};
 use std::thread;
 use std::time::Duration;
 
+macro_rules! script_error {
+    ($scope:expr) => {{
+        if $scope.is_execution_terminating() {
+            Error::Timeout
+        } else {
+            let message = $scope
+                .exception()
+                .and_then(|value| value.to_string($scope))
+                .map(|value| value.to_rust_string_lossy($scope))
+                .unwrap_or_else(|| "JavaScript failed without an exception".to_owned());
+            let stack = $scope
+                .stack_trace()
+                .and_then(|value| value.to_string($scope))
+                .map(|value| value.to_rust_string_lossy($scope));
+            Error::JavaScript { message, stack }
+        }
+    }};
+}
+
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct Key {
     bundle_hash: [u8; 32],
@@ -22,13 +41,43 @@ impl Key {
             library_version: env!("CARGO_PKG_VERSION"),
         }
     }
+
+    fn react(
+        framework_path: &str,
+        framework: &[u8],
+        application_path: &str,
+        application: &[u8],
+    ) -> Self {
+        let mut digest = Sha256::new();
+        digest.update(b"react-framework");
+        digest.update((framework_path.len() as u64).to_be_bytes());
+        digest.update(framework_path.as_bytes());
+        digest.update((framework.len() as u64).to_be_bytes());
+        digest.update(framework);
+        digest.update((application_path.len() as u64).to_be_bytes());
+        digest.update(application_path.as_bytes());
+        digest.update((application.len() as u64).to_be_bytes());
+        digest.update(application);
+        Self {
+            bundle_hash: digest.finalize().into(),
+            deno_core_version: env!("SSR_DENO_CORE_VERSION"),
+            library_version: env!("CARGO_PKG_VERSION"),
+        }
+    }
+}
+
+enum SnapshotKind {
+    Modules {
+        sources: Arc<module::Sources>,
+        module_indices: BTreeMap<String, usize>,
+    },
+    React,
 }
 
 pub(crate) struct Snapshot {
     bytes: Vec<u8>,
     group: Arc<v8::IsolateGroup>,
-    sources: Arc<module::Sources>,
-    module_indices: BTreeMap<String, usize>,
+    kind: SnapshotKind,
 }
 
 impl Snapshot {
@@ -37,16 +86,24 @@ impl Snapshot {
             .external_references(Cow::Owned(web::external_references()))
             .snapshot_blob(v8::StartupData::from(self.bytes.clone()));
         let mut isolate = self.group.new_isolate(parameters);
-        module::install_dynamic_import_callback(&mut isolate);
+        if matches!(&self.kind, SnapshotKind::Modules { .. }) {
+            module::install_dynamic_import_callback(&mut isolate);
+        }
         isolate
     }
 
-    pub(crate) fn sources(&self) -> Arc<module::Sources> {
-        Arc::clone(&self.sources)
+    pub(crate) fn module_data(&self) -> Option<(Arc<module::Sources>, BTreeMap<String, usize>)> {
+        match &self.kind {
+            SnapshotKind::Modules {
+                sources,
+                module_indices,
+            } => Some((Arc::clone(sources), module_indices.clone())),
+            SnapshotKind::React => None,
+        }
     }
 
-    pub(crate) fn module_indices(&self) -> &BTreeMap<String, usize> {
-        &self.module_indices
+    pub(crate) fn is_react(&self) -> bool {
+        matches!(&self.kind, SnapshotKind::React)
     }
 }
 
@@ -61,6 +118,49 @@ fn get_with_key(
     key: Key,
     timeout: Duration,
 ) -> Result<Arc<Snapshot>, Error> {
+    get_or_create(key, |group| {
+        let sources = Arc::new(bundle.clone());
+        let (bytes, module_indices) = create_modules(group, Arc::clone(&sources), timeout)?;
+        Ok((
+            bytes,
+            SnapshotKind::Modules {
+                sources,
+                module_indices,
+            },
+        ))
+    })
+}
+
+pub(crate) fn get_react(
+    framework_path: &str,
+    framework: &str,
+    application_path: &str,
+    application: &str,
+    timeout: Duration,
+) -> Result<Arc<Snapshot>, Error> {
+    let key = Key::react(
+        framework_path,
+        framework.as_bytes(),
+        application_path,
+        application.as_bytes(),
+    );
+    get_or_create(key, |group| {
+        let bytes = create_react(
+            group,
+            framework_path,
+            framework,
+            application_path,
+            application,
+            timeout,
+        )?;
+        Ok((bytes, SnapshotKind::React))
+    })
+}
+
+fn get_or_create(
+    key: Key,
+    create: impl FnOnce(&v8::IsolateGroup) -> Result<(Vec<u8>, SnapshotKind), Error>,
+) -> Result<Arc<Snapshot>, Error> {
     let mut cache = CACHE
         .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
@@ -73,31 +173,192 @@ fn get_with_key(
         v8::IsolateGroup::create()
             .ok_or(Error::Snapshot("independent isolate group unavailable"))?,
     );
-    let sources = Arc::new(bundle.clone());
-    let (bytes, module_indices) = create(&group, Arc::clone(&sources), timeout)?;
-    let snapshot = Arc::new(Snapshot {
-        bytes,
-        group,
-        sources,
-        module_indices,
-    });
+    let (bytes, kind) = create(&group)?;
+    let snapshot = Arc::new(Snapshot { bytes, group, kind });
     cache.retain(|_, entry| entry.strong_count() > 0);
     cache.insert(key, Arc::downgrade(&snapshot));
     Ok(snapshot)
 }
 
-fn create(
+fn create_modules(
     group: &v8::IsolateGroup,
     bundle: Arc<module::Sources>,
     timeout: Duration,
 ) -> Result<(Vec<u8>, BTreeMap<String, usize>), Error> {
+    create_with(group, timeout, true, |creator, default_context| {
+        v8::scope!(let scope, creator);
+        let context = v8::Local::new(scope, default_context);
+        let scope = &mut v8::ContextScope::new(scope, context);
+        v8::tc_scope!(let scope, scope);
+        web::install(scope, context)?;
+        let result = module::initialize(scope, context, Arc::clone(&bundle));
+        context.clear_all_slots();
+        if result.is_err() && scope.has_caught() {
+            if scope.has_terminated() {
+                return Err(Error::Timeout);
+            }
+            let message = scope
+                .exception()
+                .and_then(|value| value.to_string(scope))
+                .map(|value| value.to_rust_string_lossy(scope))
+                .ok_or(Error::InvalidBundle(
+                    "server module failed without an error message",
+                ))?;
+            let stack = scope
+                .stack_trace()
+                .and_then(|value| value.to_string(scope))
+                .map(|value| value.to_rust_string_lossy(scope));
+            return Err(Error::JavaScript { message, stack });
+        }
+        result
+    })
+}
+
+fn create_react(
+    group: &v8::IsolateGroup,
+    framework_path: &str,
+    framework: &str,
+    application_path: &str,
+    application: &str,
+    timeout: Duration,
+) -> Result<Vec<u8>, Error> {
+    let (bytes, ()) = create_with(group, timeout, false, |creator, default_context| {
+        v8::scope!(let scope, creator);
+        let context = v8::Local::new(scope, default_context);
+        let scope = &mut v8::ContextScope::new(scope, context);
+        web::install_framework(scope, context)?;
+        run_react_framework(scope, context, framework, framework_path)?;
+        let key = v8::String::new(scope, "setTimeout")
+            .ok_or(Error::InvalidBundle("React scheduling name unavailable"))?;
+        if context.global(scope).delete(scope, key.into()) != Some(true) {
+            return Err(Error::InvalidBundle("React scheduling removal failed"));
+        }
+        run_bundle(scope, context, application, application_path, "__ssrApp")?;
+        Ok(())
+    })?;
+    Ok(bytes)
+}
+
+fn run_react_framework(
+    scope: &mut v8::PinScope<'_, '_>,
+    context: v8::Local<v8::Context>,
+    bundle: &str,
+    script_name: &str,
+) -> Result<(), Error> {
+    v8::tc_scope!(let scope, scope);
+    let source = v8::String::new(scope, bundle).ok_or(Error::InvalidBundle(
+        "framework bundle exceeds V8 string limit",
+    ))?;
+    let name = v8::String::new(scope, script_name)
+        .ok_or(Error::InvalidBundle("framework script name unavailable"))?;
+    let origin = v8::ScriptOrigin::new(
+        scope,
+        name.into(),
+        0,
+        0,
+        false,
+        0,
+        None,
+        false,
+        false,
+        false,
+        None,
+    );
+    let mut source = v8::script_compiler::Source::new(source, Some(&origin));
+    let timer_name = v8::String::new(scope, "setTimeout")
+        .ok_or(Error::InvalidBundle("React scheduling name unavailable"))?;
+    let stream_name = v8::String::new(scope, "ReadableStream")
+        .ok_or(Error::InvalidBundle("React stream name unavailable"))?;
+    let timer = context
+        .global(scope)
+        .get(scope, timer_name.into())
+        .ok_or(Error::InvalidBundle("React scheduling callback missing"))?;
+    let function = v8::script_compiler::compile_function(
+        scope,
+        &mut source,
+        &[timer_name, stream_name],
+        &[],
+        v8::script_compiler::CompileOptions::NoCompileOptions,
+        v8::script_compiler::NoCacheReason::NoReason,
+    )
+    .ok_or_else(|| script_error!(scope))?;
+    let undefined = v8::undefined(scope).into();
+    function
+        .call(scope, context.global(scope).into(), &[timer, undefined])
+        .ok_or_else(|| script_error!(scope))?;
+    for required in ["render", "__ssrReact", "__ssrJsxRuntime"] {
+        let key = v8::String::new(scope, required).ok_or(Error::InvalidBundle(
+            "React framework export name unavailable",
+        ))?;
+        let value = context
+            .global(scope)
+            .get(scope, key.into())
+            .ok_or(Error::InvalidBundle("React framework export missing"))?;
+        if required == "render" && !value.is_function() {
+            return Err(Error::InvalidBundle("React render function required"));
+        }
+        if required != "render" && !value.is_object() {
+            return Err(Error::InvalidBundle("React framework object required"));
+        }
+    }
+    Ok(())
+}
+
+fn run_bundle(
+    scope: &mut v8::PinScope<'_, '_>,
+    context: v8::Local<v8::Context>,
+    bundle: &str,
+    script_name: &str,
+    expected_function: &str,
+) -> Result<(), Error> {
+    v8::tc_scope!(let scope, scope);
+    let source = v8::String::new(scope, bundle)
+        .ok_or(Error::InvalidBundle("bundle exceeds V8 string limit"))?;
+    let name = v8::String::new(scope, script_name)
+        .ok_or(Error::InvalidBundle("script name unavailable"))?;
+    let origin = v8::ScriptOrigin::new(
+        scope,
+        name.into(),
+        0,
+        0,
+        false,
+        0,
+        None,
+        false,
+        false,
+        false,
+        None,
+    );
+    let script =
+        v8::Script::compile(scope, source, Some(&origin)).ok_or_else(|| script_error!(scope))?;
+    script.run(scope).ok_or_else(|| script_error!(scope))?;
+    let function_name = v8::String::new(scope, expected_function)
+        .ok_or(Error::InvalidBundle("render name unavailable"))?;
+    let function = context
+        .global(scope)
+        .get(scope, function_name.into())
+        .ok_or(Error::InvalidBundle("render lookup failed"))?;
+    if !function.is_function() {
+        return Err(Error::InvalidBundle("global render function required"));
+    }
+    Ok(())
+}
+
+fn create_with<T>(
+    group: &v8::IsolateGroup,
+    timeout: Duration,
+    modules: bool,
+    initialize: impl FnOnce(&mut v8::OwnedIsolate, &v8::Global<v8::Context>) -> Result<T, Error>,
+) -> Result<(Vec<u8>, T), Error> {
     let mut creator = v8::Isolate::snapshot_creator_in_group(
         group,
         Some(Cow::Owned(web::external_references())),
         None,
         None,
     );
-    module::install_dynamic_import_callback(&mut creator);
+    if modules {
+        module::install_dynamic_import_callback(&mut creator);
+    }
     let context = {
         v8::scope!(let scope, &mut creator);
         let context = v8::Context::new(scope, Default::default());
@@ -122,33 +383,7 @@ fn create(
             return Err(Error::WorkerStartup(error));
         }
     };
-    let initialization = (|| -> Result<BTreeMap<String, usize>, Error> {
-        v8::scope!(let scope, &mut creator);
-        let context = v8::Local::new(scope, &context);
-        let scope = &mut v8::ContextScope::new(scope, context);
-        v8::tc_scope!(let scope, scope);
-        web::install(scope, context)?;
-        let result = module::initialize(scope, context, Arc::clone(&bundle));
-        context.clear_all_slots();
-        if result.is_err() && scope.has_caught() {
-            if scope.has_terminated() {
-                return Err(Error::Timeout);
-            }
-            let message = scope
-                .exception()
-                .and_then(|value| value.to_string(scope))
-                .map(|value| value.to_rust_string_lossy(scope))
-                .ok_or(Error::InvalidBundle(
-                    "server module failed without an error message",
-                ))?;
-            let stack = scope
-                .stack_trace()
-                .and_then(|value| value.to_string(scope))
-                .map(|value| value.to_rust_string_lossy(scope));
-            return Err(Error::JavaScript { message, stack });
-        }
-        result
-    })();
+    let initialization = initialize(&mut creator, &context);
     drop(done_tx);
     let timed_out = watchdog
         .join()
@@ -161,14 +396,14 @@ fn create(
     if timed_out? {
         return Err(Error::Timeout);
     }
-    let module_indices = initialization?;
+    let result = initialization?;
     let blob = blob?;
-    Ok((blob.to_vec(), module_indices))
+    Ok((blob.to_vec(), result))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Key, get, get_with_key};
+    use super::{Key, get, get_react, get_with_key};
     use crate::module::Sources;
     use deno_core::v8;
     use std::sync::{Arc, Barrier};
@@ -281,6 +516,48 @@ mod tests {
                 for worker in workers {
                     worker.join().unwrap();
                 }
+            });
+        }
+    }
+
+    #[test]
+    fn react_application_snapshots_restore_in_parallel() {
+        const FRAMEWORK: &str = "globalThis.__ssrReact = {}; globalThis.__ssrJsxRuntime = {}; globalThis.render = () => null";
+        let snapshots = ["Ada", "Bea", "Cia"].map(|name| {
+            let application = format!("globalThis.__ssrApp = () => '{name}'");
+            (
+                get_react(
+                    "server/framework.js",
+                    FRAMEWORK,
+                    "server/application.js",
+                    &application,
+                    Duration::from_secs(3),
+                )
+                .unwrap(),
+                name,
+            )
+        });
+        for _ in 0..10 {
+            let barrier = Barrier::new(4);
+            std::thread::scope(|threads| {
+                for (snapshot, expected) in &snapshots {
+                    let barrier = &barrier;
+                    threads.spawn(move || {
+                        barrier.wait();
+                        let mut isolate = snapshot.isolate();
+                        v8::scope!(let scope, &mut isolate);
+                        let application = v8::Context::new(scope, Default::default());
+                        let scope = &mut v8::ContextScope::new(scope, application);
+                        let source = v8::String::new(scope, "__ssrApp()").unwrap();
+                        let actual = v8::Script::compile(scope, source, None)
+                            .unwrap()
+                            .run(scope)
+                            .unwrap()
+                            .to_rust_string_lossy(scope);
+                        assert_eq!(actual, *expected);
+                    });
+                }
+                barrier.wait();
             });
         }
     }

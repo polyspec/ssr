@@ -165,13 +165,17 @@ completion evidence.
   An explicit offline mode requires the existing verified archive and disables Cargo network access.
   Depends on: S-4. Evidence: missing, changed and failed-download cases and a build without network pass.
 - [ ] S-13 Stream React output with `renderToReadableStream`: status and headers are fixed when the
-  shell is ready; an error before the shell returns 500 with an error page; an error after the shell
-  renders the error boundary in the stream and is logged; every inline script and style includes the
+  shell is ready; a render or JavaScript error before the shell returns 500 with an error page.
+  Pool exhaustion or an unavailable worker returns 503, and a render timeout returns 504. For an error inside a
+  Suspense boundary after the shell, preserve its fallback and React's client recovery instructions
+  in the stream, and record `onError` with the request nonce in a structured server error event;
+  a client retry failure reaches the application's error boundary.
+  Every inline script and style includes the
   nonce of the call. The server creates one nonce per request from operating-system random bytes;
   random failure is an error, all inline scripts and styles of that call use that nonce, and
   different calls use different nonces. React's stream and scheduling capabilities are available
   only in its framework scope; application code cannot access I/O timers. Depends on: S-7,
-  S-13-1, S-13-2. Evidence: shell, late-error, nonce and timer-isolation cases pass.
+  S-13-1, S-13-2. Evidence: shell, late-error, nonce, timer-isolation and SSR metric cases pass.
 - [o] S-13-1 Complete V8 microtasks for a Promise render result, return rejection details and
   reject a Promise that has no scheduled completion. Verify that React can render an application
   component without exposing a framework timer to that application. Depends on: S-6, S-7.
@@ -191,13 +195,15 @@ completion evidence.
   argument and removes the global timer before application evaluation. Depends on: S-13-2-1.
   Evidence: a top-level React class and context render with `useId` and `useContext`, application
   code cannot access `setTimeout`, and `make check` passes.
-- [ ] S-13-2-2 Execute the two bundles with isolated scheduling and Web Streams, and stream the
+- [o] S-13-2-2 Execute the two bundles with isolated scheduling and Web Streams, and stream the
   document through HTTP with the nonce and error behavior of S-13. Apply the verified execution
   boundary to the production snapshot and pool; neither bundle runs on each request. Repeated
   restores keep one initialization and separate globals, and three application snapshots restore
-  concurrently. Depends on: S-13-2-1-1,
-  S-13-2-2-1, S-13-2-2-1-1, S-13-2-2-2.
-  Evidence: the S-13 cases pass in the runtime and server.
+  concurrently. The React application server bundle is an IIFE without server chunks; reject a
+  React manifest that lists any. The vanilla HTTP path retains the ECMAScript module chunk and
+  source-map cases. Depends on: S-13-2-1-1, S-13-2-2-1, S-13-2-2-1-1, S-13-2-2-2, S-15-1.
+  Evidence: the shell, Suspense fallback, client recovery, HTTP 500/503/504, nonce, SSR metric
+  and parallel restore cases pass in the runtime, server and browser.
 - [o] S-13-2-2-1 Create a V8 isolate group for each server snapshot and restore every worker
   isolate in that group. Keep separate application snapshots independent when workers restore
   them concurrently; do not serialize worker isolate creation. Build the pinned V8 source with

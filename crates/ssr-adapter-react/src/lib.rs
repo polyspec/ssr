@@ -1,39 +1,23 @@
 #![forbid(unsafe_code)]
 
 use ssr_core::{Page, Render, RenderResult, Value};
-use ssr_runtime::{Pool, RenderMetrics};
 use std::fmt;
 use std::path::Path;
 
 #[derive(Debug)]
 pub enum Error {
     InvalidInput(&'static str),
-    Runtime(ssr_runtime::Error),
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidInput(value) => write!(f, "invalid React adapter input: {value}"),
-            Self::Runtime(value) => write!(f, "React render failed: {value}"),
         }
     }
 }
 
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::Runtime(value) => Some(value),
-            Self::InvalidInput(_) => None,
-        }
-    }
-}
-
-impl From<ssr_runtime::Error> for Error {
-    fn from(value: ssr_runtime::Error) -> Self {
-        Self::Runtime(value)
-    }
-}
+impl std::error::Error for Error {}
 
 fn app_import(path: &str) -> Result<String, Error> {
     if !Path::new(path).is_absolute() {
@@ -45,8 +29,12 @@ fn app_import(path: &str) -> Result<String, Error> {
 pub fn server_entry(application: &str) -> Result<String, Error> {
     let application = app_import(application)?;
     Ok(format!(
-        "import React from 'react';\nimport {{renderToString}} from 'react-dom/server.edge';\nimport App from {application};\nexport function render(props, state) {{ const renderState = {{input: state, output: null}}; const html = renderToString(<App {{...props}} renderState={{renderState}} />); return {{html, head: '', state: renderState.output}}; }}\n"
+        "import React from 'react';\nimport App from {application};\nglobalThis.__ssrApp = App;\n"
     ))
+}
+
+pub fn framework_entry() -> &'static str {
+    "import React from 'react';\nimport * as JSX from 'react/jsx-runtime';\nimport {renderToReadableStream} from 'react-dom/server.edge';\nimport {ReadableStream as SSRReadableStream} from 'web-streams-polyfill';\nReadableStream = SSRReadableStream;\nglobalThis.__ssrReact = React;\nglobalThis.__ssrJsxRuntime = JSX;\nglobalThis.render = async (App, props, state, nonce) => { let output = null; let fixed = false; const renderState = { input: state, get output() { return output; }, set output(value) { if (fixed) throw new Error('render state changed after shell'); output = value; } }; const stream = await renderToReadableStream(React.createElement(App, {...props, renderState}), { nonce, onError: globalThis.__ssrReportReactError }); fixed = true; return {stream, state: output}; };\n"
 }
 
 pub fn client_entry(application: &str) -> Result<String, Error> {
@@ -92,39 +80,16 @@ impl ReactAdapter {
         })
     }
 
-    pub fn render(&self, page: &Page, pool: &Pool) -> Result<RenderResult, Error> {
-        self.render_with_metrics(page, pool)
-            .map(|(result, _)| result)
-    }
-
-    pub fn render_with_metrics(
-        &self,
-        page: &Page,
-        pool: &Pool,
-    ) -> Result<(RenderResult, Option<RenderMetrics>), Error> {
-        let (rendered, metrics) = match page.render {
-            Render::Ssr => {
-                let (rendered, metrics) = pool.render_with_metrics(page)?;
-                (rendered, Some(metrics))
-            }
-            Render::Csr => (
-                RenderResult {
-                    html: Vec::new(),
-                    head: Vec::new(),
-                    state: page.state.clone(),
-                },
-                None,
-            ),
-        };
-        let html = self.document(page, &rendered.html, &rendered.head, &rendered.state)?;
-        Ok((
-            RenderResult {
-                html,
-                head: rendered.head,
-                state: rendered.state,
-            },
-            metrics,
-        ))
+    pub fn render(&self, page: &Page) -> Result<RenderResult, Error> {
+        if page.render != Render::Csr {
+            return Err(Error::InvalidInput("SSR requires stream rendering"));
+        }
+        let html = self.document(page, &[], &[], &page.state)?;
+        Ok(RenderResult {
+            html,
+            head: Vec::new(),
+            state: page.state.clone(),
+        })
     }
 
     pub fn static_shell(&self, page: &Page) -> Result<Vec<u8>, Error> {
@@ -155,28 +120,32 @@ impl ReactAdapter {
                 "React adapter cannot render head output",
             ));
         }
+        let (mut prefix, suffix) = self.stream_parts(page, state)?;
+        prefix.extend_from_slice(body.as_bytes());
+        prefix.extend_from_slice(&suffix);
+        Ok(prefix)
+    }
+
+    pub fn stream_parts(&self, page: &Page, state: &Value) -> Result<(Vec<u8>, Vec<u8>), Error> {
         if page.props.members().is_none() {
             return Err(Error::InvalidInput("props must be an object"));
         }
-        let mut document = format!(
+        let mut prefix = format!(
             "<!doctype html><html lang=\"{}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>{}</title>",
             escape_html(&page.language),
             escape_html(&page.title),
         );
         for style in &self.styles {
-            document.push_str(&format!("<link rel=\"stylesheet\" href=\"{style}\">"));
+            prefix.push_str(&format!("<link rel=\"stylesheet\" href=\"{style}\">"));
         }
-        document.push_str("</head><body><div id=\"root\">");
-        document.push_str(body);
-        document.push_str("</div><script id=\"__SSR_PROPS__\" type=\"application/json\">");
-        document.push_str(&script_json(&page.props));
-        document.push_str("</script><script id=\"__SSR_STATE__\" type=\"application/json\">");
-        document.push_str(&script_json(state));
-        document.push_str(&format!(
-            "</script><script type=\"module\" src=\"{}\"></script></body></html>",
+        prefix.push_str("</head><body><div id=\"root\">");
+        let suffix = format!(
+            "</div><script id=\"__SSR_PROPS__\" type=\"application/json\">{}</script><script id=\"__SSR_STATE__\" type=\"application/json\">{}</script><script type=\"module\" src=\"{}\"></script></body></html>",
+            script_json(&page.props),
+            script_json(state),
             self.client
-        ));
-        Ok(document.into_bytes())
+        );
+        Ok((prefix.into_bytes(), suffix.into_bytes()))
     }
 }
 

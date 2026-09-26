@@ -9,6 +9,7 @@ mod path;
 
 pub(crate) use path::Sources;
 use path::resolve;
+pub(crate) use path::valid_path;
 
 struct Modules {
     sources: Arc<Sources>,

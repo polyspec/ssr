@@ -47,7 +47,7 @@ impl Sources {
     }
 }
 
-fn valid_path(path: &str) -> bool {
+pub(crate) fn valid_path(path: &str) -> bool {
     path.starts_with("server/")
         && path.ends_with(".js")
         && path.split('/').all(|part| {

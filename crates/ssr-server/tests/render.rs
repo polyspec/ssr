@@ -3,7 +3,7 @@ use http::{Method, Request, StatusCode};
 use sha2::{Digest, Sha256};
 use sourcemap::SourceMapBuilder;
 use ssr_build::{Build, BuildConfig, BuildFile, Manifest, build as build_application};
-use ssr_server::{Adapter, Server};
+use ssr_server::{Adapter, Body, Server};
 use std::collections::BTreeMap;
 use std::io::Write;
 use std::path::Path;
@@ -56,7 +56,7 @@ fn build(script: &str) -> Build {
         },
         files: BTreeMap::from([
             ("server/server.js".into(), script),
-            ("server/server.js.map".into(), map),
+            ("server/server.js.map".into(), map.clone()),
             ("client/app.js".into(), client),
         ]),
     }
@@ -94,6 +94,10 @@ fn request(method: Method, path: &str, body: &[u8], json: bool) -> Request<Vec<u
     builder.body(body.to_vec()).unwrap()
 }
 
+fn body(response: http::Response<Body>) -> Vec<u8> {
+    response.into_body().collect_bytes().unwrap()
+}
+
 const SSR: &[u8] = br#"{"render":"ssr","title":"Page","language":"en","props":{"name":"Ada"},"state":{"count":3}}"#;
 const CSR: &[u8] = br#"{"render":"csr","title":"Page","language":"en","props":{"name":"Ada"},"state":{"count":3}}"#;
 
@@ -116,7 +120,16 @@ fn render_http_maps_status_bodies_and_metrics() {
     let build = build(
         "export function render(props, state) { return {head:'', html:'<h1>'+props.name+'</h1>', state}; }",
     );
-    let server = Server::new(&build, Adapter::React, 1, 1, Duration::from_secs(2)).unwrap();
+    let wrong_adapter = match Server::new(&build, Adapter::React, 1, 1, Duration::from_secs(2)) {
+        Ok(_) => panic!("React must require its framework bundle"),
+        Err(error) => error,
+    };
+    assert!(
+        wrong_adapter
+            .to_string()
+            .contains("React framework bundle is missing")
+    );
+    let server = Server::new(&build, Adapter::Vanilla, 1, 1, Duration::from_secs(2)).unwrap();
     let trace_bytes = Arc::new(Mutex::new(Vec::new()));
     let writer = TraceOutput(trace_bytes.clone());
     let subscriber = tracing_subscriber::fmt()
@@ -124,6 +137,7 @@ fn render_http_maps_status_bodies_and_metrics() {
         .with_writer(move || writer.clone())
         .finish();
     let _guard = tracing::subscriber::set_default(subscriber);
+    tracing::callsite::rebuild_interest_cache();
 
     let ssr = server
         .handle(request(Method::POST, "/_render", SSR, true))
@@ -132,21 +146,20 @@ fn render_http_maps_status_bodies_and_metrics() {
     assert_eq!(ssr.headers()[CONTENT_TYPE], "text/html; charset=utf-8");
     assert_eq!(ssr.headers()[CACHE_CONTROL], "no-store");
     assert!(
-        std::str::from_utf8(ssr.body())
+        std::str::from_utf8(&body(ssr))
             .unwrap()
             .contains("<h1>Ada</h1>")
     );
     let trace = String::from_utf8(trace_bytes.lock().unwrap().clone()).unwrap();
     assert!(trace.contains("render_ms="), "{trace}");
-    assert!(trace.contains("pool_wait_ms="), "{trace}");
-    assert!(trace.contains("heap_used_bytes="), "{trace}");
+    assert!(trace.contains("SSR document completed"), "{trace}");
 
     let csr = server
         .handle(request(Method::POST, "/_render", CSR, true))
         .unwrap();
     assert_eq!(csr.status(), StatusCode::OK);
     assert!(
-        !std::str::from_utf8(csr.body())
+        !std::str::from_utf8(&body(csr))
             .unwrap()
             .contains("<h1>Ada</h1>")
     );
@@ -154,12 +167,12 @@ fn render_http_maps_status_bodies_and_metrics() {
         .handle(request(Method::GET, "/assets/app.js", &[], false))
         .unwrap();
     assert_eq!(asset.status(), StatusCode::OK);
-    assert_eq!(asset.body(), b"window.app = true;");
+    assert_eq!(body(asset), b"window.app = true;");
     let bad = server
         .handle(request(Method::POST, "/_render", b"{", true))
         .unwrap();
     assert_eq!(bad.status(), StatusCode::BAD_REQUEST);
-    assert!(!bad.body().is_empty());
+    assert!(!body(bad).is_empty());
     assert_eq!(
         server
             .handle(request(Method::POST, "/_render", SSR, false))
@@ -177,7 +190,7 @@ fn render_http_maps_status_bodies_and_metrics() {
 #[test]
 fn javascript_stack_uses_source_map_and_invalid_map_fails_startup() {
     let output = build("export function render() { throw new Error('boom'); }");
-    let server = Server::new(&output, Adapter::React, 1, 0, Duration::from_secs(2)).unwrap();
+    let server = Server::new(&output, Adapter::Vanilla, 1, 0, Duration::from_secs(2)).unwrap();
     let trace_bytes = Arc::new(Mutex::new(Vec::new()));
     let writer = TraceOutput(trace_bytes.clone());
     let subscriber = tracing_subscriber::fmt()
@@ -185,22 +198,24 @@ fn javascript_stack_uses_source_map_and_invalid_map_fails_startup() {
         .with_writer(move || writer.clone())
         .finish();
     let _guard = tracing::subscriber::set_default(subscriber);
+    tracing::callsite::rebuild_interest_cache();
     let response = server
         .handle(request(Method::POST, "/_render", SSR, true))
         .unwrap();
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    let text = std::str::from_utf8(response.body()).unwrap();
+    let bytes = body(response);
+    let text = std::str::from_utf8(&bytes).unwrap();
     assert!(text.contains("boom"), "{text}");
     assert!(text.contains("src/page.tsx:7:3"), "{text}");
     let trace = String::from_utf8(trace_bytes.lock().unwrap().clone()).unwrap();
     assert!(trace.contains("src/page.tsx:7:3"), "{trace}");
     let mut invalid = output;
     invalid.manifest.source_maps.clear();
-    assert!(Server::new(&invalid, Adapter::React, 1, 0, Duration::from_secs(2)).is_err());
+    assert!(Server::new(&invalid, Adapter::Vanilla, 1, 0, Duration::from_secs(2)).is_err());
 
     let mut invalid = build("export function render() { throw new Error('boom'); }");
     invalid.manifest.source_maps[0].sha256 = "invalid".into();
-    assert!(Server::new(&invalid, Adapter::React, 1, 0, Duration::from_secs(2)).is_err());
+    assert!(Server::new(&invalid, Adapter::Vanilla, 1, 0, Duration::from_secs(2)).is_err());
 }
 
 #[test]
@@ -211,12 +226,13 @@ fn static_and_dynamic_chunk_failures_use_their_own_source_map() {
         "export async function render() { const chunk = await import('./chunk.js'); chunk.fail(); }",
     ] {
         let output = with_chunk(entry, chunk);
-        let server = Server::new(&output, Adapter::React, 1, 0, Duration::from_secs(2)).unwrap();
+        let server = Server::new(&output, Adapter::Vanilla, 1, 0, Duration::from_secs(2)).unwrap();
         let response = server
             .handle(request(Method::POST, "/_render", SSR, true))
             .unwrap();
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-        let text = std::str::from_utf8(response.body()).unwrap();
+        let bytes = body(response);
+        let text = std::str::from_utf8(&bytes).unwrap();
         assert!(text.contains("chunk boom"), "{text}");
         assert!(text.contains("src/chunk.ts:4:3"), "{text}");
         assert!(!text.contains("stack mapping failed"), "{text}");
@@ -230,28 +246,28 @@ fn missing_or_changed_private_chunk_fails_construction() {
         "export const value = 1;",
     );
     output.files.remove("server/chunk.js");
-    assert!(Server::new(&output, Adapter::React, 1, 0, Duration::from_secs(2)).is_err());
+    assert!(Server::new(&output, Adapter::Vanilla, 1, 0, Duration::from_secs(2)).is_err());
 
     let mut output = with_chunk(
         "export async function render() { await import('./chunk.js'); }",
         "export const value = 1;",
     );
     output.manifest.server_chunks[0].sha256 = "invalid".into();
-    assert!(Server::new(&output, Adapter::React, 1, 0, Duration::from_secs(2)).is_err());
+    assert!(Server::new(&output, Adapter::Vanilla, 1, 0, Duration::from_secs(2)).is_err());
 
     let mut output = with_chunk(
         "export async function render() { await import('./chunk.js'); }",
         "export const value = 1;",
     );
     output.manifest.source_maps.pop();
-    assert!(Server::new(&output, Adapter::React, 1, 0, Duration::from_secs(2)).is_err());
+    assert!(Server::new(&output, Adapter::Vanilla, 1, 0, Duration::from_secs(2)).is_err());
 }
 
 #[test]
 fn standard_utf8_json_media_type_and_head_semantics() {
     let build =
         build("export function render(props, state) { return {head:'', html:'ok', state}; }");
-    let server = Server::new(&build, Adapter::React, 1, 0, Duration::from_secs(2)).unwrap();
+    let server = Server::new(&build, Adapter::Vanilla, 1, 0, Duration::from_secs(2)).unwrap();
     let json_request = Request::builder()
         .method(Method::POST)
         .uri("/_render")
@@ -266,11 +282,64 @@ fn standard_utf8_json_media_type_and_head_semantics() {
         .handle(request(Method::HEAD, "/_render", &[], false))
         .unwrap();
     assert_eq!(head.status(), StatusCode::METHOD_NOT_ALLOWED);
-    assert!(head.body().is_empty());
+    assert!(body(head).is_empty());
     let query = server
         .handle(request(Method::POST, "/_render?unused=1", SSR, true))
         .unwrap();
     assert_eq!(query.status(), StatusCode::BAD_REQUEST);
+}
+
+#[test]
+fn each_request_applies_one_distinct_nonce_to_inline_content() {
+    let build = build(
+        "export function render() { return {head:'', html:'<style>.x{color:red}</style><script>window.ready=1</script><p>ready</p>', state:null}; }",
+    );
+    let server = Server::new(&build, Adapter::Vanilla, 1, 0, Duration::from_secs(2)).unwrap();
+    let render = || {
+        let response = server
+            .handle(request(Method::POST, "/_render", SSR, true))
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let declared_length = response.headers()[http::header::CONTENT_LENGTH]
+            .to_str()
+            .unwrap()
+            .parse::<usize>()
+            .unwrap();
+        let bytes = body(response);
+        assert_eq!(declared_length, bytes.len());
+        String::from_utf8(bytes).unwrap()
+    };
+    let first = render();
+    let second = render();
+    let nonce = |document: &str| {
+        document
+            .split("nonce=\"")
+            .nth(1)
+            .unwrap()
+            .split('"')
+            .next()
+            .unwrap()
+            .to_owned()
+    };
+    let first_nonce = nonce(&first);
+    let second_nonce = nonce(&second);
+    assert_ne!(first_nonce, second_nonce);
+    for (document, value) in [(&first, &first_nonce), (&second, &second_nonce)] {
+        assert!(
+            document.contains(&format!("<style nonce=\"{value}\">")),
+            "{document}"
+        );
+        assert!(
+            document.contains(&format!("<script nonce=\"{value}\">window.ready=1")),
+            "{document}"
+        );
+        assert_eq!(document.matches("nonce=\"").count(), 5, "{document}");
+        assert_eq!(
+            document.matches(&format!("nonce=\"{value}\"")).count(),
+            5,
+            "{document}"
+        );
+    }
 }
 
 #[tokio::test]
@@ -293,12 +362,13 @@ async fn generated_source_map_maps_a_live_render_failure() {
     })
     .await
     .unwrap();
-    let server = Server::new(&output, Adapter::React, 1, 0, Duration::from_secs(10)).unwrap();
+    let server = Server::new(&output, Adapter::Vanilla, 1, 0, Duration::from_secs(10)).unwrap();
     let response = server
         .handle(request(Method::POST, "/_render", SSR, true))
         .unwrap();
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    let text = std::str::from_utf8(response.body()).unwrap();
+    let bytes = body(response);
+    let text = std::str::from_utf8(&bytes).unwrap();
     assert!(text.contains("server_error.tsx"), "{text}");
     assert!(text.contains("mapped render failure"), "{text}");
 }

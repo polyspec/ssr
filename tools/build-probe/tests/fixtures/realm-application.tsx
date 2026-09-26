@@ -25,3 +25,4 @@ function Heading({ id }: { id: string }) {
 }
 
 (globalThis as any).AppBridge = App;
+(globalThis as any).__ssrApp = App;

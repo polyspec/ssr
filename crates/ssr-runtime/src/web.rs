@@ -1,6 +1,29 @@
 use crate::Error;
 use deno_core::v8::MapFnTo;
 use deno_core::v8::{self, FunctionCallbackArguments, Local, PinScope, ReturnValue, Value};
+use std::cell::RefCell;
+use std::collections::VecDeque;
+use std::rc::Rc;
+
+pub(crate) struct FrameworkScheduler {
+    callbacks: RefCell<VecDeque<v8::Global<v8::Function>>>,
+    nonce: String,
+}
+
+impl FrameworkScheduler {
+    pub(crate) fn attach(context: Local<v8::Context>, nonce: &str) -> Rc<Self> {
+        let scheduler = Rc::new(Self {
+            callbacks: RefCell::new(VecDeque::new()),
+            nonce: nonce.to_owned(),
+        });
+        context.set_slot(Rc::clone(&scheduler));
+        scheduler
+    }
+
+    pub(crate) fn next(&self) -> Option<v8::Global<v8::Function>> {
+        self.callbacks.borrow_mut().pop_front()
+    }
+}
 
 pub(crate) fn external_references() -> Vec<v8::ExternalReference> {
     vec![
@@ -13,7 +36,122 @@ pub(crate) fn external_references() -> Vec<v8::ExternalReference> {
         v8::ExternalReference {
             function: encode_utf8.map_fn_to(),
         },
+        v8::ExternalReference {
+            function: framework_schedule.map_fn_to(),
+        },
+        v8::ExternalReference {
+            function: report_react_error.map_fn_to(),
+        },
     ]
+}
+
+pub(crate) fn install_framework(
+    scope: &mut PinScope,
+    context: Local<v8::Context>,
+) -> Result<(), Error> {
+    install(scope, context)?;
+    let schedule = v8::Function::builder(framework_schedule)
+        .build(scope)
+        .ok_or(Error::InvalidBundle(
+            "React scheduling callback initialization failed",
+        ))?;
+    let name = v8::String::new(scope, "setTimeout")
+        .ok_or(Error::InvalidBundle("React scheduling name unavailable"))?;
+    if context
+        .global(scope)
+        .set(scope, name.into(), schedule.into())
+        != Some(true)
+    {
+        return Err(Error::InvalidBundle(
+            "React scheduling callback installation failed",
+        ));
+    }
+    let report = v8::Function::builder(report_react_error)
+        .build(scope)
+        .ok_or(Error::InvalidBundle(
+            "React error callback initialization failed",
+        ))?;
+    let name = v8::String::new(scope, "__ssrReportReactError").ok_or(Error::InvalidBundle(
+        "React error callback name unavailable",
+    ))?;
+    if context.global(scope).set(scope, name.into(), report.into()) != Some(true) {
+        return Err(Error::InvalidBundle(
+            "React error callback installation failed",
+        ));
+    }
+    Ok(())
+}
+
+fn report_react_error(scope: &mut PinScope, args: FunctionCallbackArguments, _result: ReturnValue) {
+    if args.length() != 2 || !args.get(1).is_object() {
+        throw_type_error(
+            scope,
+            "React onError requires an error and error information",
+        );
+        return;
+    }
+    let Some(message) = args.get(0).to_string(scope) else {
+        throw_type_error(scope, "React error conversion failed");
+        return;
+    };
+    let message = message.to_rust_string_lossy(scope);
+    let Ok(info) = Local::<v8::Object>::try_from(args.get(1)) else {
+        throw_type_error(scope, "React error information must be an object");
+        return;
+    };
+    let Some(key) = v8::String::new(scope, "componentStack") else {
+        throw_type_error(scope, "React component stack name is unavailable");
+        return;
+    };
+    let Some(stack) = info.get(scope, key.into()) else {
+        return;
+    };
+    let component_stack = if stack.is_undefined() {
+        None
+    } else if stack.is_string() {
+        Some(stack.to_rust_string_lossy(scope))
+    } else {
+        throw_type_error(scope, "React component stack must be a string");
+        return;
+    };
+    let context = scope.get_current_context();
+    let Some(scheduler) = context.get_slot::<FrameworkScheduler>() else {
+        throw_type_error(
+            scope,
+            "React error callback is not attached to this context",
+        );
+        return;
+    };
+    tracing::error!(nonce = %scheduler.nonce, error = %message, component_stack = ?component_stack, "React stream error");
+}
+
+fn framework_schedule(
+    scope: &mut PinScope,
+    args: FunctionCallbackArguments,
+    mut result: ReturnValue,
+) {
+    let Ok(callback) = Local::<v8::Function>::try_from(args.get(0)) else {
+        throw_type_error(scope, "React scheduler requires a function");
+        return;
+    };
+    if args.length() > 2
+        || (args.length() == 2
+            && !args.get(1).is_undefined()
+            && (!args.get(1).is_number() || args.get(1).number_value(scope) != Some(0.0)))
+    {
+        throw_type_error(scope, "React scheduler supports immediate tasks only");
+        return;
+    }
+    let context = scope.get_current_context();
+    let Some(scheduler) = context.get_slot::<FrameworkScheduler>() else {
+        throw_type_error(scope, "React scheduler is not attached to this context");
+        return;
+    };
+    scheduler
+        .callbacks
+        .borrow_mut()
+        .push_back(v8::Global::new(scope, callback));
+    result.set(v8::Integer::new(scope, 0).into());
 }
 
 pub(crate) fn install(scope: &mut PinScope, context: Local<v8::Context>) -> Result<(), Error> {

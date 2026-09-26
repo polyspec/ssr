@@ -1,11 +1,12 @@
-use crate::{serve_public, stack};
+use crate::{Body, BodyError, serve_public, stack};
 use http::header::{ALLOW, CACHE_CONTROL, CONTENT_LENGTH, CONTENT_TYPE, HeaderValue};
 use http::{Method, Request, Response, StatusCode};
 use sha2::{Digest, Sha256};
 use sourcemap::SourceMap;
 use ssr_adapter_react::{Error as ReactError, ReactAdapter};
+use ssr_adapter_vanilla::{Error as VanillaError, VanillaAdapter};
 use ssr_build::{Build, BuildFile, PublicFiles, PublishError};
-use ssr_core::{CALL_PATH, Page};
+use ssr_core::{CALL_PATH, Page, Render};
 use ssr_runtime::{Error as RuntimeError, Pool, ServerBundle};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -17,8 +18,11 @@ pub enum Error {
     Public(PublishError),
     Runtime(RuntimeError),
     React(ReactError),
+    Vanilla(VanillaError),
     SourceMap(sourcemap::Error),
     Header(http::header::InvalidHeaderValue),
+    Body(BodyError),
+    Random(getrandom::Error),
 }
 
 impl fmt::Display for Error {
@@ -28,8 +32,11 @@ impl fmt::Display for Error {
             Self::Public(error) => write!(f, "public files failed: {error}"),
             Self::Runtime(error) => write!(f, "runtime failed: {error}"),
             Self::React(error) => write!(f, "React adapter failed: {error}"),
+            Self::Vanilla(error) => write!(f, "vanilla adapter failed: {error}"),
             Self::SourceMap(error) => write!(f, "source map failed: {error}"),
             Self::Header(error) => write!(f, "HTTP header failed: {error}"),
+            Self::Body(error) => write!(f, "HTML body failed: {error}"),
+            Self::Random(error) => write!(f, "request nonce failed: {error}"),
         }
     }
 }
@@ -41,8 +48,11 @@ impl std::error::Error for Error {
             Self::Public(error) => Some(error),
             Self::Runtime(error) => Some(error),
             Self::React(error) => Some(error),
+            Self::Vanilla(error) => Some(error),
             Self::SourceMap(error) => Some(error),
             Self::Header(error) => Some(error),
+            Self::Body(error) => Some(error),
+            Self::Random(error) => Some(error),
         }
     }
 }
@@ -50,10 +60,12 @@ impl std::error::Error for Error {
 #[derive(Clone, Copy)]
 pub enum Adapter {
     React,
+    Vanilla,
 }
 
 enum AdapterInstance {
     React(ReactAdapter),
+    Vanilla(VanillaAdapter),
 }
 
 pub struct Server {
@@ -85,8 +97,9 @@ fn response(
     status: StatusCode,
     content_type: &'static str,
     body: Vec<u8>,
-) -> Result<Response<Vec<u8>>, Error> {
-    let mut response = Response::new(body);
+) -> Result<Response<Body>, Error> {
+    let length = body.len();
+    let mut response = Response::new(Body::bytes(body));
     *response.status_mut() = status;
     response
         .headers_mut()
@@ -94,14 +107,52 @@ fn response(
     response
         .headers_mut()
         .insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
-    let length =
-        HeaderValue::from_str(&response.body().len().to_string()).map_err(Error::Header)?;
+    let length = HeaderValue::from_str(&length.to_string()).map_err(Error::Header)?;
     response.headers_mut().insert(CONTENT_LENGTH, length);
     response.headers_mut().insert(
         "x-content-type-options",
         HeaderValue::from_static("nosniff"),
     );
     Ok(response)
+}
+
+fn stream_response(body: Body) -> Response<Body> {
+    let mut response = Response::new(body);
+    *response.status_mut() = StatusCode::OK;
+    response.headers_mut().insert(
+        CONTENT_TYPE,
+        HeaderValue::from_static("text/html; charset=utf-8"),
+    );
+    response
+        .headers_mut()
+        .insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    response.headers_mut().insert(
+        "x-content-type-options",
+        HeaderValue::from_static("nosniff"),
+    );
+    response
+}
+
+fn request_nonce() -> Result<String, Error> {
+    nonce_with(getrandom::fill).map_err(Error::Random)
+}
+
+fn nonce_with<E>(fill: impl FnOnce(&mut [u8]) -> Result<(), E>) -> Result<String, E> {
+    let mut random = [0u8; 16];
+    fill(&mut random)?;
+    Ok(random.iter().map(|byte| format!("{byte:02x}")).collect())
+}
+
+fn escape_html(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
+fn error_page(message: &str) -> Vec<u8> {
+    format!("<!doctype html><html><head><meta charset=\"utf-8\"><title>Render failed</title></head><body><h1>Render failed</h1><pre>{}</pre></body></html>", escape_html(message)).into_bytes()
 }
 
 impl Server {
@@ -131,7 +182,38 @@ impl Server {
             }
             chunks.push((chunk.path.clone(), verified(build, chunk)?.to_vec()));
         }
+        let framework_file = match adapter {
+            Adapter::React => {
+                if !chunks.is_empty() {
+                    return Err(Error::InvalidBuild(
+                        "React server chunks are unsupported by the IIFE build".into(),
+                    ));
+                }
+                Some(build.manifest.react_framework.as_ref().ok_or_else(|| {
+                    Error::InvalidBuild("React framework bundle is missing".into())
+                })?)
+            }
+            Adapter::Vanilla => {
+                if build.manifest.react_framework.is_some() {
+                    return Err(Error::InvalidBuild(
+                        "vanilla build cannot include a React framework".into(),
+                    ));
+                }
+                None
+            }
+        };
+        let framework = if let Some(file) = framework_file {
+            if file.url.is_some() || file.content_type != "text/javascript; charset=utf-8" {
+                return Err(Error::InvalidBuild(
+                    "React framework bundle must be private JavaScript".into(),
+                ));
+            }
+            Some(verified(build, file)?.to_vec())
+        } else {
+            None
+        };
         let expected_maps = std::iter::once(&build.manifest.server)
+            .chain(framework_file)
             .chain(build.manifest.server_chunks.iter())
             .map(|file| format!("{}.map", file.path))
             .collect::<BTreeSet<_>>();
@@ -186,14 +268,31 @@ impl Server {
             Adapter::React => {
                 AdapterInstance::React(ReactAdapter::new(client, &styles).map_err(Error::React)?)
             }
+            Adapter::Vanilla => AdapterInstance::Vanilla(
+                VanillaAdapter::new(client, &styles).map_err(Error::Vanilla)?,
+            ),
         };
         let bundle = ServerBundle {
             entry_path: server.path.clone(),
             entry_bytes,
             chunks,
         };
-        let pool =
-            Pool::new(bundle, worker_count, queue_capacity, timeout).map_err(Error::Runtime)?;
+        let pool = match (framework_file, framework) {
+            (Some(file), Some(bytes)) => Pool::new_react(
+                (file.path.clone(), bytes),
+                bundle,
+                worker_count,
+                queue_capacity,
+                timeout,
+            ),
+            (None, None) => Pool::new(bundle, worker_count, queue_capacity, timeout),
+            _ => {
+                return Err(Error::InvalidBuild(
+                    "React framework verification is incomplete".into(),
+                ));
+            }
+        }
+        .map_err(Error::Runtime)?;
         Ok(Self {
             public,
             adapter,
@@ -202,10 +301,11 @@ impl Server {
         })
     }
 
-    pub fn handle(&self, request: Request<Vec<u8>>) -> Result<Response<Vec<u8>>, Error> {
+    pub fn handle(&self, request: Request<Vec<u8>>) -> Result<Response<Body>, Error> {
         if request.uri().path() != CALL_PATH {
             let (parts, _) = request.into_parts();
             return serve_public(&self.public, &Request::from_parts(parts, ()))
+                .map(|response| response.map(Body::bytes))
                 .map_err(Error::Header);
         }
         if request.method() != Method::POST {
@@ -252,49 +352,146 @@ impl Server {
             }
         };
         let started = Instant::now();
-        let rendered = match &self.adapter {
-            AdapterInstance::React(adapter) => adapter.render_with_metrics(&page, &self.pool),
+        let nonce = match request_nonce() {
+            Ok(nonce) => nonce,
+            Err(error) => return self.render_error(error, started),
         };
-        let render_ms = started.elapsed().as_secs_f64() * 1000.0;
+        let rendered = match (&self.adapter, page.render) {
+            (AdapterInstance::React(adapter), Render::Ssr) => {
+                let (state, stream) = match self.pool.render_stream(&page, &nonce) {
+                    Ok(result) => result,
+                    Err(error) => return self.render_error(Error::Runtime(error), started),
+                };
+                let (prefix, suffix) = match adapter.stream_parts(&page, &state) {
+                    Ok(parts) => parts,
+                    Err(error) => return self.render_error(Error::React(error), started),
+                };
+                let metrics = stream.metrics();
+                let body = match Body::stream(prefix, stream, suffix, &nonce) {
+                    Ok(body) => body,
+                    Err(error) => return self.render_error(Error::Body(error), started),
+                };
+                tracing::info!(
+                    render_ms = started.elapsed().as_secs_f64() * 1000.0,
+                    pool_wait_ms = metrics.pool_wait.as_secs_f64() * 1000.0,
+                    heap_used_bytes = metrics.heap_used_bytes,
+                    "React shell completed"
+                );
+                return Ok(stream_response(body));
+            }
+            (AdapterInstance::React(adapter), Render::Csr) => adapter
+                .render(&page)
+                .map(|result| (result, None))
+                .map_err(Error::React),
+            (AdapterInstance::Vanilla(adapter), _) => adapter
+                .render_with_metrics(&page, &self.pool)
+                .map_err(Error::Vanilla),
+        };
         match rendered {
             Ok((result, metrics)) => {
+                let bytes = match Body::html(result.html, &nonce).and_then(Body::collect_bytes) {
+                    Ok(bytes) => bytes,
+                    Err(error) => return self.render_error(Error::Body(error), started),
+                };
                 if let Some(metrics) = metrics {
                     tracing::info!(
-                        render_ms,
+                        render_ms = started.elapsed().as_secs_f64() * 1000.0,
                         pool_wait_ms = metrics.pool_wait.as_secs_f64() * 1000.0,
-                        heap_used_bytes = metrics.heap_used_bytes as u64,
-                        "render completed"
+                        heap_used_bytes = metrics.heap_used_bytes,
+                        "SSR document completed"
                     );
                 } else {
-                    tracing::info!(render_ms, "CSR document completed");
+                    tracing::info!(
+                        render_ms = started.elapsed().as_secs_f64() * 1000.0,
+                        "CSR document completed"
+                    );
                 }
-                response(StatusCode::OK, "text/html; charset=utf-8", result.html)
+                response(StatusCode::OK, "text/html; charset=utf-8", bytes)
             }
-            Err(error) => {
-                let status = match &error {
-                    ReactError::Runtime(
-                        RuntimeError::QueueFull
-                        | RuntimeError::WorkerStopped
-                        | RuntimeError::WorkerUnresponsive,
-                    ) => StatusCode::SERVICE_UNAVAILABLE,
-                    ReactError::Runtime(RuntimeError::Timeout) => StatusCode::GATEWAY_TIMEOUT,
-                    _ => StatusCode::INTERNAL_SERVER_ERROR,
-                };
-                let body = match &error {
-                    ReactError::Runtime(RuntimeError::JavaScript {
-                        message,
-                        stack: Some(raw_stack),
-                    }) => match stack::map_stack(raw_stack, &self.source_maps) {
-                        Ok(mapped) => format!("JavaScript failed: {message}\n{mapped}"),
-                        Err(mapping_error) => format!(
-                            "JavaScript failed: {message}\nstack mapping failed: {mapping_error}\n{raw_stack}"
-                        ),
-                    },
-                    _ => error.to_string(),
-                };
-                tracing::error!(render_ms, error = %body, "render failed");
-                response(status, "text/plain; charset=utf-8", body.into_bytes())
-            }
+            Err(error) => self.render_error(error, started),
         }
+    }
+
+    fn render_error(&self, error: Error, started: Instant) -> Result<Response<Body>, Error> {
+        let status = render_status(&error);
+        let body = match &error {
+            Error::Runtime(RuntimeError::JavaScript {
+                message,
+                stack: Some(raw_stack),
+            })
+            | Error::Vanilla(VanillaError::Runtime(RuntimeError::JavaScript {
+                message,
+                stack: Some(raw_stack),
+            })) => match stack::map_stack(raw_stack, &self.source_maps) {
+                Ok(mapped) => format!("JavaScript failed: {message}\n{mapped}"),
+                Err(mapping_error) => format!(
+                    "JavaScript failed: {message}\nstack mapping failed: {mapping_error}\n{raw_stack}"
+                ),
+            },
+            _ => error.to_string(),
+        };
+        tracing::error!(render_ms = started.elapsed().as_secs_f64() * 1000.0, error = %body, "render failed");
+        response(status, "text/html; charset=utf-8", error_page(&body))
+    }
+}
+
+fn render_status(error: &Error) -> StatusCode {
+    match error {
+        Error::Runtime(
+            RuntimeError::QueueFull
+            | RuntimeError::WorkerStopped
+            | RuntimeError::WorkerUnresponsive,
+        ) => StatusCode::SERVICE_UNAVAILABLE,
+        Error::Runtime(RuntimeError::Timeout) => StatusCode::GATEWAY_TIMEOUT,
+        Error::Vanilla(VanillaError::Runtime(
+            RuntimeError::QueueFull
+            | RuntimeError::WorkerStopped
+            | RuntimeError::WorkerUnresponsive,
+        )) => StatusCode::SERVICE_UNAVAILABLE,
+        Error::Vanilla(VanillaError::Runtime(RuntimeError::Timeout)) => StatusCode::GATEWAY_TIMEOUT,
+        _ => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Error, nonce_with, render_status};
+    use http::StatusCode;
+    use ssr_runtime::Error as RuntimeError;
+
+    #[test]
+    fn nonce_uses_all_random_bytes_and_reports_failure() {
+        let nonce = nonce_with::<()>(|bytes| {
+            for (index, byte) in bytes.iter_mut().enumerate() {
+                *byte = index as u8;
+            }
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(nonce, "000102030405060708090a0b0c0d0e0f");
+        assert_eq!(
+            nonce_with::<&str>(|_| Err("random source failed")),
+            Err("random source failed")
+        );
+    }
+
+    #[test]
+    fn render_failures_preserve_their_http_status() {
+        assert_eq!(
+            render_status(&Error::Runtime(RuntimeError::InvalidResult("shell failed"))),
+            StatusCode::INTERNAL_SERVER_ERROR
+        );
+        assert_eq!(
+            render_status(&Error::Runtime(RuntimeError::QueueFull)),
+            StatusCode::SERVICE_UNAVAILABLE
+        );
+        assert_eq!(
+            render_status(&Error::Runtime(RuntimeError::WorkerStopped)),
+            StatusCode::SERVICE_UNAVAILABLE
+        );
+        assert_eq!(
+            render_status(&Error::Runtime(RuntimeError::Timeout)),
+            StatusCode::GATEWAY_TIMEOUT
+        );
     }
 }

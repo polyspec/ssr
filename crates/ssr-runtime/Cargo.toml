@@ -13,6 +13,7 @@ getrandom.workspace = true
 ordered-json.workspace = true
 tokio.workspace = true
 sha2.workspace = true
+tracing.workspace = true
 
 [dev-dependencies]
 wait-timeout.workspace = true

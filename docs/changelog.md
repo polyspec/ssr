@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- Stream React SSR documents after the shell is ready. Restore the framework and application in
+  one request context, keep scheduling outside the application global, and preserve React's
+  Suspense fallback and client recovery instructions. Generate a distinct operating-system nonce
+  per request, apply it to inline scripts and styles across output chunks, and record React errors
+  with that nonce. Reject React server chunks because its application bundle is an IIFE.
 - Verify the React bundle execution boundary in an executable V8 fixture. A top-level React
   class and context use the same React instance while framework scheduling remains in a
   function argument and the application global has no timer.

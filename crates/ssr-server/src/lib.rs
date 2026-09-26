@@ -1,9 +1,11 @@
 #![forbid(unsafe_code)]
 
+mod body;
 mod development;
 mod render;
 mod stack;
 
+pub use body::{Body, BodyError};
 pub use development::{Development, DevelopmentError};
 pub use render::{Adapter, Error, Server};
 
