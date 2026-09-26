@@ -55,7 +55,7 @@ pub fn server_entry(application: &str) -> Result<String, Error> {
 pub fn client_entry(application: &str) -> Result<String, Error> {
     let application = app_import(application)?;
     Ok(format!(
-        "import {{ hydrate, mount }} from 'svelte';\nimport App from {application};\nconst props = JSON.parse(document.getElementById('__SSR_PROPS__').textContent);\nconst renderState = {{input: JSON.parse(document.getElementById('__SSR_STATE__').textContent), output: null}};\nconst root = document.getElementById('root');\nif (root.hasChildNodes()) hydrate(App, {{target: root, props: {{...props, renderState}}, recover: false}}); else mount(App, {{target: root, props: {{...props, renderState}}}});\n"
+        "import {{ hydrate, mount }} from 'svelte';\nimport App from {application};\nconst props = JSON.parse(document.getElementById('__SSR_PROPS__').textContent);\nconst renderState = {{input: JSON.parse(document.getElementById('__SSR_STATE__').textContent), output: null}};\nconst root = document.getElementById('root');\nif (root.dataset.render === 'ssr') hydrate(App, {{target: root, props: {{...props, renderState}}, recover: false}}); else if (root.dataset.render === 'csr') mount(App, {{target: root, props: {{...props, renderState}}}}); else throw new Error('Invalid render mode');\n"
     ))
 }
 
@@ -165,7 +165,10 @@ impl SvelteAdapter {
             document.push_str(&format!("<link rel=\"stylesheet\" href=\"{style}\">"));
         }
         document.push_str(head);
-        document.push_str("</head><body><div id=\"root\">");
+        document.push_str(match page.render {
+            Render::Ssr => "</head><body><div id=\"root\" data-render=\"ssr\">",
+            Render::Csr => "</head><body><div id=\"root\" data-render=\"csr\">",
+        });
         document.push_str(body);
         document.push_str("</div><script id=\"__SSR_PROPS__\" type=\"application/json\">");
         document.push_str(&script_json(&page.props));

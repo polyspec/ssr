@@ -14,7 +14,8 @@ The server result contains a required empty `head` string. A nonempty `head` fai
 adapter has no document placement rule for that output. For SSR, the adapter returns a document
 with the server HTML and output state. For CSR, it returns an empty root and unchanged input state
 without calling the pool. Both documents load the same
-client URL. The client entry calls `hydrate` for a nonempty root and `mount` for an empty root.
+client URL. The document records its render mode on the root element. The client entry calls
+`hydrate` for SSR, including empty HTML, and `mount` for CSR. Missing or invalid modes fail.
 The application owns DOM updates and event handlers. Hydration must retain the existing server
 nodes; the browser case checks identity and that an attached button handler works.
 
@@ -22,5 +23,6 @@ nodes; the browser case checks identity and that an attached button handler work
 on distinct paths. Client and style URLs must be local absolute JavaScript or CSS paths without
 dot segments, queries or fragments. Titles and language values are HTML escaped. Embedded JSON
 escapes `<`, `>` and `&`, so input cannot close a script element. Invalid UTF-8 server HTML is an
-error. The browser case builds the generated entries, verifies SSR hydration, CSR rendering, two
-shell paths and JavaScript errors. Node controls the browser only; build and render run in Rust.
+error. The browser case builds the generated entries and verifies SSR hydration, empty SSR,
+CSR rendering, two shell paths, invalid modes and JavaScript errors. Node controls the browser
+only; build and render run in Rust.

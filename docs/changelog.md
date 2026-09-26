@@ -28,6 +28,9 @@
   inline head and body content, and maps JavaScript failures through the build source maps.
   Browser cases verify hydration, client events, head output, component style, CSR and static
   shells because generated bundles alone do not establish browser behavior.
+- Select React, Vue, Svelte and vanilla client hydration from the render mode recorded in each document.
+  An empty SSR body still selects hydration, while CSR selects a new render. Missing or invalid
+  modes fail because body content does not identify the requested render operation.
 
 - Require a `head` string in every runtime render result and preserve its bytes. Missing or
   invalid values fail because render output must remain complete. React, Vue and vanilla return

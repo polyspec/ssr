@@ -25,6 +25,13 @@ fn shell_page() -> Page {
     .unwrap()
 }
 
+fn empty_page() -> Page {
+    Page::from_json(
+        br#"{"render":"ssr","title":"Example","language":"en","props":{},"state":null}"#,
+    )
+    .unwrap()
+}
+
 fn fixture(entry_bytes: &[u8]) -> ServerBundle {
     ServerBundle {
         entry_path: "server/fixture.js".into(),
@@ -56,11 +63,10 @@ fn entries_and_documents_follow_the_page_contract() {
     let server = server_entry("/application/App.svelte").unwrap();
     assert!(server.contains("export function render(props, state)"));
     assert!(!server.contains("globalThis.render"));
-    assert!(
-        client_entry("/application/App.svelte")
-            .unwrap()
-            .contains("hydrate")
-    );
+    let client = client_entry("/application/App.svelte").unwrap();
+    assert!(client.contains("root.dataset.render === 'ssr'"));
+    assert!(client.contains("root.dataset.render === 'csr'"));
+    assert!(!client.contains("hasChildNodes"));
     assert!(server_entry("relative/server.js").is_err());
     assert!(client_entry("relative/client.js").is_err());
     assert!(server_entry("/application/server.js").is_err());
@@ -69,18 +75,29 @@ fn entries_and_documents_follow_the_page_contract() {
     let adapter = SvelteAdapter::new("/assets/client.js", &["/assets/style.css"]).unwrap();
     let ssr = adapter.render(&page("ssr"), &pool).unwrap();
     assert_eq!(ssr.state.compact(), r#"{"count":5}"#);
-    assert!(
-        String::from_utf8(ssr.html)
-            .unwrap()
-            .contains("<main>Ada</main>")
-    );
+    let ssr_html = String::from_utf8(ssr.html).unwrap();
+    assert!(ssr_html.contains("<main>Ada</main>"));
+    assert!(ssr_html.contains("<div id=\"root\" data-render=\"ssr\">"));
     assert!(String::from_utf8(ssr.head).unwrap().contains("svelte-head"));
     let csr = adapter.render(&page("csr"), &pool).unwrap();
     assert_eq!(csr.state.compact(), r#"{"count":4}"#);
     assert!(
         String::from_utf8(csr.html)
             .unwrap()
-            .contains("<div id=\"root\"></div>")
+            .contains("<div id=\"root\" data-render=\"csr\"></div>")
+    );
+    let empty_pool = Pool::new(
+        fixture(b"export function render(props, state) { return {head:'', html:'', state}; }"),
+        1,
+        0,
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    let empty_ssr = adapter.render(&page("ssr"), &empty_pool).unwrap();
+    assert!(
+        String::from_utf8(empty_ssr.html)
+            .unwrap()
+            .contains("<div id=\"root\" data-render=\"ssr\"></div>")
     );
     assert!(adapter.static_shell(&page("csr")).is_err());
     assert_eq!(
@@ -130,11 +147,16 @@ async fn browser_preserves_server_dom_and_renders_csr_and_shells() {
         server_entry(application.to_str().unwrap()).unwrap(),
     )
     .unwrap();
-    fs::write(
-        &client_path,
-        client_entry(application.to_str().unwrap()).unwrap(),
-    )
-    .unwrap();
+    let client = client_entry(application.to_str().unwrap()).unwrap();
+    let monitored = client.replace(
+        "import { hydrate, mount } from 'svelte';",
+        "import { hydrate as svelteHydrate, mount as svelteMount } from 'svelte';\nconst hydrate = (...args) => { window.__clientRenderCall = 'hydrate'; return svelteHydrate(...args); };\nconst mount = (...args) => { window.__clientRenderCall = 'mount'; return svelteMount(...args); };",
+    );
+    assert_ne!(
+        monitored, client,
+        "Svelte render call monitor was not installed"
+    );
+    fs::write(&client_path, monitored).unwrap();
     let output = build(&BuildConfig {
         root: root.clone(),
         server_entry: server_path,
@@ -180,6 +202,86 @@ async fn browser_preserves_server_dom_and_renders_csr_and_shells() {
     let csr = adapter.render(&page("csr"), &pool).unwrap();
     assert_eq!(csr.state.compact(), r#"{"count":4}"#);
     responses.insert("/csr".into(), ("text/html; charset=utf-8".into(), csr.html));
+    let empty_application = root.join("EmptySvelteApp.svelte");
+    let empty_server_path = generated.join("empty-server.js");
+    let empty_client_path = generated.join("empty-client.js");
+    fs::write(
+        &empty_server_path,
+        server_entry(empty_application.to_str().unwrap()).unwrap(),
+    )
+    .unwrap();
+    let empty_client = client_entry(empty_application.to_str().unwrap()).unwrap();
+    let monitored_empty_client = empty_client.replace(
+        "import { hydrate, mount } from 'svelte';",
+        "import { hydrate as svelteHydrate, mount as svelteMount } from 'svelte';\nconst hydrate = (...args) => { window.__clientRenderCall = 'hydrate'; return svelteHydrate(...args); };\nconst mount = (...args) => { window.__clientRenderCall = 'mount'; return svelteMount(...args); };",
+    );
+    assert_ne!(monitored_empty_client, empty_client);
+    fs::write(&empty_client_path, monitored_empty_client).unwrap();
+    let empty_build = build(&BuildConfig {
+        root: root.clone(),
+        server_entry: empty_server_path,
+        react_framework_entry: None,
+        client_entry: empty_client_path,
+        css_entry: root.join("app.css"),
+        asset_route: "/assets".into(),
+    })
+    .await
+    .unwrap();
+    for file in std::iter::once(&empty_build.manifest.client)
+        .chain(empty_build.manifest.styles.iter())
+        .chain(empty_build.manifest.assets.iter())
+    {
+        responses.insert(
+            file.url.as_ref().unwrap().clone(),
+            (
+                file.content_type.clone(),
+                empty_build.files[&file.path].clone(),
+            ),
+        );
+    }
+    let empty_pool = Pool::new(built_bundle(&empty_build), 1, 0, Duration::from_secs(10)).unwrap();
+    let empty_adapter = SvelteAdapter::new(
+        empty_build.manifest.client.url.as_ref().unwrap(),
+        &empty_build
+            .manifest
+            .styles
+            .iter()
+            .map(|style| style.url.as_deref().unwrap())
+            .collect::<Vec<_>>(),
+    )
+    .unwrap();
+    let empty = empty_adapter.render(&empty_page(), &empty_pool).unwrap();
+    let empty_html = String::from_utf8(empty.html).unwrap();
+    assert!(
+        empty_html.contains("<div id=\"root\" data-render=\"ssr\"><!--[--><!--]--></div>"),
+        "empty Svelte component did not preserve hydration markers: {empty_html}"
+    );
+    responses.insert(
+        "/empty-ssr".into(),
+        (
+            "text/html; charset=utf-8".into(),
+            empty_html.clone().into_bytes(),
+        ),
+    );
+    let empty_bytes = empty_html.replace("<!--[--><!--]-->", "");
+    assert_ne!(empty_bytes, empty_html);
+    assert!(empty_bytes.contains("<div id=\"root\" data-render=\"ssr\"></div>"));
+    responses.insert(
+        "/empty-html-ssr".into(),
+        ("text/html; charset=utf-8".into(), empty_bytes.into_bytes()),
+    );
+    let csr_html = String::from_utf8(adapter.render(&page("csr"), &pool).unwrap().html).unwrap();
+    for (path, mode) in [
+        ("/missing-mode", ""),
+        ("/invalid-mode", " data-render=\"unknown\""),
+    ] {
+        let invalid = csr_html.replace(" data-render=\"csr\"", mode);
+        assert_ne!(invalid, csr_html);
+        responses.insert(
+            path.into(),
+            ("text/html; charset=utf-8".into(), invalid.into_bytes()),
+        );
+    }
     let shell = adapter.static_shell(&shell_page()).unwrap();
     for path in ["/shell/first", "/shell/second"] {
         responses.insert(
@@ -263,7 +365,7 @@ async fn browser_preserves_server_dom_and_renders_csr_and_shells() {
             .unwrap()
             .matches("PASS ")
             .count(),
-        4
+        8
     );
     let mut stop = std::net::TcpStream::connect(address).unwrap();
     stop.write_all(b"GET /__stop HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")

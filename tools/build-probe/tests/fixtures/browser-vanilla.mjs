@@ -27,6 +27,24 @@ try {
     assert.deepEqual(errors, [], `${path}: browser JavaScript errors`);
     console.log(`PASS ${path}`);
   }
+  await page.goto(base + "/empty-ssr", { waitUntil: "load", timeout: 5000 });
+  await page.waitForSelector("html[data-input-count]", { timeout: 5000 });
+  assert.equal(await page.locator("#root").getAttribute("data-render"), "ssr");
+  assert.equal(await page.locator("html").getAttribute("data-hydrated"), "yes");
+  assert.equal(await page.locator("#root").evaluate((root) => root.childNodes.length), 0);
+  assert.deepEqual(errors, [], "empty SSR: browser JavaScript errors");
+  console.log("PASS /empty-ssr");
+  for (const path of ["/missing-mode", "/invalid-mode"]) {
+    const invalid = await browser.newPage();
+    try {
+      const failure = invalid.waitForEvent("pageerror", { timeout: 5000 });
+      await invalid.goto(base + path, { waitUntil: "load", timeout: 5000 });
+      assert.match((await failure).message, /Invalid render mode/, path);
+      console.log(`PASS ${path}`);
+    } finally {
+      await invalid.close();
+    }
+  }
 } finally {
   await browser.close();
 }
