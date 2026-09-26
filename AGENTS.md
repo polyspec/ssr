@@ -58,7 +58,9 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
    official release information. `Cargo.lock` is committed.
 6. A missing test environment is a failure, never a skip. Each test has its own timeout and reports
    start, pass, fail, skip and timeout with elapsed time. Check exit codes; do not hide them behind
-   pipes. Check free disk space and the pinned V8 archive before a long run.
+   pipes. Check free disk space and the pinned V8 source inputs before a long run. `make check`
+   and `make bench` build V8 with `is_debug=false`, separate pointer cages and external code space;
+   an unavailable isolate group is a failure.
 7. Performance claims are measured by the maintained benchmark (`make bench`) with recorded limits.
 8. No polling where an event exists, no symbolic links, no relative paths in configuration and no
    temporary scripts for repeatable work: repeatable commands are make targets or tools in Git.

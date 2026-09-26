@@ -1,5 +1,9 @@
 .PHONY: check bench verify-engine-linux-arm64 verify-engine-deps verify-build
 
+check bench: export V8_FROM_SOURCE := 1
+check bench: export GN_ARGS := is_debug=false v8_enable_pointer_compression=true v8_enable_pointer_compression_shared_cage=false v8_enable_external_code_space=true
+check bench: export CARGO_INCREMENTAL := 0
+
 check:
 	npm ci --prefix tools/build-probe/tests/fixtures --ignore-scripts --no-audit --no-fund
 	python3 tools/run_tests.py

@@ -189,8 +189,16 @@ procedure. Each item names its dependencies and its completion evidence.
   Evidence: an application component with `useId` renders without an application timer; missing
   and repeated entries fail; build tests and `make check` pass.
 - [ ] S-13-2-2 Execute the two bundles with isolated scheduling and Web Streams, and stream the
-  document through HTTP with the nonce and error behavior of S-13. Depends on: S-13-2-1.
+  document through HTTP with the nonce and error behavior of S-13. Depends on: S-13-2-1,
+  S-13-2-2-1.
   Evidence: the S-13 cases pass in the runtime and server.
+- [o] S-13-2-2-1 Create a V8 isolate group for each server snapshot and restore every worker
+  isolate in that group. Keep separate application snapshots independent when workers restore
+  them concurrently; do not serialize worker isolate creation. Build the pinned V8 source with
+  `is_debug=false`, separate pointer cages and external code space, and fail if those capabilities
+  are unavailable.
+  Depends on: S-10. Evidence: three distinct snapshots restore concurrently in repeated rounds,
+  existing snapshot and benchmark cases pass, and `make check` passes.
 - [o] S-14 Implement the development mode with notify 8.2.0: a file change rebuilds the bundles and
   replaces the pool. Depends on: S-9. Acceptance: construction builds the initial server and watches
   the absolute application root; a source change rebuilds all bundles and replaces the server and pool

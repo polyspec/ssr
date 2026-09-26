@@ -23,6 +23,10 @@ JavaScript 예외도 오류다. 호출자는 SSR `Page`를 전달하고 `RenderR
 초기화한 서버 전역과 Web API는 각 context에 제공되고, 한 요청에서 바꾼 값은 다른 요청에
 영향을 주지 않는다. Props와 입력 상태는 V8 값으로
 전달한다. HTML, head, 출력 상태는 바이트로 가져오고, 출력 상태는 ordered-json으로 파싱한다.
+각 스냅샷은 독립적인 V8 isolate group을 소유한다. 생성자와 모든 워커 isolate가 같은 group을
+사용하므로 서로 다른 애플리케이션 스냅샷을 워커가 동시에 복원할 수 있다. release 소스 빌드는 포인터 압축,
+별도 포인터 cage 및 외부 코드 공간을 활성화하며, group을 사용할 수 없으면 오류를 반환한다.
+스냅샷과 워커 isolate가 해제될 때까지 group을 유지한다. group 사이의 워커 isolate 복원은 직렬화하지 않는다.
 출력 상태에 undefined, 함수, symbol, bigint 또는 유한하지 않은 숫자가 있으면
 조용히 제외하거나 null로 바꾸지 않고 실패한다. 잘못된 입출력은 기본값으로 바꾸지 않고
 오류를 반환한다.

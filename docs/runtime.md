@@ -24,6 +24,11 @@ returns an error, and initialization obeys the configured timeout. Each call res
 separate V8 context from the snapshot in its worker isolate without executing the bundle
 again. The initialized server globals and Web APIs are available in each context, and
 changes made by one request cannot affect another.
+Each snapshot owns an independent V8 isolate group. Its creator and all worker isolates use
+that group, including when workers restore different application snapshots concurrently.
+The release source build enables pointer compression, separate pointer cages and external code space;
+an unsupported group is an error. The group remains alive until its snapshot and worker
+isolates are released. Worker isolate restoration is not serialized across groups.
 Props and input state enter as V8 values. HTML, head and output state leave as bytes; the
 output state is parsed through ordered-json. Undefined, function, symbol, bigint
 and non-finite number values in the output state fail instead of being omitted
