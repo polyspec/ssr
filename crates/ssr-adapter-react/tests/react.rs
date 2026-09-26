@@ -9,10 +9,56 @@ use std::net::TcpListener;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
+use std::sync::Barrier;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
 use wait_timeout::ChildExt;
+
+const GENERATED_ENTRY_DIR: &str = "node_modules/.ssr-adapter-react-entry";
+const GENERATED_BROWSER_DIR: &str = "node_modules/.ssr-adapter-react-browser";
+
+#[test]
+fn concurrent_react_tests_keep_their_generated_sources() {
+    fn prepare(path: &Path, marker: &str, start: &Barrier, written: &Barrier) -> [String; 3] {
+        fs::create_dir_all(path).unwrap();
+        start.wait();
+        for name in ["server.tsx", "framework.tsx", "client.tsx"] {
+            fs::write(path.join(name), format!("{marker}:{name}")).unwrap();
+        }
+        written.wait();
+        ["server.tsx", "framework.tsx", "client.tsx"]
+            .map(|name| fs::read_to_string(path.join(name)).unwrap())
+    }
+
+    let root = std::env::temp_dir().join(format!("ssr-react-test-{}", std::process::id()));
+    let entry = root.join(GENERATED_ENTRY_DIR);
+    let browser = root.join(GENERATED_BROWSER_DIR);
+    let start = Barrier::new(2);
+    let written = Barrier::new(2);
+    let (entry_sources, browser_sources) = thread::scope(|scope| {
+        let entry_worker = scope.spawn(|| prepare(&entry, "entry", &start, &written));
+        let browser_worker = scope.spawn(|| prepare(&browser, "browser", &start, &written));
+        (entry_worker.join().unwrap(), browser_worker.join().unwrap())
+    });
+    fs::remove_dir_all(root).unwrap();
+    assert_eq!(
+        entry_sources,
+        [
+            "entry:server.tsx",
+            "entry:framework.tsx",
+            "entry:client.tsx"
+        ]
+    );
+    assert_eq!(
+        browser_sources,
+        [
+            "browser:server.tsx",
+            "browser:framework.tsx",
+            "browser:client.tsx"
+        ]
+    );
+}
 
 fn page(render: &str) -> Page {
     Page::from_json(format!(r#"{{"render":"{render}","title":"Example","language":"en","props":{{"name":"Ada"}},"state":{{"count":4}}}}"#).as_bytes()).unwrap()
@@ -122,7 +168,7 @@ async fn generated_react_entries_build_and_execute() {
         root.join("node_modules/react").is_dir(),
         "install sample packages before tests"
     );
-    let generated = root.join("node_modules/.ssr-adapter-react");
+    let generated = root.join(GENERATED_ENTRY_DIR);
     fs::create_dir_all(&generated).unwrap();
     let application = root.join("ReactApp.tsx");
     let server_path = generated.join("server.tsx");
@@ -284,7 +330,7 @@ async fn browser_hydrates_ssr_and_renders_csr_and_static_shells() {
         root.join("node_modules/react").is_dir(),
         "install sample packages before tests"
     );
-    let generated = root.join("node_modules/.ssr-adapter-react");
+    let generated = root.join(GENERATED_BROWSER_DIR);
     fs::create_dir_all(&generated).unwrap();
     let application = root.join("ReactApp.tsx");
     let server_path = generated.join("server.tsx");

@@ -280,3 +280,9 @@ completion evidence.
   mode even when the server body is empty; the client invokes hydration for an empty SSR body and
   a new render for CSR; an absent or invalid mode fails. Evidence: executable Chrome cases for all
   four adapters and `make check`.
+- [o] S-15-6-1 Isolate the generated files of the React entry build and browser hydration tests.
+  Priority: required for reliable workspace checks. Depends on: S-15-6. Acceptance: concurrently
+  prepared test entries never replace another test's server, framework or client source; both
+  tests build and assert their own output when run alone or in parallel. Evidence: a tracked
+  concurrent overwrite case fails before the correction and passes afterward, each affected test
+  and their parallel pair pass, and `make check` passes.

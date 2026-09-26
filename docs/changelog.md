@@ -128,3 +128,6 @@
   React instance because independent copies reject application hooks. The build validates the
   framework input, records its digest and source map, and keeps it outside public files. A test
   renders a component using `useId` in a context without the framework timer.
+- Give the React entry build and browser hydration tests separate directories for generated
+  server, framework and client files. A concurrent test verifies that each reads its own files
+  because a shared path can replace build inputs during parallel checks.
