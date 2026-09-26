@@ -1,5 +1,20 @@
 use crate::Error;
+use deno_core::v8::MapFnTo;
 use deno_core::v8::{self, FunctionCallbackArguments, Local, PinScope, ReturnValue, Value};
+
+pub(crate) fn external_references() -> Vec<v8::ExternalReference> {
+    vec![
+        v8::ExternalReference {
+            function: console_write.map_fn_to(),
+        },
+        v8::ExternalReference {
+            function: get_random_values.map_fn_to(),
+        },
+        v8::ExternalReference {
+            function: encode_utf8.map_fn_to(),
+        },
+    ]
+}
 
 pub(crate) fn install(scope: &mut PinScope, context: Local<v8::Context>) -> Result<(), Error> {
     let global = context.global(scope);
@@ -26,13 +41,11 @@ pub(crate) fn install(scope: &mut PinScope, context: Local<v8::Context>) -> Resu
         .ok_or(Error::InvalidBundle("DOMException source unavailable"))?;
     let script = v8::Script::compile(scope, source, None)
         .ok_or(Error::InvalidBundle("DOMException initialization failed"))?;
-    let constructor = script
+    script
         .run(scope)
         .ok_or(Error::InvalidBundle("DOMException initialization failed"))?;
     let crypto = v8::Object::new(scope);
-    let data = v8::Array::new_with_elements(scope, &[crypto.into(), constructor]);
     let callback = v8::Function::builder(get_random_values)
-        .data(data.into())
         .build(scope)
         .ok_or(Error::InvalidBundle(
             "crypto callback initialization failed",
@@ -99,8 +112,13 @@ fn throw_type_error(scope: &mut PinScope, message: &str) {
     }
 }
 
-fn throw_named_error(scope: &mut PinScope, data: Local<v8::Array>, name: &str, message: &str) {
-    let Some(value) = data.get_index(scope, 1) else {
+fn throw_named_error(scope: &mut PinScope, name: &str, message: &str) {
+    let context = scope.get_current_context();
+    let Some(key) = v8::String::new(scope, "DOMException") else {
+        throw_type_error(scope, "DOMException name is unavailable");
+        return;
+    };
+    let Some(value) = context.global(scope).get(scope, key.into()) else {
         throw_type_error(scope, "DOMException constructor is unavailable");
         return;
     };
@@ -138,11 +156,12 @@ fn get_random_values(
     args: FunctionCallbackArguments,
     mut result: ReturnValue,
 ) {
-    let Ok(data) = Local::<v8::Array>::try_from(args.data()) else {
-        throw_type_error(scope, "crypto callback data is invalid");
+    let context = scope.get_current_context();
+    let Some(crypto_name) = v8::String::new(scope, "crypto") else {
+        throw_type_error(scope, "crypto name is unavailable");
         return;
     };
-    let Some(receiver) = data.get_index(scope, 0) else {
+    let Some(receiver) = context.global(scope).get(scope, crypto_name.into()) else {
         throw_type_error(scope, "crypto receiver is unavailable");
         return;
     };
@@ -166,7 +185,6 @@ fn get_random_values(
     if !integer_view(value) {
         throw_named_error(
             scope,
-            data,
             "TypeMismatchError",
             "getRandomValues requires an integer typed array",
         );
@@ -176,7 +194,6 @@ fn get_random_values(
     if length > 65_536 {
         throw_named_error(
             scope,
-            data,
             "QuotaExceededError",
             "getRandomValues exceeds 65536 bytes",
         );
@@ -193,7 +210,6 @@ fn get_random_values(
     if fill_view(&backing[offset..end], getrandom::fill).is_err() {
         throw_named_error(
             scope,
-            data,
             "OperationError",
             "operating system randomness is unavailable",
         );

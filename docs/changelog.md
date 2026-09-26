@@ -39,10 +39,14 @@
 - Build React TSX server and client bundles, CSS and hashed assets in `ssr-build`. The build
   returns all files and an ordered-json manifest; the asset URL hook gives both bundles the public
   absolute URL because a chunk-relative URL does not identify the file from a page document.
-- Execute server bundles in a bounded `ssr-runtime` worker pool. Each worker compiles the bundle
-  once, resets global state with a new context for each request, terminates scripts at the timeout,
+- Execute server bundles in a bounded `ssr-runtime` worker pool. Each worker owns an isolate,
+  resets global state for each request, terminates scripts at the timeout,
   and provides console output and operating system random values. Invalid results and unavailable
   Web APIs return explicit errors because output must not be omitted or changed silently.
+- Initialize server globals in a V8 snapshot keyed by the bundle hash and pinned versions.
+  Restore each request context from the snapshot because rebuilding server globals on each
+  render repeats initialization. Changed keys create snapshots; unused snapshot bytes are released.
+  Bundle initialization returns an error at the configured timeout.
 - Provide UTF-8 `TextEncoder` in every render context because the React server bundle requires it.
   Encoding and bounded `encodeInto` handle non-ASCII text and unpaired surrogates; invalid calls
   fail without adding file, network or timer operations.

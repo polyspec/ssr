@@ -3307,6 +3307,7 @@ dependencies = [
  "deno_core",
  "getrandom 0.4.3",
  "ordered-json",
+ "sha2",
  "ssr-build",
  "ssr-core",
  "tokio",
