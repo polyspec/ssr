@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Verify the React bundle execution boundary in an executable V8 fixture. A top-level React
+  class and context use the same React instance while framework scheduling remains in a
+  function argument and the application global has no timer.
 - Remove procedure-only S-0-2-1 from the checklist and keep the priority and test placement
   rules in AGENTS.md. Checklist items require a repository artifact and verifiable completion
   evidence.

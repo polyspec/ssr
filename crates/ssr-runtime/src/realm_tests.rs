@@ -11,7 +11,7 @@ fn execute<'s>(scope: &mut v8::PinScope<'s, '_>, source: &str) -> v8::Local<'s, 
 }
 
 #[tokio::test]
-async fn react_renders_a_component_from_a_context_without_timers() {
+async fn react_initialization_and_hooks_share_context_without_application_timers() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../tools/build-probe/tests/fixtures")
         .canonicalize()
@@ -44,46 +44,35 @@ async fn react_renders_a_component_from_a_context_without_timers() {
     deno_core::JsRuntime::init_platform(None);
     let mut isolate = v8::Isolate::new(Default::default());
     v8::scope!(let scope, &mut isolate);
-    let framework_context = v8::Context::new(scope, Default::default());
-    let application_context = v8::Context::new(scope, Default::default());
-    let react = {
-        let scope = &mut v8::ContextScope::new(scope, framework_context);
-        web::install(scope, framework_context).unwrap();
-        execute(scope, "globalThis.setTimeout = function () {};");
-        execute(scope, framework);
-        let key = v8::String::new(scope, "__ssrReact").unwrap();
-        let value = framework_context
-            .global(scope)
-            .get(scope, key.into())
-            .unwrap();
-        v8::Global::new(scope, value)
-    };
-    let app = {
-        let scope = &mut v8::ContextScope::new(scope, application_context);
-        web::install(scope, application_context).unwrap();
-        let key = v8::String::new(scope, "__ssrReact").unwrap();
-        let react = v8::Local::new(scope, &react);
-        assert_eq!(
-            application_context
-                .global(scope)
-                .set(scope, key.into(), react),
-            Some(true)
-        );
-        execute(scope, application);
-        let key = v8::String::new(scope, "AppBridge").unwrap();
-        let value = application_context
-            .global(scope)
-            .get(scope, key.into())
-            .unwrap();
-        v8::Global::new(scope, value)
-    };
-    let scope = &mut v8::ContextScope::new(scope, framework_context);
-    let key = v8::String::new(scope, "AppBridge").unwrap();
-    let app = v8::Local::new(scope, &app);
+    let context = v8::Context::new(scope, Default::default());
+    let scope = &mut v8::ContextScope::new(scope, context);
+    web::install(scope, context).unwrap();
+    execute(scope, "globalThis.setTimeout = function () {};");
+    let timer_name = v8::String::new(scope, "setTimeout").unwrap();
+    let timer = context.global(scope).get(scope, timer_name.into()).unwrap();
+    let source = v8::String::new(scope, framework).unwrap();
+    let mut source = v8::script_compiler::Source::new(source, None);
+    let function = v8::script_compiler::compile_function(
+        scope,
+        &mut source,
+        &[timer_name],
+        &[],
+        v8::script_compiler::CompileOptions::NoCompileOptions,
+        v8::script_compiler::NoCacheReason::NoReason,
+    )
+    .unwrap();
+    function
+        .call(scope, context.global(scope).into(), &[timer])
+        .unwrap();
     assert_eq!(
-        framework_context.global(scope).set(scope, key.into(), app),
+        context.global(scope).delete(scope, timer_name.into()),
         Some(true)
     );
+    assert_eq!(
+        execute(scope, "typeof setTimeout").to_rust_string_lossy(scope),
+        "undefined"
+    );
+    execute(scope, application);
     let html = execute(scope, "renderBridge(AppBridge)");
     assert!(html.to_rust_string_lossy(scope).contains(">Ada</h1>"));
 }

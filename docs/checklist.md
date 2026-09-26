@@ -170,24 +170,32 @@ completion evidence.
   nonce of the call. The server creates one nonce per request from operating-system random bytes;
   random failure is an error, all inline scripts and styles of that call use that nonce, and
   different calls use different nonces. React's stream and scheduling capabilities are available
-  only in its framework context; application code cannot access I/O timers. Depends on: S-7,
+  only in its framework scope; application code cannot access I/O timers. Depends on: S-7,
   S-13-1, S-13-2. Evidence: shell, late-error, nonce and timer-isolation cases pass.
 - [o] S-13-1 Complete V8 microtasks for a Promise render result, return rejection details and
   reject a Promise that has no scheduled completion. Verify that React can render an application
-  component from a separate V8 context without exposing a framework timer to that application.
-  Depends on: S-6, S-7. Evidence: fulfilled, rejected and pending Promise tests, a separately
-  bundled React and application context test, and `make check` pass.
+  component without exposing a framework timer to that application. Depends on: S-6, S-7.
+  Evidence: fulfilled, rejected and pending Promise tests, a React component test, and `make check` pass.
 - [ ] S-13-2 Provide isolated React scheduling and Web Streams, carry stream chunks from the V8
   worker to the HTTP response after the shell is ready, and apply the request nonce to inline
   scripts and styles. Depends on: S-13-1, S-13-2-1, S-13-2-2. Evidence: the S-13 cases pass
   with progressive chunks and fixed status and headers.
 - [o] S-13-2-1 Build a separate private React framework bundle and an application server bundle
-  that imports the same React instance across V8 contexts. Validate the absolute framework entry,
+  that imports the same React instance. Validate the absolute framework entry,
   manifest bytes and SHA-256, source map and absence of a public URL. Depends on: S-13-1.
   Evidence: an application component with `useId` renders without an application timer; missing
   and repeated entries fail; build tests and `make check` pass.
+- [o] S-13-2-1-1 Define and verify the React bundle execution boundary with an executable V8
+  fixture. The fixture evaluates the framework and application bundles in one context so module
+  initialization can use `Component` and `createContext`, passes scheduling as a lexical function
+  argument and removes the global timer before application evaluation. Depends on: S-13-2-1.
+  Evidence: a top-level React class and context render with `useId` and `useContext`, application
+  code cannot access `setTimeout`, and `make check` passes.
 - [ ] S-13-2-2 Execute the two bundles with isolated scheduling and Web Streams, and stream the
-  document through HTTP with the nonce and error behavior of S-13. Depends on: S-13-2-1,
+  document through HTTP with the nonce and error behavior of S-13. Apply the verified execution
+  boundary to the production snapshot and pool; neither bundle runs on each request. Repeated
+  restores keep one initialization and separate globals, and three application snapshots restore
+  concurrently. Depends on: S-13-2-1-1,
   S-13-2-2-1, S-13-2-2-1-1, S-13-2-2-2.
   Evidence: the S-13 cases pass in the runtime and server.
 - [o] S-13-2-2-1 Create a V8 isolate group for each server snapshot and restore every worker
