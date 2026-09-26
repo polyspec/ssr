@@ -3369,6 +3369,13 @@ dependencies = [
 [[package]]
 name = "ssr-adapter-vue"
 version = "0.0.1"
+dependencies = [
+ "ssr-build",
+ "ssr-core",
+ "ssr-runtime",
+ "tokio",
+ "wait-timeout",
+]
 
 [[package]]
 name = "ssr-build"

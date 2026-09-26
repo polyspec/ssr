@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Add the Vue adapter with Promise-based server rendering and browser hydration. The browser
+  verifies the original server DOM node and an attached event handler because a generated bundle
+  does not establish hydration behavior.
+
 - Add the vanilla adapter with server and client entries, SSR output state, CSR documents and
   static shells. A browser verifies server DOM identity and client event handling because generated
   source alone cannot establish hydration behavior.
