@@ -1,9 +1,10 @@
-use crate::{Command, Error, snapshot::Snapshot, state_from_json};
+use crate::{Command, ContextRender, Error, WorkerReply, snapshot::Snapshot, state_from_json};
 use crossbeam_channel::Receiver;
 use deno_core::v8;
 use ssr_core::RenderResult;
 use std::sync::Arc;
 use std::sync::mpsc::SyncSender;
+use std::time::Instant;
 
 macro_rules! caught {
     ($scope:expr) => {{
@@ -55,7 +56,10 @@ pub(crate) fn worker(
                 let result = render(&mut runtime, &serializer, &props, &state);
                 let heap_used_bytes = runtime.get_heap_statistics().used_heap_size();
                 runtime.cancel_terminate_execution();
-                let _ = reply.send((result, heap_used_bytes));
+                let _ = reply.send(WorkerReply {
+                    result,
+                    heap_used_bytes,
+                });
             }
             Command::Stop => break,
         }
@@ -104,9 +108,14 @@ fn render(
     serializer: &v8::Global<v8::UnboundScript>,
     props: &str,
     state: &str,
-) -> Result<RenderResult, Error> {
+) -> Result<ContextRender, Error> {
     v8::scope!(let scope, runtime);
+    let heap_before = scope.get_heap_statistics().used_heap_size() as i128;
+    let reset_started = Instant::now();
     let context = v8::Context::new(scope, Default::default());
+    let context_reset = reset_started.elapsed();
+    let context_heap_delta_bytes =
+        scope.get_heap_statistics().used_heap_size() as i128 - heap_before;
     let scope = &mut v8::ContextScope::new(scope, context);
     v8::tc_scope!(let scope, scope);
     let name =
@@ -160,7 +169,11 @@ fn render(
     let json = v8::Local::<v8::String>::try_from(json)
         .map_err(|_| Error::InvalidResult("state serialization did not return JSON"))?;
     let state = state_from_json(json.to_rust_string_lossy(scope).as_bytes())?;
-    Ok(RenderResult { html, state })
+    Ok(ContextRender {
+        result: RenderResult { html, state },
+        context_reset,
+        context_heap_delta_bytes,
+    })
 }
 
 fn parse<'s>(scope: &mut v8::PinScope<'s, '_>, input: &str) -> Option<v8::Local<'s, v8::Value>> {

@@ -89,6 +89,8 @@ fn render_metrics_report_wait_and_live_heap() {
     assert_eq!(result.html, b"ok");
     assert!(metrics.pool_wait < Duration::from_secs(2));
     assert!(metrics.heap_used_bytes > 0);
+    assert!(metrics.context_reset < Duration::from_secs(2));
+    assert!(metrics.context_heap_delta_bytes > 0);
 }
 
 #[test]
