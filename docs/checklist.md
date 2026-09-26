@@ -181,8 +181,16 @@ procedure. Each item names its dependencies and its completion evidence.
   bundled React and application context test, and `make check` pass.
 - [ ] S-13-2 Provide isolated React scheduling and Web Streams, carry stream chunks from the V8
   worker to the HTTP response after the shell is ready, and apply the request nonce to inline
-  scripts and styles. Depends on: S-13-1. Evidence: the S-13 cases pass with progressive chunks
-  and fixed status and headers.
+  scripts and styles. Depends on: S-13-1, S-13-2-1, S-13-2-2. Evidence: the S-13 cases pass
+  with progressive chunks and fixed status and headers.
+- [o] S-13-2-1 Build a separate private React framework bundle and an application server bundle
+  that imports the same React instance across V8 contexts. Validate the absolute framework entry,
+  manifest bytes and SHA-256, source map and absence of a public URL. Depends on: S-13-1.
+  Evidence: an application component with `useId` renders without an application timer; missing
+  and repeated entries fail; build tests and `make check` pass.
+- [ ] S-13-2-2 Execute the two bundles with isolated scheduling and Web Streams, and stream the
+  document through HTTP with the nonce and error behavior of S-13. Depends on: S-13-2-1.
+  Evidence: the S-13 cases pass in the runtime and server.
 - [o] S-14 Implement the development mode with notify 8.2.0: a file change rebuilds the bundles and
   replaces the pool. Depends on: S-9. Acceptance: construction builds the initial server and watches
   the absolute application root; a source change rebuilds all bundles and replaces the server and pool

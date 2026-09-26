@@ -20,6 +20,7 @@ use sha2::{Digest, Sha256};
 pub struct BuildConfig {
     pub root: PathBuf,
     pub server_entry: PathBuf,
+    pub react_framework_entry: Option<PathBuf>,
     pub client_entry: PathBuf,
     pub css_entry: PathBuf,
     pub asset_route: String,
@@ -123,6 +124,14 @@ fn validate(config: &BuildConfig) -> Result<(), Error> {
     ] {
         validate_entry(&config.root, path)?;
     }
+    if let Some(path) = &config.react_framework_entry {
+        validate_entry(&config.root, path)?;
+        if path == &config.server_entry {
+            return Err(Error::InvalidInput(
+                "React framework and application entries must differ".into(),
+            ));
+        }
+    }
     let route = &config.asset_route;
     if !route.starts_with('/')
         || (route != "/" && route.ends_with('/'))
@@ -167,6 +176,9 @@ pub async fn build(config: &BuildConfig) -> Result<Build, Error> {
         manifest: Manifest::empty(),
         files: BTreeMap::new(),
     };
+    if let Some(entry) = &config.react_framework_entry {
+        js::bundle(config, entry, "react_framework", &mut result).await?;
+    }
     js::bundle(config, &config.server_entry, "server", &mut result).await?;
     js::bundle(config, &config.client_entry, "client", &mut result).await?;
     let style = css::bundle(config, &mut result)?;

@@ -10,7 +10,8 @@ segments of ASCII letters, digits, hyphens, underscores and periods; empty, `.` 
 are invalid. The entries and CSS must remain
 inside the application root. The build returns a manifest and a map of output paths to bytes; it
 does not publish those bytes. The manifest JSON is created with ordered-json and identifies the
-server entry, private server source maps, client entry, styles, server chunks and public assets with their paths, URLs where
+server entry, optional React framework entry, private server source maps, client entry, styles,
+server chunks and public assets with their paths, URLs where
 public, content types and full SHA-256 digests. JavaScript output keeps Rolldown's content-hashed
 names; CSS and CSS URL assets use SHA-256 names. Identical server and client assets share one
 public file. A path collision with different bytes is an error.
@@ -18,6 +19,16 @@ Each server JavaScript output has a private `.map` file. The build orders source
 mapping tokens consistently and omits embedded source text, which can vary among equal builds.
 The map retains generated and source locations for stack mapping. The manifest records each map
 with its SHA-256; public file selection excludes maps.
+
+For React, `react_framework_entry` names an additional absolute source file under the same root.
+It must differ from `server_entry`. The build emits a private, hashed React framework bundle and
+its private source map, then emits the application server bundle as an IIFE with `react` resolved
+to the shared React object supplied by the framework context. The two bundles use the same React
+instance so hooks can run when the framework renders an application component created in a
+separate V8 context. The manifest records the framework path, bytes digest and map; the
+framework file has no public URL. A missing or equal framework entry fails. A build without a
+React framework entry produces the ordinary single server bundle and records null for the
+framework field.
 
 `PublicFiles::new` selects only the client entry, styles and assets with public URLs. It verifies
 each URL, output byte sequence, SHA-256 digest and content type before publication or serving.

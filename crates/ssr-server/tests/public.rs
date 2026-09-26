@@ -14,6 +14,7 @@ fn files() -> PublicFiles {
         .collect();
     let build = Build {
         manifest: Manifest {
+            react_framework: None,
             server: BuildFile {
                 path: "server/app.js".into(),
                 url: None,

@@ -16,6 +16,7 @@ fn config() -> BuildConfig {
     let root = fixture();
     BuildConfig {
         server_entry: root.join("server.tsx"),
+        react_framework_entry: None,
         client_entry: root.join("client.tsx"),
         css_entry: root.join("app.css"),
         root,

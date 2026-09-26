@@ -16,6 +16,7 @@ fn config() -> BuildConfig {
     let root = fixture();
     BuildConfig {
         server_entry: root.join("server.tsx"),
+        react_framework_entry: None,
         client_entry: root.join("client.tsx"),
         css_entry: root.join("app.css"),
         root,
@@ -142,6 +143,11 @@ async fn sample_build_has_stable_files_and_manifest() {
 #[tokio::test]
 async fn invalid_entries_imports_and_route_fail() {
     let mut config = config();
+    config.react_framework_entry = Some(config.server_entry.clone());
+    assert!(build(&config).await.is_err());
+    config.react_framework_entry = Some(config.root.join("missing-framework.tsx"));
+    assert!(build(&config).await.is_err());
+    config.react_framework_entry = None;
     config.asset_route = "//external".into();
     assert!(build(&config).await.is_err());
     config.asset_route = "/assets".into();

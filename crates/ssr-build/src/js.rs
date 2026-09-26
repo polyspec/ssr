@@ -3,9 +3,9 @@ use std::path::Path;
 use rolldown::plugin::Plugin;
 use rolldown::{
     AssetFilenamesOutputOption, Bundler, BundlerOptions, ChunkFilenamesOutputOption,
-    CodeSplittingMode, InputItem, ModuleType, OutputFormat, Platform,
+    CodeSplittingMode, InputItem, IsExternal, ModuleType, OutputFormat, Platform,
 };
-use rolldown_common::{Output, SourceMapType};
+use rolldown_common::{GlobalsOutputOption, Output, SourceMapType};
 use sourcemap::{SourceMap, SourceMapBuilder};
 
 use crate::{Build, BuildConfig, Error, asset_url::AssetUrlPlugin};
@@ -25,6 +25,7 @@ pub(crate) async fn bundle(
     let entry = entry.to_str().ok_or_else(|| {
         Error::InvalidInput(format!("entry path is not UTF-8: {}", entry.display()))
     })?;
+    let react_application = name == "server" && config.react_framework_entry.is_some();
     let options = BundlerOptions {
         cwd: Some(config.root.clone()),
         input: Some(vec![InputItem {
@@ -32,9 +33,23 @@ pub(crate) async fn bundle(
             name: Some(name.into()),
         }]),
         platform: Some(Platform::Browser),
-        format: Some(OutputFormat::Esm),
-        code_splitting: Some(CodeSplittingMode::Bool(true)),
-        sourcemap: (name == "server").then_some(SourceMapType::Hidden),
+        format: Some(if react_application {
+            OutputFormat::Iife
+        } else {
+            OutputFormat::Esm
+        }),
+        code_splitting: Some(CodeSplittingMode::Bool(
+            name == "client" || (name == "server" && !react_application),
+        )),
+        external: react_application.then(|| IsExternal::from(vec!["react".to_owned()])),
+        globals: react_application.then(|| {
+            GlobalsOutputOption::FxHashMap(
+                [("react".to_owned(), "__ssrReact".to_owned())]
+                    .into_iter()
+                    .collect(),
+            )
+        }),
+        sourcemap: (name != "client").then_some(SourceMapType::Hidden),
         entry_filenames: Some(ChunkFilenamesOutputOption::String(
             "[name]-[hash].js".into(),
         )),
@@ -83,7 +98,7 @@ pub(crate) async fn bundle(
             return Err(Error::JavaScript(format!("multiple {name} entries")));
         }
         let public = name == "client" || !filename.ends_with(".js");
-        let is_source_map = name == "server" && filename.ends_with(".js.map");
+        let is_source_map = name != "client" && filename.ends_with(".js.map");
         let public = public && !is_source_map;
         let directory = if public { "client" } else { "server" };
         let path = format!("{directory}/{filename}");
@@ -97,6 +112,8 @@ pub(crate) async fn bundle(
             entry_found = true;
             if public {
                 result.manifest.client = artifact;
+            } else if name == "react_framework" {
+                result.manifest.react_framework = Some(artifact);
             } else {
                 result.manifest.server = artifact;
             }

@@ -65,6 +65,7 @@ async fn changes_replace_render_and_public_files_and_fail_explicitly() {
     let config = BuildConfig {
         root: root.clone(),
         server_entry: server_entry.clone(),
+        react_framework_entry: None,
         client_entry: client_entry.clone(),
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
