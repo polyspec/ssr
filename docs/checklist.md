@@ -113,6 +113,10 @@ procedure. Each item names its dependencies and its completion evidence.
   destination; invalid receivers and destinations fail. The interface remains available after
   context reset and adds no file, network or timer API. Evidence: Web API tests and execution of a
   React server bundle.
+- [o] S-6-2 Verify that one render deadline covers both pool wait and execution after confirming
+  the request has entered the bounded queue. The queue count exposes no event, so the case uses a
+  bounded yield loop to observe it. Depends on: S-6. Evidence: the synchronized timeout case and
+  `make check` pass.
 - [o] S-7 Implement the React adapter for the first consumer: SSR renders HTML with the render state
   output; CSR returns the static shell of the same client bundle; the client hydrates the SSR HTML
   or renders the CSR shell. Depends on: S-5, S-6, S-6-1. Acceptance: the adapter supplies server and client
