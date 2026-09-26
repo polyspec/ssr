@@ -7,7 +7,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Barrier};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use wait_timeout::ChildExt;
 
 fn page(props: &str) -> Page {
@@ -80,31 +80,6 @@ fn full_queue_returns_explicit_error() {
             .any(|result| matches!(result, Err(Error::Timeout))),
         "{results:?}"
     );
-}
-
-#[test]
-fn timeout_covers_queue_wait_and_execution() {
-    let pool = Arc::new(
-        Pool::new(
-            b"function render(props, state) { const until = Date.now() + 150; while (Date.now() < until) {} return {html:'ok', state}; }".to_vec(),
-            1,
-            1,
-            Duration::from_millis(250),
-        )
-        .unwrap(),
-    );
-    let first_pool = Arc::clone(&pool);
-    let (started, ready) = std::sync::mpsc::sync_channel(0);
-    let first = thread::spawn(move || {
-        started.send(()).unwrap();
-        first_pool.render(&page("{}"))
-    });
-    ready.recv().unwrap();
-    thread::sleep(Duration::from_millis(30));
-    let start = Instant::now();
-    assert!(matches!(pool.render(&page("{}")), Err(Error::Timeout)));
-    assert!(start.elapsed() < Duration::from_millis(350));
-    assert_eq!(first.join().unwrap().unwrap().html, b"ok");
 }
 
 #[test]

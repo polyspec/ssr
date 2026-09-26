@@ -437,4 +437,39 @@ mod tests {
         drop(pool);
         release.send(()).unwrap();
     }
+
+    #[test]
+    fn timeout_covers_queue_wait_and_execution() {
+        let pool = Arc::new(
+            Pool::new(
+                b"function render(props, state) { const until = Date.now() + 1800; while (Date.now() < until) {} return {html:'ok', state}; }".to_vec(),
+                1,
+                1,
+                Duration::from_secs(2),
+            )
+            .unwrap(),
+        );
+        let lease = pool
+            .acquire(Instant::now() + Duration::from_secs(2))
+            .unwrap();
+        let waiting_pool = Arc::clone(&pool);
+        let waiting = thread::spawn(move || waiting_pool.render(&page()));
+        let observed_by = Instant::now() + Duration::from_secs(5);
+        while pool.waiting.load(Ordering::Acquire) == 0 {
+            assert!(
+                Instant::now() < observed_by,
+                "render did not enter the queue"
+            );
+            thread::yield_now();
+        }
+        thread::sleep(Duration::from_millis(500));
+        assert_eq!(
+            pool.waiting.load(Ordering::Acquire),
+            1,
+            "render timed out before the worker was released"
+        );
+        drop(lease);
+        let result = waiting.join().unwrap();
+        assert!(matches!(result, Err(Error::Timeout)), "{result:?}");
+    }
 }

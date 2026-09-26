@@ -5,6 +5,8 @@
 ## 0.0.1
 
 - Add the development procedures (`AGENTS.md`), the checklist and this changelog.
+- Synchronize the combined pool wait and execution timeout case on queue admission because a
+  thread start signal does not establish which render owns the worker.
 - Add the render, build and engine requirements of ssr and the build and engine checks to the checklist.
 - Create the Rust 1.98.1 workspace with eight crates and the check and bench commands. The check
   command validates records, terminology, documents, dependencies and unit tests because these
