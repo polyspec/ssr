@@ -22,6 +22,8 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 - Preserve generated JavaScript, component CSS and server head in their defined destinations.
   Missing required output and compiler warnings fail the build or render. Publish only source maps
   that identify the final output accurately.
+- The test fixtures are tracked in this repository. Package tests install the npm packages of the
+  tracked fixture lock with `npm ci` without symbolic links.
 
 ## Vocabulary and design
 

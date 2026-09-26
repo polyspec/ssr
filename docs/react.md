@@ -54,3 +54,10 @@ inline script and style within a request, distinct nonces across requests, and s
 The runtime cases verify React hooks and application timer isolation. The browser recovery case
 verifies that Suspense fallback and React's client recovery instructions remain usable after a
 server error and that a failed client retry reaches the application error boundary.
+
+The form rows case builds `tools/build-probe/tests/fixtures/FormRowsApp.tsx`, a form with a
+repeated row group that holds a repeated child group; the fixture creates each row key, `row-` and
+eight hexadecimal digits, during the render from `crypto.getRandomValues` and names each control
+`rows.<key>.<field>`. Two server renders from one pool verify that a nested
+repeated row uses its parent key, the two row keys differ, and the next render creates a new parent
+key.

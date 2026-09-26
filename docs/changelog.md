@@ -31,6 +31,10 @@
 - Select React, Vue, Svelte and vanilla client hydration from the render mode recorded in each document.
   An empty SSR body still selects hydration, while CSR selects a new render. Missing or invalid
   modes fail because body content does not identify the requested render operation.
+- Verify a React form with repeated rows of the tracked fixture `FormRowsApp.tsx` with two
+  server renders. The case checks nested `rows.<key>.<field>` names, row keys of `row-` and eight
+  hexadecimal digits and a new key on the next render because each
+  request must create independent row identities.
 
 - Require a `head` string in every runtime render result and preserve its bytes. Missing or
   invalid values fail because render output must remain complete. React, Vue and vanilla return

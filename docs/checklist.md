@@ -239,7 +239,7 @@ completion evidence.
   together; a failed rebuild reports its cause and does not serve an outdated build; a later valid change
   restores service. Evidence: a file event changes rendered and public output; failure and recovery cases pass.
 - [ ] S-15 Implement the Vue, Svelte and vanilla adapters and `features.json`. Depends on: S-15-1,
-  S-15-2, S-15-3, S-15-4, S-15-6. Evidence: every declared feature has an executable case.
+  S-15-2, S-15-3, S-15-4, S-15-5, S-15-6. Evidence: every declared feature has an executable case.
 - [o] S-15-1 Implement the vanilla adapter. Depends on: S-7. Acceptance: absolute server and client
   application paths produce bundle entries; SSR returns HTML and output state, CSR preserves input
   state without using the pool, both use one client URL, and a static CSR shell accepts only empty
@@ -269,6 +269,12 @@ completion evidence.
 - [ ] S-15-4 Record supported features in `features.json`. Depends on: S-7, S-15-1, S-15-2,
   S-15-3. Acceptance: each true feature names its executable evidence; no feature is inferred
   solely from source inspection. Evidence: a checker runs every referenced case and `make check`.
+- [o] S-15-5 Verify the React adapter with an empty nested repeated form. Priority: required
+  for S-15 completion. Depends on: S-7, S-6, S-13. Acceptance: the tracked fixture
+  `FormRowsApp.tsx` renders a repeated row group that holds a repeated child group; one server render
+  names the parent row and its child row `rows.<key>.<field>` with the same parent key
+  and distinct row keys of `row-` and eight hexadecimal digits; a second render from the same pool creates a new parent key. Evidence:
+  two executable render cases and `make check`.
 - [o] S-15-6 Select hydration from the explicit page render mode in the React, Vue, Svelte and vanilla
   client entries. Depends on: S-7, S-15-2, S-15-3, S-13-2-2-2. Acceptance: the document preserves SSR or CSR
   mode even when the server body is empty; the client invokes hydration for an empty SSR body and
