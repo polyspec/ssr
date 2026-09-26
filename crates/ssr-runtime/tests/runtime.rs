@@ -15,6 +15,46 @@ fn page(props: &str) -> Page {
 }
 
 #[test]
+fn promise_render_result_settles_or_reports_its_failure() {
+    let fulfilled = Pool::new(
+        b"function render(props, state) { return Promise.resolve().then(() => ({html: props.name, state})); }".to_vec(),
+        1,
+        0,
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    assert_eq!(
+        fulfilled.render(&page(r#"{"name":"Ada"}"#)).unwrap().html,
+        b"Ada"
+    );
+
+    let rejected = Pool::new(
+        b"function render() { return Promise.reject(new Error('promise failed')); }".to_vec(),
+        1,
+        0,
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    assert!(matches!(
+        rejected.render(&page("{}")),
+        Err(Error::JavaScript { message, stack: Some(stack) })
+            if message.contains("promise failed") && stack.contains("promise failed")
+    ));
+
+    let pending = Pool::new(
+        b"function render() { return new Promise(() => {}); }".to_vec(),
+        1,
+        0,
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    assert!(matches!(
+        pending.render(&page("{}")),
+        Err(Error::InvalidResult("promise has no scheduled completion"))
+    ));
+}
+
+#[test]
 fn request_context_does_not_retain_globals() {
     let pool = Pool::new(b"globalThis.count = 0; function render(props, state) { globalThis.count++; return {html: String(globalThis.count), state}; }".to_vec(), 1, 1, Duration::from_secs(2)).unwrap();
     let first = pool.render(&page("{} ")).unwrap();

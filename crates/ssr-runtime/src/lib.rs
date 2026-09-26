@@ -1,6 +1,8 @@
 #![forbid(unsafe_code)]
 
 mod engine;
+#[cfg(test)]
+mod realm_tests;
 mod snapshot;
 mod web;
 

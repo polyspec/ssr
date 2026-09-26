@@ -169,7 +169,20 @@ procedure. Each item names its dependencies and its completion evidence.
 - [ ] S-13 Stream React output with `renderToReadableStream`: status and headers are fixed when the
   shell is ready; an error before the shell returns 500 with an error page; an error after the shell
   renders the error boundary in the stream and is logged; every inline script and style includes the
-  nonce of the call. Depends on: S-7. Evidence: the three cases pass.
+  nonce of the call. The server creates one nonce per request from operating-system random bytes;
+  random failure is an error, all inline scripts and styles of that call use that nonce, and
+  different calls use different nonces. React's stream and scheduling capabilities are available
+  only in its framework context; application code cannot access I/O timers. Depends on: S-7,
+  S-13-1, S-13-2. Evidence: shell, late-error, nonce and timer-isolation cases pass.
+- [o] S-13-1 Complete V8 microtasks for a Promise render result, return rejection details and
+  reject a Promise that has no scheduled completion. Verify that React can render an application
+  component from a separate V8 context without exposing a framework timer to that application.
+  Depends on: S-6, S-7. Evidence: fulfilled, rejected and pending Promise tests, a separately
+  bundled React and application context test, and `make check` pass.
+- [ ] S-13-2 Provide isolated React scheduling and Web Streams, carry stream chunks from the V8
+  worker to the HTTP response after the shell is ready, and apply the request nonce to inline
+  scripts and styles. Depends on: S-13-1. Evidence: the S-13 cases pass with progressive chunks
+  and fixed status and headers.
 - [o] S-14 Implement the development mode with notify 8.2.0: a file change rebuilds the bundles and
   replaces the pool. Depends on: S-9. Acceptance: construction builds the initial server and watches
   the absolute application root; a source change rebuilds all bundles and replaces the server and pool

@@ -66,3 +66,7 @@
   change restores service because serving older output would hide the failed build.
 - Measure a fixed SSR page with concurrent calls in `make bench`. The command reports throughput,
   call latency, context creation time and V8 heap change, and fails when a measured limit is exceeded.
+- Complete V8 microtasks before reading a Promise render result. Fulfilled results use the normal
+  result contract; rejection returns its message and stack, and a result with no scheduled
+  completion fails. A separate-context React test verifies that an application component renders
+  without receiving a framework timer because framework scheduling must remain private.

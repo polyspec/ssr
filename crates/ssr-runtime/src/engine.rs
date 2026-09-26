@@ -131,9 +131,7 @@ fn render(
     let value = function
         .call(scope, context.global(scope).into(), &[props, state])
         .ok_or_else(|| caught!(scope))?;
-    if value.is_promise() {
-        return Err(Error::InvalidResult("promise result is not synchronous"));
-    }
+    let value = settle(scope, value)?;
     let object = v8::Local::<v8::Object>::try_from(value)
         .map_err(|_| Error::InvalidResult("object required"))?;
     let html_name =
@@ -174,6 +172,57 @@ fn render(
         context_reset,
         context_heap_delta_bytes,
     })
+}
+
+fn settle<'s>(
+    scope: &mut v8::PinScope<'s, '_>,
+    value: v8::Local<'s, v8::Value>,
+) -> Result<v8::Local<'s, v8::Value>, Error> {
+    let Ok(promise) = v8::Local::<v8::Promise>::try_from(value) else {
+        return Ok(value);
+    };
+    scope.perform_microtask_checkpoint();
+    if scope.is_execution_terminating() {
+        return Err(Error::Timeout);
+    }
+    match promise.state() {
+        v8::PromiseState::Fulfilled => Ok(promise.result(scope)),
+        v8::PromiseState::Pending => {
+            Err(Error::InvalidResult("promise has no scheduled completion"))
+        }
+        v8::PromiseState::Rejected => {
+            let reason = promise.result(scope);
+            promise.mark_as_handled();
+            let message = reason
+                .to_string(scope)
+                .ok_or(Error::InvalidResult(
+                    "promise rejection cannot be converted to text",
+                ))?
+                .to_rust_string_lossy(scope);
+            let stack = if let Ok(object) = v8::Local::<v8::Object>::try_from(reason) {
+                let key = v8::String::new(scope, "stack")
+                    .ok_or(Error::InvalidResult("stack key unavailable"))?;
+                let value = object.get(scope, key.into()).ok_or(Error::InvalidResult(
+                    "promise rejection stack lookup failed",
+                ))?;
+                if value.is_undefined() {
+                    None
+                } else {
+                    Some(
+                        value
+                            .to_string(scope)
+                            .ok_or(Error::InvalidResult(
+                                "promise rejection stack cannot be converted to text",
+                            ))?
+                            .to_rust_string_lossy(scope),
+                    )
+                }
+            } else {
+                None
+            };
+            Err(Error::JavaScript { message, stack })
+        }
+    }
 }
 
 fn parse<'s>(scope: &mut v8::PinScope<'s, '_>, input: &str) -> Option<v8::Local<'s, v8::Value>> {

@@ -4,10 +4,14 @@
 
 `Pool::new` accepts a server bundle, a nonzero worker count, a queue capacity and a
 nonzero execution timeout. It initializes the bundle in a V8 snapshot, and each worker
-owns one isolate created from that snapshot on one thread. The bundle defines a synchronous
-global `render(props, state)` function. It returns an object with string `html` and a JSON
-`state` value. The runtime rejects an absent function, a promise, an invalid result,
-or a JavaScript exception. A caller passes an SSR `Page` and receives `RenderResult`.
+owns one isolate created from that snapshot on one thread. The bundle defines a global
+`render(props, state)` function. It returns an object with string `html` and a JSON
+`state` value, directly or through a Promise. The runtime completes queued V8 microtasks
+before reading a Promise result. It returns a JavaScript error with the rejection message
+and stack for a rejected Promise; a Promise still pending after its microtasks complete is
+an error because no external event source can complete it. An absent function, invalid
+result or JavaScript exception is also an error. A caller passes an SSR `Page` and
+receives `RenderResult`.
 The library workspace selects the same V8 150.4.0 source checkout verified by
 S-4-2 and pins its maintained identifier macro dependency in `Cargo.lock`.
 
@@ -55,9 +59,17 @@ sequence. Invalid receivers and destinations throw a TypeError. The interface
 supplies the encoding required by the React server bundle without exposing file,
 network or timer operations.
 
+React framework code can render a component function created in another V8 context of
+the same isolate. A test bundles and executes the framework and application separately,
+passes the component as a V8 value, and checks that a timer installed in the framework
+context is absent from the application context. Framework scheduling remains separate
+from application globals.
+
 Acceptance: tracked tests verify snapshot reuse and key mismatch, initialized state
 restoration, failed and timed-out initialization, request isolation, a nonterminating script,
 queue saturation, a combined queue and execution deadline, unresponsive worker
 removal and waiting-call notification, captured stderr console output, random
 values and argument errors, and absence of forbidden APIs. Every test has a
 timeout under `make check`; the stderr capture subprocess has its own timeout.
+Promise tests cover fulfillment, rejection with a stack and pending results. The
+separate-context case executes an application component through React.
