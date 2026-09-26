@@ -39,6 +39,10 @@ V8 소스 체크아웃은 버전 150.4.0을 유지하면서 컴파일 시 `paste
 있어야 한다. 아카이브 누락, 해시 변경, 다운로드 실패, 빌드 실패 및 시간
 초과는 오류로 처리한다.
 
+ARM64 Mac에서 `python3 tools/verify_engine.py aarch64-apple-darwin --offline`을 실행하면
+로컬 아카이브 해시를 검사하고 Cargo 네트워크 접근을 차단한 상태로 빌드한다. 이 모드는 `var/v8`의
+아카이브를 요구하며 다운로드하지 않는다. 도구 사례는 아카이브 누락·변조와 다운로드 실패를 거부한다.
+
 `make verify-engine-linux-arm64`는 SHA-256이
 `sha256:5b993f23fb69746405496e76f91e511d96c82b5b23304fd5d20b4a80a8b223ea`인
 Rust 1.98.1 Bookworm 이미지로 ARM64 Linux 컨테이너 이미지를 빌드한다.

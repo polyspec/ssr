@@ -154,8 +154,9 @@ procedure. Each item names its dependencies and its completion evidence.
 - [ ] S-11 Implement `make bench`: renders per second and p50/p99 latency for a fixed page with 1, 4
   and 16 concurrent calls, and time and memory of a context reset; record the limits in
   `docs/benchmarks.md`. Depends on: S-9, S-10. Evidence: the benchmark output and the recorded limits.
-- [ ] S-12 Pin the V8 archive by path and SHA-256 as recorded by S-4; a failed download is an error.
-  Depends on: S-4. Evidence: a build without network succeeds.
+- [o] S-12 Pin the V8 archive by path and SHA-256 as recorded by S-4; a failed download is an error.
+  An explicit offline mode requires the existing verified archive and disables Cargo network access.
+  Depends on: S-4. Evidence: missing, changed and failed-download cases and a build without network pass.
 - [ ] S-13 Stream React output with `renderToReadableStream`: status and headers are fixed when the
   shell is ready; an error before the shell returns 500 with an error page; an error after the shell
   renders the error boundary in the stream and is logged; every inline script and style includes the

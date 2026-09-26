@@ -40,6 +40,11 @@ of the verification program. Omitting `--fetch` requires an existing archive in
 `var/v8`. A missing archive, changed digest, failed download, failed build or
 timeout is an error.
 
+Run `python3 tools/verify_engine.py aarch64-apple-darwin --offline` on an ARM64 Mac
+to verify the local archive digest and build with Cargo network access disabled. This mode
+requires the archive in `var/v8` and never downloads it. The tool tests reject a missing or
+changed archive and a failed download.
+
 `make verify-engine-linux-arm64` builds an ARM64 Linux container image from the
 Rust 1.98.1 Bookworm image digest
 `sha256:5b993f23fb69746405496e76f91e511d96c82b5b23304fd5d20b4a80a8b223ea`.
