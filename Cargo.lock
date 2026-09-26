@@ -3225,6 +3225,13 @@ dependencies = [
 [[package]]
 name = "ssr-adapter-react"
 version = "0.0.1"
+dependencies = [
+ "ssr-build",
+ "ssr-core",
+ "ssr-runtime",
+ "tokio",
+ "wait-timeout",
+]
 
 [[package]]
 name = "ssr-adapter-svelte"

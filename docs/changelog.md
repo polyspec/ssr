@@ -42,3 +42,7 @@
 - Provide UTF-8 `TextEncoder` in every render context because the React server bundle requires it.
   Encoding and bounded `encodeInto` handle non-ASCII text and unpaired surrogates; invalid calls
   fail without adding file, network or timer operations.
+- Create the React adapter entries and document renderer. SSR returns React HTML and output state;
+  CSR returns an empty root with unchanged input state, and a static shell can serve multiple paths.
+  Escaped JSON prevents a request from closing its script element. A browser verifies hydration,
+  CSR rendering and shell reuse because bundle inspection cannot verify DOM behavior.
