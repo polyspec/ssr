@@ -22,6 +22,8 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 - Preserve generated JavaScript, component CSS and server head in their defined destinations.
   Missing required output and compiler warnings fail the build or render. Publish only source maps
   that identify the final output accurately.
+- Local package integration tests read checkout paths from ignored `var/checkouts.txt`, install
+  verified npm archives without symbolic links, and compare the installed package with its lock.
 
 ## Vocabulary and design
 

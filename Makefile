@@ -16,7 +16,8 @@ verify-group-archive:
 	python3 tools/verify_group_archive.py verify
 
 check:
-	npm ci --prefix tools/build-probe/tests/fixtures --ignore-scripts --no-audit --no-fund
+	npm ci --prefix tools/build-probe/tests/fixtures --install-links --ignore-scripts --no-audit --no-fund
+	python3 tools/prepare_crudui_fixture.py
 	python3 tools/run_tests.py
 	python3 tools/check.py
 	cargo fmt --all -- --check
@@ -42,7 +43,7 @@ verify-engine-deps:
 	cargo deny --manifest-path verification/engine/Cargo.toml --config deny.toml check --hide-inclusion-graph
 
 verify-build:
-	npm ci --prefix tools/build-probe/tests/fixtures --ignore-scripts --no-audit --no-fund
+	npm ci --prefix tools/build-probe/tests/fixtures --install-links --ignore-scripts --no-audit --no-fund
 	cargo fmt --manifest-path tools/build-probe/Cargo.toml -- --check
 	CARGO_TARGET_DIR=$(CURDIR)/target cargo clippy --manifest-path tools/build-probe/Cargo.toml --all-targets --locked -- -D warnings
 	CARGO_TARGET_DIR=$(CURDIR)/target cargo nextest run --manifest-path tools/build-probe/Cargo.toml --config-file $(CURDIR)/.config/nextest.toml --test build_verification --locked --no-tests fail

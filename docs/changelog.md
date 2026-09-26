@@ -31,6 +31,12 @@
 - Select React, Vue, Svelte and vanilla client hydration from the render mode recorded in each document.
   An empty SSR body still selects hydration, while CSR selects a new render. Missing or invalid
   modes fail because body content does not identify the requested render operation.
+- Verify a React form from installed CRUDUI packages with two server renders. The case checks
+  nested row keys and a new key on the next render because each request must create independent
+  row identities. The component entry loads without a server renderer in the application bundle.
+  Content-hashed package archives, the lock and installed files are checked together because
+  an unchanged archive filename can retain an old package integrity value. The checkout
+  declaration rejects additional or malformed lines so no input is ignored.
 
 - Require a `head` string in every runtime render result and preserve its bytes. Missing or
   invalid values fail because render output must remain complete. React, Vue and vanilla return

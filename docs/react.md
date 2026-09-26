@@ -55,3 +55,13 @@ inline script and style within a request, distinct nonces across requests, and s
 The runtime cases verify React hooks and application timer isolation. The browser recovery case
 verifies that Suspense fallback and React's client recovery instructions remain usable after a
 server error and that a failed client retry reaches the application error boundary.
+
+The CRUDUI integration case builds a React form from `@crudui/generator-core` and
+the component entry of `@crudui/generator-react`. The component entry does not load
+`react-dom/server` into the application bundle. `tools/prepare_crudui_fixture.py` reads the checkout declared in
+ignored `var/checkouts.txt`, creates content-hashed npm archives under ignored `var/`, installs them without
+symbolic links and checks their integrity against the generated lock. `var/checkouts.txt` contains
+exactly one `crudui /absolute/checkout/path` line; a missing, malformed or additional declaration
+fails. Two server renders from one pool verify that a nested repeated row uses its parent key,
+the two row keys differ, and the next render creates a new parent key. Missing package output or a
+mismatched installation fails.

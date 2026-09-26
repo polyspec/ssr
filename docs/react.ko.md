@@ -53,3 +53,12 @@ style에 동일한 nonce 적용, 요청 사이의 서로 다른 nonce 및 나뉜
 런타임 사례는 React hook과 애플리케이션 타이머 격리를 검증한다. 브라우저 복구 사례는 서버 오류 뒤에도
 Suspense fallback과 React 클라이언트 복구 지시를 사용할 수 있고 클라이언트 재시도가 실패하면
 애플리케이션 오류 경계가 처리하는지 검증한다.
+
+CRUDUI 통합 사례는 `@crudui/generator-core`와 `@crudui/generator-react`의 컴포넌트
+진입점으로 React 폼을 빌드한다. 컴포넌트 진입점은 `react-dom/server`를 애플리케이션
+번들에 불러오지 않는다. `tools/prepare_crudui_fixture.py`는 무시된 `var/checkouts.txt`의 체크아웃을
+읽어 무시된 `var/` 아래에 내용 해시가 붙은 npm 아카이브를 만들고 심볼릭 링크 없이 설치한 뒤 생성된 잠금
+파일과 무결성을 대조한다. `var/checkouts.txt`에는 `crudui /absolute/checkout/path` 한 줄만
+기록하며 누락·잘못된 형식·추가 선언은 실패한다. 한 풀의 서버 렌더 두 번으로 중첩 반복 행이 부모 키를 사용하고
+부모·자식 행 키가 다르며 다음 렌더가 새 부모 키를 만드는지 검증한다. 패키지 출력 누락이나
+설치 결과 불일치는 실패한다.
