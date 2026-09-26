@@ -62,6 +62,9 @@
 - Create an independent V8 isolate group for each server snapshot and restore its worker isolates
   in that group. The release source build provides separate pointer cages and external code space so
   distinct application snapshots restore concurrently; unavailable group support fails.
+- Verify a separate local V8 source archive and its generated binding by SHA-256 before routine
+  checks and benchmarks link them.
+  Direct source verification remains explicit because repeated GN generation can rebuild the archive.
 - Provide UTF-8 `TextEncoder` in every render context because the React server bundle requires it.
   Encoding and bounded `encodeInto` handle non-ASCII text and unpaired surrogates; invalid calls
   fail without adding file, network or timer operations.
