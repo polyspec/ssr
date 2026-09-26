@@ -75,11 +75,11 @@ sequence. Invalid receivers and destinations throw a TypeError. The interface
 supplies the encoding required by the React server bundle without exposing file,
 network or timer operations.
 
-React framework code can render a component function created in another V8 context of
-the same isolate. A test bundles and executes the framework and application separately,
-passes the component as a V8 value, and checks that a timer installed in the framework
-context is absent from the application context. Framework scheduling remains separate
-from application globals.
+The React execution boundary requires the framework and application bundles to run in one V8
+context so application module initialization can use the same React instance. The framework
+bundle runs as a function with its scheduling timer in a lexical argument. The timer is removed
+from the global before the application bundle executes. A fixture renders a top-level React class and context with
+`useId` and `useContext` and checks that application code cannot access `setTimeout`.
 
 Acceptance: tracked tests verify snapshot reuse and key mismatch, initialized state
 restoration, failed and timed-out initialization, request isolation, a nonterminating script,
@@ -88,4 +88,4 @@ removal and waiting-call notification, captured stderr console output, random
 values and argument errors, and absence of forbidden APIs. Every test has a
 timeout under `make check`; the stderr capture subprocess has its own timeout.
 Promise tests cover fulfillment, rejection with a stack and pending results. The
-separate-context case executes an application component through React.
+React bundle case executes an application component with top-level React declarations.

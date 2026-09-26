@@ -23,6 +23,10 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   private server chunk into the snapshot once, resolve relative imports against the exact supplied
   files, and restore independent module data in each request context. Keep the render export out of
   the global object. A missing module, invalid import or unfinished evaluation is an error.
+- Evaluate React framework and application bundles in one snapshot context so application module
+  initialization and rendering use one React instance. Give framework scheduling a lexical binding
+  and remove it from the global before evaluating application code. Do not evaluate either bundle
+  on each request.
 - When a decision of the agent is shown wrong, the report names that decision first.
 - `var/handoff/work.md` lists the specification sources of each item; it is not tracked.
 
