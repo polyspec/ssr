@@ -219,6 +219,20 @@ fn javascript_stack_uses_source_map_and_invalid_map_fails_startup() {
 }
 
 #[test]
+fn svelte_javascript_failure_uses_server_source_map() {
+    let output = build("export function render() { throw new Error('svelte boom'); }");
+    let server = Server::new(&output, Adapter::Svelte, 1, 0, Duration::from_secs(2)).unwrap();
+    let response = server
+        .handle(request(Method::POST, "/_render", SSR, true))
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    let text = String::from_utf8(body(response)).unwrap();
+    assert!(text.contains("svelte boom"), "{text}");
+    assert!(text.contains("src/page.tsx:7:3"), "{text}");
+    assert!(!text.contains("stack mapping failed"), "{text}");
+}
+
+#[test]
 fn static_and_dynamic_chunk_failures_use_their_own_source_map() {
     let chunk = "export function fail() { throw new Error('chunk boom'); }";
     for entry in [

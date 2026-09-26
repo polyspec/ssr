@@ -5,6 +5,7 @@ mod css;
 mod js;
 mod manifest;
 mod public;
+mod svelte;
 
 pub use manifest::{BuildFile, Manifest};
 pub use public::{PublicFile, PublicFiles, PublishError};
@@ -177,10 +178,22 @@ pub async fn build(config: &BuildConfig) -> Result<Build, Error> {
         files: BTreeMap::new(),
     };
     if let Some(entry) = &config.react_framework_entry {
-        js::bundle(config, entry, "react_framework", &mut result).await?;
+        let styles = js::bundle(config, entry, "react_framework", &mut result).await?;
+        if !styles.is_empty() {
+            return Err(Error::JavaScript(
+                "React framework bundle contains Svelte styles".into(),
+            ));
+        }
     }
-    js::bundle(config, &config.server_entry, "server", &mut result).await?;
-    js::bundle(config, &config.client_entry, "client", &mut result).await?;
+    let server_styles = js::bundle(config, &config.server_entry, "server", &mut result).await?;
+    let client_styles = js::bundle(config, &config.client_entry, "client", &mut result).await?;
+    if server_styles != client_styles {
+        return Err(Error::Css("server and client Svelte styles differ".into()));
+    }
+    for (source, css) in client_styles {
+        let style = css::bundle_component(config, &mut result, &source, css)?;
+        result.manifest.styles.push(style);
+    }
     let style = css::bundle(config, &mut result)?;
     result.manifest.styles.push(style);
     result.manifest.sort();

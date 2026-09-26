@@ -9,7 +9,9 @@
 스타일 URL로 선택한 문서 어댑터를 만든다. `Adapter::React`는 React 프레임워크와 IIFE
 애플리케이션 스트림 경로를 선택한다. 비공개 프레임워크 번들이 필수이고 서버 청크는 거부한다.
 `Adapter::Vanilla`는 ECMAScript 모듈 서버 번들을 선택하고 기록된 모든 서버 청크를 평가한다.
-React 프레임워크 번들은 거부한다. 두 어댑터는 같은 HTTP 경로와 페이지 결과를 사용한다.
+`Adapter::Svelte`도 ESM 번들을 사용하고 Svelte head 출력을 문서 head에 넣는다. 두 어댑터는
+React 프레임워크 번들을 거부한다. 모든 어댑터는 같은 HTTP 경로와 페이지 결과를 사용한다.
+공개 경로는 빌드 매니페스트의 컴포넌트 CSS를 제공한다.
 
 `Server::handle`은 바이트 본문을 가진 HTTP 요청을 받는다. `POST /_render`는
 `Content-Type: application/json`과 선택적인 `charset=utf-8`, 정확한 페이지 JSON 계약을

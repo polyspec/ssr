@@ -4,6 +4,7 @@ use http::{Method, Request, Response, StatusCode};
 use sha2::{Digest, Sha256};
 use sourcemap::SourceMap;
 use ssr_adapter_react::{Error as ReactError, ReactAdapter};
+use ssr_adapter_svelte::{Error as SvelteError, SvelteAdapter};
 use ssr_adapter_vanilla::{Error as VanillaError, VanillaAdapter};
 use ssr_build::{Build, BuildFile, PublicFiles, PublishError};
 use ssr_core::{CALL_PATH, Page, Render};
@@ -18,6 +19,7 @@ pub enum Error {
     Public(PublishError),
     Runtime(RuntimeError),
     React(ReactError),
+    Svelte(SvelteError),
     Vanilla(VanillaError),
     SourceMap(sourcemap::Error),
     Header(http::header::InvalidHeaderValue),
@@ -32,6 +34,7 @@ impl fmt::Display for Error {
             Self::Public(error) => write!(f, "public files failed: {error}"),
             Self::Runtime(error) => write!(f, "runtime failed: {error}"),
             Self::React(error) => write!(f, "React adapter failed: {error}"),
+            Self::Svelte(error) => write!(f, "Svelte adapter failed: {error}"),
             Self::Vanilla(error) => write!(f, "vanilla adapter failed: {error}"),
             Self::SourceMap(error) => write!(f, "source map failed: {error}"),
             Self::Header(error) => write!(f, "HTTP header failed: {error}"),
@@ -48,6 +51,7 @@ impl std::error::Error for Error {
             Self::Public(error) => Some(error),
             Self::Runtime(error) => Some(error),
             Self::React(error) => Some(error),
+            Self::Svelte(error) => Some(error),
             Self::Vanilla(error) => Some(error),
             Self::SourceMap(error) => Some(error),
             Self::Header(error) => Some(error),
@@ -60,11 +64,13 @@ impl std::error::Error for Error {
 #[derive(Clone, Copy)]
 pub enum Adapter {
     React,
+    Svelte,
     Vanilla,
 }
 
 enum AdapterInstance {
     React(ReactAdapter),
+    Svelte(SvelteAdapter),
     Vanilla(VanillaAdapter),
 }
 
@@ -193,10 +199,10 @@ impl Server {
                     Error::InvalidBuild("React framework bundle is missing".into())
                 })?)
             }
-            Adapter::Vanilla => {
+            Adapter::Svelte | Adapter::Vanilla => {
                 if build.manifest.react_framework.is_some() {
                     return Err(Error::InvalidBuild(
-                        "vanilla build cannot include a React framework".into(),
+                        "ESM build cannot include a React framework".into(),
                     ));
                 }
                 None
@@ -267,6 +273,9 @@ impl Server {
         let adapter = match adapter {
             Adapter::React => {
                 AdapterInstance::React(ReactAdapter::new(client, &styles).map_err(Error::React)?)
+            }
+            Adapter::Svelte => {
+                AdapterInstance::Svelte(SvelteAdapter::new(client, &styles).map_err(Error::Svelte)?)
             }
             Adapter::Vanilla => AdapterInstance::Vanilla(
                 VanillaAdapter::new(client, &styles).map_err(Error::Vanilla)?,
@@ -383,6 +392,9 @@ impl Server {
                 .render(&page)
                 .map(|result| (result, None))
                 .map_err(Error::React),
+            (AdapterInstance::Svelte(adapter), _) => adapter
+                .render_with_metrics(&page, &self.pool)
+                .map_err(Error::Svelte),
             (AdapterInstance::Vanilla(adapter), _) => adapter
                 .render_with_metrics(&page, &self.pool)
                 .map_err(Error::Vanilla),
@@ -419,6 +431,10 @@ impl Server {
                 message,
                 stack: Some(raw_stack),
             })
+            | Error::Svelte(SvelteError::Runtime(RuntimeError::JavaScript {
+                message,
+                stack: Some(raw_stack),
+            }))
             | Error::Vanilla(VanillaError::Runtime(RuntimeError::JavaScript {
                 message,
                 stack: Some(raw_stack),
@@ -443,6 +459,12 @@ fn render_status(error: &Error) -> StatusCode {
             | RuntimeError::WorkerUnresponsive,
         ) => StatusCode::SERVICE_UNAVAILABLE,
         Error::Runtime(RuntimeError::Timeout) => StatusCode::GATEWAY_TIMEOUT,
+        Error::Svelte(SvelteError::Runtime(
+            RuntimeError::QueueFull
+            | RuntimeError::WorkerStopped
+            | RuntimeError::WorkerUnresponsive,
+        )) => StatusCode::SERVICE_UNAVAILABLE,
+        Error::Svelte(SvelteError::Runtime(RuntimeError::Timeout)) => StatusCode::GATEWAY_TIMEOUT,
         Error::Vanilla(VanillaError::Runtime(
             RuntimeError::QueueFull
             | RuntimeError::WorkerStopped
@@ -457,6 +479,7 @@ fn render_status(error: &Error) -> StatusCode {
 mod tests {
     use super::{Error, nonce_with, render_status};
     use http::StatusCode;
+    use ssr_adapter_svelte::Error as SvelteError;
     use ssr_runtime::Error as RuntimeError;
 
     #[test]
@@ -491,6 +514,16 @@ mod tests {
         );
         assert_eq!(
             render_status(&Error::Runtime(RuntimeError::Timeout)),
+            StatusCode::GATEWAY_TIMEOUT
+        );
+        assert_eq!(
+            render_status(&Error::Svelte(SvelteError::Runtime(
+                RuntimeError::QueueFull
+            ))),
+            StatusCode::SERVICE_UNAVAILABLE
+        );
+        assert_eq!(
+            render_status(&Error::Svelte(SvelteError::Runtime(RuntimeError::Timeout))),
             StatusCode::GATEWAY_TIMEOUT
         );
     }

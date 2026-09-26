@@ -250,16 +250,22 @@ completion evidence.
   Acceptance: one application component produces server and client entries; SSR awaits Vue
   `renderToString`, returns HTML and output state, and the browser hydrates the existing DOM node.
   CSR and static shells follow S-15-1. Evidence: build, render and browser cases; `make check`.
-- [ ] S-15-3 Compile Svelte application source for both server and client inside the Rust build
-  process and implement the Svelte adapter. Depends on: S-7, S-15-3-1. Acceptance: source compilation needs
-  no Node process; SSR and CSR share the client build; the browser retains the server DOM node
-  after hydration; output state and static shells follow S-15-1. Compiler, build and render errors
-  fail explicitly. Evidence: source build, render and browser cases; `make check`.
+- [o] S-15-3 Compile Svelte application source for both server and client inside the Rust build
+  process and implement the Svelte adapter. Depends on: S-7, S-15-3-1, S-13-2-2-2. Acceptance: source compilation needs
+  no Node process; the server entry exports `render` as an ESM function; SSR and CSR share the client build; the browser retains the server DOM node
+  after hydration; output state and static shells follow S-15-1. Component styles are published as
+  hashed CSS in the build manifest and Svelte head output appears in the document head. The HTTP
+  server serves the Svelte build through the ESM pool, applies the request nonce to inline head
+  and body scripts and styles, and serves the published component CSS. Compiler,
+  build and render errors fail explicitly. Generated JavaScript, CSS and JavaScript source maps are
+  used, while compiler warnings fail. CSS source maps are not published after CSS transformation.
+  Evidence: source build, HTTP style, head and nonce output, render and browser cases; `make check`.
 - [o] S-15-3-1 Require a head string in every runtime render result and carry its bytes in
   `RenderResult`. Depends on: S-2, S-6. Acceptance: missing, non-string and invalid Unicode head
   values fail; React, Vue and vanilla entries return an empty head, and their adapters reject
   nonempty head output until they define document placement. Evidence: runtime result and adapter
   rejection cases; `make check`.
+
 - [ ] S-15-4 Record supported features in `features.json`. Depends on: S-7, S-15-1, S-15-2,
   S-15-3. Acceptance: each true feature names its executable evidence; no feature is inferred
   solely from source inspection. Evidence: a checker runs every referenced case and `make check`.

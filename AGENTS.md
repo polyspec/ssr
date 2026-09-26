@@ -19,6 +19,9 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 - Develop one `0.0.1` library. The crates are `ssr-core`, `ssr-build`, `ssr-runtime`,
   `ssr-adapter-react`, `ssr-adapter-vue`, `ssr-adapter-svelte`, `ssr-adapter-vanilla` and `ssr-server`.
 - The library runs no Node process: bundling and rendering run inside the Rust process.
+- Preserve generated JavaScript, component CSS and server head in their defined destinations.
+  Missing required output and compiler warnings fail the build or render. Publish only source maps
+  that identify the final output accurately.
 
 ## Vocabulary and design
 

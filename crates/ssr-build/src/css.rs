@@ -12,12 +12,18 @@ use crate::{Build, BuildConfig, BuildFile, Error, digest};
 struct PackageProvider {
     files: FileProvider,
     root: PathBuf,
+    virtual_css: Option<(PathBuf, String)>,
 }
 
 impl SourceProvider for PackageProvider {
     type Error = io::Error;
 
     fn read<'a>(&'a self, file: &Path) -> Result<&'a str, Self::Error> {
+        if let Some((path, css)) = &self.virtual_css
+            && file == path
+        {
+            return Ok(css);
+        }
         self.files.read(file)
     }
 
@@ -41,13 +47,34 @@ impl SourceProvider for PackageProvider {
 }
 
 pub(crate) fn bundle(config: &BuildConfig, result: &mut Build) -> Result<BuildFile, Error> {
+    bundle_source(config, result, &config.css_entry, None, "styles")
+}
+
+pub(crate) fn bundle_component(
+    config: &BuildConfig,
+    result: &mut Build,
+    source_path: &Path,
+    css: String,
+) -> Result<BuildFile, Error> {
+    let virtual_path = source_path.with_extension("svelte.css");
+    bundle_source(config, result, &virtual_path, Some(css), "component")
+}
+
+fn bundle_source(
+    config: &BuildConfig,
+    result: &mut Build,
+    source_path: &Path,
+    virtual_css: Option<String>,
+    name: &str,
+) -> Result<BuildFile, Error> {
     let provider = PackageProvider {
         files: FileProvider::new(),
         root: config.root.clone(),
+        virtual_css: virtual_css.map(|css| (source_path.to_path_buf(), css)),
     };
     let mut bundler = Bundler::new(&provider, None, ParserOptions::default());
     let sheet = bundler
-        .bundle(&config.css_entry)
+        .bundle(source_path)
         .map_err(|error| Error::Css(error.to_string()))?;
     let printed = sheet
         .to_css(PrinterOptions {
@@ -112,7 +139,7 @@ pub(crate) fn bundle(config: &BuildConfig, result: &mut Build) -> Result<BuildFi
     }
     let hash = digest(code.as_bytes());
     result.insert(
-        format!("client/styles-{}.css", &hash[..16]),
+        format!("client/{name}-{}.css", &hash[..16]),
         code.into_bytes(),
         Some(&config.asset_route),
     )

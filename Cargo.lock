@@ -3468,6 +3468,13 @@ dependencies = [
 [[package]]
 name = "ssr-adapter-svelte"
 version = "0.0.1"
+dependencies = [
+ "ssr-build",
+ "ssr-core",
+ "ssr-runtime",
+ "tokio",
+ "wait-timeout",
+]
 
 [[package]]
 name = "ssr-adapter-vanilla"
@@ -3495,12 +3502,14 @@ dependencies = [
 name = "ssr-build"
 version = "0.0.1"
 dependencies = [
+ "deno_core",
  "getrandom 0.4.3",
  "lightningcss",
  "ordered-json",
  "rolldown",
  "rolldown_common",
  "rolldown_plugin_utils",
+ "rolldown_sourcemap",
  "sha2",
  "sourcemap",
  "tokio",
@@ -3541,6 +3550,7 @@ dependencies = [
  "sha2",
  "sourcemap",
  "ssr-adapter-react",
+ "ssr-adapter-svelte",
  "ssr-adapter-vanilla",
  "ssr-build",
  "ssr-core",

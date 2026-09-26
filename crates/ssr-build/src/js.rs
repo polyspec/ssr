@@ -1,4 +1,6 @@
-use std::path::Path;
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
 use rolldown::plugin::Plugin;
 use rolldown::{
@@ -8,14 +10,14 @@ use rolldown::{
 use rolldown_common::{GlobalsOutputOption, Output, SourceMapType};
 use sourcemap::{SourceMap, SourceMapBuilder};
 
-use crate::{Build, BuildConfig, Error, asset_url::AssetUrlPlugin};
+use crate::{Build, BuildConfig, Error, asset_url::AssetUrlPlugin, svelte::SveltePlugin};
 
 pub(crate) async fn bundle(
     config: &BuildConfig,
     entry: &Path,
     name: &str,
     result: &mut Build,
-) -> Result<(), Error> {
+) -> Result<BTreeMap<PathBuf, String>, Error> {
     let types = [
         "png", "svg", "jpg", "gif", "webp", "avif", "ico", "woff", "woff2", "ttf",
     ]
@@ -66,12 +68,20 @@ pub(crate) async fn bundle(
         module_types: Some(types),
         ..Default::default()
     };
+    let styles = Arc::new(Mutex::new(BTreeMap::new()));
     let mut bundler = Bundler::with_plugins(
         options,
-        vec![AssetUrlPlugin::new_shared(AssetUrlPlugin::new(
-            config.root.clone(),
-            config.asset_route.clone(),
-        ))],
+        vec![
+            AssetUrlPlugin::new_shared(AssetUrlPlugin::new(
+                config.root.clone(),
+                config.asset_route.clone(),
+            )),
+            SveltePlugin::new_shared(SveltePlugin::new(
+                config.root.clone(),
+                if name == "client" { "client" } else { "server" },
+                Arc::clone(&styles),
+            )),
+        ],
     )
     .map_err(|error| Error::JavaScript(error.to_string()))?;
     let output = bundler
@@ -132,7 +142,10 @@ pub(crate) async fn bundle(
     if !entry_found {
         return Err(Error::JavaScript(format!("{name} entry was not emitted")));
     }
-    Ok(())
+    styles
+        .lock()
+        .map_err(|_| Error::JavaScript("Svelte style lock failed".into()))
+        .map(|styles| styles.clone())
 }
 
 fn canonical_source_map(bytes: &[u8]) -> Result<Vec<u8>, Error> {

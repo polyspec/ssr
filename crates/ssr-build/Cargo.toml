@@ -9,10 +9,10 @@ ordered-json.workspace = true
 rolldown.workspace = true
 rolldown_common.workspace = true
 rolldown_plugin_utils.workspace = true
+rolldown_sourcemap.workspace = true
 lightningcss.workspace = true
 sha2.workspace = true
 getrandom.workspace = true
 sourcemap.workspace = true
-
-[dev-dependencies]
+deno_core.workspace = true
 tokio.workspace = true
