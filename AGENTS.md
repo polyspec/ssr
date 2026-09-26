@@ -15,10 +15,14 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 - Do not create new words for the public API or documents beyond the names in the checklist. When a
   new name is needed, collect every needed name and ask the user once for approval.
 - Keep no backward compatibility, fallback or hidden error; invalid input is an error.
-- A snapshot key includes the server bundle SHA-256, the pinned deno_core version and the library
-  version. Restored contexts use their own global objects for native callbacks. Consume every V8
-  snapshot creator on success and initialization failure, apply the configured timeout to snapshot
-  initialization, and release unused snapshot bytes.
+- A snapshot key includes the SHA-256 of server entry and chunk paths and bytes, the pinned
+  deno_core version and the library version. Restored contexts use their own global objects for
+  native callbacks. Consume every V8 snapshot creator on success and initialization failure, apply
+  the configured timeout to snapshot initialization, and release unused snapshot bytes.
+- An ordinary server entry exports `render` as an ECMAScript module. Compile its entry and every
+  private server chunk into the snapshot once, resolve relative imports against the exact supplied
+  files, and restore independent module data in each request context. Keep the render export out of
+  the global object. A missing module, invalid import or unfinished evaluation is an error.
 - When a decision of the agent is shown wrong, the report names that decision first.
 - `var/handoff/work.md` lists the specification sources of each item; it is not tracked.
 

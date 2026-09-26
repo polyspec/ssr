@@ -190,7 +190,7 @@ procedure. Each item names its dependencies and its completion evidence.
   and repeated entries fail; build tests and `make check` pass.
 - [ ] S-13-2-2 Execute the two bundles with isolated scheduling and Web Streams, and stream the
   document through HTTP with the nonce and error behavior of S-13. Depends on: S-13-2-1,
-  S-13-2-2-1, S-13-2-2-1-1.
+  S-13-2-2-1, S-13-2-2-1-1, S-13-2-2-2.
   Evidence: the S-13 cases pass in the runtime and server.
 - [o] S-13-2-2-1 Create a V8 isolate group for each server snapshot and restore every worker
   isolate in that group. Keep separate application snapshots independent when workers restore
@@ -205,6 +205,15 @@ procedure. Each item names its dependencies and its completion evidence.
   verification available as an explicit command; routine checks reuse the verified files without
   invoking GN or Ninja. Depends on: S-13-2-2-1. Evidence: missing, changed, identical-path and verified-copy cases,
   two routine checks with no V8 source rebuild, and the existing benchmark limits pass.
+- [o] S-13-2-2-2 Pass the exact server entry and chunks through `ServerBundle` and evaluate
+  them as V8 modules. The server entry
+  exports a `render` function; it does not create a global render function. Generated server
+  entries and every direct pool consumer use this contract. Resolve static and
+  dynamic relative imports only against the exact private server files, preserve valid static
+  import cycles, and reject missing files, invalid paths, import attributes, failed evaluation
+  and unfinished top-level await. Use each server file's own source map for JavaScript stacks.
+  Depends on: S-5, S-6, S-9, S-10, S-13-2-2-1, S-13-2-2-1-1. Evidence: tracked multi-chunk, dynamic import,
+  static cycle, failure, global isolation and stack tests; `make check` passes.
 - [o] S-14 Implement the development mode with notify 8.2.0: a file change rebuilds the bundles and
   replaces the pool. Depends on: S-9. Acceptance: construction builds the initial server and watches
   the absolute application root; a source change rebuilds all bundles and replaces the server and pool

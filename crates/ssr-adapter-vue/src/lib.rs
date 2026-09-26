@@ -45,7 +45,7 @@ fn app_import(path: &str) -> Result<String, Error> {
 pub fn server_entry(application: &str) -> Result<String, Error> {
     let application = app_import(application)?;
     Ok(format!(
-        "import {{ createSSRApp }} from 'vue';\nimport {{ renderToString }} from 'vue/server-renderer';\nimport App from {application};\nglobalThis.render = async (props, state) => {{ const renderState = {{input: state, output: null}}; const html = await renderToString(createSSRApp(App, {{...props, renderState}})); return {{html, head: '', state: renderState.output}}; }};\n"
+        "import {{ createSSRApp }} from 'vue';\nimport {{ renderToString }} from 'vue/server-renderer';\nimport App from {application};\nexport async function render(props, state) {{ const renderState = {{input: state, output: null}}; const html = await renderToString(createSSRApp(App, {{...props, renderState}})); return {{html, head: '', state: renderState.output}}; }}\n"
     ))
 }
 

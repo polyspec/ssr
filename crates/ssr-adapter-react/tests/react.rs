@@ -1,7 +1,7 @@
 use ssr_adapter_react::{ReactAdapter, client_entry, server_entry};
-use ssr_build::{BuildConfig, build};
+use ssr_build::{Build, BuildConfig, build};
 use ssr_core::Page;
-use ssr_runtime::Pool;
+use ssr_runtime::{Pool, ServerBundle};
 use std::collections::BTreeMap;
 use std::fs;
 use std::io::{BufRead, BufReader, Read, Write};
@@ -25,15 +25,38 @@ fn shell_page() -> Page {
     .unwrap()
 }
 
+fn fixture(entry_bytes: &[u8]) -> ServerBundle {
+    ServerBundle {
+        entry_path: "server/fixture.js".into(),
+        entry_bytes: entry_bytes.to_vec(),
+        chunks: Vec::new(),
+    }
+}
+
+fn built_bundle(build: &Build) -> ServerBundle {
+    ServerBundle {
+        entry_path: build.manifest.server.path.clone(),
+        entry_bytes: build.files[&build.manifest.server.path].clone(),
+        chunks: build
+            .manifest
+            .server_chunks
+            .iter()
+            .map(|file| (file.path.clone(), build.files[&file.path].clone()))
+            .collect(),
+    }
+}
+
 #[test]
 fn server_result_and_csr_state_follow_the_same_client_build() {
     let server = server_entry("/application/App.tsx").unwrap();
     let client = client_entry("/application/App.tsx").unwrap();
     assert!(server.contains("renderToString"));
+    assert!(server.contains("export function render(props, state)"));
+    assert!(!server.contains("globalThis.render"));
     assert!(client.contains("hydrateRoot"));
     assert!(client.contains("createRoot"));
 
-    let pool = Pool::new(b"function render(props, state) { return {head:'', html: '<main>' + props.name + '</main>', state: {count: state.count + 1}}; }".to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
+    let pool = Pool::new(fixture(b"export function render(props, state) { return {head:'', html: '<main>' + props.name + '</main>', state: {count: state.count + 1}}; }"), 1, 0, Duration::from_secs(2)).unwrap();
     let adapter = ReactAdapter::new("/assets/client.js", &["/assets/style.css"]).unwrap();
     let ssr = adapter.render(&page("ssr"), &pool).unwrap();
     assert_eq!(ssr.state.compact(), r#"{"count":5}"#);
@@ -82,7 +105,7 @@ fn invalid_entry_urls_and_shell_values_fail() {
     assert!(adapter.static_shell(&page("csr")).is_err());
     assert!(adapter.static_shell(&page("ssr")).is_err());
     let pool = Pool::new(
-        b"function render(props, state) { return {html:'ok', head:'<script>unsafe()</script>', state}; }".to_vec(),
+        fixture(b"export function render(props, state) { return {html:'ok', head:'<script>unsafe()</script>', state}; }"),
         1, 0, Duration::from_secs(2),
     ).unwrap();
     assert!(adapter.render(&page("ssr"), &pool).is_err());
@@ -123,8 +146,7 @@ async fn generated_react_entries_build_and_execute() {
     })
     .await
     .unwrap();
-    let server = output.files[&output.manifest.server.path].clone();
-    let pool = Pool::new(server, 1, 0, Duration::from_secs(10)).unwrap();
+    let pool = Pool::new(built_bundle(&output), 1, 0, Duration::from_secs(10)).unwrap();
     let adapter = ReactAdapter::new(
         output.manifest.client.url.as_ref().unwrap(),
         &output
@@ -230,13 +252,7 @@ async fn browser_hydrates_ssr_and_renders_csr_and_static_shells() {
     })
     .await
     .unwrap();
-    let pool = Pool::new(
-        output.files[&output.manifest.server.path].clone(),
-        1,
-        0,
-        Duration::from_secs(10),
-    )
-    .unwrap();
+    let pool = Pool::new(built_bundle(&output), 1, 0, Duration::from_secs(10)).unwrap();
     let adapter = ReactAdapter::new(
         output.manifest.client.url.as_ref().unwrap(),
         &output

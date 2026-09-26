@@ -6,8 +6,8 @@ use sourcemap::SourceMap;
 use ssr_adapter_react::{Error as ReactError, ReactAdapter};
 use ssr_build::{Build, BuildFile, PublicFiles, PublishError};
 use ssr_core::{CALL_PATH, Page};
-use ssr_runtime::{Error as RuntimeError, Pool};
-use std::collections::BTreeSet;
+use ssr_runtime::{Error as RuntimeError, Pool, ServerBundle};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::time::{Duration, Instant};
 
@@ -60,7 +60,7 @@ pub struct Server {
     public: PublicFiles,
     adapter: AdapterInstance,
     pool: Pool,
-    source_map: SourceMap,
+    source_maps: BTreeMap<String, SourceMap>,
 }
 
 fn verified<'a>(build: &'a Build, file: &BuildFile) -> Result<&'a [u8], Error> {
@@ -113,7 +113,24 @@ impl Server {
         timeout: Duration,
     ) -> Result<Self, Error> {
         let public = PublicFiles::new(build).map_err(Error::Public)?;
-        let bundle = verified(build, &build.manifest.server)?.to_vec();
+        let server = &build.manifest.server;
+        if server.url.is_some() || server.content_type != "text/javascript; charset=utf-8" {
+            return Err(Error::InvalidBuild(format!(
+                "server JavaScript must be private: {}",
+                server.path
+            )));
+        }
+        let entry_bytes = verified(build, server)?.to_vec();
+        let mut chunks = Vec::with_capacity(build.manifest.server_chunks.len());
+        for chunk in &build.manifest.server_chunks {
+            if chunk.url.is_some() || chunk.content_type != "text/javascript; charset=utf-8" {
+                return Err(Error::InvalidBuild(format!(
+                    "server JavaScript must be private: {}",
+                    chunk.path
+                )));
+            }
+            chunks.push((chunk.path.clone(), verified(build, chunk)?.to_vec()));
+        }
         let expected_maps = std::iter::once(&build.manifest.server)
             .chain(build.manifest.server_chunks.iter())
             .map(|file| format!("{}.map", file.path))
@@ -129,8 +146,7 @@ impl Server {
                 "server JavaScript and source maps must match exactly".into(),
             ));
         }
-        let map_path = format!("{}.map", build.manifest.server.path);
-        let mut source_map = None;
+        let mut source_maps = BTreeMap::new();
         for map in &build.manifest.source_maps {
             if map.url.is_some() || map.content_type != "application/json; charset=utf-8" {
                 return Err(Error::InvalidBuild(format!(
@@ -140,12 +156,16 @@ impl Server {
             }
             let bytes = verified(build, map)?;
             let decoded = SourceMap::from_slice(bytes).map_err(Error::SourceMap)?;
-            if map.path == map_path {
-                source_map = Some(decoded);
+            let path = map.path.strip_suffix(".map").ok_or_else(|| {
+                Error::InvalidBuild(format!("source map path is invalid: {}", map.path))
+            })?;
+            if source_maps.insert(path.to_owned(), decoded).is_some() {
+                return Err(Error::InvalidBuild(format!(
+                    "duplicate source map: {}",
+                    map.path
+                )));
             }
         }
-        let source_map = source_map
-            .ok_or_else(|| Error::InvalidBuild(format!("source map is missing: {map_path}")))?;
         let client = build
             .manifest
             .client
@@ -167,13 +187,18 @@ impl Server {
                 AdapterInstance::React(ReactAdapter::new(client, &styles).map_err(Error::React)?)
             }
         };
+        let bundle = ServerBundle {
+            entry_path: server.path.clone(),
+            entry_bytes,
+            chunks,
+        };
         let pool =
             Pool::new(bundle, worker_count, queue_capacity, timeout).map_err(Error::Runtime)?;
         Ok(Self {
             public,
             adapter,
             pool,
-            source_map,
+            source_maps,
         })
     }
 
@@ -259,7 +284,7 @@ impl Server {
                     ReactError::Runtime(RuntimeError::JavaScript {
                         message,
                         stack: Some(raw_stack),
-                    }) => match stack::map_stack(raw_stack, &self.source_map) {
+                    }) => match stack::map_stack(raw_stack, &self.source_maps) {
                         Ok(mapped) => format!("JavaScript failed: {message}\n{mapped}"),
                         Err(mapping_error) => format!(
                             "JavaScript failed: {message}\nstack mapping failed: {mapping_error}\n{raw_stack}"
