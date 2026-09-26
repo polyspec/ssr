@@ -196,7 +196,7 @@ procedure. Each item names its dependencies and its completion evidence.
   props and null state. Invalid paths, URLs, HTML and input return errors. The browser test verifies
   that hydration retains the server DOM node and CSR renders. Evidence: build, render and browser
   cases; `make check`.
-- [ ] S-15-2 Implement the Vue adapter. Depends on: S-7 and Promise-capable runtime rendering.
+- [o] S-15-2 Implement the Vue adapter. Depends on: S-7, S-13-1.
   Acceptance: one application component produces server and client entries; SSR awaits Vue
   `renderToString`, returns HTML and output state, and the browser hydrates the existing DOM node.
   CSR and static shells follow S-15-1. Evidence: build, render and browser cases; `make check`.
