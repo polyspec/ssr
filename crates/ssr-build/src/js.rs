@@ -10,7 +10,10 @@ use rolldown::{
 use rolldown_common::{GlobalsOutputOption, Output, SourceMapType};
 use sourcemap::{SourceMap, SourceMapBuilder};
 
-use crate::{Build, BuildConfig, Error, asset_url::AssetUrlPlugin, react_css::ReactCssPlugin, svelte::SveltePlugin};
+use crate::{
+    Build, BuildConfig, Error, asset_url::AssetUrlPlugin, react_css::ReactCssPlugin,
+    svelte::SveltePlugin,
+};
 
 pub(crate) async fn bundle(
     config: &BuildConfig,
