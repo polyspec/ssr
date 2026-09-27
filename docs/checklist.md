@@ -101,6 +101,8 @@ completion evidence.
   identifies the server entry, client entry, client styles, server chunks and public assets with
   SHA-256 digests. Evidence: a sample application builds; the manifest and bytes match; the hashes
   and output bytes are stable across two builds.
+- [o] S-5-1 Handle CSS imports in the React bundle explicitly and test their application build path.
+
 - [o] S-6 Implement `ssr-runtime`: a pool of isolates with one isolate per worker thread and a
   bounded queue, the bundle compiled once per isolate, own operations for `console` and
   `crypto.getRandomValues` from the operating system, no fetch, I/O timers, files or network, a
