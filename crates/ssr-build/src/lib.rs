@@ -5,6 +5,7 @@ mod css;
 mod js;
 mod manifest;
 mod public;
+mod react_css;
 mod svelte;
 
 pub use manifest::{BuildFile, Manifest};

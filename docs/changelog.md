@@ -141,3 +141,4 @@
 - Give the React entry build and browser hydration tests separate directories for generated
   server, framework and client files. A concurrent test verifies that each reads its own files
   because a shared path can replace build inputs during parallel checks.
+- Handle React CSS imports as explicit JavaScript-free modules and preserve data URLs during stylesheet bundling.

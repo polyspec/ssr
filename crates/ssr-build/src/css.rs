@@ -94,6 +94,9 @@ fn bundle_source(
                 return Err(Error::Css(format!("unbundled import: {}", import.url)));
             }
             Dependency::Url(url) => {
+                if url.url.starts_with("data:") {
+                    continue;
+                }
                 if !url.url.starts_with("./") && !url.url.starts_with("../") {
                     return Err(Error::Css(format!("unsupported CSS URL: {}", url.url)));
                 }
