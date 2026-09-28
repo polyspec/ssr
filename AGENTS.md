@@ -92,6 +92,12 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 - Marking an item `[o]` writes its implementation, tests, records and changelog entry in one
   commit. A received instruction is triaged first: finish the item in progress unless the
   instruction is explicit and urgent, then place the new work by priority before starting it.
+- The repository's full test suite runs once, when every checklist item is complete.
+- During development run only the tests of the modified area; run the full suite once, when the
+  item is marked `[o]`. Every test reports its own running, completion, success or failure with
+  its elapsed time and has its own timeout; a whole-suite timeout is not used. A long
+  operation gets detailed step logs instead of a timeout, so its process and result stay
+  observable.
 
   commit that item's implementation, tests, and records when marking it `[o]`.
 - A newly found issue in a completed item is added as a numbered sub-item; the completed item does
