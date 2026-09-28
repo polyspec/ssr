@@ -2,7 +2,7 @@ name: soksakim-test
 
 services:
   engine:
-    image: localhost/soksakim-test:0.0.1
+    image: localhost/ssr-engine-verify:0.0.1
     command: ["sleep", "infinity"]
     environment:
       CARGO_HOME: /cargo

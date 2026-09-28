@@ -35,7 +35,7 @@ bench:
 verify-engine-linux-arm64:
 	python3 tools/verify_archive.py aarch64-unknown-linux-gnu
 	python3 tools/prepare_engine_compose.py
-	container build --platform linux/arm64 -f verification/engine/linux/Dockerfile -t localhost/soksakim-test:0.0.1 verification/engine/linux
+	container build --platform linux/arm64 -f verification/engine/linux/Dockerfile -t localhost/ssr-engine-verify:0.0.1 verification/engine/linux
 	containerctl -f $(CURDIR)/var/engine-compose.yaml up
 	python3 tools/verify_engine_status.py
 	container exec -w /src soksakim-test-engine python3 /src/tools/verify_engine_mounts.py
