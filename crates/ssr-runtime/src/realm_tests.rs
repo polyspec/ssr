@@ -26,6 +26,7 @@ async fn react_initialization_and_hooks_share_context_without_application_timers
         client_entry: root.join("client.tsx"),
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();
@@ -92,6 +93,7 @@ async fn react_stream_pool_restores_request_contexts_for_repeated_calls() {
         client_entry: root.join("client.tsx"),
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();

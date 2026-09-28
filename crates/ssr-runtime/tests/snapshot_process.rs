@@ -104,6 +104,7 @@ async fn svelte_compilation_after_snapshot_selection_returns_an_error() {
             react_framework_entry: None,
             css_entry: root.join("app.css"),
             asset_route: "/assets".into(),
+            dependencies: None,
         })
         .await;
         let diagnostic = result
@@ -161,6 +162,7 @@ async fn failed_snapshot_disposes_its_creator_before_compilation_and_render_retr
         react_framework_entry: None,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();

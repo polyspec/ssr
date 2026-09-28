@@ -59,6 +59,7 @@ async fn repeated_form_rows_have_distinct_keys_across_two_server_renders() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();

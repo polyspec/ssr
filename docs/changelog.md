@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Resolve every application package import from one configured dependency directory: bare
+  package specifiers resolve only there, so a nested `node_modules` copy of the same package
+  cannot create a second module instance beside the render context provider and consumer.
+
 - Verify the official Linux V8 archive and binding inside the engine verification image: digest
   checks, read-only source mounts including ordered-json, and native same-snapshot parallel
   rendering with no V8 source compilation.

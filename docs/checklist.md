@@ -343,7 +343,7 @@ completion evidence.
   tests build and assert their own output when run alone or in parallel. Evidence: a tracked
   concurrent overwrite case fails before the correction and passes afterward, each affected test
   and their parallel pair pass, and `make check` passes.
-- [~] S-15-7 Resolve every application package import from the configured application dependency
+- [o] S-15-7 Resolve every application package import from the configured application dependency
   directory so nested `node_modules` copies cannot instantiate duplicate module state. Depends on:
   S-7, S-15. Acceptance: a fixture with the same package under the application source directory
   and the configured dependency directory uses one package path in the server bundle; a render

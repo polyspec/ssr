@@ -297,6 +297,7 @@ async fn react_server_bundle_executes_with_text_encoder() {
         client_entry: root.join("client.tsx"),
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();

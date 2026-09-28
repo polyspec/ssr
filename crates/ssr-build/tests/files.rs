@@ -295,6 +295,7 @@ async fn generated_bundle_files_are_read_without_rebuilding() {
         css_entry: root.join("app.css"),
         root,
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();

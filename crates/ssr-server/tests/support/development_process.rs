@@ -43,6 +43,7 @@ async fn main() -> Result<()> {
                 client_entry: root.join("client.js"),
                 css_entry: root.join("app.css"),
                 asset_route: "/assets".into(),
+                dependencies: None,
             };
             let output = ssr_build::build(&config)
                 .await?

@@ -193,6 +193,7 @@ async fn generated_react_entries_build_and_execute() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();
@@ -249,6 +250,7 @@ async fn suspense_failure_keeps_fallback_and_client_recovery_in_stream() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();
@@ -359,6 +361,7 @@ async fn browser_hydrates_ssr_and_renders_csr_and_static_shells() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();
@@ -480,4 +483,108 @@ async fn browser_hydrates_ssr_and_renders_csr_and_static_shells() {
     stop.read_exact(&mut [0_u8; 1]).unwrap();
     std::net::TcpStream::connect(address).unwrap();
     server.join().unwrap();
+}
+
+#[tokio::test]
+async fn configured_dependencies_share_one_package_instance_for_provider_and_consumer() {
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tools/build-probe/tests/fixtures")
+        .canonicalize()
+        .unwrap();
+    let root = std::env::temp_dir().join(format!("ssr-react-deps-{}", std::process::id()));
+    let dependencies = root.join("dependencies");
+    let nested = root.join("node_modules/shared-context");
+    let configured = dependencies.join("shared-context");
+    fs::create_dir_all(&nested).unwrap();
+    fs::create_dir_all(&configured).unwrap();
+    for name in ["react", "react-dom", "scheduler", "web-streams-polyfill"] {
+        std::os::unix::fs::symlink(
+            fixtures.join("node_modules").join(name),
+            dependencies.join(name),
+        )
+        .unwrap();
+    }
+    let package = "import React from 'react'; export const marker = '{marker}'; export const SharedContext = React.createContext('{default}');";
+    fs::write(
+        nested.join("package.json"),
+        r#"{"name":"shared-context","main":"index.js"}"#,
+    )
+    .unwrap();
+    fs::write(
+        configured.join("package.json"),
+        r#"{"name":"shared-context","main":"index.js"}"#,
+    )
+    .unwrap();
+    fs::write(
+        nested.join("index.js"),
+        package
+            .replace("{marker}", "nested-copy")
+            .replace("{default}", "nested-copy"),
+    )
+    .unwrap();
+    fs::write(
+        configured.join("index.js"),
+        package
+            .replace("{marker}", "dependency-copy")
+            .replace("{default}", "missing"),
+    )
+    .unwrap();
+    let application = root.join("application");
+    fs::create_dir_all(&application).unwrap();
+    fs::write(
+        application.join("Consumer.jsx"),
+        "import React, { useContext } from 'react'; import { SharedContext } from 'shared-context'; export function Consumer() { return <b id=\"value\">{useContext(SharedContext)}</b>; }",
+    )
+    .unwrap();
+    fs::write(
+        application.join("App.jsx"),
+        "import React from 'react'; import { SharedContext } from 'shared-context'; import { Consumer } from './Consumer.jsx'; export default function App() { return <SharedContext.Provider value=\"shared-instance\"><main><Consumer /></main></SharedContext.Provider>; }",
+    )
+    .unwrap();
+    fs::write(root.join("app.css"), "main{color:red}").unwrap();
+    let root = root.canonicalize().unwrap();
+    let generated = root.join("node_modules/.ssr-adapter-react-deps");
+    fs::create_dir_all(&generated).unwrap();
+    let server_path = generated.join("server.tsx");
+    let framework_path = generated.join("framework.tsx");
+    let client_path = generated.join("client.tsx");
+    let application = root.join("application/App.jsx");
+    fs::write(
+        &server_path,
+        server_entry(application.to_str().unwrap()).unwrap(),
+    )
+    .unwrap();
+    fs::write(&framework_path, framework_entry()).unwrap();
+    fs::write(
+        &client_path,
+        client_entry(application.to_str().unwrap()).unwrap(),
+    )
+    .unwrap();
+    let output = build(&BuildConfig {
+        root: root.clone(),
+        server_entry: server_path,
+        react_framework_entry: Some(framework_path),
+        client_entry: client_path,
+        css_entry: root.join("app.css"),
+        asset_route: "/assets".into(),
+        dependencies: Some(dependencies),
+    })
+    .await
+    .unwrap();
+    let server = String::from_utf8(output.files[&output.manifest.server.path].clone()).unwrap();
+    assert!(
+        server.contains("missing") && !server.contains("nested-copy"),
+        "the server bundle does not use the configured dependency copy alone: {server}"
+    );
+    let pool = react_pool(&output);
+    let adapter = ReactAdapter::new(output.manifest.client.url.as_ref().unwrap(), &[]).unwrap();
+    let ssr = stream_document(&adapter, &page("ssr"), &pool);
+    let html = String::from_utf8(ssr.html).unwrap();
+    assert!(
+        html.contains("shared-instance"),
+        "the provider and consumer used different package instances: {html}"
+    );
+    assert!(!html.contains("nested-copy"), "{html}");
+    assert!(!html.contains(">missing<"), "{html}");
+    fs::remove_dir_all(root).unwrap();
 }
