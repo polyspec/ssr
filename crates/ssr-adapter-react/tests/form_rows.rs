@@ -1,3 +1,4 @@
+mod support;
 use ssr_adapter_react::{ReactAdapter, client_entry, framework_entry, server_entry};
 use ssr_build::{BuildConfig, build};
 use ssr_core::Page;
@@ -73,9 +74,7 @@ async fn repeated_form_rows_have_distinct_keys_across_two_server_renders() {
             entry_bytes: output.files[&output.manifest.server.path].clone(),
             chunks: Vec::new(),
         },
-        1,
-        0,
-        Duration::from_secs(10),
+        support::options(1, 0, Duration::from_secs(10)),
     )
     .unwrap();
     let adapter = ReactAdapter::new(
@@ -94,7 +93,9 @@ async fn repeated_form_rows_have_distinct_keys_across_two_server_renders() {
     .unwrap();
     let mut previous = None;
     for _ in 0..2 {
-        let (state, stream) = pool.render_stream(&page, "form_rows_nonce").unwrap();
+        let (state, stream) = pool
+            .render_stream(&page, "form_rows_nonce", ssr_runtime::Cancellation::new())
+            .unwrap();
         let (mut prefix, suffix) = adapter.stream_parts(&page, &state).unwrap();
         prefix.extend_from_slice(&stream.collect::<Result<Vec<_>, _>>().unwrap().concat());
         prefix.extend_from_slice(&suffix);

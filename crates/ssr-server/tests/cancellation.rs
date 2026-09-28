@@ -1,18 +1,18 @@
 mod support;
 use http::{Method, Request, StatusCode, header};
 use ssr_build::{BuildConfig, build};
-use ssr_server::{Adapter, BodyError, Server};
+use ssr_server::{Adapter, Server};
 use std::path::Path;
 use std::time::Duration;
 
 #[tokio::test]
-async fn reader_rejection_after_a_chunk_is_a_body_error_with_fixed_response_metadata() {
+async fn dropping_http_body_cancels_render_and_releases_worker() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../tools/build-probe/tests/fixtures")
         .canonicalize()
         .unwrap();
     assert!(root.join("node_modules/react").is_dir());
-    let generated = root.join("node_modules/.ssr-server-late-reader");
+    let generated = root.join("node_modules/.ssr-server-cancellation");
     std::fs::create_dir_all(&generated).unwrap();
     let framework = generated.join("framework.tsx");
     let application = generated.join("application.tsx");
@@ -21,7 +21,7 @@ async fn reader_rejection_after_a_chunk_is_a_body_error_with_fixed_response_meta
         &framework,
         r#"globalThis.__ssrReact = {};
 globalThis.__ssrJsxRuntime = {};
-globalThis.render = async (_App, _props, state) => ({
+globalThis.render = async (_App, props, state) => ({
   state,
   stream: {
     getReader() {
@@ -35,7 +35,8 @@ globalThis.render = async (_App, _props, state) => ({
               value: new TextEncoder().encode('<p>first</p>')
             });
           }
-          return Promise.reject(new Error('late reader failure'));
+          if (props.loop) { for (;;) {} }
+          return Promise.resolve({done:true});
         }
       };
     }
@@ -58,7 +59,7 @@ globalThis.render = async (_App, _props, state) => ({
     let server = Server::new(
         &output,
         Adapter::React,
-        support::options(1, 0, Duration::from_secs(3)),
+        support::options(1, 1, Duration::from_secs(3)),
     )
     .unwrap();
     let request = Request::builder()
@@ -66,7 +67,7 @@ globalThis.render = async (_App, _props, state) => ({
         .uri("/_render")
         .header(header::CONTENT_TYPE, "application/json")
         .body(
-            br#"{"render":"ssr","title":"Stream","language":"en","props":{},"state":null}"#
+            br#"{"render":"ssr","title":"Stream","language":"en","props":{"loop":true},"state":null}"#
                 .to_vec(),
         )
         .unwrap();
@@ -80,23 +81,22 @@ globalThis.render = async (_App, _props, state) => ({
     assert!(!parts.headers.contains_key(header::CONTENT_LENGTH));
 
     let mut received = Vec::new();
-    let failure = loop {
-        match body.next().expect("late read failure must be visible") {
-            Ok(chunk) => received.extend_from_slice(&chunk),
-            Err(error) => break error,
-        }
-    };
-    assert!(String::from_utf8_lossy(&received).contains("<p>first</p>"));
-    assert!(matches!(failure, BodyError::Runtime(_)), "{failure}");
+    while !String::from_utf8_lossy(&received).contains("<p>first</p>") {
+        received.extend_from_slice(&body.next().unwrap().unwrap());
+    }
+    drop(body);
+    let request = Request::builder()
+        .method(Method::POST)
+        .uri("/_render")
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(br#"{"render":"ssr","title":"Stream","language":"en","props":{"loop":false},"state":null}"#.to_vec())
+        .unwrap();
+    let response = server.handle(request).unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let document = response.into_body().collect_bytes().unwrap();
     assert!(
-        failure.to_string().contains("late reader failure"),
-        "{failure}"
+        String::from_utf8(document)
+            .unwrap()
+            .contains("<p>first</p>")
     );
-    assert!(body.next().is_none());
-    assert_eq!(parts.status, StatusCode::OK);
-    assert_eq!(
-        parts.headers[header::CONTENT_TYPE],
-        "text/html; charset=utf-8"
-    );
-    assert!(!parts.headers.contains_key(header::CONTENT_LENGTH));
 }

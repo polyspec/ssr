@@ -63,9 +63,17 @@ async fn render(directory: PathBuf) -> Result<()> {
     let server = Arc::new(Server::new(
         &build,
         Adapter::Vanilla,
-        2,
-        16,
-        Duration::from_secs(5),
+        ssr_runtime::PoolOptions {
+            worker_count: 2,
+            queue_capacity: 16,
+            timeout: Duration::from_secs(5),
+            cleanup_timeout: Duration::from_secs(2),
+            max_input_bytes: 16777216,
+            max_queue_bytes: 67108864,
+            max_chunk_bytes: 65536,
+            max_output_bytes: 67108864,
+            max_heap_bytes: 134217728,
+        },
     )?);
     let listener = TcpListener::bind("127.0.0.1:0").await?;
     println!("http://{}/", listener.local_addr()?);

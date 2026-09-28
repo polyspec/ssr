@@ -134,9 +134,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             entry_bytes: BUNDLE.as_bytes().to_vec(),
             chunks: Vec::new(),
         },
-        16,
-        16,
-        Duration::from_secs(10),
+        ssr_runtime::PoolOptions {
+            worker_count: 16,
+            queue_capacity: 16,
+            timeout: Duration::from_secs(10),
+            cleanup_timeout: Duration::from_secs(2),
+            max_input_bytes: 16777216,
+            max_queue_bytes: 67108864,
+            max_chunk_bytes: 65536,
+            max_output_bytes: 67108864,
+            max_heap_bytes: 134217728,
+        },
     )?);
     for index in 0..CONCURRENCY.len() {
         run(index, Arc::clone(&pool), &page)?;

@@ -1,3 +1,4 @@
+mod support;
 use http::{Method, Request, StatusCode};
 use ssr_adapter_react::{client_entry, framework_entry, server_entry};
 use ssr_build::{BuildConfig, build};
@@ -59,9 +60,18 @@ async fn suspense_error_keeps_recovery_stream_and_records_request_error() {
     .await
     .unwrap();
     assert!(output.manifest.server_chunks.is_empty());
-    let server = Server::new(&output, Adapter::React, 1, 0, Duration::from_secs(10)).unwrap();
-    let timeout_server =
-        Server::new(&output, Adapter::React, 1, 0, Duration::from_millis(200)).unwrap();
+    let server = Server::new(
+        &output,
+        Adapter::React,
+        support::options(1, 0, Duration::from_secs(10)),
+    )
+    .unwrap();
+    let timeout_server = Server::new(
+        &output,
+        Adapter::React,
+        support::options(1, 0, Duration::from_millis(200)),
+    )
+    .unwrap();
     let timeout_request = Request::builder()
         .method(Method::POST)
         .uri("/_render")
@@ -88,7 +98,11 @@ async fn suspense_error_keeps_recovery_stream_and_records_request_error() {
         .manifest
         .server_chunks
         .push(output.manifest.server.clone());
-    let error = match Server::new(&output, Adapter::React, 1, 0, Duration::from_secs(10)) {
+    let error = match Server::new(
+        &output,
+        Adapter::React,
+        support::options(1, 0, Duration::from_secs(10)),
+    ) {
         Ok(_) => panic!("React server chunks must fail"),
         Err(error) => error,
     };

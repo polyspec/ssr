@@ -56,6 +56,8 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   initialization and rendering use one React instance. Give framework scheduling a lexical binding
   and remove it from the global before evaluating application code. Do not evaluate either bundle
   on each request.
+- Require explicit pool limits and request cancellation. Return worker capacity only after context
+  cleanup, report a failed cleanup, and replace the renderer process when native work cannot stop.
 - Public API documents name the current entry, pool and render methods. Check
   the English and Korean contracts against executable use paths; remove descriptions of replaced
   calls when the API changes.

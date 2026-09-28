@@ -1,8 +1,11 @@
 use crate::{
-    Command, ContextRender, Error, StreamEvent, WorkerReply, module, react_stream,
-    snapshot::Snapshot, state_from_json,
+    ContextRender, Error, WorkerReply, module, react_stream,
+    snapshot::Snapshot,
+    state_from_json,
+    stream::Event,
+    worker::{Command, WorkerState},
 };
-use crossbeam_channel::Receiver;
+use crossbeam_channel::{Receiver, select_biased};
 use deno_core::v8;
 use ssr_core::RenderResult;
 use std::collections::BTreeMap;
@@ -32,12 +35,19 @@ macro_rules! caught {
 pub(crate) fn worker(
     snapshot: Arc<Snapshot>,
     requests: Receiver<Command>,
-    ready: SyncSender<Result<v8::IsolateHandle, Error>>,
-) {
+    ready: SyncSender<Result<(), Error>>,
+    state: WorkerState,
+) -> Result<(), Error> {
+    let WorkerState {
+        health,
+        available,
+        index,
+        watch,
+        options,
+    } = state;
     let is_react = snapshot.is_react();
     let module_data = snapshot.module_data();
-    let mut runtime = snapshot.isolate();
-    let handle = runtime.thread_safe_handle();
+    let mut runtime = snapshot.isolate(options.max_heap_bytes);
     let serializer = match compile(
         &mut runtime,
         "(value) => JSON.stringify(value, function (_key, item) { if (item === undefined || typeof item === 'function' || typeof item === 'symbol' || typeof item === 'bigint' || (typeof item === 'number' && !Number.isFinite(item))) { throw new TypeError('render state contains a non-JSON value'); } return item; })",
@@ -45,63 +55,113 @@ pub(crate) fn worker(
     ) {
         Ok(script) => script,
         Err(error) => {
-            let _ = ready.send(Err(error));
-            return;
+            ready.send(Err(error)).map_err(|_| Error::WorkerStopped)?;
+            return Ok(());
         }
     };
-    if ready.send(Ok(handle)).is_err() {
-        return;
-    }
-    while let Ok(command) = requests.recv() {
+    ready.send(Ok(())).map_err(|_| Error::WorkerStopped)?;
+    loop {
+        let command = select_biased! {
+            recv(health.closed()) -> _ => return Ok(()),
+            recv(requests) -> result => match result {Ok(command) => command, Err(_) => return Ok(())},
+        };
+        let request = command.request().clone();
+        let _trace = tracing::dispatcher::set_default(&request.trace);
+        let _span = request.span.enter();
+        tracing::info!(
+            worker = index,
+            pool_wait_ms = request.started.elapsed().as_secs_f64() * 1000.0,
+            "render worker started request"
+        );
+        if watch.send(request.clone()).is_err() {
+            request.cancellation.finish(Some(&mut runtime))?;
+            request.cancellation.acknowledge()?;
+            return Err(Error::WorkerStopped);
+        }
+        let started = request.cancellation.start(runtime.thread_safe_handle());
         match command {
             Command::Render {
                 props,
                 state,
                 reply,
+                ..
             } => {
-                let result = match &module_data {
-                    Some((sources, module_indices)) => render(
-                        &mut runtime,
-                        &serializer,
-                        Arc::clone(sources),
-                        module_indices,
-                        &props,
-                        &state,
-                    ),
-                    None => Err(Error::InvalidConfiguration(
-                        "React pool requires stream rendering",
-                    )),
-                };
-                let heap_used_bytes = runtime.get_heap_statistics().used_heap_size();
-                runtime.cancel_terminate_execution();
-                let _ = reply.send(WorkerReply {
-                    result,
-                    heap_used_bytes,
+                let result = started.and_then(|_| {
+                    request.check()?;
+                    match &module_data {
+                        Some((sources, module_indices)) => render(
+                            &mut runtime,
+                            &serializer,
+                            Arc::clone(sources),
+                            module_indices,
+                            &props,
+                            &state,
+                            options.max_output_bytes,
+                        ),
+                        None => Err(Error::InvalidConfiguration(
+                            "React pool requires stream rendering",
+                        )),
+                    }
                 });
+                let heap_used_bytes = runtime.get_heap_statistics().used_heap_size();
+                if let Err(error) = &result {
+                    tracing::error!(worker = index, error = %error, "render failed");
+                }
+                if reply
+                    .send(WorkerReply {
+                        result,
+                        heap_used_bytes,
+                    })
+                    .is_err()
+                {
+                    tracing::debug!(worker = index, "render caller stopped receiving");
+                }
             }
             Command::Stream {
                 props,
                 state,
                 nonce,
-                events,
-                available,
-                index,
+                output,
             } => {
-                let result = if is_react {
-                    react_stream::render(&mut runtime, &serializer, &props, &state, &nonce, &events)
-                } else {
-                    Err(Error::InvalidConfiguration(
-                        "stream rendering requires a React pool",
-                    ))
+                let result = started.and_then(|_| {
+                    request.check()?;
+                    if is_react {
+                        react_stream::render(
+                            &mut runtime,
+                            &serializer,
+                            &props,
+                            &state,
+                            &nonce,
+                            &output,
+                        )
+                    } else {
+                        Err(Error::InvalidConfiguration(
+                            "stream rendering requires a React pool",
+                        ))
+                    }
+                });
+                let event = match result {
+                    Ok(()) => Event::End,
+                    Err(error) => {
+                        tracing::error!(worker = index, nonce = %nonce, error = %error, "render stream failed");
+                        Event::Failed(error)
+                    }
                 };
-                runtime.cancel_terminate_execution();
-                if let Err(error) = result {
-                    let _ = events.send(StreamEvent::Failed(error));
+                if let Err(error) = output.send(event) {
+                    tracing::debug!(worker = index, error = %error, "render stream transmission stopped");
                 }
-                let _ = available.send(index);
             }
-            Command::Stop => break,
         }
+        request.cancellation.finish(Some(&mut runtime))?;
+        if health.check().is_ok() {
+            available.send(index).map_err(|_| Error::WorkerStopped)?;
+        }
+        request.cancellation.acknowledge()?;
+        tracing::info!(
+            worker = index,
+            elapsed_ms = request.started.elapsed().as_secs_f64() * 1000.0,
+            "render worker cleanup completed"
+        );
     }
 }
 
@@ -149,6 +209,7 @@ fn render(
     module_indices: &BTreeMap<String, usize>,
     props: &str,
     state: &str,
+    max_output_bytes: usize,
 ) -> Result<ContextRender, Error> {
     v8::scope!(let scope, runtime);
     let heap_before = scope.get_heap_statistics().used_heap_size() as i128;
@@ -175,8 +236,10 @@ fn render(
     let html = object
         .get(scope, html_name.into())
         .ok_or_else(|| caught!(scope))?;
-    if !html.is_string() {
-        return Err(Error::InvalidResult("html must be a string"));
+    let html = v8::Local::<v8::String>::try_from(html)
+        .map_err(|_| Error::InvalidResult("html must be a string"))?;
+    if html.utf8_length(scope) > max_output_bytes {
+        return Err(Error::LimitExceeded("output bytes"));
     }
     let html_text = html.to_rust_string_lossy(scope);
     let html_roundtrip = v8::String::new(scope, &html_text)
@@ -190,8 +253,10 @@ fn render(
     let head = object
         .get(scope, head_name.into())
         .ok_or_else(|| caught!(scope))?;
-    if !head.is_string() {
-        return Err(Error::InvalidResult("head must be a string"));
+    let head = v8::Local::<v8::String>::try_from(head)
+        .map_err(|_| Error::InvalidResult("head must be a string"))?;
+    if head.utf8_length(scope) > max_output_bytes - html.len() {
+        return Err(Error::LimitExceeded("output bytes"));
     }
     let head_text = head.to_rust_string_lossy(scope);
     let head_roundtrip = v8::String::new(scope, &head_text)
@@ -217,6 +282,9 @@ fn render(
         .ok_or_else(|| caught!(scope))?;
     let json = v8::Local::<v8::String>::try_from(json)
         .map_err(|_| Error::InvalidResult("state serialization did not return JSON"))?;
+    if json.utf8_length(scope) > max_output_bytes - html.len() - head.len() {
+        return Err(Error::LimitExceeded("output bytes"));
+    }
     let state = state_from_json(json.to_rust_string_lossy(scope).as_bytes())?;
     Ok(ContextRender {
         result: RenderResult { html, head, state },

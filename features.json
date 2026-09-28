@@ -59,6 +59,41 @@
       "name": "react-form-rows",
       "supported": true,
       "test": { "package": "ssr-adapter-react", "binary": "form_rows", "case": "repeated_form_rows_have_distinct_keys_across_two_server_renders" }
+    },
+    {
+      "name": "stream-cancellation",
+      "supported": true,
+      "test": { "package": "ssr-runtime", "binary": "cancellation", "case": "dropping_stream_cancels_running_script_and_preserves_next_request" }
+    },
+    {
+      "name": "http-body-cancellation",
+      "supported": true,
+      "test": { "package": "ssr-server", "binary": "cancellation", "case": "dropping_http_body_cancels_render_and_releases_worker" }
+    },
+    {
+      "name": "runtime-input-limits",
+      "supported": true,
+      "test": { "package": "ssr-runtime", "binary": "cancellation", "case": "input_and_waiting_bytes_have_independent_limits" }
+    },
+    {
+      "name": "runtime-chunk-limits",
+      "supported": true,
+      "test": { "package": "ssr-runtime", "binary": "cancellation", "case": "stream_chunk_limit_splits_output_without_truncation" }
+    },
+    {
+      "name": "runtime-output-limits",
+      "supported": true,
+      "test": { "package": "ssr-runtime", "binary": "cancellation", "case": "stream_output_limit_counts_state_and_all_chunks" }
+    },
+    {
+      "name": "http-input-limits",
+      "supported": true,
+      "test": { "package": "ssr-server", "binary": "render", "case": "request_size_is_checked_before_json_parsing_and_csr_rendering" }
+    },
+    {
+      "name": "http-runtime-lifecycle",
+      "supported": true,
+      "test": { "package": "ssr-server", "binary": "render", "case": "server_close_notifies_health_waiters_and_stops_ssr_admission" }
     }
   ]
 }
