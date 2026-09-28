@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- Add `Build::write` and `Build::read` for complete build directories named by the manifest
+  SHA-256. Publish private and public files with one directory rename, preserve equal writes and
+  previous builds, and reject changed manifests, missing or extra files, invalid paths, symbolic
+  links and incorrect file digests. Report publication and cleanup failures together.
+
 - Require a target-specific Linux V8 archive with independent isolate-group support for development image rendering.
 
 - Resolve application packages from the configured dependency directory so nested package copies do not create separate module instances.

@@ -2,6 +2,23 @@
 
 # Build verification
 
+## Complete build directories
+
+`Build::write(&directory)` requires an existing absolute directory without symbolic links and
+returns the absolute path of a complete build directory named by the SHA-256 of its canonical
+manifest. It writes every private and public output and `manifest.json` before one directory
+rename publishes the build. A repeated equal write verifies and preserves the existing files.
+A different build receives a different directory; neither operation replaces previous builds.
+Publication errors report removal errors for their temporary directory as well.
+
+`Build::read(&directory)` reads exactly that build directory. It rejects duplicate or unknown
+manifest fields, unsafe or duplicate paths, missing or extra files, symbolic links, incorrect
+digests or content types, public URLs on private files, missing public URLs, and a directory name
+that differs from the manifest digest. Manifest bytes must match their canonical encoding; changes
+to whitespace or field order fail verification as well. Every server entry, framework and server chunk requires its
+private source map. The returned build can be passed to `PublicFiles::new`; public publication
+continues to exclude every private file. A failed read never selects another directory.
+
 ## Product build contract
 
 `ssr-build` accepts absolute paths to the application root, server JavaScript entry, client JavaScript entry

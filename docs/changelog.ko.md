@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- 매니페스트 SHA-256 이름의 전체 빌드 디렉터리를 위한 `Build::write`와 `Build::read`를 추가한다.
+  디렉터리 이름 변경 한 번으로 비공개·공개 파일을 게시하고 같은 쓰기와 이전 빌드를 유지한다.
+  변조된 매니페스트, 누락·추가 파일, 잘못된 경로, 심볼릭 링크와 잘못된 파일 해시를 거부하며
+  게시 실패와 정리 실패를 함께 보고한다.
+
 - 개발 이미지 렌더링에 독립 isolate group을 지원하는 대상별 Linux V8 archive를 요구한다.
 
 - 설정한 dependency 디렉터리에서 application package를 해석해 중첩 package 복사본이 별도 module instance를 만들지 않게 한다.
