@@ -184,6 +184,11 @@
   경로와 같으면 오류다. 직접 소스 빌드 검증은 명시적 명령으로 유지하고 일상 검사는 검증된 파일을
   재사용하며 GN이나 Ninja를 실행하지 않는다. 의존: S-13-2-2-1. 증거: 누락·변조·동일 경로·검증된
   복사 사례, V8 소스 재빌드 없는 일상 검사 2회, 기존 벤치마크 한도 통과.
+- [~] S-13-2-2-1-2 `IsolateGroup::create`에 필요한 separate pointer cage와 external code space를
+  가진 대상별 Linux V8 archive와 생성된 binding을 제공한다. 개발 이미지는 `V8_FROM_SOURCE`를
+  설정하지 않고 이 로컬 파일을 사용해야 하며 `independent isolate group unavailable`을 반환하는
+  일반 prebuilt archive는 부족하다. 의존: S-13-2-2-1-1. 증거: Linux archive 빌드와 digest 검증,
+  소비하는 개발 이미지의 isolate-group runtime 사례, GN/Ninja V8 컴파일 없는 두 번째 이미지 빌드.
 - [o] S-13-2-2-2 정확한 서버 진입점과 청크를 `ServerBundle`로 전달하여 V8 모듈로 평가한다.
   서버 진입점은 `render` 함수를 export하며
   전역 render 함수를 만들지 않는다. 생성한 서버 진입점과 풀의 모든 직접 호출자가 이 계약을 사용한다.

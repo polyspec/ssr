@@ -228,6 +228,13 @@ completion evidence.
   verification available as an explicit command; routine checks reuse the verified files without
   invoking GN or Ninja. Depends on: S-13-2-2-1. Evidence: missing, changed, identical-path and verified-copy cases,
   two routine checks with no V8 source rebuild, and the existing benchmark limits pass.
+- [~] S-13-2-2-1-2 Provide a target-specific Linux V8 archive and generated binding with the same
+  separate pointer cages and external code space required by `IsolateGroup::create`. The
+  development image must consume those local files without setting `V8_FROM_SOURCE`; a general
+  prebuilt archive that returns `independent isolate group unavailable` is insufficient. Depends
+  on: S-13-2-2-1-1. Evidence: a Linux archive build and digest verification, the isolate-group
+  runtime case in the consuming development image, and a second image build with no GN/Ninja V8
+  compilation.
 - [o] S-13-2-2-2 Pass the exact server entry and chunks through `ServerBundle` and evaluate
   them as V8 modules. The server entry
   exports a `render` function; it does not create a global render function. Generated server
