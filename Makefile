@@ -41,6 +41,10 @@ verify-engine-linux-arm64:
 	container exec -w /src soksakim-test-engine python3 /src/tools/verify_engine_mounts.py
 	container exec -w /src -e CARGO_NET_OFFLINE=false soksakim-test-engine cargo fetch --locked --manifest-path /src/verification/engine/Cargo.toml
 	container exec -w /src soksakim-test-engine python3 /src/tools/verify_engine.py aarch64-unknown-linux-gnu
+	containerctl -f $(CURDIR)/var/engine-compose.yaml down
+
+verify-engine-down:
+	containerctl -f $(CURDIR)/var/engine-compose.yaml down
 
 verify-engine-deps:
 	cargo deny --manifest-path verification/engine/Cargo.toml --config deny.toml check --hide-inclusion-graph
