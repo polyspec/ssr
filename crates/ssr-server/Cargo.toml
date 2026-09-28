@@ -17,6 +17,9 @@ tracing.workspace = true
 sha2.workspace = true
 notify.workspace = true
 tokio.workspace = true
+hyper.workspace = true
+hyper-util.workspace = true
+http-body-util.workspace = true
 lol_html.workspace = true
 getrandom.workspace = true
 
@@ -24,3 +27,8 @@ getrandom.workspace = true
 sha2.workspace = true
 tracing-subscriber = { version = "=0.3.23", default-features = false, features = ["fmt"] }
 tokio.workspace = true
+hyper = { workspace = true, features = ["server"] }
+
+[[example]]
+name = "development_process"
+path = "tests/support/development_process.rs"

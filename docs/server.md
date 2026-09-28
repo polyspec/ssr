@@ -48,13 +48,56 @@ maps and their digests.
 
 ## Development mode
 
-`Development::start` builds the initial server and watches an absolute application root with
-notify 8.2.0. Create, modify and remove events rebuild the server and client bundles, CSS and
-public files. A successful rebuild creates a new pool and replaces the server as one value.
-Requests already using the previous server may finish. New requests use the new server.
-The change receiver reports every rebuild result. A rebuild or watch error makes new requests
-fail with its cause until a later successful rebuild. An invalid initial build fails startup.
-Dropping the development server stops the watcher and joins its worker.
+`ProcessOptions` requires `ready_timeout`, `drain_timeout`, `restart_limit`, `event_capacity` and
+`max_probe_bytes`. Both durations and both capacities must be positive; no value is supplied implicitly.
+`ProcessOptions::validate` checks these requirements before process startup.
+`event_capacity` bounds each source-event and change-report queue. A full or closed queue records the
+rejected event and cause, fails new requests, stops supervision and reports the failure on close.
+Source paths and output exclusions are checked before an event enters the source queue.
 
-Acceptance: a source change updates rendered and public output. An invalid source reports a
-build failure, prevents stale output, and a valid edit restores service.
+`Development::start` accepts absolute source paths, explicitly excluded paths, a build `Command`,
+a function that creates a render `Command` for a completed build directory, an SSR `Page` for
+preparation and explicit `ProcessOptions`. Paths contain no symbolic links.
+Source directories are watched recursively. A source file uses a nonrecursive watch of its parent
+with exact path filtering so replacing that file preserves observation. Excluded paths must be
+strict descendants of a source path; a missing excluded path requires a verified existing ancestor.
+Only source changes with an included input path enter the queue; an event with unknown paths also
+enters it. Access events do not rebuild. New source files remain watched.
+
+Both commands execute Rust programs. The build command writes only the absolute immutable directory
+returned by `Build::write` and a newline to stdout; diagnostics use stderr. The render command
+serves its supplied completed directory and writes its absolute HTTP root URL and a newline to
+stdout after its listener starts. It emits no further stdout. It stops accepting requests and
+finishes active responses when stdin closes. The supervisor retains child stdin independently of
+process exit observation. Build output must be outside watched inputs or under an explicit exclusion.
+
+Before publishing a render process, the supervisor validates its complete directory with
+`Build::read` and sends the supplied SSR page to `/_render`. Preparation requires HTTP 200, HTML
+content type and a complete nonempty body within `max_probe_bytes`. A listening port alone is insufficient.
+The preparation timeout covers startup and the entire probe response. `Development::from_build`
+accepts an already completed directory with the same render command, page and options; it has no
+source watcher or build command.
+
+`Development::handle` forwards requests asynchronously, preserves the application Host header and
+returns a Hyper response body. The URI authority selects the child connection address. Its
+process remains running until that body completes or is dropped. After replacement, existing
+responses may finish and new requests use the prepared process. A rebuild or watch failure makes
+new requests fail with its cause until a later successful rebuild. The change receiver reports
+each result. An invalid initial build fails startup. Unexpected process exit triggers an error
+event and a replacement from the same verified build without rebuilding source, up to `restart_limit`.
+Zero disables automatic replacement. Each completed build has one replacement budget; a successful
+source rebuild resets it. A failed replacement or exhausted budget leaves requests failing. HTTP transport errors preserve their underlying cause.
+
+A dedicated supervisor thread owns its Tokio runtime. `Development::close` stops the watcher and
+active build, closes child stdin and collects every child exit status. A process that exceeds its
+shutdown timeout is killed and waited for, and shutdown returns an error. Dropping the supervisor
+also waits for cleanup and logs its result. `close` accepts a shared reference; concurrent and repeated
+calls await the same completion result. The shutdown duration starts when a process is replaced,
+invalidated by a failed rebuild or requested to stop, even when a response has not finished.
+Extra stdout remains an error during shutdown. Build execution reports start, completion, exit failure
+and elapsed time and inherits stderr; there is no total build timeout.
+
+Acceptance: maintained Rust child programs verify separate build and render processes, actual SSR
+preparation, explicit rebuild failure and recovery, progressive responses during replacement,
+restart from a completed build, normal shutdown, forced termination, and process cleanup on drop.
+The source event tests preserve newly created source files and exclude only declared output paths.
