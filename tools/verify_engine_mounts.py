@@ -9,6 +9,7 @@ import time
 EXPECTED = {
     "/src": "ro",
     "/Users/maxkwon/soksakim-project/v8-local": "ro",
+    "/Users/maxkwon/ordered-json": "ro",
     "/cargo": "rw",
     "/target": "rw",
 }
