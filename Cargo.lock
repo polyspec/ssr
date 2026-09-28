@@ -3607,6 +3607,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ssr-nonce"
+version = "0.0.1"
+dependencies = [
+ "lol_html",
+]
+
+[[package]]
 name = "ssr-runtime"
 version = "0.0.1"
 dependencies = [
@@ -3632,7 +3639,6 @@ dependencies = [
  "http-body-util",
  "hyper",
  "hyper-util",
- "lol_html",
  "notify",
  "sha2",
  "sourcemap",
@@ -3641,6 +3647,7 @@ dependencies = [
  "ssr-adapter-vanilla",
  "ssr-build",
  "ssr-core",
+ "ssr-nonce",
  "ssr-runtime",
  "tokio",
  "tracing",

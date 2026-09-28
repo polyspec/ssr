@@ -15,6 +15,7 @@ CRATES = (
     "ssr-adapter-vue",
     "ssr-adapter-svelte",
     "ssr-adapter-vanilla",
+    "ssr-nonce",
     "ssr-server",
 )
 

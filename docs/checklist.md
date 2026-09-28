@@ -234,6 +234,13 @@ completion evidence.
   S-13 completion. Depends on: S-13-2-2. Evidence: a tracked contract check fails on the old
   React document and passes on the corrected English and Korean documents; the public React
   consumer test and `make check` pass.
+- [o] S-13-3 Publish the request-nonce document rewriter as the reusable `ssr-nonce` crate and
+  make the server use it instead of its private copy. The crate applies one request nonce to
+  every `script` and `style` element of a streamed or complete document, preserves raw text and
+  comments, and fails when an element already has a different nonce or the document is not
+  UTF-8. Depends on: S-13-2-2. Evidence: the crate's split-tag, raw-text, comment, mismatched
+  nonce and UTF-8 cases pass, the server delegates to the crate and its document boundary case
+  passes, and `make check` passes.
 - [o] S-13-2-2-1 Create a V8 isolate group for each server snapshot and restore every worker
   isolate in that group. Keep separate application snapshots independent when workers restore
   them concurrently; do not serialize worker isolate creation. Build the pinned V8 source with

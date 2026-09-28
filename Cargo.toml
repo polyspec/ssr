@@ -7,6 +7,7 @@ members = [
     "crates/ssr-adapter-vue",
     "crates/ssr-adapter-svelte",
     "crates/ssr-adapter-vanilla",
+    "crates/ssr-nonce",
     "crates/ssr-server",
 ]
 resolver = "3"

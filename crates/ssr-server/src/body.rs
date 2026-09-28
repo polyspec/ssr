@@ -1,11 +1,6 @@
-use lol_html::{HtmlRewriter, Settings, element, send::SendHandlerTypes};
+use ssr_nonce::NonceRewriter;
 use ssr_runtime::{Error as RuntimeError, Stream};
-use std::collections::VecDeque;
 use std::fmt;
-use std::sync::{Arc, Mutex};
-
-type Sink = Box<dyn FnMut(&[u8]) + Send>;
-type Rewriter = HtmlRewriter<'static, Sink, SendHandlerTypes>;
 
 #[derive(Debug)]
 pub enum BodyError {
@@ -24,78 +19,9 @@ impl fmt::Display for BodyError {
 
 impl std::error::Error for BodyError {}
 
-struct NonceRewriter {
-    rewriter: Option<Rewriter>,
-    output: Arc<Mutex<VecDeque<Vec<u8>>>>,
-    pending_utf8: Vec<u8>,
-}
-
-impl NonceRewriter {
-    fn new(nonce: &str) -> Self {
-        let nonce = nonce.to_owned();
-        let settings = Settings::new_send().append_element_content_handler(element!(
-            "script, style",
-            move |element: &mut lol_html::send::Element<'_, '_>| {
-                if let Some(existing) = element.get_attribute("nonce") {
-                    if existing != nonce {
-                        return Err("inline nonce differs from the request nonce".into());
-                    }
-                } else {
-                    element.set_attribute("nonce", &nonce)?;
-                }
-                Ok(())
-            }
-        ));
-        let output = Arc::new(Mutex::new(VecDeque::new()));
-        let sink_output = Arc::clone(&output);
-        let sink: Sink = Box::new(move |chunk| {
-            if !chunk.is_empty() {
-                sink_output
-                    .lock()
-                    .expect("nonce output lock poisoned")
-                    .push_back(chunk.to_vec());
-            }
-        });
-        Self {
-            rewriter: Some(HtmlRewriter::new(settings, sink)),
-            output,
-            pending_utf8: Vec::new(),
-        }
-    }
-
-    fn write(&mut self, chunk: &[u8]) -> Result<(), BodyError> {
-        self.pending_utf8.extend_from_slice(chunk);
-        match std::str::from_utf8(&self.pending_utf8) {
-            Ok(_) => self.pending_utf8.clear(),
-            Err(error) if error.error_len().is_none() => {
-                let valid = error.valid_up_to();
-                self.pending_utf8.drain(..valid);
-            }
-            Err(error) => return Err(BodyError::Html(format!("invalid UTF-8: {error}"))),
-        }
-        self.rewriter
-            .as_mut()
-            .expect("rewriter active before end")
-            .write(chunk)
-            .map_err(|error| BodyError::Html(error.to_string()))
-    }
-
-    fn end(&mut self) -> Result<(), BodyError> {
-        if !self.pending_utf8.is_empty() {
-            return Err(BodyError::Html("incomplete UTF-8 at document end".into()));
-        }
-        self.rewriter
-            .take()
-            .expect("rewriter active before end")
-            .end()
-            .map_err(|error| BodyError::Html(error.to_string()))
-    }
-
-    fn pop(&self) -> Option<Vec<u8>> {
-        self.output
-            .lock()
-            .expect("nonce output lock poisoned")
-            .pop_front()
+impl From<ssr_nonce::Error> for BodyError {
+    fn from(error: ssr_nonce::Error) -> Self {
+        Self::Html(error.to_string())
     }
 }
 
@@ -176,7 +102,7 @@ impl Iterator for StreamBody {
                     if let Err(error) = self.rewriter.write(&chunk) {
                         self.finished = true;
                         tracing::error!(%error, "stream body failed");
-                        return Some(Err(error));
+                        return Some(Err(error.into()));
                     }
                 }
                 Some(Err(error)) => {
@@ -193,7 +119,7 @@ impl Iterator for StreamBody {
                     {
                         self.finished = true;
                         tracing::error!(%error, "stream body failed");
-                        return Some(Err(error));
+                        return Some(Err(error.into()));
                     }
                     self.finished = true;
                 }
@@ -212,46 +138,18 @@ impl Drop for StreamBody {
 
 #[cfg(test)]
 mod tests {
-    use super::{Body, NonceRewriter};
+    use super::Body;
 
     #[test]
-    fn nonce_rewriter_handles_split_tags_raw_text_and_comments() {
-        let mut rewriter = NonceRewriter::new("request_nonce");
-        for chunk in [
-            b"<!doctype html><html><head><!-- <script>fake</script> --><ST".as_slice(),
-            b"YLE data-x='a>b'>.note::after{content:'<script>fake</script>'}</STYLE>".as_slice(),
-            b"</head><body><script data-x=\"a>b\">const text = '<style>fake</style>';".as_slice(),
-            b"</script><script nonce=\"request_nonce\">ok()</script></body></html>".as_slice(),
-        ] {
-            rewriter.write(chunk).unwrap();
-        }
-        rewriter.end().unwrap();
-        let mut result = Vec::new();
-        while let Some(chunk) = rewriter.pop() {
-            result.extend_from_slice(&chunk);
-        }
-        let result = String::from_utf8(result).unwrap();
-        assert!(result.contains("<!-- <script>fake</script> -->"));
-        assert!(
-            result.contains("<STYLE data-x='a>b' nonce=\"request_nonce\">"),
-            "{result}"
-        );
-        assert!(result.contains("content:'<script>fake</script>'"));
-        assert!(
-            result.contains("<script data-x=\"a>b\" nonce=\"request_nonce\">"),
-            "{result}"
-        );
-        assert!(result.contains("const text = '<style>fake</style>';"));
-        assert!(result.contains("<script nonce=\"request_nonce\">ok()"));
-    }
-
-    #[test]
-    fn nonce_mismatch_and_invalid_utf8_are_errors() {
+    fn server_documents_apply_the_request_nonce_and_reject_mismatches() {
+        let rewritten = Body::html(
+            b"<html><body><script>x()</script></body></html>".to_vec(),
+            "request",
+        )
+        .unwrap();
+        let bytes = rewritten.collect_bytes().unwrap();
+        assert!(bytes.ends_with(b"<script nonce=\"request\">x()</script></body></html>"));
         assert!(Body::html(b"<script nonce='other'>x()</script>".to_vec(), "request").is_err());
-        assert!(Body::html(b"<style nonce=other>x</style>".to_vec(), "request").is_err());
         assert!(Body::html(vec![0xff], "request").is_err());
-        let mut rewriter = NonceRewriter::new("request");
-        rewriter.write(&[0xc3]).unwrap();
-        assert!(rewriter.end().is_err());
     }
 }
