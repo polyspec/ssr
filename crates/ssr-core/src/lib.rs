@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+pub mod process;
+
 pub use ordered_json::Value;
 use ordered_json::{Kind, OrderedMap};
 use std::fmt;

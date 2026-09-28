@@ -18,10 +18,9 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 - JSON documents of the public contract use ordered-json.
 - Develop one `0.0.1` library. The crates are `ssr-core`, `ssr-build`, `ssr-runtime`,
   `ssr-adapter-react`, `ssr-adapter-vue`, `ssr-adapter-svelte`, `ssr-adapter-vanilla` and `ssr-server`.
-- Rust build and render commands run in separate processes; neither runs Node. A render process
-  keeps one immutable build for its lifetime. Manage child stdin separately from process exit
-  observation. Collect every child exit status; a process that exceeds its graceful shutdown
-  duration is killed and waited for, and shutdown reports that failure.
+- The library runs no Node process. Production build commands and render servers run in separate Rust processes.
+  A renderer process selects one immutable bundle and snapshot key for its lifetime. New bundles
+  use new renderer processes; request concurrency and services share the selected full application bundle.
 - Preserve generated JavaScript, component CSS and server head in their defined destinations.
   Missing required output and compiler warnings fail the build or render. Publish only source maps
   that identify the final output accurately.
@@ -36,7 +35,19 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 - A snapshot key includes the SHA-256 of server entry and chunk paths and bytes, the pinned
   deno_core version and the library version. Restored contexts use their own global objects for
   native callbacks. Consume every V8 snapshot creator on success and initialization failure, apply
-  the configured timeout to snapshot initialization, and release unused snapshot bytes.
+  the configured timeout to snapshot initialization, and retain the one snapshot until process exit.
+  Dispose its creator before restoring concurrent worker isolates through the public V8 API.
+  A different bundle key is an explicit error even after all pools close.
+- Protect Svelte compiler V8 entry and snapshot initialization with the common process contract.
+  Compiler operations may overlap each other but cannot overlap snapshot creation or follow a
+  successful snapshot. Dispose the compiler runtime and snapshot creator before releasing their
+  process access. A failed snapshot must dispose every isolate before another engine entry.
+  Ordinary Rust bundling and completed compilation before rendering remain supported.
+- A managed renderer child follows its stdin shutdown contract. The parent retains its stdin handle
+  while that generation accepts or drains requests, closes it for shutdown, then awaits and records
+  the child's exit. Manage stdin ownership separately from exit observation. A readiness task must
+  not accidentally close the handle. A child that exceeds its graceful shutdown duration is killed
+  and waited for, and shutdown reports that failure.
 - An ordinary server entry exports `render` as an ECMAScript module. Compile its entry and every
   private server chunk into the snapshot once, resolve relative imports against the exact supplied
   files, and restore independent module data in each request context. Keep the render export out of
@@ -102,10 +113,11 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
    official release information. `Cargo.lock` is committed.
 6. A missing test environment is a failure, never a skip. Each test has its own timeout and reports
    start, pass, fail, skip and timeout with elapsed time. Check exit codes; do not hide them behind
-   pipes. Check free disk space and the pinned V8 source inputs before a long run. Direct V8 source
-   verification builds with `is_debug=false`, separate pointer cages and external code space.
-   `make check` and `make bench` verify the SHA-256 of a separate absolute archive and generated
-   binding before linking them; a missing or changed file or unavailable isolate group is a failure.
+   pipes. Check at least 10 GiB free disk space and the pinned local V8 inputs before a long run.
+   `make check` and `make bench` verify the target, SHA-256, binding and Cargo features of the
+   official local archive before linking. Missing or changed inputs fail; do not download V8 or
+   substitute a V8 source build. Long builds report their commands and progress without a total
+   duration limit; test cases retain individual time limits.
 7. Performance claims are measured by the maintained benchmark (`make bench`) with recorded limits.
 8. No polling where an event exists, no symbolic links, no relative paths in configuration and no
    temporary scripts for repeatable work: repeatable commands are make targets or tools in Git.

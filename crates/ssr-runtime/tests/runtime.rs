@@ -60,7 +60,10 @@ fn promise_render_result_settles_or_reports_its_failure() {
         fulfilled.render(&page(r#"{"name":"Ada"}"#)).unwrap().html,
         b"Ada"
     );
+}
 
+#[test]
+fn promise_rejection_returns_stack() {
     let rejected = make_pool(
         b"export function render() { return Promise.reject(new Error('promise failed')); }"
             .to_vec(),
@@ -74,7 +77,10 @@ fn promise_render_result_settles_or_reports_its_failure() {
         Err(Error::JavaScript { message, stack: Some(stack) })
             if message.contains("promise failed") && stack.contains("promise failed")
     ));
+}
 
+#[test]
+fn pending_promise_reports_missing_completion() {
     let pending = make_pool(
         b"export function render() { return new Promise(() => {}); }".to_vec(),
         1,
@@ -379,6 +385,10 @@ fn invalid_input_and_result_fail() {
     let mut csr = page("{}");
     csr.render = Render::Csr;
     assert!(matches!(pool.render(&csr), Err(Error::InvalidPage(_))));
+}
+
+#[test]
+fn undefined_output_state_is_rejected() {
     let pool = make_pool(
         b"export function render() { return {head:'', html: 'ok', state: {kept: 1, lost: undefined}}; }"
             .to_vec(),
@@ -391,6 +401,10 @@ fn invalid_input_and_result_fail() {
         pool.render(&page("{}")),
         Err(Error::JavaScript { .. })
     ));
+}
+
+#[test]
+fn nonfinite_output_state_is_rejected() {
     let pool = make_pool(
         b"export function render() { return {head:'', html: 'ok', state: {value: NaN}}; }".to_vec(),
         1,
@@ -442,15 +456,27 @@ fn render_head_is_required_and_preserved() {
     ).unwrap();
     let result = pool.render(&page("{}")).unwrap();
     assert_eq!(result.head, b"<meta name=\"section\" content=\"news\">");
-    for source in [
-        "export function render() { return {html:'ok', state:null}; }",
-        "export function render() { return {html:'ok', head:1, state:null}; }",
-        "export function render() { return {html:'ok', head:'\\uD800', state:null}; }",
-    ] {
-        let pool = make_pool(source.as_bytes().to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
-        assert!(
-            matches!(pool.render(&page("{}")), Err(Error::InvalidResult(_))),
-            "{source}"
-        );
-    }
+}
+
+fn invalid_head(source: &str) {
+    let pool = make_pool(source.as_bytes().to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
+    assert!(
+        matches!(pool.render(&page("{}")), Err(Error::InvalidResult(_))),
+        "{source}"
+    );
+}
+
+#[test]
+fn missing_head_is_rejected() {
+    invalid_head("export function render() { return {html:'ok', state:null}; }");
+}
+
+#[test]
+fn nonstring_head_is_rejected() {
+    invalid_head("export function render() { return {html:'ok', head:1, state:null}; }");
+}
+
+#[test]
+fn invalid_utf16_head_is_rejected() {
+    invalid_head(r"export function render() { return {html:'ok', head:'\uD800', state:null}; }");
 }

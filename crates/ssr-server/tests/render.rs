@@ -233,24 +233,32 @@ fn svelte_javascript_failure_uses_server_source_map() {
 }
 
 #[test]
-fn static_and_dynamic_chunk_failures_use_their_own_source_map() {
-    let chunk = "export function fail() { throw new Error('chunk boom'); }";
-    for entry in [
+fn static_chunk_failure_uses_its_own_source_map() {
+    chunk_failure_uses_its_own_source_map(
         "import { fail } from './chunk.js'; export function render() { fail(); }",
+    );
+}
+
+#[test]
+fn dynamic_chunk_failure_uses_its_own_source_map() {
+    chunk_failure_uses_its_own_source_map(
         "export async function render() { const chunk = await import('./chunk.js'); chunk.fail(); }",
-    ] {
-        let output = with_chunk(entry, chunk);
-        let server = Server::new(&output, Adapter::Vanilla, 1, 0, Duration::from_secs(2)).unwrap();
-        let response = server
-            .handle(request(Method::POST, "/_render", SSR, true))
-            .unwrap();
-        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-        let bytes = body(response);
-        let text = std::str::from_utf8(&bytes).unwrap();
-        assert!(text.contains("chunk boom"), "{text}");
-        assert!(text.contains("src/chunk.ts:4:3"), "{text}");
-        assert!(!text.contains("stack mapping failed"), "{text}");
-    }
+    );
+}
+
+fn chunk_failure_uses_its_own_source_map(entry: &str) {
+    let chunk = "export function fail() { throw new Error('chunk boom'); }";
+    let output = with_chunk(entry, chunk);
+    let server = Server::new(&output, Adapter::Vanilla, 1, 0, Duration::from_secs(2)).unwrap();
+    let response = server
+        .handle(request(Method::POST, "/_render", SSR, true))
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    let bytes = body(response);
+    let text = std::str::from_utf8(&bytes).unwrap();
+    assert!(text.contains("chunk boom"), "{text}");
+    assert!(text.contains("src/chunk.ts:4:3"), "{text}");
+    assert!(!text.contains("stack mapping failed"), "{text}");
 }
 
 #[test]

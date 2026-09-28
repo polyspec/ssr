@@ -2,7 +2,7 @@
 
 # 엔진 검증
 
-## 버전과 아카이브 획득
+## 버전과 로컬 입력
 
 `verification/engine`의 검증 프로그램은 `deno_core =0.412.0`,
 `deno_webidl =0.259.0`, `deno_web =0.290.0`을 고정한다. 커밋한 잠금 파일은
@@ -16,8 +16,11 @@
 사전 빌드 아카이브를 받는다. 선택된 기능에 `simdutf`가 포함되므로 아카이브
 이름은 `librusty_v8_simdutf_release_<target>.a.gz`이다. 환경 변수
 `RUSTY_V8_ARCHIVE`로 절대 경로의 로컬 아카이브를 선택한다. 빌드 스크립트는
-이 경로의 SHA-256을 검사하지 않으므로, `tools/verify_engine.py`가 압축된
-아카이브의 SHA-256을 확인한 뒤 Cargo를 실행한다.
+이 경로의 SHA-256을 검사하지 않으므로, `tools/verify_archive.py`가 압축된 archive와 일치하는
+binding을 검증한 뒤 Cargo를 실행한다. 선택한 대상의 오프라인 잠금 Cargo metadata에서 정확한
+V8 버전과 feature 구성을 검사한다. `make check`, `make bench`와 엔진 검증
+명령은 소스 빌드 설정을 거부하고 검증한 로컬 입력만 선택한다. Cargo 명령을 직접 실행할 때도 같은
+입력 검증을 먼저 수행하고 archive와 binding 환경 변수를 명시해야 한다.
 
 V8 소스 체크아웃은 버전 150.4.0을 유지하면서 컴파일 시 `paste` 매크로 의존성으로
 `pastey 0.2.3`을 선택한다. 이전 매크로 패키지에는 유지보수 종료 권고가 있고 수정
@@ -33,20 +36,28 @@ V8 소스 체크아웃은 버전 150.4.0을 유지하면서 컴파일 시 `paste
 | `aarch64-unknown-linux-gnu` | `539e283815a396a5796f32858b42e517b858ebaaeaaad05d03290ee8c864a527` |
 | `x86_64-unknown-linux-gnu` | `f48762ca10d1f1fc605a441c5ae430ec8ce1e9e80f14d78fbc42cb878c30b476` |
 
-`python3 tools/verify_engine.py <target> --fetch`를 실행하면 없는 아카이브를
-다운로드하고 SHA-256을 검사한 뒤 검증 프로그램을 `cargo build --locked
---target`으로 완전히 빌드한다. `--fetch`를 생략하면 `var/v8`에 아카이브가
-있어야 한다. 아카이브 누락, 해시 변경, 다운로드 실패, 빌드 실패 및 시간
-초과는 오류로 처리한다.
+`make verify-archive`는 `var/v8`의 로컬 archive와 binding을 검사한다. `make check`와
+`make bench`는 연결 전에 이 검사를 실행한다. binding 이름은
+`src_binding_simdutf_release_<target>.rs`이고 일치하는 네이티브 feature는 정확히 `simdutf`,
+`use_custom_libcxx`다. `default` 표식은 `use_custom_libcxx`를 선택하므로 있어도 되며
+표식이 없어도 네이티브 feature 구성은 같다. 파일 누락, 해시 변경, 심볼릭 링크나 상대 경로, Cargo feature 불일치는
+실패다. 소비자는 `--archive`, `--binding`, `--metadata-root`를 명시적으로 지정할 수 있다.
+`--files-only`는 소비자가 Cargo 설정을 생성하기 전에 준비한 파일만 검증하며 정상 빌드는 생성된
+의존성 그래프도 검증해야 한다.
 
-ARM64 Mac에서 `python3 tools/verify_engine.py aarch64-apple-darwin --offline`을 실행하면
-로컬 아카이브 해시를 검사하고 Cargo 네트워크 접근을 차단한 상태로 빌드한다. 이 모드는 `var/v8`의
-아카이브를 요구하며 다운로드하지 않는다. 도구 사례는 아카이브 누락·변조와 다운로드 실패를 거부한다.
+| 대상 | 생성 binding SHA-256 |
+| --- | --- |
+| macOS AArch64 및 x86_64 | `ca5adf0cf89c9a70ad460ae73648b2fe89b74aa113b3cb7f757b6a02b758394f` |
+| Linux AArch64 및 x86_64 | `7727826ae479bdb645e807239fb12d1f8e2e23de7a6cf16f5ee592690d1d8506` |
+
+`python3 tools/verify_engine.py <target>`는 이미 있는 검증한 입력을 요구하고 Cargo 네트워크
+접근 없이 빌드한다. 전체 빌드 경과 시간 제한을 적용하지 않고 Cargo 명령과 컴파일러 진행을
+기록한다. 네이티브 대상 실행에는 개별 테스트 제한 시간을 적용한다.
 
 `make verify-engine-linux-arm64`는 SHA-256이
 `sha256:5b993f23fb69746405496e76f91e511d96c82b5b23304fd5d20b4a80a8b223ea`인
 Rust 1.98.1 Bookworm 이미지로 ARM64 Linux 컨테이너 이미지를 빌드한다.
-없는 아카이브를 다운로드하고 해시를 검사한 뒤 저장소를 읽기 전용으로
+검증한 로컬 archive와 일치하는 binding을 요구하고 저장소를 읽기 전용으로
 `/src`에 마운트한다. 호스트의 무시된 `var/engine-cargo`와
 `var/engine-target` 디렉터리를 `/cargo`와 `/target`에 쓰기 가능한
 바인드 마운트로 연결하고 프로그램을 빌드·실행한다. `make`는 Compose 파일에
@@ -58,23 +69,25 @@ Rust 1.98.1 Bookworm 이미지로 ARM64 Linux 컨테이너 이미지를 빌드�
 로컬 V8 체크아웃도 Cargo patch의 절대 경로에 읽기 전용으로 마운트한다. 컨테이너는
 두 소스 체크아웃을 수정할 수 없다.
 
-## Isolate group 소스 archive
+## 렌더 스냅샷
 
-Apple arm64에서 런타임 검사에 사용하는 V8 release 소스 archive의 SHA-256은
-`b18bcc65f8cb5f3249bea722614caf8ac1a5f5cef35ee9e01a91b6ec245cb9a0`이고, 생성된 binding의
-SHA-256은 `e71f32a0f97f99e13566c5da28804ad09421a0ecd600fbb6b79f301b9759ee2a`이다.
-`make install-group-archive`는 절대 Cargo target 경로의 두 출력을 검증한 뒤 별도 무시된
-`var/v8/librusty_v8_source_aarch64-apple-darwin.a`와
-`var/v8/src_binding_source_aarch64-apple-darwin.rs` 경로로 복사한다. 복사본도 설치 전에 다시 검증한다.
-소스 누락·변경, 상대 경로, 소스와 대상의 동일 경로는 오류다. `make verify-group-archive`는 설치된
-두 파일을 검사한다. `make check`와 `make bench`는 `RUSTY_V8_ARCHIVE`와
-`RUSTY_V8_SRC_BINDING_PATH`를 사용하기 전에 이 검사를 실행하며 GN이나 Ninja를 호출하지 않는다.
-파일 누락·변경 또는 지원하지 않는 호스트는 오류다.
+렌더 프로세스 하나는 불변 번들 키 하나를 선택한다. 공개 스냅샷 생성기가 context를 한 번
+초기화하고 직렬화한 뒤 완전히 정리되면 워커 isolate가 같은 blob을 복원한다. 모든 풀이 종료된
+후에도 다른 키는 거부한다. 다른 번들은 별도 프로세스를 사용한다. 요청 context는 독립적이고
+어느 번들도 다시 평가하지 않는다.
 
-V8 checkout의 `tools/check-isolate-groups.py`는 명시적인 소스 빌드·런타임 검증 명령으로 남는다.
-이 명령은 실제 `is_debug=false`, 포인터 압축, 별도 포인터 cage, 외부 코드 공간 설정을 검사한 뒤
-서로 다른 스냅샷 세 개를 병렬로 실행한다. 새 소스 archive를 설치하기 전에 절대
-`CARGO_TARGET_DIR`와 필요한 컴파일러 경로를 지정해 실행한다.
+컴파일러는 기본 V8 스냅샷을 사용하므로 isolate 생성·정리와 렌더 스냅샷 생성을
+`ssr_core::process`로 조율한다. 스냅샷 초기화 중이나 성공 뒤에는 컴파일러가 진입할 수 없다.
+스냅샷 생성기는 초기화 성공과 실패 모두에서 소비한다. 고정된 V8 구현은 마지막 isolate를
+정리할 때 공유 읽기 전용 데이터를 제거한다. 실행 테스트는 초기화 실패, 후속 Svelte 컴파일,
+성공한 렌더 순서를 검증한다. 릴리스 빌드가 호환되지 않는 진입을 허용해도 공유 힙의 안전성을
+입증하지 못하므로 V8 진입 전에 계약을 검사한다.
+
+macOS AArch64의 공식 archive 네이티브 테스트는 프로세스 키 변경 거부와 같은 초기화 난수를
+유지하는 워커 4개의 병렬 렌더 80회, 요청 변경값 격리를 검증한다. React 스트림 테스트는 반복
+요청 context에서 실제 `renderToReadableStream` 출력을 검증한다. 다중 프로세스 테스트는
+애플리케이션 번들 3개와 모듈 하나를 별도 프로세스에서 동시에 렌더한다. 이 테스트는 다른 대상의
+빌드 증거와 별개다.
 
 ## 빌드 증거
 

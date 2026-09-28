@@ -71,19 +71,6 @@ fn entries_render_both_modes_and_reject_invalid_input() {
             .unwrap()
             .contains("<main>Ada</main>")
     );
-    let empty_pool = Pool::new(
-        fixture(b"export function render(props, state) { return {head:'', html:'', state}; }"),
-        1,
-        0,
-        Duration::from_secs(2),
-    )
-    .unwrap();
-    let empty = adapter.render(&page("ssr"), &empty_pool).unwrap();
-    assert!(
-        String::from_utf8(empty.html)
-            .unwrap()
-            .contains("<div id=\"root\" data-render=\"ssr\"></div>")
-    );
     let csr = adapter.render(&page("csr"), &pool).unwrap();
     assert_eq!(csr.state.compact(), r#"{"count":4}"#);
     assert!(
@@ -98,10 +85,33 @@ fn entries_render_both_modes_and_reject_invalid_input() {
     );
     assert!(VanillaAdapter::new("//other/client.js", &[]).is_err());
     assert!(VanillaAdapter::new("/assets/client.js", &["/assets/../style.css"]).is_err());
+}
+
+#[test]
+fn empty_ssr_document_preserves_render_mode() {
+    let pool = Pool::new(
+        fixture(b"export function render(props, state) { return {head:'', html:'', state}; }"),
+        1,
+        0,
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    let adapter = VanillaAdapter::new("/assets/client.js", &["/assets/style.css"]).unwrap();
+    let empty = adapter.render(&page("ssr"), &pool).unwrap();
+    assert!(
+        String::from_utf8(empty.html)
+            .unwrap()
+            .contains("<div id=\"root\" data-render=\"ssr\"></div>")
+    );
+}
+
+#[test]
+fn server_head_is_rejected() {
     let pool = Pool::new(
         fixture(b"export function render(props, state) { return {html:'ok', head:'<script>unsafe()</script>', state}; }"),
         1, 0, Duration::from_secs(2),
     ).unwrap();
+    let adapter = VanillaAdapter::new("/assets/client.js", &["/assets/style.css"]).unwrap();
     assert!(adapter.render(&page("ssr"), &pool).is_err());
 }
 

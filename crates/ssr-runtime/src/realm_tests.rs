@@ -123,56 +123,73 @@ async fn react_stream_pool_restores_request_contexts_for_repeated_calls() {
 }
 
 #[test]
-fn three_react_application_snapshots_and_a_module_restore_in_parallel() {
+fn application_snapshots_restore_in_separate_processes() {
+    use std::process::{Command, Stdio};
+    use wait_timeout::ChildExt;
+    const FIXTURE: &str = "SSR_SNAPSHOT_PROCESS_CASE";
+    const TEST: &str = "realm_tests::application_snapshots_restore_in_separate_processes";
     const FRAMEWORK: &str = "globalThis.__ssrReact = {}; globalThis.__ssrJsxRuntime = {}; globalThis.render = async (App, _props, state) => { const text = App(); let sent = false; return { stream: { getReader() { return { read() { if (sent) return Promise.resolve({done:true}); sent = true; return Promise.resolve({done:false, value:new TextEncoder().encode(text)}); } }; } }, state }; };";
-    let page = Page::from_json(
-        br#"{"render":"ssr","title":"Test","language":"en","props":{},"state":null}"#,
-    )
-    .unwrap();
-    for _ in 0..10 {
-        std::thread::scope(|scope| {
-            for (name, source) in [
-                ("Ada", "globalThis.__ssrApp = () => '<p>Ada</p>'"),
-                ("Bea", "globalThis.__ssrApp = () => '<p>Bea</p>'"),
-                ("Cy", "globalThis.__ssrApp = () => '<p>Cy</p>'"),
-            ] {
-                let page = &page;
-                scope.spawn(move || {
-                    let pool = Pool::new_react(
-                        ("server/framework.js".into(), FRAMEWORK.as_bytes().to_vec()),
-                        ServerBundle {
-                            entry_path: "server/application.js".into(),
-                            entry_bytes: source.as_bytes().to_vec(),
-                            chunks: Vec::new(),
-                        },
-                        1,
-                        0,
-                        Duration::from_secs(3),
-                    )
-                    .unwrap();
-                    let (_, stream) = pool.render_stream(page, "test_nonce").unwrap();
-                    let html =
-                        String::from_utf8(stream.collect::<Result<Vec<_>, _>>().unwrap().concat())
-                            .unwrap();
-                    assert_eq!(html, format!("<p>{name}</p>"));
-                });
+    if let Ok(name) = std::env::var(FIXTURE) {
+        let page = Page::from_json(
+            br#"{"render":"ssr","title":"Test","language":"en","props":{},"state":null}"#,
+        )
+        .unwrap();
+        if name == "plain" {
+            let pool = Pool::new(ServerBundle {
+                entry_path: "server/plain.js".into(),
+                entry_bytes: b"export function render() { return {html:'<p>plain</p>', head:'', state:null}; }".to_vec(),
+                chunks: Vec::new(),
+            }, 4, 16, Duration::from_secs(3)).unwrap();
+            for _ in 0..20 {
+                assert_eq!(pool.render(&page).unwrap().html, b"<p>plain</p>");
             }
-            let page = &page;
-            scope.spawn(move || {
-                let pool = Pool::new(
-                    ServerBundle {
-                        entry_path: "server/plain.js".into(),
-                        entry_bytes: b"export function render() { return {html:'<p>plain</p>', head:'', state:null}; }".to_vec(),
-                        chunks: Vec::new(),
-                    },
-                    1,
-                    0,
-                    Duration::from_secs(3),
-                )
-                .unwrap();
-                let result = pool.render(page).unwrap();
-                assert_eq!(result.html, b"<p>plain</p>");
-            });
-        });
+        } else {
+            assert!(["Ada", "Bea", "Cy"].contains(&name.as_str()));
+            let pool = Pool::new_react(
+                ("server/framework.js".into(), FRAMEWORK.as_bytes().to_vec()),
+                ServerBundle {
+                    entry_path: "server/application.js".into(),
+                    entry_bytes: format!("globalThis.__ssrApp = () => '<p>{name}</p>'")
+                        .into_bytes(),
+                    chunks: Vec::new(),
+                },
+                4,
+                16,
+                Duration::from_secs(3),
+            )
+            .unwrap();
+            for _ in 0..20 {
+                let (_, stream) = pool.render_stream(&page, "test_nonce").unwrap();
+                assert_eq!(
+                    stream.collect::<Result<Vec<_>, _>>().unwrap().concat(),
+                    format!("<p>{name}</p>").as_bytes()
+                );
+            }
+        }
+        return;
     }
+    let mut children: Vec<_> = ["Ada", "Bea", "Cy", "plain"]
+        .into_iter()
+        .map(|name| {
+            Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", TEST, "--nocapture"])
+                .env(FIXTURE, name)
+                .stdin(Stdio::null())
+                .spawn()
+                .unwrap()
+        })
+        .collect();
+    let mut failures = Vec::new();
+    for (index, child) in children.iter_mut().enumerate() {
+        match child.wait_timeout(Duration::from_secs(10)).unwrap() {
+            Some(status) if status.success() => {}
+            Some(status) => failures.push(format!("process {index} failed: {status}")),
+            None => {
+                child.kill().unwrap();
+                child.wait().unwrap();
+                failures.push(format!("process {index} timed out"));
+            }
+        }
+    }
+    assert!(failures.is_empty(), "{failures:?}");
 }

@@ -20,6 +20,12 @@ def feature(name, case):
 
 
 class FeatureCheckTest(TestCase):
+    def test_cargo_compilation_has_no_total_timeout(self):
+        def runner(command, **kwargs):
+            self.assertNotIn("timeout", kwargs)
+            return subprocess.CompletedProcess(command, 0, "PASS [ 0.001s] ssr-adapter-react::react case", "")
+        self.run_manifest(manifest([feature("react-ssr", "case")]), runner)
+
     def test_make_check_runs_feature_cases(self):
         makefile = (check_features.ROOT / "Makefile").read_text()
         recipe = makefile.split("\ncheck:\n", 1)[1].split("\nbench:\n", 1)[0]
@@ -31,22 +37,24 @@ class FeatureCheckTest(TestCase):
             path.write_text(json.dumps(data))
             return check_features.check(path, runner)
 
-    def test_runs_every_true_case_with_exact_matching_and_timeouts(self):
+    def test_runs_every_true_case_with_exact_matching_and_nextest_deadlines(self):
         commands = []
 
-        def runner(command, *, timeout):
-            commands.append((command, timeout))
-            return subprocess.CompletedProcess(command, 0, "PASS", "")
+        def runner(command, *, cwd):
+            commands.append((command, cwd))
+            return subprocess.CompletedProcess(command, 0, f"PASS [ 0.001s] ssr-adapter-react::react {command[-1]}", "")
 
         self.run_manifest(manifest([feature("react-ssr", "first"), feature("react-csr", "second")]), runner)
         self.assertEqual(len(commands), 2)
-        for (command, timeout), case in zip(commands, ("first", "second")):
+        for (command, cwd), case in zip(commands, ("first", "second")):
             self.assertEqual(
                 command,
-                ["cargo", "nextest", "run", "--locked", "--no-tests", "fail", "-p",
+                ["cargo", "nextest", "run", "--locked", "--no-tests", "fail", "--color", "never", "-p",
                  "ssr-adapter-react", "--test", "react", "--", "--exact", case],
             )
-            self.assertGreater(timeout, 0)
+            self.assertEqual(cwd, check_features.ROOT)
+        config = (check_features.ROOT / ".config/nextest.toml").read_text()
+        self.assertIn('slow-timeout = { period = "30s", terminate-after = 1 }', config)
 
     def test_rejects_missing_and_extra_evidence_before_execution(self):
         cases = [
@@ -69,11 +77,11 @@ class FeatureCheckTest(TestCase):
                 check_features.check(path, lambda *_args, **_kwargs: self.fail("runner called"))
 
     def test_command_failure_and_timeout_fail_the_check(self):
-        def failed(command, *, timeout):
+        def failed(command, *, cwd):
             return subprocess.CompletedProcess(command, 3, "", "failed")
 
-        def timed_out(command, *, timeout):
-            raise subprocess.TimeoutExpired(command, timeout)
+        def timed_out(command, *, cwd):
+            raise subprocess.TimeoutExpired(command, 30)
 
         for runner in (failed, timed_out):
             with self.subTest(runner=runner), self.assertRaises(RuntimeError):
@@ -82,10 +90,17 @@ class FeatureCheckTest(TestCase):
     def test_failed_case_does_not_drop_the_following_case(self):
         executed = []
 
-        def runner(command, *, timeout):
+        def runner(command, *, cwd):
             executed.append(command[-1])
             return subprocess.CompletedProcess(command, 1 if len(executed) == 1 else 0, "", "")
 
         with self.assertRaises(RuntimeError):
             self.run_manifest(manifest([feature("react-ssr", "first"), feature("react-csr", "second")]), runner)
         self.assertEqual(executed, ["first", "second"])
+
+    def test_zero_exit_without_the_declared_case_pass_is_rejected(self):
+        for output in ("0 passed, 1 skipped", "PASS [ 0.001s] ssr-adapter-react::react another"):
+            def runner(command, *, cwd):
+                return subprocess.CompletedProcess(command, 0, output, "")
+            with self.subTest(output=output), self.assertRaises(RuntimeError):
+                self.run_manifest(manifest([feature("react-ssr", "case")]), runner)

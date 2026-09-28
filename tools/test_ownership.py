@@ -10,8 +10,12 @@ import time
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from tools.cargo_case import run as run_cargo
+
 DECLARATION = ROOT / "tools/test-ownership.json"
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
+TOKEN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*|::|[^\s]")
 
 
 class OwnershipError(Exception):
@@ -45,12 +49,342 @@ def workspace(root):
     data = json.loads(result.stdout)
     packages = {package["id"]: package for package in data["packages"]}
     members = {packages[member]["name"]: packages[member] for member in data["workspace_members"]}
-    consumers = {name: set() for name in members}
+    dependencies = {name: {} for name in members}
     for name, package in members.items():
         for dependency in package["dependencies"]:
-            if dependency["name"] in members and dependency["path"] is not None:
-                consumers[dependency["name"]].add(name)
-    return members, consumers
+            target = dependency["name"]
+            if target in members and dependency.get("path") is not None:
+                alias = (dependency.get("rename") or target).replace("-", "_")
+                if alias in dependencies[name]:
+                    raise OwnershipError(f"ambiguous Rust dependency name in {name}: {alias}")
+                dependencies[name][alias] = target
+    return members, dependencies
+
+
+def rust_tokens(source):
+    """Remove Rust comments and literals, then return the remaining tokens."""
+    clean = list(source)
+    position = 0
+    length = len(source)
+    while position < length:
+        end = position
+        if source.startswith("//", position):
+            newline = source.find("\n", position + 2)
+            end = length if newline < 0 else newline
+        elif source.startswith("/*", position):
+            depth = 1
+            end = position + 2
+            while end < length and depth:
+                if source.startswith("/*", end):
+                    depth += 1
+                    end += 2
+                elif source.startswith("*/", end):
+                    depth -= 1
+                    end += 2
+                else:
+                    end += 1
+            if depth:
+                raise OwnershipError("unclosed Rust comment")
+        else:
+            raw = re.match(r'(?:b|c)?r(#+)?"', source[position:])
+            if raw:
+                hashes = len(raw.group(1) or "")
+                marker = '"' + "#" * hashes
+                found = source.find(marker, position + len(raw.group(0)))
+                if found < 0:
+                    raise OwnershipError("unclosed Rust raw string")
+                end = found + len(marker)
+            else:
+                string_start = position
+                if source.startswith(("b\"", "c\""), position):
+                    string_start += 1
+                if source[string_start:string_start + 1] == '"':
+                    end = string_start + 1
+                    while end < length:
+                        if source[end] == "\\":
+                            end += 2
+                        elif source[end] == '"':
+                            end += 1
+                            break
+                        else:
+                            end += 1
+                    if end > length or source[end - 1:end] != '"':
+                        raise OwnershipError("unclosed Rust string")
+                elif source.startswith("b'", position):
+                    string_start = position + 1
+                    end = string_start + 1
+                    while end < length:
+                        if source[end] == "\\":
+                            end += 2
+                        elif source[end] == "'":
+                            end += 1
+                            break
+                        else:
+                            end += 1
+                    if end > length or source[end - 1:end] != "'":
+                        raise OwnershipError("unclosed Rust byte character")
+                elif source[position] == "'":
+                    # A short quoted form is a character; otherwise this is a lifetime.
+                    candidate = position + 1
+                    if candidate < length and source[candidate] == "\\":
+                        candidate += 2
+                    else:
+                        candidate += 1
+                    if candidate < length and source[candidate] == "'":
+                        end = candidate + 1
+        if end > position:
+            for index in range(position, min(end, length)):
+                if source[index] != "\n":
+                    clean[index] = " "
+            position = end
+        else:
+            position += 1
+    return TOKEN.findall("".join(clean))
+
+
+def source_files(crate_root):
+    paths = []
+    for folder in ("src", "tests", "examples", "benches"):
+        directory = crate_root / folder
+        if directory.exists():
+            paths.extend(directory.rglob("*.rs"))
+    build_script = crate_root / "build.rs"
+    if build_script.exists():
+        paths.append(build_script)
+    for path in paths:
+        if path.is_symlink():
+            raise OwnershipError(f"symbolic link in Rust source: {path}")
+    return sorted(paths)
+
+
+def split_top_level(tokens, delimiter=","):
+    chunks = []
+    start = 0
+    depth = 0
+    for index, token in enumerate(tokens):
+        if token in ("{", "(", "["):
+            depth += 1
+        elif token in ("}", ")", "]"):
+            depth -= 1
+        elif token == delimiter and depth == 0:
+            chunks.append(tokens[start:index])
+            start = index + 1
+    chunks.append(tokens[start:])
+    return chunks
+
+
+def import_paths(tree):
+    """Yield public root names selected by a `use` tree."""
+    tree = [token for token in tree if token not in {";", "::"}]
+    if not tree:
+        return
+    if "{" in tree:
+        opening = tree.index("{")
+        depth = 0
+        closing = None
+        for index in range(opening, len(tree)):
+            if tree[index] == "{":
+                depth += 1
+            elif tree[index] == "}":
+                depth -= 1
+                if depth == 0:
+                    closing = index
+                    break
+        if closing is None:
+            raise OwnershipError("unclosed Rust use tree")
+        base = tuple(tree[:opening])
+        contents = tree[opening + 1:closing]
+        for child in split_top_level(contents):
+            if child == ["self"]:
+                yield base
+            else:
+                yield from import_paths(base + tuple(child))
+        return
+    if "*" in tree:
+        yield tuple(tree)
+        return
+    path = []
+    for token in tree:
+        if token == "as":
+            break
+        if token != "::":
+            path.append(token)
+    yield tuple(path)
+
+
+def public_use_names(tree, prefix=()):
+    tree = [token for token in tree if token not in {";", "::"}]
+    if not tree:
+        return
+    if "*" in tree:
+        raise OwnershipError("public root glob import cannot be mapped to one public name")
+    if "{" in tree:
+        opening = tree.index("{")
+        depth = 0
+        closing = None
+        for index in range(opening, len(tree)):
+            if tree[index] == "{":
+                depth += 1
+            elif tree[index] == "}":
+                depth -= 1
+                if depth == 0:
+                    closing = index
+                    break
+        if closing is None:
+            raise OwnershipError("unclosed public Rust use tree")
+        base = prefix + tuple(tree[:opening])
+        for child in split_top_level(tree[opening + 1:closing]):
+            yield from public_use_names(child, base)
+        return
+    if "as" in tree:
+        alias_index = tree.index("as")
+        if alias_index + 1 >= len(tree) or not IDENTIFIER.fullmatch(tree[alias_index + 1]):
+            raise OwnershipError("unrecognized public use alias")
+        yield tree[alias_index + 1]
+        return
+    if tree == ["self"]:
+        if prefix:
+            yield prefix[-1]
+        return
+    path = prefix + tuple(tree)
+    if path:
+        yield path[-1]
+
+
+def use_imports(tokens):
+    imports = []
+    index = 0
+    while index < len(tokens):
+        if tokens[index] != "use":
+            index += 1
+            continue
+        if index + 1 < len(tokens) and tokens[index + 1] == "<":
+            # Rust precise capture names belong to an impl Trait bound, not a use item.
+            index += 1
+            continue
+        start = index + 1
+        depth = 0
+        end = start
+        while end < len(tokens):
+            token = tokens[end]
+            if token == "{":
+                depth += 1
+            elif token == "}":
+                depth -= 1
+            elif token == ";" and depth == 0:
+                break
+            end += 1
+        if end == len(tokens):
+            raise OwnershipError("Rust use statement has no semicolon")
+        imports.extend(import_paths(tokens[start:end]))
+        index = end + 1
+    return imports
+
+
+def references(tokens, aliases, owner_exports):
+    found = set()
+    known_aliases = set(aliases)
+    imports = use_imports(tokens)
+    for path in imports:
+        if not path or path[0] not in known_aliases:
+            continue
+        owner = aliases[path[0]]
+        if len(path) == 1:
+            raise OwnershipError(f"crate-root import alias is unsupported: {path[0]}")
+        if "*" in path:
+            raise OwnershipError(f"wildcard import from declared owner is unsupported: {'::'.join(path)}")
+        root_name = path[1]
+        if root_name not in owner_exports[owner]:
+            raise OwnershipError(f"unrecognized public name in import: {owner}::{root_name}")
+        found.add((owner, root_name))
+    index = 0
+    while index < len(tokens):
+        start = index
+        if tokens[start] == "::":
+            start += 1
+        if start + 2 < len(tokens) and tokens[start] in known_aliases and tokens[start + 1] == "::":
+            owner = aliases[tokens[start]]
+            root_name = tokens[start + 2]
+            if root_name == "{":
+                # The grouped names were resolved by the `use` tree above.
+                index += 1
+                continue
+            if root_name == "*":
+                raise OwnershipError(f"wildcard reference to declared owner: {tokens[start]}")
+            if root_name not in owner_exports[owner]:
+                raise OwnershipError(f"unrecognized public name in reference: {owner}::{root_name}")
+            found.add((owner, root_name))
+        index += 1
+    return found
+
+
+def public_root_exports(crate_root):
+    exports = set()
+    for path in (crate_root / "src").rglob("*.rs") if (crate_root / "src").exists() else []:
+        if path.parent != crate_root / "src" or path.name != "lib.rs":
+            continue
+        tokens = rust_tokens(path.read_text())
+        depth = 0
+        index = 0
+        while index < len(tokens):
+            if tokens[index] == "{" and depth == 0:
+                depth += 1
+                index += 1
+                continue
+            if tokens[index] == "{" and depth > 0:
+                depth += 1
+            elif tokens[index] == "}" and depth:
+                depth -= 1
+            if depth == 0 and tokens[index] == "pub":
+                next_index = index + 1
+                public = True
+                if next_index < len(tokens) and tokens[next_index] == "(":
+                    closing = next_index + 1
+                    while closing < len(tokens) and tokens[closing] != ")":
+                        closing += 1
+                    if tokens[next_index + 1:closing] != []:
+                        public = False
+                    next_index = closing + 1
+                if not public:
+                    index = next_index
+                    continue
+                if next_index < len(tokens) and tokens[next_index] == "async":
+                    next_index += 1
+                if next_index < len(tokens) and tokens[next_index] == "unsafe":
+                    next_index += 1
+                if next_index < len(tokens) and tokens[next_index] == "extern":
+                    next_index += 1
+                    if next_index < len(tokens) and tokens[next_index].startswith('"'):
+                        next_index += 1
+                if next_index >= len(tokens):
+                    raise OwnershipError(f"incomplete public item in {path}")
+                kind = tokens[next_index]
+                if kind == "use":
+                    end = next_index + 1
+                    brace_depth = 0
+                    while end < len(tokens):
+                        if tokens[end] == "{":
+                            brace_depth += 1
+                        elif tokens[end] == "}":
+                            brace_depth -= 1
+                        elif tokens[end] == ";" and brace_depth == 0:
+                            break
+                        end += 1
+                    if end == len(tokens):
+                        raise OwnershipError(f"public use has no semicolon in {path}")
+                    exports.update(public_use_names(tokens[next_index + 1:end]))
+                    index = end
+                elif kind in {"struct", "enum", "union", "const", "static", "type", "trait", "mod", "fn"}:
+                    if next_index + 1 >= len(tokens) or not IDENTIFIER.fullmatch(tokens[next_index + 1]):
+                        raise OwnershipError(f"unrecognized public root item in {path}: {kind}")
+                    exports.add(tokens[next_index + 1])
+                    index = next_index + 1
+                else:
+                    raise OwnershipError(f"unrecognized public root item in {path}: {kind}")
+            index += 1
+    if not exports:
+        raise OwnershipError(f"no public root exports found in {crate_root}")
+    return exports
 
 
 def substantive(source, start):
@@ -96,7 +430,7 @@ def case(root, behavior, value, members):
 
 def validate(root, declaration):
     root = Path(root)
-    members, dependents = workspace(root)
+    members, dependencies = workspace(root)
     if not isinstance(declaration, dict) or set(declaration) != {"behaviors"}:
         raise OwnershipError("declaration must contain only behaviors")
     behaviors = declaration["behaviors"]
@@ -105,28 +439,71 @@ def validate(root, declaration):
     cases = []
     seen = set()
     for behavior in behaviors:
-        if not isinstance(behavior, dict) or set(behavior) != {"id", "owner", "consumers"}:
-            raise OwnershipError("behavior must name id, owner and consumers")
+        if not isinstance(behavior, dict) or set(behavior) != {"id", "owner", "consumers", "exports"}:
+            raise OwnershipError("behavior must name id, owner, exports and consumers")
         name = behavior["id"]
         if not isinstance(name, str) or not IDENTIFIER.fullmatch(name) or name in seen:
             raise OwnershipError(f"invalid or repeated behavior: {name}")
         seen.add(name)
         owner = case(root, name, behavior["owner"], members)
+        exported = behavior["exports"]
+        if (not isinstance(exported, list) or not exported
+                or any(not isinstance(item, str) or not IDENTIFIER.fullmatch(item) for item in exported)
+                or len(exported) != len(set(exported))):
+            raise OwnershipError(f"{name}: exports must be a nonempty list of unique public names")
         declared = behavior["consumers"]
         if not isinstance(declared, list):
             raise OwnershipError(f"{name}: consumers must be a list")
         consumers = [case(root, name, item, members) for item in declared]
         names = [item.crate for item in consumers]
-        expected = dependents[owner.crate]
-        if len(names) != len(set(names)) or set(names) != expected:
-            raise OwnershipError(
-                f"{name}: consumer crates {sorted(names)} differ from direct dependents {sorted(expected)}"
-            )
+        if len(names) != len(set(names)):
+            raise OwnershipError(f"{name}: repeated consumer crate")
         cases.extend([owner, *consumers])
+
+    owner_exports = {}
+    behavior_for_export = {}
+    for behavior in behaviors:
+        owner_name = behavior["owner"]["crate"]
+        owner_exports.setdefault(owner_name, public_root_exports(root / "crates" / owner_name))
+        for exported in behavior["exports"]:
+            if exported not in owner_exports[owner_name]:
+                raise OwnershipError(f"{behavior['id']}: owner does not export {owner_name}::{exported}")
+            key = (owner_name, exported)
+            if key in behavior_for_export:
+                raise OwnershipError(f"public root name is assigned more than once: {owner_name}::{exported}")
+            behavior_for_export[key] = behavior["id"]
+    for owner_name, exports in owner_exports.items():
+        declared_exports = {export for crate, export in behavior_for_export if crate == owner_name}
+        if exports != declared_exports:
+            raise OwnershipError(
+                f"{owner_name}: declared public names {sorted(declared_exports)} differ from root exports {sorted(exports)}"
+            )
+
+    actual_consumers = {name: set() for name in seen}
+    for crate_name, aliases in dependencies.items():
+        aliases = {alias: target for alias, target in aliases.items() if target in owner_exports}
+        if not aliases:
+            continue
+        for path in source_files(root / "crates" / crate_name):
+            tokens = rust_tokens(path.read_text())
+            for owner_name, exported in references(tokens, aliases, owner_exports):
+                behavior_name = behavior_for_export.get((owner_name, exported))
+                if behavior_name is None:
+                    raise OwnershipError(f"unmapped public name: {owner_name}::{exported}")
+                actual_consumers[behavior_name].add(crate_name)
+
+    for behavior in behaviors:
+        name = behavior["id"]
+        declared = {item["crate"] for item in behavior["consumers"]}
+        actual = actual_consumers[name]
+        if actual != declared:
+            raise OwnershipError(
+                f"{name}: declared consumer crates {sorted(declared)} differ from Rust source consumers {sorted(actual)}"
+            )
     return cases
 
 
-def run(root, cases, command=subprocess.run):
+def run(root, cases, command=run_cargo):
     root = Path(root)
     for item in cases:
         args = [
@@ -137,13 +514,12 @@ def run(root, cases, command=subprocess.run):
         print(f"RUN {label}", flush=True)
         started = time.monotonic()
         try:
-            result = command(args, cwd=root, capture_output=True, text=True, timeout=180,
-                             check=False)
+            result = command(args, cwd=root)
         except subprocess.TimeoutExpired as error:
             raise OwnershipError(f"timeout {label} after {time.monotonic() - started:.1f}s") from error
         output = result.stdout + result.stderr
         passed = any(
-            "PASS [" in line and f"{item.crate}::{item.target} {item.test}" in line
+            "PASS [" in line and line.rstrip().endswith(f"{item.crate}::{item.target} {item.test}")
             for line in output.splitlines()
         )
         if result.returncode or not passed:
