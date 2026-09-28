@@ -14,6 +14,10 @@ def main() -> int:
     cargo = ROOT / "var/engine-cargo"
     target = ROOT / "var/engine-target"
     v8 = Path("/opt/ssr/v8-local")
+    ordered_json = Path("/opt/polyspec/ordered-json")
+    if not (ordered_json / "rust" / "Cargo.toml").is_file():
+        print(f"FAIL engine Compose preparation: missing ordered-json source {ordered_json}", file=sys.stderr)
+        return 1
     if not (v8 / "Cargo.toml").is_file():
         print(f"FAIL engine Compose preparation: missing V8 source {v8}", file=sys.stderr)
         return 1
@@ -23,6 +27,7 @@ def main() -> int:
         content = Template(TEMPLATE.read_text()).substitute(
             SSR_SOURCE_DIR=ROOT,
             SSR_V8_DIR=v8,
+            SSR_ORDERED_JSON_DIR=ordered_json,
             SSR_CARGO_DIR=cargo,
             SSR_TARGET_DIR=target,
         )

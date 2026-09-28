@@ -11,6 +11,7 @@ services:
     volumes:
       - ${SSR_SOURCE_DIR}:/src:ro
       - ${SSR_V8_DIR}:/opt/ssr/v8-local:ro
+      - ${SSR_ORDERED_JSON_DIR}:/opt/polyspec/ordered-json:ro
       - ${SSR_CARGO_DIR}:/cargo
       - ${SSR_TARGET_DIR}:/target
     cpus: "4"

@@ -5,9 +5,8 @@ edition = "2024"
 publish = false
 
 [dependencies]
-deno_core = "=0.412.0"
-deno_webidl = "=0.259.0"
-deno_web = "=0.290.0"
+ssr-core = { path = "../../crates/ssr-core", version = "=0.0.1" }
+ssr-runtime = { path = "../../crates/ssr-runtime", version = "=0.0.1" }
 
 [workspace]
 

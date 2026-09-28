@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Verify the official Linux V8 archive and binding inside the engine verification image: digest
+  checks, read-only source mounts including ordered-json, and native same-snapshot parallel
+  rendering with no V8 source compilation.
+
 - Cancel closed and expired streams, bound native chunk transmission, and acknowledge cleanup before
   worker reuse. Require explicit pool byte and heap limits. Report unavailable workers through a
   closure event and return errors from thread cleanup.

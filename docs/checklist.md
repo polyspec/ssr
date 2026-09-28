@@ -254,7 +254,7 @@ completion evidence.
   verification available as an explicit command; routine checks reuse the verified files without
   invoking GN or Ninja. Depends on: S-13-2-2-1. Evidence: missing, changed, identical-path and verified-copy cases,
   two routine checks with no V8 source rebuild, and the existing benchmark limits pass.
-- [~] S-13-2-2-1-2 Verify the official target-specific Linux V8 archive and matching generated
+- [o] S-13-2-2-1-2 Verify the official target-specific Linux V8 archive and matching generated
   binding in the development image. Depends on: S-13-2-2-1-3. Evidence required: archive
   and binding digest verification, native same-snapshot parallel rendering in that image, and a
   second image build without V8 source compilation. No archive download or source substitution.

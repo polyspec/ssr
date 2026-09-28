@@ -38,6 +38,7 @@ verify-engine-linux-arm64:
 	containerctl -f $(CURDIR)/var/engine-compose.yaml up
 	python3 tools/verify_engine_status.py
 	container exec -w /src ssr-engine-test-engine python3 /src/tools/verify_engine_mounts.py
+	container exec -w /src -e CARGO_NET_OFFLINE=false ssr-engine-test-engine cargo fetch --locked --manifest-path /src/verification/engine/Cargo.toml
 	container exec -w /src ssr-engine-test-engine python3 /src/tools/verify_engine.py aarch64-unknown-linux-gnu
 
 verify-engine-deps:

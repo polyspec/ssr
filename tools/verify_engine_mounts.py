@@ -9,6 +9,7 @@ import time
 EXPECTED = {
     "/src": "ro",
     "/opt/ssr/v8-local": "ro",
+    "/opt/polyspec/ordered-json": "ro",
     "/cargo": "rw",
     "/target": "rw",
 }
