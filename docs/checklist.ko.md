@@ -241,3 +241,9 @@
   다른 테스트의 서버·프레임워크·클라이언트 소스를 덮어쓰지 않으며, 두 테스트가 단독·병렬 실행에서
   각각의 출력을 빌드하고 검증한다. 증거: 추적되는 동시 덮어쓰기 사례가 수정 전 실패하고 수정 후
   통과하며, 영향받는 각 테스트와 병렬 실행, `make check`가 통과한다.
+- [~] S-15-7 설정한 application dependency 디렉터리에서 모든 application package import를 해석해
+  중첩된 `node_modules` 복사본이 모듈 상태를 중복 생성하지 않게 한다. 의존: S-7, S-15. 완료 기준:
+  application source 디렉터리와 설정한 dependency 디렉터리에 같은 package가 있는 fixture가 server
+  bundle에서 하나의 package 경로를 사용하고 render context provider와 consumer가 같은 module
+  instance를 공유한다. 증거: 추적하는 resolver fixture가 수정 전 실패하고 수정 후 통과하며 소비하는
+  SSR 요청이 missing-context 오류 없이 document를 반환한다.

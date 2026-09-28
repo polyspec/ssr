@@ -7,7 +7,7 @@ use rolldown::{
     AssetFilenamesOutputOption, Bundler, BundlerOptions, ChunkFilenamesOutputOption,
     CodeSplittingMode, InputItem, IsExternal, ModuleType, OutputFormat, Platform,
 };
-use rolldown_common::{GlobalsOutputOption, Output, SourceMapType};
+use rolldown_common::{GlobalsOutputOption, Output, ResolveOptions, SourceMapType};
 use sourcemap::{SourceMap, SourceMapBuilder};
 
 use crate::{
@@ -38,6 +38,16 @@ pub(crate) async fn bundle(
             name: Some(name.into()),
         }]),
         platform: Some(Platform::Browser),
+        resolve: Some(ResolveOptions {
+            modules: Some(vec![
+                config
+                    .root
+                    .join("node_modules")
+                    .to_string_lossy()
+                    .into_owned(),
+            ]),
+            ..Default::default()
+        }),
         format: Some(if react_application {
             OutputFormat::Iife
         } else {
