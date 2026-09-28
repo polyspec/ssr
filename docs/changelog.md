@@ -4,6 +4,17 @@
 
 ## 0.0.1
 
+- Use one immutable application snapshot per renderer process with the official local V8 archive
+  and matching binding. Public snapshot creation completes before concurrent workers restore the
+  same blob. Different bundle keys require separate renderer processes because one process retains
+  one initialized application. Verification rejects missing inputs, changed hashes and mismatched
+  features. Native parallel restoration, React streams, separate application processes and existing
+  performance limits are checked with the official archive.
+- Reject Svelte compiler entry during snapshot initialization and after a successful snapshot.
+  A shared process contract protects V8 entry through isolate disposal; completed compilation may
+  precede rendering, and ordinary Rust bundling remains available. Svelte transformation preserves
+  compiler error causes. Test ownership requires actual behavior use and its declared consumer test.
+
 - Run build and render commands in separate processes, validate completed build directories and
   actual SSR preparation before serving requests, retain active response processes during replacement,
   and restart an exited render process from its completed build. Report rebuild and shutdown failures,

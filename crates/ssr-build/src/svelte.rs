@@ -9,9 +9,9 @@ use deno_core::{JsRuntime, RuntimeOptions, v8};
 use ordered_json::Value;
 use rolldown::ModuleType;
 use rolldown::plugin::{
-    HookLoadArgs, HookLoadOutput, HookLoadReturn, HookResolveIdArgs, HookResolveIdOutput,
-    HookResolveIdReturn, HookUsage, Plugin, PluginContext, PluginHookMeta, PluginOrder,
-    SharedLoadPluginContext,
+    HookResolveIdArgs, HookResolveIdOutput, HookResolveIdReturn, HookTransformArgs,
+    HookTransformOutput, HookTransformReturn, HookUsage, Plugin, PluginContext, PluginHookMeta,
+    PluginOrder, SharedTransformPluginContext,
 };
 use rolldown_sourcemap::{OwnedSourceMap, SourceMap};
 
@@ -47,6 +47,16 @@ fn required_string(value: &Value, name: &'static str) -> Result<String, String> 
 }
 
 fn compile(compiler: &str, source: &str, path: &Path, mode: &str) -> Result<Compiled, String> {
+    ssr_core::process::build(|| compile_in_runtime(compiler, source, path, mode))
+        .map_err(str::to_owned)?
+}
+
+fn compile_in_runtime(
+    compiler: &str,
+    source: &str,
+    path: &Path,
+    mode: &str,
+) -> Result<Compiled, String> {
     tokio::runtime::Handle::try_current()
         .map_err(|_| "Svelte compilation requires a Tokio runtime".to_owned())?;
     let path = path
@@ -103,7 +113,7 @@ impl Plugin for SveltePlugin {
     }
 
     fn register_hook_usage(&self) -> HookUsage {
-        HookUsage::Load | HookUsage::ResolveId
+        HookUsage::Transform | HookUsage::ResolveId
     }
 
     async fn resolve_id(
@@ -131,13 +141,17 @@ impl Plugin for SveltePlugin {
         }))
     }
 
-    fn load_meta(&self) -> Option<PluginHookMeta> {
+    fn transform_meta(&self) -> Option<PluginHookMeta> {
         Some(PluginHookMeta {
             order: Some(PluginOrder::Pre),
         })
     }
 
-    async fn load(&self, _ctx: SharedLoadPluginContext, args: &HookLoadArgs<'_>) -> HookLoadReturn {
+    async fn transform(
+        &self,
+        _ctx: SharedTransformPluginContext,
+        args: &HookTransformArgs<'_>,
+    ) -> HookTransformReturn {
         if !args.id.ends_with(".svelte") {
             return Ok(None);
         }
@@ -152,7 +166,6 @@ impl Plugin for SveltePlugin {
             )
             .into());
         }
-        let source = fs::read_to_string(path)?;
         let compiler_path = self.root.join("node_modules/svelte/compiler/index.js");
         if compiler_path.canonicalize()? != compiler_path || !compiler_path.is_file() {
             return Err(io::Error::new(
@@ -162,7 +175,7 @@ impl Plugin for SveltePlugin {
             .into());
         }
         let compiler = fs::read_to_string(compiler_path)?;
-        let compiled = compile(&compiler, &source, path, self.mode)
+        let compiled = compile(&compiler, args.code, path, self.mode)
             .map_err(|message| io::Error::new(io::ErrorKind::InvalidData, message))?;
         if let Some(css) = compiled.css {
             let mut styles = self
@@ -177,9 +190,9 @@ impl Plugin for SveltePlugin {
                 .into());
             }
         }
-        Ok(Some(HookLoadOutput {
-            code: compiled.code.into(),
-            map: Some(compiled.map),
+        Ok(Some(HookTransformOutput {
+            code: Some(compiled.code),
+            map: compiled.map.into(),
             module_type: Some(ModuleType::Js),
             ..Default::default()
         }))

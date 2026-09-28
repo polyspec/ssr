@@ -26,6 +26,7 @@ pub(crate) async fn bundle(
     ]
     .map(|extension| (format!(".{extension}"), ModuleType::Asset))
     .into_iter()
+    .chain([(".svelte".to_owned(), ModuleType::Js)])
     .collect();
     let entry = entry.to_str().ok_or_else(|| {
         Error::InvalidInput(format!("entry path is not UTF-8: {}", entry.display()))

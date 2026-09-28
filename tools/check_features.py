@@ -1,17 +1,16 @@
 """Execute every supported feature case declared in features.json."""
 
 import json
-import os
 import pathlib
 import re
-import signal
 import subprocess
 import sys
 import time
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-CASE_TIMEOUT = 180
+sys.path.insert(0, str(ROOT))
+from tools.cargo_case import run
 
 
 def unique_members(pairs):
@@ -67,49 +66,32 @@ def output(value, destination):
         destination.flush()
 
 
-def run(command, *, timeout):
-    process = subprocess.Popen(
-        command, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        text=True, start_new_session=True,
-    )
-    try:
-        stdout, stderr = process.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        os.killpg(process.pid, signal.SIGKILL)
-        stdout, stderr = process.communicate()
-        raise subprocess.TimeoutExpired(command, timeout, output=stdout, stderr=stderr)
-    except BaseException:
-        os.killpg(process.pid, signal.SIGKILL)
-        process.wait()
-        raise
-    return subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
-
-
 def check(path, runner=run):
     failures = []
     cases = load(path)
     for name, case in cases:
         command = [
-            "cargo", "nextest", "run", "--locked", "--no-tests", "fail",
+            "cargo", "nextest", "run", "--locked", "--no-tests", "fail", "--color", "never",
             "-p", case["package"], "--test", case["binary"],
             "--", "--exact", case["case"],
         ]
         print(f"RUN feature {name}: {case['package']}::{case['binary']}::{case['case']}", flush=True)
         started = time.monotonic()
         try:
-            result = runner(command, timeout=CASE_TIMEOUT)
-            output(result.stdout, sys.stdout)
-            output(result.stderr, sys.stderr)
-            if result.returncode:
+            result = runner(command, cwd=ROOT)
+            expected = f"{case['package']}::{case['binary']} {case['case']}"
+            passed = any("PASS [" in line and line.rstrip().endswith(expected)
+                         for line in (result.stdout + result.stderr).splitlines())
+            if result.returncode or not passed:
                 failures.append(name)
-                print(f"FAIL feature {name}: exit {result.returncode} ({time.monotonic()-started:.3f}s)", flush=True)
+                print(f"FAIL feature {name}: exit {result.returncode}, declared_case_pass={passed} ({time.monotonic()-started:.3f}s)", flush=True)
             else:
                 print(f"PASS feature {name} ({time.monotonic()-started:.3f}s)", flush=True)
         except subprocess.TimeoutExpired as error:
             output(error.stdout, sys.stdout)
             output(error.stderr, sys.stderr)
             failures.append(name)
-            print(f"TIMEOUT feature {name}: {CASE_TIMEOUT}s", flush=True)
+            print(f"TIMEOUT feature {name}: {error.timeout}s", flush=True)
     if failures:
         raise RuntimeError(f"feature cases failed: {', '.join(failures)}")
 

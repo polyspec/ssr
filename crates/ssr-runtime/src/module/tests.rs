@@ -196,6 +196,10 @@ fn top_level_await_completes_or_fails_explicitly() {
     )
     .unwrap();
     snapshot::get(&complete, Duration::from_secs(5)).unwrap();
+}
+
+#[test]
+fn pending_top_level_await_is_rejected() {
     let pending = Sources::new(
         (
             "server/pending.js".into(),

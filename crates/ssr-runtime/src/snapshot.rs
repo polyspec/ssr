@@ -2,8 +2,8 @@ use crate::{Error, module, web};
 use deno_core::{JsRuntime, v8};
 use sha2::{Digest, Sha256};
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap};
-use std::sync::{Arc, Mutex, OnceLock, Weak};
+use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
 
@@ -76,7 +76,6 @@ enum SnapshotKind {
 
 pub(crate) struct Snapshot {
     bytes: Vec<u8>,
-    group: Arc<v8::IsolateGroup>,
     kind: SnapshotKind,
 }
 
@@ -85,7 +84,7 @@ impl Snapshot {
         let parameters = v8::CreateParams::default()
             .external_references(Cow::Owned(web::external_references()))
             .snapshot_blob(v8::StartupData::from(self.bytes.clone()));
-        let mut isolate = self.group.new_isolate(parameters);
+        let mut isolate = v8::Isolate::new(parameters);
         if matches!(&self.kind, SnapshotKind::Modules { .. }) {
             module::install_dynamic_import_callback(&mut isolate);
         }
@@ -107,7 +106,12 @@ impl Snapshot {
     }
 }
 
-static CACHE: OnceLock<Mutex<HashMap<Key, Weak<Snapshot>>>> = OnceLock::new();
+struct Selection {
+    key: Key,
+    snapshot: Arc<Snapshot>,
+}
+
+static CACHE: OnceLock<Mutex<Option<Selection>>> = OnceLock::new();
 
 pub(crate) fn get(bundle: &module::Sources, timeout: Duration) -> Result<Arc<Snapshot>, Error> {
     get_with_key(bundle, Key::new(bundle), timeout)
@@ -118,9 +122,9 @@ fn get_with_key(
     key: Key,
     timeout: Duration,
 ) -> Result<Arc<Snapshot>, Error> {
-    get_or_create(key, |group| {
+    get_or_create(key, || {
         let sources = Arc::new(bundle.clone());
-        let (bytes, module_indices) = create_modules(group, Arc::clone(&sources), timeout)?;
+        let (bytes, module_indices) = create_modules(Arc::clone(&sources), timeout)?;
         Ok((
             bytes,
             SnapshotKind::Modules {
@@ -144,9 +148,8 @@ pub(crate) fn get_react(
         application_path,
         application.as_bytes(),
     );
-    get_or_create(key, |group| {
+    get_or_create(key, || {
         let bytes = create_react(
-            group,
             framework_path,
             framework,
             application_path,
@@ -159,33 +162,35 @@ pub(crate) fn get_react(
 
 fn get_or_create(
     key: Key,
-    create: impl FnOnce(&v8::IsolateGroup) -> Result<(Vec<u8>, SnapshotKind), Error>,
+    create: impl FnOnce() -> Result<(Vec<u8>, SnapshotKind), Error>,
 ) -> Result<Arc<Snapshot>, Error> {
     let mut cache = CACHE
-        .get_or_init(|| Mutex::new(HashMap::new()))
+        .get_or_init(|| Mutex::new(None))
         .lock()
         .map_err(|_| Error::Snapshot("snapshot cache lock failed"))?;
-    if let Some(snapshot) = cache.get(&key).and_then(Weak::upgrade) {
-        return Ok(snapshot);
+    if let Some(selected) = &*cache {
+        if selected.key != key {
+            return Err(Error::Snapshot(
+                "renderer process already selected another snapshot key",
+            ));
+        }
+        return Ok(Arc::clone(&selected.snapshot));
     }
     JsRuntime::init_platform(None);
-    let group = Arc::new(
-        v8::IsolateGroup::create()
-            .ok_or(Error::Snapshot("independent isolate group unavailable"))?,
-    );
-    let (bytes, kind) = create(&group)?;
-    let snapshot = Arc::new(Snapshot { bytes, group, kind });
-    cache.retain(|_, entry| entry.strong_count() > 0);
-    cache.insert(key, Arc::downgrade(&snapshot));
+    let (bytes, kind) = create()?;
+    let snapshot = Arc::new(Snapshot { bytes, kind });
+    *cache = Some(Selection {
+        key,
+        snapshot: Arc::clone(&snapshot),
+    });
     Ok(snapshot)
 }
 
 fn create_modules(
-    group: &v8::IsolateGroup,
     bundle: Arc<module::Sources>,
     timeout: Duration,
 ) -> Result<(Vec<u8>, BTreeMap<String, usize>), Error> {
-    create_with(group, timeout, true, |creator, default_context| {
+    create_with(timeout, true, |creator, default_context| {
         v8::scope!(let scope, creator);
         let context = v8::Local::new(scope, default_context);
         let scope = &mut v8::ContextScope::new(scope, context);
@@ -215,14 +220,13 @@ fn create_modules(
 }
 
 fn create_react(
-    group: &v8::IsolateGroup,
     framework_path: &str,
     framework: &str,
     application_path: &str,
     application: &str,
     timeout: Duration,
 ) -> Result<Vec<u8>, Error> {
-    let (bytes, ()) = create_with(group, timeout, false, |creator, default_context| {
+    let (bytes, ()) = create_with(timeout, false, |creator, default_context| {
         v8::scope!(let scope, creator);
         let context = v8::Local::new(scope, default_context);
         let scope = &mut v8::ContextScope::new(scope, context);
@@ -345,17 +349,21 @@ fn run_bundle(
 }
 
 fn create_with<T>(
-    group: &v8::IsolateGroup,
     timeout: Duration,
     modules: bool,
     initialize: impl FnOnce(&mut v8::OwnedIsolate, &v8::Global<v8::Context>) -> Result<T, Error>,
 ) -> Result<(Vec<u8>, T), Error> {
-    let mut creator = v8::Isolate::snapshot_creator_in_group(
-        group,
-        Some(Cow::Owned(web::external_references())),
-        None,
-        None,
-    );
+    ssr_core::process::render(|| create_snapshot(timeout, modules, initialize))
+        .map_err(Error::Snapshot)?
+}
+
+fn create_snapshot<T>(
+    timeout: Duration,
+    modules: bool,
+    initialize: impl FnOnce(&mut v8::OwnedIsolate, &v8::Global<v8::Context>) -> Result<T, Error>,
+) -> Result<(Vec<u8>, T), Error> {
+    let mut creator =
+        v8::Isolate::snapshot_creator(Some(Cow::Owned(web::external_references())), None);
     if modules {
         module::install_dynamic_import_callback(&mut creator);
     }
@@ -409,6 +417,76 @@ mod tests {
     use std::sync::{Arc, Barrier};
     use std::time::Duration;
 
+    #[tokio::test]
+    async fn snapshot_creation_rejects_concurrent_svelte_compiler() {
+        use ssr_build::{BuildConfig, build};
+        use std::path::Path;
+        use std::process::Command;
+        use wait_timeout::ChildExt;
+        const TEST: &str = "snapshot::tests::snapshot_creation_rejects_concurrent_svelte_compiler";
+        if std::env::var_os("SSR_CONCURRENT_COMPILER").is_some() {
+            let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../tools/build-probe/tests/fixtures")
+                .canonicalize()
+                .unwrap();
+            let generated = root.join("node_modules/.ssr-runtime-concurrent-compiler");
+            std::fs::create_dir_all(&generated).unwrap();
+            let server = generated.join("server.js");
+            let client = generated.join("client.js");
+            let source =
+                "import App from '../../SvelteApp.svelte'; export const render = () => App;";
+            std::fs::write(&server, source).unwrap();
+            std::fs::write(&client, source).unwrap();
+            let (ready_tx, ready_rx) = std::sync::mpsc::sync_channel(1);
+            let (finish_tx, finish_rx) = std::sync::mpsc::sync_channel(1);
+            let creator = std::thread::spawn(move || {
+                deno_core::JsRuntime::init_platform(None);
+                super::create_with(Duration::from_secs(10), false, |_, _| {
+                    ready_tx.send(()).unwrap();
+                    finish_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+                    Ok(())
+                })
+            });
+            ready_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+            let result = build(&BuildConfig {
+                root: root.clone(),
+                server_entry: server,
+                client_entry: client,
+                react_framework_entry: None,
+                css_entry: root.join("app.css"),
+                asset_route: "/assets".into(),
+            })
+            .await;
+            finish_tx.send(()).unwrap();
+            creator.join().unwrap().unwrap();
+            let diagnostic = result
+                .as_ref()
+                .map(|_| "compiled")
+                .map_err(ToString::to_string);
+            assert!(
+                matches!(&result, Err(ssr_build::Error::JavaScript(message)) if message.contains("Svelte compilation cannot run while renderer initialization is active")),
+                "compiler result: {diagnostic:?}"
+            );
+            return;
+        }
+        let mut child = Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", TEST, "--nocapture"])
+            .env("SSR_CONCURRENT_COMPILER", "1")
+            .spawn()
+            .unwrap();
+        match child.wait_timeout(Duration::from_secs(20)).unwrap() {
+            Some(status) => assert!(
+                status.success(),
+                "compiler process did not return the required error: {status}"
+            ),
+            None => {
+                child.kill().unwrap();
+                child.wait().unwrap();
+                panic!("compiler process timed out");
+            }
+        }
+    }
+
     fn bundle(source: &str) -> Sources {
         Sources::new(
             ("server/entry.js".into(), source.as_bytes().to_vec()),
@@ -442,122 +520,90 @@ mod tests {
     }
 
     #[test]
-    fn matching_key_reuses_snapshot_and_mismatch_creates_one() {
+    fn matching_key_reuses_snapshot_and_mismatch_is_rejected() {
         let source_bundle =
             bundle("export function render(props, state) { return {head:'', html:'ok', state}; }");
         let key = Key::new(&source_bundle);
         let first = get_with_key(&source_bundle, key.clone(), Duration::from_secs(2)).unwrap();
         let reused = get_with_key(&source_bundle, key.clone(), Duration::from_secs(2)).unwrap();
         assert!(Arc::ptr_eq(&first, &reused));
-        let changed = bundle(
-            "export function render(props, state) { return {head:'', html:'changed', state}; }",
-        );
-        let changed_bundle =
-            get_with_key(&changed, Key::new(&changed), Duration::from_secs(2)).unwrap();
-        assert!(!Arc::ptr_eq(&first, &changed_bundle));
-        let changed_core = get_with_key(
-            &source_bundle,
+        for changed in [
+            Key::new(&bundle("export function render() {}")),
             Key {
                 deno_core_version: "changed",
                 ..key.clone()
             },
-            Duration::from_secs(2),
-        )
-        .unwrap();
-        assert!(!Arc::ptr_eq(&first, &changed_core));
-        let changed_library = get_with_key(
-            &source_bundle,
             Key {
                 library_version: "changed",
-                ..key
+                ..key.clone()
             },
-            Duration::from_secs(2),
-        )
-        .unwrap();
-        assert!(!Arc::ptr_eq(&first, &changed_library));
+        ] {
+            assert!(get_with_key(&source_bundle, changed, Duration::from_secs(2)).is_err());
+        }
     }
 
     #[test]
-    fn different_application_snapshots_restore_in_parallel() {
-        let values = ["Ada", "Bea", "Cia"];
-        let snapshots: Vec<_> = values
-            .iter()
-            .map(|value| {
-                get(
-                    &bundle(&format!(
-                        "globalThis.marker = '{value}'; export function render(props, state) {{ return {{head:'', html:props.name, state}}; }}"
-                    )),
-                    Duration::from_secs(10),
-                )
-                .unwrap()
-            })
-            .collect();
+    fn same_application_snapshot_restores_in_parallel() {
+        let snapshot = get(
+            &bundle("globalThis.marker='Ada'; export function render() {}"),
+            Duration::from_secs(3),
+        )
+        .unwrap();
         for _ in 0..10 {
-            let barrier = Arc::new(Barrier::new(values.len()));
+            let barrier = Barrier::new(4);
             std::thread::scope(|threads| {
-                let workers: Vec<_> = snapshots
-                    .iter()
-                    .zip(values)
-                    .map(|(snapshot, expected)| {
-                        let barrier = Arc::clone(&barrier);
-                        threads.spawn(move || {
-                            barrier.wait();
-                            let mut isolate = snapshot.isolate();
-                            v8::scope!(let scope, &mut isolate);
-                            let context = v8::Context::new(scope, Default::default());
-                            let scope = &mut v8::ContextScope::new(scope, context);
-                            let source = v8::String::new(scope, "globalThis.marker").unwrap();
-                            let script = v8::Script::compile(scope, source, None).unwrap();
-                            let actual = script.run(scope).unwrap().to_rust_string_lossy(scope);
-                            assert_eq!(actual, expected);
-                        })
-                    })
-                    .collect();
-                for worker in workers {
-                    worker.join().unwrap();
+                for _ in 0..4 {
+                    let barrier = &barrier;
+                    let snapshot = &snapshot;
+                    threads.spawn(move || {
+                        barrier.wait();
+                        let mut isolate = snapshot.isolate();
+                        v8::scope!(let scope, &mut isolate);
+                        let context = v8::Context::new(scope, Default::default());
+                        let scope = &mut v8::ContextScope::new(scope, context);
+                        let source = v8::String::new(scope, "globalThis.marker").unwrap();
+                        let value = v8::Script::compile(scope, source, None)
+                            .unwrap()
+                            .run(scope)
+                            .unwrap();
+                        assert_eq!(value.to_rust_string_lossy(scope), "Ada");
+                    });
                 }
             });
         }
     }
 
     #[test]
-    fn react_application_snapshots_restore_in_parallel() {
+    fn same_react_snapshot_restores_in_parallel() {
         const FRAMEWORK: &str = "globalThis.__ssrReact = {}; globalThis.__ssrJsxRuntime = {}; globalThis.render = () => null";
-        let snapshots = ["Ada", "Bea", "Cia"].map(|name| {
-            let application = format!("globalThis.__ssrApp = () => '{name}'");
-            (
-                get_react(
-                    "server/framework.js",
-                    FRAMEWORK,
-                    "server/application.js",
-                    &application,
-                    Duration::from_secs(3),
-                )
-                .unwrap(),
-                name,
-            )
-        });
+        let snapshot = get_react(
+            "server/framework.js",
+            FRAMEWORK,
+            "server/application.js",
+            "globalThis.__ssrApp = () => 'Ada'",
+            Duration::from_secs(3),
+        )
+        .unwrap();
         for _ in 0..10 {
             let barrier = Barrier::new(4);
             std::thread::scope(|threads| {
-                for (snapshot, expected) in &snapshots {
+                for _ in 0..4 {
                     let barrier = &barrier;
+                    let snapshot = &snapshot;
                     threads.spawn(move || {
                         barrier.wait();
                         let mut isolate = snapshot.isolate();
                         v8::scope!(let scope, &mut isolate);
-                        let application = v8::Context::new(scope, Default::default());
-                        let scope = &mut v8::ContextScope::new(scope, application);
+                        let context = v8::Context::new(scope, Default::default());
+                        let scope = &mut v8::ContextScope::new(scope, context);
                         let source = v8::String::new(scope, "__ssrApp()").unwrap();
-                        let actual = v8::Script::compile(scope, source, None)
+                        let value = v8::Script::compile(scope, source, None)
                             .unwrap()
                             .run(scope)
-                            .unwrap()
-                            .to_rust_string_lossy(scope);
-                        assert_eq!(actual, *expected);
+                            .unwrap();
+                        assert_eq!(value.to_rust_string_lossy(scope), "Ada");
                     });
                 }
-                barrier.wait();
             });
         }
     }

@@ -5,6 +5,7 @@ edition = "2024"
 license.workspace = true
 
 [dependencies]
+ssr-core = { path = "../ssr-core", version = "=0.0.1" }
 ordered-json.workspace = true
 rolldown.workspace = true
 rolldown_common.workspace = true

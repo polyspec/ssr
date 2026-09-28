@@ -9,15 +9,9 @@ import time
 def main():
     started = time.monotonic()
     print("RUN build render benchmark", flush=True)
-    try:
-        build = subprocess.run(
-            ["cargo", "build", "--locked", "-p", "ssr-runtime", "--example", "bench"],
-            timeout=1800,
-            check=False,
-        )
-    except subprocess.TimeoutExpired:
-        print(f"TIMEOUT build render benchmark {time.monotonic() - started:.3f}s", file=sys.stderr)
-        return 1
+    command = ["cargo", "build", "--offline", "--locked", "-p", "ssr-runtime", "--example", "bench", "--verbose"]
+    print(f"COMMAND {' '.join(command)}", flush=True)
+    build = subprocess.run(command, check=False)
     if build.returncode:
         print(f"FAIL build render benchmark {time.monotonic() - started:.3f}s", file=sys.stderr)
         return build.returncode

@@ -2,7 +2,7 @@
 
 # Engine verification
 
-## Versions and archive acquisition
+## Versions and local inputs
 
 The verification program in `verification/engine` pins `deno_core =0.412.0`,
 `deno_webidl =0.259.0`, and `deno_web =0.290.0`. Its committed lockfile resolves
@@ -17,8 +17,12 @@ prebuilt archive from
 The selected features include `simdutf`, so the archive name is
 `librusty_v8_simdutf_release_<target>.a.gz`. The `RUSTY_V8_ARCHIVE` environment
 variable selects an absolute local archive path. The build script accepts this
-path without checking SHA-256; `tools/verify_engine.py` verifies the compressed
-archive before invoking Cargo.
+path without checking SHA-256; `tools/verify_archive.py` verifies the compressed
+archive and matching generated binding before invoking Cargo. It checks the exact V8 version
+and feature set from offline locked Cargo metadata for the selected target. The `make check`,
+`make bench` and engine verification commands reject source-build settings
+and select only verified local inputs. Direct Cargo commands require the same input verification
+and explicit archive and binding environment variables before execution.
 
 The V8 source checkout keeps version 150.4.0 and selects `pastey 0.2.3` as
 the compile-time `paste` macro dependency. The previous macro package has a
@@ -34,21 +38,28 @@ verification checks all four target builds and links after the dependency change
 | `aarch64-unknown-linux-gnu` | `539e283815a396a5796f32858b42e517b858ebaaeaaad05d03290ee8c864a527` |
 | `x86_64-unknown-linux-gnu` | `f48762ca10d1f1fc605a441c5ae430ec8ce1e9e80f14d78fbc42cb878c30b476` |
 
-Run `python3 tools/verify_engine.py <target> --fetch` to download a missing
-archive, verify its SHA-256, and perform a full `cargo build --locked --target`
-of the verification program. Omitting `--fetch` requires an existing archive in
-`var/v8`. A missing archive, changed digest, failed download, failed build or
-timeout is an error.
+`make verify-archive` checks the local archive and binding in `var/v8`. `make check` and
+`make bench` execute it before linking. The binding name is
+`src_binding_simdutf_release_<target>.rs`; the matching native features are exactly `simdutf`
+and `use_custom_libcxx`. The `default` marker may be present because it selects `use_custom_libcxx`;
+the native feature set is identical without that marker. Missing files, changed hashes, symbolic or relative paths and mismatched
+Cargo features fail. `--archive`, `--binding` and `--metadata-root` may be supplied explicitly.
+`--files-only` verifies staged files before any Cargo configuration is written; a normal build also
+verifies the resulting dependency graph.
 
-Run `python3 tools/verify_engine.py aarch64-apple-darwin --offline` on an ARM64 Mac
-to verify the local archive digest and build with Cargo network access disabled. This mode
-requires the archive in `var/v8` and never downloads it. The tool tests reject a missing or
-changed archive and a failed download.
+| Targets | Generated binding SHA-256 |
+| --- | --- |
+| macOS AArch64 and x86_64 | `ca5adf0cf89c9a70ad460ae73648b2fe89b74aa113b3cb7f757b6a02b758394f` |
+| Linux AArch64 and x86_64 | `7727826ae479bdb645e807239fb12d1f8e2e23de7a6cf16f5ee592690d1d8506` |
+
+`python3 tools/verify_engine.py <target>` requires the existing verified inputs and builds with
+Cargo network access disabled. It records the full Cargo command and compiler activity without
+imposing a total build duration limit. Execution on the native target has its own test time limit.
 
 `make verify-engine-linux-arm64` builds an ARM64 Linux container image from the
 Rust 1.98.1 Bookworm image digest
 `sha256:5b993f23fb69746405496e76f91e511d96c82b5b23304fd5d20b4a80a8b223ea`.
-It downloads a missing archive and verifies its digest before mounting this
+It requires the verified local archive and matching binding before mounting this
 checkout read only at `/src`. It bind mounts the host's ignored
 `var/engine-cargo` and `var/engine-target` directories at `/cargo` and `/target`
 with write access, builds the program and executes it. `make` supplies absolute
@@ -60,24 +71,26 @@ retains the Rust target's link arguments.
 The local V8 checkout is also mounted read only at its absolute Cargo patch
 path. The container cannot modify either source checkout.
 
-## Isolate group source archive
+## Renderer snapshots
 
-On Apple arm64, the release V8 source archive used by runtime checks has SHA-256
-`b18bcc65f8cb5f3249bea722614caf8ac1a5f5cef35ee9e01a91b6ec245cb9a0`, and its generated
-binding has SHA-256 `e71f32a0f97f99e13566c5da28804ad09421a0ecd600fbb6b79f301b9759ee2a`.
-`make install-group-archive` verifies both outputs at the absolute Cargo target path before
-copying them to separate ignored `var/v8/librusty_v8_source_aarch64-apple-darwin.a` and
-`var/v8/src_binding_source_aarch64-apple-darwin.rs` paths. The copies are checked again before
-installation. A missing or changed source, a relative path or a source path equal to a destination
-is an error. `make verify-group-archive` checks both installed files. `make check` and `make bench`
-run that verification before using `RUSTY_V8_ARCHIVE` and `RUSTY_V8_SRC_BINDING_PATH`; neither
-command invokes GN or Ninja. A missing, changed or unsupported host file is an error.
+One renderer process selects one immutable bundle key. The public snapshot creator initializes
+its context once, serializes it and is completely disposed before worker isolates restore that
+same blob. A different key is rejected even after all pools close. Different bundles use separate
+processes. Request contexts remain independent and do not evaluate either bundle again.
 
-The V8 checkout's `tools/check-isolate-groups.py` remains the explicit source build and runtime
-verification command. It checks the effective `is_debug=false`, pointer compression, separate
-pointer cages and external code space settings, then exercises three distinct snapshots in
-parallel. Run it with an absolute `CARGO_TARGET_DIR` and the required compiler paths before
-installing a new source archive.
+The compiler uses the default V8 snapshot, so its isolate creation and disposal are coordinated
+with renderer snapshot creation through `ssr_core::process`. A compiler cannot enter during
+snapshot initialization or after its success. The snapshot creator is consumed on initialization
+failure as well as success. The pinned V8 implementation removes shared read-only artifacts when
+its last isolate is disposed; an executable test verifies failed initialization, subsequent Svelte
+compilation and successful rendering in that order. A release build that accepts an incompatible
+entry does not establish safe shared heap ownership, so the entry contract is checked before V8.
+
+The official archive native tests on macOS AArch64 verify rejection of a changed process key and
+80 renders across four parallel workers with identical initialized random data and no request
+mutation. The React stream test verifies actual `renderToReadableStream` output for repeated
+request contexts. The multi-process test renders three application bundles and one module
+concurrently in separate processes. These tests are separate from cross-target build evidence.
 
 ## Build evidence
 

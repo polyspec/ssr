@@ -26,19 +26,26 @@ receives `RenderResult`.
 The library workspace selects the same V8 150.4.0 source checkout verified by
 S-4-2 and pins its maintained identifier macro dependency in `Cargo.lock`.
 
-The snapshot cache key contains the ordered server file paths and bytes SHA-256, the pinned deno_core version
-from the workspace manifest and the library package version. Equal keys reuse the snapshot
-while a pool holds it; changed keys create new snapshots. The cache holds weak references,
-so unused snapshot bytes are released. A failed bundle initialization or snapshot creation
-returns an error, and initialization obeys the configured timeout. Each call restores a
-separate V8 context from the snapshot in its worker isolate without executing the bundle
-again. The initialized server globals and Web APIs are available in each context, and
-changes made by one request cannot affect another.
-Each snapshot owns an independent V8 isolate group. Its creator and all worker isolates use
-that group, including when workers restore different application snapshots concurrently.
-The release source build enables pointer compression, separate pointer cages and external code space;
-an unsupported group is an error. The group remains alive until its snapshot and worker
-isolates are released. Worker isolate restoration is not serialized across groups.
+The snapshot key contains the ordered server file paths and bytes SHA-256, the pinned deno_core
+version and the library version. The process selects one key when initialization succeeds and
+retains that snapshot until process exit. Equal keys reuse the same bytes; another key returns
+an explicit error even after all pools close. Production build commands and render servers use separate Rust processes.
+A new application version starts in a new renderer process.
+
+`ssr_core::process::build` protects the Svelte compiler from V8 creation through runtime disposal.
+`ssr_core::process::render` protects snapshot creation through creator disposal. Concurrent compiler
+operations are allowed; a snapshot operation rejects concurrent engine entry. Once a snapshot
+succeeds, compiler entry fails before V8 construction. Ordinary Rust bundling remains available.
+A completed Svelte build may precede rendering in the same process. Failed snapshot initialization
+disposes its last isolate before releasing access, so subsequent compilation and rendering may retry.
+Lock contention and poisoned locks return errors; they do not wait or bypass the process contract.
+
+The public V8 snapshot creator evaluates the framework and application once, serializes the
+context and is completely disposed before worker creation. Workers restore the same snapshot
+concurrently through the public isolate API and verified official local archive. Each call
+restores a separate context without running either bundle again. Initialized globals and Web
+APIs are available in each context; request mutations do not affect later calls. Initialization
+failure returns its error without selecting a process key and obeys the configured timeout.
 Props and input state enter as V8 values. HTML, head and output state leave as bytes; the
 output state is parsed through ordered-json. Undefined, function, symbol, bigint
 and non-finite number values in the output state fail instead of being omitted
@@ -94,5 +101,5 @@ values and argument errors, and absence of forbidden APIs. Every test has a
 timeout under `make check`; the stderr capture subprocess has its own timeout.
 Promise tests cover fulfillment, rejection with a stack and pending results. The
 React bundle case executes an application component with top-level React declarations.
-React stream cases verify repeated request contexts, three application snapshots restored
-concurrently, and preservation of a failed Suspense boundary for client recovery.
+React stream cases verify repeated request contexts, different application snapshots restored
+in separate renderer processes, and preservation of a failed Suspense boundary for client recovery.

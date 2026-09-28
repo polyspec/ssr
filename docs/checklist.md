@@ -236,13 +236,31 @@ completion evidence.
   verification available as an explicit command; routine checks reuse the verified files without
   invoking GN or Ninja. Depends on: S-13-2-2-1. Evidence: missing, changed, identical-path and verified-copy cases,
   two routine checks with no V8 source rebuild, and the existing benchmark limits pass.
-- [~] S-13-2-2-1-2 Provide a target-specific Linux V8 archive and generated binding with the same
-  separate pointer cages and external code space required by `IsolateGroup::create`. The
-  development image must consume those local files without setting `V8_FROM_SOURCE`; a general
-  prebuilt archive that returns `independent isolate group unavailable` is insufficient. Depends
-  on: S-13-2-2-1-1. Evidence: a Linux archive build and digest verification, the isolate-group
-  runtime case in the development image, and a second image build with no GN/Ninja V8
-  compilation.
+- [~] S-13-2-2-1-2 Verify the official target-specific Linux V8 archive and matching generated
+  binding in the development image. Depends on: S-13-2-2-1-3. Evidence required: archive
+  and binding digest verification, native same-snapshot parallel rendering in that image, and a
+  second image build without V8 source compilation. No archive download or source substitution.
+- [o] S-13-2-2-1-3 Use the verified official local V8 archive and matching binding with one immutable
+  snapshot key per renderer process. Priority: required before renderer integration. Dispose the
+  public snapshot creator before restoring the same blob concurrently; retain one initialization
+  and independent request state. Reject another key even after pools close. Build and render run
+  in separate Rust processes. Depends on: S-13-2-2-1. Evidence required: tracked contract RED,
+  native official-archive proof, unchanged isolation and performance limits, and make check.
+  A tracked subprocess case must reject Svelte compiler entry while snapshot workers are active
+  before an incompatible V8 isolate can be created. Safe completed builds retain their render use path.
+  The shared process contract excludes concurrent compiler and snapshot initialization and verifies
+  complete creator disposal after failed initialization. Test ownership maps each actual public
+  behavior use to its consumer case and rejects missing behavior or consumer declarations.
+  Svelte compilation uses the transform hook so compiler and process errors preserve their causes
+  through the bundler; public build tests require the specific cause.
+  Cargo case runners forward compilation output as it arrives without a total build deadline;
+  nextest retains each case's deadline and missing or failed case output remains an error.
+  This item replaces the same-process multi-snapshot and source-group requirements of S-10,
+  S-12, S-13-2-2-1 and S-13-2-2-1-1; their recorded completed evidence remains unchanged.
+  Evidence: make check exited zero with the official macOS AArch64 archive and binding: 54 Python
+  cases, 17 owner and consumer cases, 145 workspace cases, 12 feature cases and 3 benchmark unit
+  cases passed. The 2 independent make verify-build cases and existing make bench limits passed.
+  The engine-free build verification command requires no V8 inputs, verified by a tracked regression case.
 - [o] S-13-2-2-2 Pass the exact server entry and chunks through `ServerBundle` and evaluate
   them as V8 modules. The server entry
   exports a `render` function; it does not create a global render function. Generated server

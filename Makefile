@@ -1,19 +1,18 @@
-.PHONY: check bench install-group-archive verify-group-archive verify-engine-linux-arm64 verify-engine-deps verify-build
+.PHONY: check bench verify-archive verify-engine-linux-arm64 verify-engine-deps verify-build
 
-GROUP_TARGET := $(shell rustc -vV | sed -n 's/^host: //p')
-GROUP_ARCHIVE := $(CURDIR)/var/v8/librusty_v8_source_$(GROUP_TARGET).a
-GROUP_BINDING := $(CURDIR)/var/v8/src_binding_source_$(GROUP_TARGET).rs
+V8_TARGET := $(shell rustc -vV | sed -n 's/^host: //p')
+V8_ARCHIVE := $(CURDIR)/var/v8/librusty_v8_simdutf_release_$(V8_TARGET).a.gz
+V8_BINDING := $(CURDIR)/var/v8/src_binding_simdutf_release_$(V8_TARGET).rs
 
-check bench install-group-archive verify-group-archive: export RUSTY_V8_ARCHIVE := $(GROUP_ARCHIVE)
-check bench install-group-archive verify-group-archive: export RUSTY_V8_SRC_BINDING_PATH := $(GROUP_BINDING)
-check bench: export CARGO_INCREMENTAL := 0
-check bench: verify-group-archive
+check bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
+check bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
+check bench verify-build: export CARGO_INCREMENTAL := 0
+check bench verify-build: export CARGO_BUILD_JOBS := 1
+check bench verify-build: export CARGO_NET_OFFLINE := true
+check bench: verify-archive
 
-install-group-archive:
-	python3 tools/verify_group_archive.py install
-
-verify-group-archive:
-	python3 tools/verify_group_archive.py verify
+verify-archive:
+	python3 tools/verify_archive.py
 
 check:
 	npm ci --prefix tools/build-probe/tests/fixtures --install-links --ignore-scripts --no-audit --no-fund
@@ -33,7 +32,7 @@ bench:
 	python3 tools/bench.py
 
 verify-engine-linux-arm64:
-	python3 tools/verify_engine.py aarch64-unknown-linux-gnu --fetch-only
+	python3 tools/verify_archive.py aarch64-unknown-linux-gnu
 	python3 tools/prepare_engine_compose.py
 	container build --platform linux/arm64 -f verification/engine/linux/Dockerfile -t localhost/ssr-engine-test:0.0.1 verification/engine/linux
 	containerctl -f $(CURDIR)/var/engine-compose.yaml up

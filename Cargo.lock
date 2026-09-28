@@ -3595,6 +3595,7 @@ dependencies = [
  "rolldown_sourcemap",
  "sha2",
  "sourcemap",
+ "ssr-core",
  "tokio",
 ]
 
