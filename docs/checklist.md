@@ -139,6 +139,13 @@ completion evidence.
   HEAD for exact public URLs, returns the manifest content type and bytes, returns 404 for unknown
   paths, and returns 405 for other methods. Evidence: the three publication cases, invalid input
   cases and HTTP serving cases.
+- [o] S-8-1 Persist and read complete immutable build directories. Priority: required before a
+  renderer starts from prepared build files. Depends on: S-5, S-8. Acceptance: `Build::write`
+  atomically publishes all manifest, private and public files under a deterministic SHA-256
+  directory; equal writes preserve that directory. `Build::read` rejects missing, changed, extra,
+  duplicate, unsafe or symbolic-link files and invalid manifest fields. Failed publication leaves
+  previous builds intact and reports cleanup failures. Evidence: tracked RED/GREEN persistence,
+  integrity, concurrent publication and public-file selection cases, and `make check`.
 - [o] S-9 Implement `ssr-server`: `POST /_render`, tracing metrics for render time, pool wait and
   heap, and stack traces mapped through source maps with sourcemap 9.3.2. Depends on: S-7, S-8.
   Acceptance: the build records private source maps for the server entry and server chunks with

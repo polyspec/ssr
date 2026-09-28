@@ -2,8 +2,10 @@
 
 mod asset_url;
 mod css;
+mod files;
 mod js;
 mod manifest;
+mod manifest_read;
 mod public;
 mod react_css;
 mod svelte;
@@ -42,6 +44,11 @@ pub enum Error {
     Css(String),
     Manifest(ordered_json::Error),
     DuplicateOutput(String),
+    Random(getrandom::Error),
+    Cleanup {
+        operation: Box<Self>,
+        cleanup: io::Error,
+    },
 }
 
 impl fmt::Display for Error {
@@ -53,6 +60,11 @@ impl fmt::Display for Error {
             Self::Css(message) => write!(f, "CSS build failed: {message}"),
             Self::Manifest(error) => write!(f, "manifest failed: {error}"),
             Self::DuplicateOutput(path) => write!(f, "duplicate build output: {path}"),
+            Self::Random(error) => write!(f, "build random value failed: {error}"),
+            Self::Cleanup { operation, cleanup } => write!(
+                f,
+                "{operation}; temporary directory removal failed: {cleanup}"
+            ),
         }
     }
 }
@@ -62,6 +74,8 @@ impl std::error::Error for Error {
         match self {
             Self::Io(error) => Some(error),
             Self::Manifest(error) => Some(error),
+            Self::Random(error) => Some(error),
+            Self::Cleanup { operation, .. } => Some(operation),
             _ => None,
         }
     }
