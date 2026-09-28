@@ -106,14 +106,14 @@ async fn react_stream_pool_restores_request_contexts_for_repeated_calls() {
             entry_bytes: output.files[&output.manifest.server.path].clone(),
             chunks: Vec::new(),
         },
-        1,
-        1,
-        Duration::from_secs(3),
+        crate::test_options(1, 1, Duration::from_secs(3)),
     )
     .unwrap();
     for name in ["Ada", "Bea"] {
         let page = Page::from_json(format!(r#"{{"render":"ssr","title":"Test","language":"en","props":{{"name":"{name}"}},"state":{{"count":1}}}}"#).as_bytes()).unwrap();
-        let (state, stream) = pool.render_stream(&page, "nonce_A").unwrap();
+        let (state, stream) = pool
+            .render_stream(&page, "nonce_A", crate::Cancellation::new())
+            .unwrap();
         assert_eq!(state.compact(), r#"{"count":1}"#);
         let bytes = stream.collect::<Result<Vec<_>, _>>().unwrap().concat();
         let html = std::str::from_utf8(&bytes).unwrap();
@@ -139,7 +139,7 @@ fn application_snapshots_restore_in_separate_processes() {
                 entry_path: "server/plain.js".into(),
                 entry_bytes: b"export function render() { return {html:'<p>plain</p>', head:'', state:null}; }".to_vec(),
                 chunks: Vec::new(),
-            }, 4, 16, Duration::from_secs(3)).unwrap();
+            }, crate::test_options(4, 16, Duration::from_secs(3))).unwrap();
             for _ in 0..20 {
                 assert_eq!(pool.render(&page).unwrap().html, b"<p>plain</p>");
             }
@@ -153,13 +153,13 @@ fn application_snapshots_restore_in_separate_processes() {
                         .into_bytes(),
                     chunks: Vec::new(),
                 },
-                4,
-                16,
-                Duration::from_secs(3),
+                crate::test_options(4, 16, Duration::from_secs(3)),
             )
             .unwrap();
             for _ in 0..20 {
-                let (_, stream) = pool.render_stream(&page, "test_nonce").unwrap();
+                let (_, stream) = pool
+                    .render_stream(&page, "test_nonce", crate::Cancellation::new())
+                    .unwrap();
                 assert_eq!(
                     stream.collect::<Result<Vec<_>, _>>().unwrap().concat(),
                     format!("<p>{name}</p>").as_bytes()

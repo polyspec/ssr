@@ -132,7 +132,7 @@ fn dynamic_chunk_restores_in_three_workers_without_shared_state() {
         .map(|_| {
             let snapshot = std::sync::Arc::clone(&snapshot);
             thread::spawn(move || {
-                let mut isolate = snapshot.isolate();
+                let mut isolate = snapshot.isolate(134_217_728);
                 v8::scope!(let scope, &mut isolate);
                 (0..2)
                     .map(|_| {
@@ -175,7 +175,7 @@ fn incomplete_snapshot_module_index_is_an_error() {
     let snapshot = snapshot::get(&sources, Duration::from_secs(5)).unwrap();
     let (sources, mut indices) = snapshot.module_data().unwrap();
     indices.remove("server/chunk.js");
-    let mut isolate = snapshot.isolate();
+    let mut isolate = snapshot.isolate(134_217_728);
     v8::scope!(let scope, &mut isolate);
     let context = v8::Context::new(scope, Default::default());
     let scope = &mut v8::ContextScope::new(scope, context);
@@ -278,7 +278,7 @@ fn missing_dynamic_import_rejects_render() {
     )
     .unwrap();
     let snapshot = snapshot::get(&sources, Duration::from_secs(5)).unwrap();
-    let mut isolate = snapshot.isolate();
+    let mut isolate = snapshot.isolate(134_217_728);
     v8::scope!(let scope, &mut isolate);
     let context = v8::Context::new(scope, Default::default());
     let scope = &mut v8::ContextScope::new(scope, context);
@@ -315,7 +315,7 @@ fn unfinished_dynamic_chunk_rejects_render() {
     )
     .unwrap();
     let snapshot = snapshot::get(&sources, Duration::from_secs(5)).unwrap();
-    let mut isolate = snapshot.isolate();
+    let mut isolate = snapshot.isolate(134_217_728);
     v8::scope!(let scope, &mut isolate);
     let context = v8::Context::new(scope, Default::default());
     let scope = &mut v8::ContextScope::new(scope, context);

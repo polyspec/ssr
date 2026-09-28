@@ -1,3 +1,4 @@
+mod support;
 use ssr_adapter_react::{ReactAdapter, client_entry, framework_entry, server_entry};
 use ssr_build::{Build, BuildConfig, build};
 use ssr_core::{Page, RenderResult};
@@ -72,7 +73,9 @@ fn shell_page() -> Page {
 }
 
 fn stream_document(adapter: &ReactAdapter, page: &Page, pool: &Pool) -> RenderResult {
-    let (state, stream) = pool.render_stream(page, "sample_nonce").unwrap();
+    let (state, stream) = pool
+        .render_stream(page, "sample_nonce", ssr_runtime::Cancellation::new())
+        .unwrap();
     let (mut prefix, suffix) = adapter.stream_parts(page, &state).unwrap();
     let body = stream.collect::<Result<Vec<_>, _>>().unwrap().concat();
     prefix.extend_from_slice(&body);
@@ -96,9 +99,7 @@ fn react_pool(build: &Build) -> Pool {
             entry_bytes: build.files[&build.manifest.server.path].clone(),
             chunks: Vec::new(),
         },
-        1,
-        0,
-        Duration::from_secs(10),
+        support::options(1, 0, Duration::from_secs(10)),
     )
     .unwrap()
 }
@@ -253,7 +254,9 @@ async fn suspense_failure_keeps_fallback_and_client_recovery_in_stream() {
     .unwrap();
     let pool = react_pool(&output);
     let page = Page::from_json(br#"{"render":"ssr","title":"Stream","language":"en","props":{"failClient":false},"state":{"count":4}}"#).unwrap();
-    let (state, mut stream) = pool.render_stream(&page, "stream_nonce").unwrap();
+    let (state, mut stream) = pool
+        .render_stream(&page, "stream_nonce", ssr_runtime::Cancellation::new())
+        .unwrap();
     assert_eq!(state.compact(), r#"{"count":4}"#);
     let shell = String::from_utf8(stream.next().unwrap().unwrap()).unwrap();
     assert!(shell.contains("<h1>Ready</h1>"), "{shell}");

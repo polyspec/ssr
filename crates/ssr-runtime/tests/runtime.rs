@@ -1,3 +1,4 @@
+mod support;
 use ssr_build::{BuildConfig, build};
 use ssr_core::{Page, Render};
 use ssr_runtime::{Error, Pool, ServerBundle};
@@ -26,9 +27,7 @@ fn make_pool(
             entry_bytes,
             chunks: Vec::new(),
         },
-        worker_count,
-        queue_capacity,
-        timeout,
+        support::options(worker_count, queue_capacity, timeout),
     )
 }
 
@@ -311,7 +310,7 @@ async fn react_server_bundle_executes_with_text_encoder() {
             .map(|file| (file.path.clone(), output.files[&file.path].clone()))
             .collect(),
     };
-    let pool = Pool::new(bundle, 1, 0, Duration::from_secs(10)).unwrap();
+    let pool = Pool::new(bundle, support::options(1, 0, Duration::from_secs(10))).unwrap();
     let request = Page::from_json(br#"{"render":"ssr","title":"T","language":"en","props":{"name":"Ada"},"state":{"count":4}}"#).unwrap();
     let result = pool.render(&request).unwrap();
     assert!(
@@ -440,7 +439,7 @@ fn server_bundle_rejects_duplicate_and_invalid_files() {
         },
     ] {
         assert!(matches!(
-            Pool::new(bundle, 1, 0, Duration::from_secs(2)),
+            Pool::new(bundle, support::options(1, 0, Duration::from_secs(2))),
             Err(Error::InvalidBundle(_))
         ));
     }

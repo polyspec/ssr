@@ -1,3 +1,4 @@
+mod support;
 use http::{Method, Request, StatusCode};
 use ssr_adapter_svelte::{client_entry, server_entry};
 use ssr_build::{BuildConfig, build};
@@ -39,7 +40,12 @@ async fn svelte_http_preserves_head_css_and_request_nonce() {
     })
     .await
     .unwrap();
-    let server = Server::new(&output, Adapter::Svelte, 1, 0, Duration::from_secs(10)).unwrap();
+    let server = Server::new(
+        &output,
+        Adapter::Svelte,
+        support::options(1, 0, Duration::from_secs(10)),
+    )
+    .unwrap();
     let request = Request::builder()
         .method(Method::POST)
         .uri("/_render")

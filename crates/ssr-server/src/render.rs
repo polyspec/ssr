@@ -11,7 +11,7 @@ use ssr_core::{CALL_PATH, Page, Render};
 use ssr_runtime::{Error as RuntimeError, Pool, ServerBundle};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 #[derive(Debug)]
 pub enum Error {
@@ -79,6 +79,7 @@ pub struct Server {
     adapter: AdapterInstance,
     pool: Pool,
     source_maps: BTreeMap<String, SourceMap>,
+    max_input_bytes: usize,
 }
 
 fn verified<'a>(build: &'a Build, file: &BuildFile) -> Result<&'a [u8], Error> {
@@ -165,9 +166,7 @@ impl Server {
     pub fn new(
         build: &Build,
         adapter: Adapter,
-        worker_count: usize,
-        queue_capacity: usize,
-        timeout: Duration,
+        options: ssr_runtime::PoolOptions,
     ) -> Result<Self, Error> {
         let public = PublicFiles::new(build).map_err(Error::Public)?;
         let server = &build.manifest.server;
@@ -287,14 +286,10 @@ impl Server {
             chunks,
         };
         let pool = match (framework_file, framework) {
-            (Some(file), Some(bytes)) => Pool::new_react(
-                (file.path.clone(), bytes),
-                bundle,
-                worker_count,
-                queue_capacity,
-                timeout,
-            ),
-            (None, None) => Pool::new(bundle, worker_count, queue_capacity, timeout),
+            (Some(file), Some(bytes)) => {
+                Pool::new_react((file.path.clone(), bytes), bundle, options)
+            }
+            (None, None) => Pool::new(bundle, options),
             _ => {
                 return Err(Error::InvalidBuild(
                     "React framework verification is incomplete".into(),
@@ -307,6 +302,7 @@ impl Server {
             adapter,
             pool,
             source_maps,
+            max_input_bytes: options.max_input_bytes,
         })
     }
 
@@ -350,6 +346,13 @@ impl Server {
                 b"application/json required".to_vec(),
             );
         }
+        if request.body().len() > self.max_input_bytes {
+            return response(
+                StatusCode::PAYLOAD_TOO_LARGE,
+                "text/plain; charset=utf-8",
+                b"render input exceeds byte limit".to_vec(),
+            );
+        }
         let page = match Page::from_json(request.body()) {
             Ok(page) => page,
             Err(error) => {
@@ -367,10 +370,14 @@ impl Server {
         };
         let rendered = match (&self.adapter, page.render) {
             (AdapterInstance::React(adapter), Render::Ssr) => {
-                let (state, stream) = match self.pool.render_stream(&page, &nonce) {
-                    Ok(result) => result,
-                    Err(error) => return self.render_error(Error::Runtime(error), started),
-                };
+                let (state, stream) =
+                    match self
+                        .pool
+                        .render_stream(&page, &nonce, ssr_runtime::Cancellation::new())
+                    {
+                        Ok(result) => result,
+                        Err(error) => return self.render_error(Error::Runtime(error), started),
+                    };
                 let (prefix, suffix) = match adapter.stream_parts(&page, &state) {
                     Ok(parts) => parts,
                     Err(error) => return self.render_error(Error::React(error), started),
@@ -449,6 +456,18 @@ impl Server {
         tracing::error!(render_ms = started.elapsed().as_secs_f64() * 1000.0, error = %body, "render failed");
         response(status, "text/html; charset=utf-8", error_page(&body))
     }
+
+    pub fn health(&self) -> Result<(), Error> {
+        self.pool.health().map_err(Error::Runtime)
+    }
+
+    pub fn wait(&self) -> Result<(), Error> {
+        self.pool.wait().map_err(Error::Runtime)
+    }
+
+    pub fn close(&self) -> Result<(), Error> {
+        self.pool.close().map_err(Error::Runtime)
+    }
 }
 
 fn render_status(error: &Error) -> StatusCode {
@@ -456,21 +475,34 @@ fn render_status(error: &Error) -> StatusCode {
         Error::Runtime(
             RuntimeError::QueueFull
             | RuntimeError::WorkerStopped
-            | RuntimeError::WorkerUnresponsive,
+            | RuntimeError::WorkerUnresponsive
+            | RuntimeError::Cleanup { .. }
+            | RuntimeError::LimitExceeded("queue bytes"),
         ) => StatusCode::SERVICE_UNAVAILABLE,
         Error::Runtime(RuntimeError::Timeout) => StatusCode::GATEWAY_TIMEOUT,
+        Error::Runtime(RuntimeError::LimitExceeded("input bytes")) => StatusCode::PAYLOAD_TOO_LARGE,
         Error::Svelte(SvelteError::Runtime(
             RuntimeError::QueueFull
             | RuntimeError::WorkerStopped
-            | RuntimeError::WorkerUnresponsive,
+            | RuntimeError::WorkerUnresponsive
+            | RuntimeError::Cleanup { .. }
+            | RuntimeError::LimitExceeded("queue bytes"),
         )) => StatusCode::SERVICE_UNAVAILABLE,
         Error::Svelte(SvelteError::Runtime(RuntimeError::Timeout)) => StatusCode::GATEWAY_TIMEOUT,
+        Error::Svelte(SvelteError::Runtime(RuntimeError::LimitExceeded("input bytes"))) => {
+            StatusCode::PAYLOAD_TOO_LARGE
+        }
         Error::Vanilla(VanillaError::Runtime(
             RuntimeError::QueueFull
             | RuntimeError::WorkerStopped
-            | RuntimeError::WorkerUnresponsive,
+            | RuntimeError::WorkerUnresponsive
+            | RuntimeError::Cleanup { .. }
+            | RuntimeError::LimitExceeded("queue bytes"),
         )) => StatusCode::SERVICE_UNAVAILABLE,
         Error::Vanilla(VanillaError::Runtime(RuntimeError::Timeout)) => StatusCode::GATEWAY_TIMEOUT,
+        Error::Vanilla(VanillaError::Runtime(RuntimeError::LimitExceeded("input bytes"))) => {
+            StatusCode::PAYLOAD_TOO_LARGE
+        }
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
@@ -495,6 +527,34 @@ mod tests {
         assert_eq!(
             nonce_with::<&str>(|_| Err("random source failed")),
             Err("random source failed")
+        );
+    }
+
+    #[test]
+    fn byte_limit_failures_preserve_their_http_status() {
+        use ssr_adapter_vanilla::Error as VanillaError;
+        for error in [
+            Error::Runtime(RuntimeError::LimitExceeded("queue bytes")),
+            Error::Svelte(SvelteError::Runtime(RuntimeError::LimitExceeded(
+                "queue bytes",
+            ))),
+            Error::Vanilla(VanillaError::Runtime(RuntimeError::LimitExceeded(
+                "queue bytes",
+            ))),
+            Error::Runtime(RuntimeError::Cleanup {
+                request: Box::new(RuntimeError::Timeout),
+                cleanup: Box::new(RuntimeError::WorkerUnresponsive),
+            }),
+        ] {
+            assert_eq!(render_status(&error), StatusCode::SERVICE_UNAVAILABLE);
+        }
+        assert_eq!(
+            render_status(&Error::Runtime(RuntimeError::LimitExceeded("input bytes"))),
+            StatusCode::PAYLOAD_TOO_LARGE
+        );
+        assert_eq!(
+            render_status(&Error::Runtime(RuntimeError::LimitExceeded("output bytes"))),
+            StatusCode::INTERNAL_SERVER_ERROR
         );
     }
 

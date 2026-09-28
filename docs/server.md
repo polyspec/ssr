@@ -2,8 +2,7 @@
 
 # HTTP server
 
-`Server::new` accepts a build, adapter selection, worker count, queue capacity and render
-timeout. It verifies the public files, every server JavaScript file's bytes and SHA-256, and each
+`Server::new` accepts a build, adapter selection and explicit runtime `PoolOptions`. It verifies the public files, every server JavaScript file's bytes and SHA-256, and each
 file's matching private source map before creating a pool. A missing, duplicate, changed or invalid
 server source map is an error. A JavaScript stack frame uses the source map for the exact server
 file path in that frame.
@@ -101,3 +100,14 @@ Acceptance: maintained Rust child programs verify separate build and render proc
 preparation, explicit rebuild failure and recovery, progressive responses during replacement,
 restart from a completed build, normal shutdown, forced termination, and process cleanup on drop.
 The source event tests preserve newly created source files and exclude only declared output paths.
+
+`POST /_render` rejects a body larger than `max_input_bytes` with HTTP 413 before JSON parsing,
+including CSR requests. The HTTP transport must apply the same limit while receiving the body.
+
+Runtime input byte exhaustion returns HTTP 413; waiting-count or waiting-byte exhaustion returns
+HTTP 503. A cleanup failure that makes the pool unavailable also returns HTTP 503 before headers
+are sent. Output-limit failure remains an explicit render or response-body error.
+
+`Server::health`, `Server::wait` and `Server::close` expose the owned pool's availability, closure
+event and explicit shutdown result. A renderer process uses the closure event to stop accepting
+requests when native work cannot be cleaned up.

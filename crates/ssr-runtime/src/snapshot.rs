@@ -80,8 +80,9 @@ pub(crate) struct Snapshot {
 }
 
 impl Snapshot {
-    pub(crate) fn isolate(&self) -> v8::OwnedIsolate {
+    pub(crate) fn isolate(&self, max_heap_bytes: usize) -> v8::OwnedIsolate {
         let parameters = v8::CreateParams::default()
+            .heap_limits(0, max_heap_bytes)
             .external_references(Cow::Owned(web::external_references()))
             .snapshot_blob(v8::StartupData::from(self.bytes.clone()));
         let mut isolate = v8::Isolate::new(parameters);
@@ -557,7 +558,7 @@ mod tests {
                     let snapshot = &snapshot;
                     threads.spawn(move || {
                         barrier.wait();
-                        let mut isolate = snapshot.isolate();
+                        let mut isolate = snapshot.isolate(134_217_728);
                         v8::scope!(let scope, &mut isolate);
                         let context = v8::Context::new(scope, Default::default());
                         let scope = &mut v8::ContextScope::new(scope, context);
@@ -592,7 +593,7 @@ mod tests {
                     let snapshot = &snapshot;
                     threads.spawn(move || {
                         barrier.wait();
-                        let mut isolate = snapshot.isolate();
+                        let mut isolate = snapshot.isolate(134_217_728);
                         v8::scope!(let scope, &mut isolate);
                         let context = v8::Context::new(scope, Default::default());
                         let scope = &mut v8::ContextScope::new(scope, context);

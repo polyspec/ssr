@@ -1,5 +1,8 @@
-use crate::{Error, StreamEvent, engine, state_from_json, web::FrameworkScheduler};
-use crossbeam_channel::Sender;
+use crate::{
+    Error, engine, state_from_json,
+    stream::{Event, Output},
+    web::FrameworkScheduler,
+};
 use deno_core::v8;
 
 macro_rules! caught {
@@ -82,7 +85,8 @@ fn state(
     context: v8::Local<v8::Context>,
     serializer: &v8::Global<v8::UnboundScript>,
     value: v8::Local<v8::Value>,
-) -> Result<ssr_core::Value, Error> {
+    max_output_bytes: usize,
+) -> Result<(ssr_core::Value, usize), Error> {
     v8::tc_scope!(let scope, scope);
     if value.is_undefined() {
         return Err(Error::InvalidResult("state is required"));
@@ -98,7 +102,14 @@ fn state(
         .ok_or_else(|| caught!(scope))?;
     let json = v8::Local::<v8::String>::try_from(json)
         .map_err(|_| Error::InvalidResult("state serialization did not return JSON"))?;
-    state_from_json(json.to_rust_string_lossy(scope).as_bytes())
+    let bytes = json.utf8_length(scope);
+    if bytes > max_output_bytes {
+        return Err(Error::LimitExceeded("output bytes"));
+    }
+    Ok((
+        state_from_json(json.to_rust_string_lossy(scope).as_bytes())?,
+        bytes,
+    ))
 }
 
 pub(crate) fn render(
@@ -107,7 +118,7 @@ pub(crate) fn render(
     props: &str,
     input_state: &str,
     nonce: &str,
-    events: &Sender<StreamEvent>,
+    output: &Output,
 ) -> Result<(), Error> {
     v8::scope!(let scope, runtime);
     let framework = v8::Context::new(scope, Default::default());
@@ -136,18 +147,20 @@ pub(crate) fn render(
     let stream = v8::Local::<v8::Object>::try_from(stream)
         .map_err(|_| Error::InvalidResult("React ReadableStream required"))?;
     let state_value = property(scope, shell, "state")?;
-    let state = state(scope, framework, serializer, state_value)?;
+    let (state, mut output_bytes) = state(
+        scope,
+        framework,
+        serializer,
+        state_value,
+        output.max_output_bytes,
+    )?;
     let reader = call(scope, stream, "getReader", &[])?;
     let reader = v8::Local::<v8::Object>::try_from(reader)
         .map_err(|_| Error::InvalidResult("React stream reader required"))?;
     let heap_used_bytes = scope.get_heap_statistics().used_heap_size();
-    if events
-        .send(StreamEvent::Shell(state, heap_used_bytes))
-        .is_err()
-    {
-        return Err(Error::InvalidResult("stream receiver closed before shell"));
-    }
+    output.send(Event::Shell(state, heap_used_bytes))?;
     loop {
+        output.request.check()?;
         let read = call(scope, reader, "read", &[])?;
         let read = finish_promise(scope, framework, &scheduler, read)?;
         let read = v8::Local::<v8::Object>::try_from(read)
@@ -157,9 +170,6 @@ pub(crate) fn render(
             return Err(Error::InvalidResult("React stream done must be a boolean"));
         }
         if done.boolean_value(scope) {
-            events
-                .send(StreamEvent::End)
-                .map_err(|_| Error::InvalidResult("stream receiver closed"))?;
             return Ok(());
         }
         let value = property(scope, read, "value")?;
@@ -175,12 +185,16 @@ pub(crate) fn render(
             .ok_or(Error::InvalidResult(
                 "React stream chunk exceeds backing store",
             ))?;
-        let chunk = backing[start..end]
-            .iter()
-            .map(std::cell::Cell::get)
-            .collect();
-        events
-            .send(StreamEvent::Chunk(chunk))
-            .map_err(|_| Error::InvalidResult("stream receiver closed"))?;
+        let chunk_bytes = end - start;
+        output_bytes = output_bytes
+            .checked_add(chunk_bytes)
+            .ok_or(Error::LimitExceeded("output bytes"))?;
+        if output_bytes > output.max_output_bytes {
+            return Err(Error::LimitExceeded("output bytes"));
+        }
+        for part in backing[start..end].chunks(output.max_chunk_bytes) {
+            let chunk = part.iter().map(std::cell::Cell::get).collect();
+            output.send(Event::Chunk(chunk))?;
+        }
     }
 }

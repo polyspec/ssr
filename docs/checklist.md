@@ -119,6 +119,17 @@ completion evidence.
   the request has entered the bounded queue. The queue count exposes no event, so the case uses a
   bounded yield loop to observe it. Depends on: S-6. Evidence: the synchronized timeout case and
   `make check` pass.
+- [o] S-6-3 Cancel a request when its stream closes or its configured duration expires, and
+  acknowledge worker cleanup before returning its capacity. Priority: P0. Depends on: S-6,
+  S-13-2. Acceptance: a stopped reader cannot block a native chunk send indefinitely; late
+  cancellation cannot terminate the next request; pool health and close report an unresponsive
+  worker. A worker or monitor thread unwind notifies `Pool::wait` without another render call.
+  `PoolOptions` declares input, waiting-byte, output, chunk and heap limits, and
+  `Cancellation` identifies one request. A large source chunk is split into bounded fragments
+  without changing the output bytes. HTTP input exhaustion returns 413 and queue exhaustion
+  returns 503. Evidence: tracked cancellation, timeout, backpressure, capacity, shutdown and
+  byte-limit cases fail before correction and pass afterward; owner and consumer stream cases
+  and `make check` pass.
 - [o] S-7 Implement the React adapter for the first consumer: SSR renders HTML with the render state
   output; CSR returns the static shell of the same client bundle; the client hydrates the SSR HTML
   or renders the CSR shell. Depends on: S-5, S-6, S-6-1. Acceptance: the adapter supplies server and client

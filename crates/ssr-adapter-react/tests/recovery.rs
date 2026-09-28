@@ -1,3 +1,4 @@
+mod support;
 use ssr_adapter_react::{ReactAdapter, client_entry, framework_entry, server_entry};
 use ssr_build::{BuildConfig, build};
 use ssr_core::Page;
@@ -23,7 +24,9 @@ fn document(adapter: &ReactAdapter, pool: &Pool, fail_client: bool) -> Vec<u8> {
         r#"{{"render":"ssr","title":"Stream","language":"en","props":{{"failClient":{fail_client}}},"state":{{"count":4}}}}"#
     );
     let page = Page::from_json(json.as_bytes()).unwrap();
-    let (state, stream) = pool.render_stream(&page, "browser_nonce").unwrap();
+    let (state, stream) = pool
+        .render_stream(&page, "browser_nonce", ssr_runtime::Cancellation::new())
+        .unwrap();
     let (mut prefix, suffix) = adapter.stream_parts(&page, &state).unwrap();
     let body = stream.collect::<Result<Vec<_>, _>>().unwrap().concat();
     let text = std::str::from_utf8(&body).unwrap();
@@ -130,9 +133,7 @@ async fn browser_retries_failed_suspense_content_and_uses_error_boundary() {
             entry_bytes: output.files[&output.manifest.server.path].clone(),
             chunks: Vec::new(),
         },
-        1,
-        0,
-        Duration::from_secs(10),
+        support::options(1, 0, Duration::from_secs(10)),
     )
     .unwrap();
     let adapter = ReactAdapter::new(

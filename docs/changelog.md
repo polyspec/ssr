@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Cancel closed and expired streams, bound native chunk transmission, and acknowledge cleanup before
+  worker reuse. Require explicit pool byte and heap limits. Report unavailable workers through a
+  closure event and return errors from thread cleanup.
+
 - Use one immutable application snapshot per renderer process with the official local V8 archive
   and matching binding. Public snapshot creation completes before concurrent workers restore the
   same blob. Different bundle keys require separate renderer processes because one process retains

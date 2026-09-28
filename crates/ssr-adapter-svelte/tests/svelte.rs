@@ -1,3 +1,4 @@
+mod support;
 use ssr_adapter_svelte::{SvelteAdapter, client_entry, server_entry};
 use ssr_build::{Build, BuildConfig, build};
 use ssr_core::Page;
@@ -71,7 +72,7 @@ fn entries_and_documents_follow_the_page_contract() {
     assert!(client_entry("relative/client.js").is_err());
     assert!(server_entry("/application/server.js").is_err());
 
-    let pool = Pool::new(fixture(b"export function render(props, state) { return {head:'<meta name=\"svelte-head\" content=\"Ada\">', html: '<main>' + props.name + '</main>', state: {count: state.count + 1}}; }"), 1, 0, Duration::from_secs(2)).unwrap();
+    let pool = Pool::new(fixture(b"export function render(props, state) { return {head:'<meta name=\"svelte-head\" content=\"Ada\">', html: '<main>' + props.name + '</main>', state: {count: state.count + 1}}; }"), support::options(1, 0, Duration::from_secs(2))).unwrap();
     let adapter = SvelteAdapter::new("/assets/client.js", &["/assets/style.css"]).unwrap();
     let ssr = adapter.render(&page("ssr"), &pool).unwrap();
     assert_eq!(ssr.state.compact(), r#"{"count":5}"#);
@@ -99,9 +100,7 @@ fn entries_and_documents_follow_the_page_contract() {
 fn empty_ssr_document_preserves_render_mode() {
     let pool = Pool::new(
         fixture(b"export function render(props, state) { return {head:'', html:'', state}; }"),
-        1,
-        0,
-        Duration::from_secs(2),
+        support::options(1, 0, Duration::from_secs(2)),
     )
     .unwrap();
     let adapter = SvelteAdapter::new("/assets/client.js", &["/assets/style.css"]).unwrap();
@@ -117,7 +116,7 @@ fn empty_ssr_document_preserves_render_mode() {
 fn server_head_is_preserved() {
     let pool = Pool::new(
         fixture(b"export function render(props, state) { return {html:'ok', head:'<script>unsafe()</script>', state}; }"),
-        1, 0, Duration::from_secs(2),
+        support::options(1, 0, Duration::from_secs(2)),
     ).unwrap();
     let adapter = SvelteAdapter::new("/assets/client.js", &["/assets/style.css"]).unwrap();
     let result = adapter.render(&page("ssr"), &pool).unwrap();
@@ -194,7 +193,11 @@ async fn browser_case(empty: bool) {
     })
     .await
     .unwrap();
-    let pool = Pool::new(built_bundle(&output), 1, 0, Duration::from_secs(10)).unwrap();
+    let pool = Pool::new(
+        built_bundle(&output),
+        support::options(1, 0, Duration::from_secs(10)),
+    )
+    .unwrap();
     let adapter = SvelteAdapter::new(
         output.manifest.client.url.as_ref().unwrap(),
         &output

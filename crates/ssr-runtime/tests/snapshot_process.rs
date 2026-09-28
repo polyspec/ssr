@@ -1,3 +1,4 @@
+mod support;
 use ssr_core::Page;
 use ssr_runtime::{Error, Pool, ServerBundle};
 use std::sync::{Arc, Barrier};
@@ -10,9 +11,7 @@ fn pool(source: &[u8]) -> Result<Pool, Error> {
             entry_bytes: source.to_vec(),
             chunks: Vec::new(),
         },
-        4,
-        16,
-        Duration::from_secs(5),
+        support::options(4, 16, Duration::from_secs(5)),
     )
 }
 
