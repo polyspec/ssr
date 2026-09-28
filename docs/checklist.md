@@ -8,7 +8,7 @@ completion evidence.
 
 ## Requirements
 
-- One Rust process bundles and renders; no Node process runs at build time or at render time.
+- Separate Rust processes build and render; no Node process runs at build time or at render time.
   `npm ci` installs packages before a build.
 - A render call crosses no foreign function boundary: the caller is Rust and calls the library
   directly.
@@ -157,6 +157,7 @@ completion evidence.
   script name are mapped to source locations; a missing or invalid map fails server construction.
   See the [HTTP server contract](server.md). Evidence: stable build output, runtime metrics, HTTP
   cases, mapped stack and `make check`.
+- [o] S-9-1 Run development builds and render servers in separate Rust processes with explicit `ProcessOptions` for preparation, shutdown, restart count, event capacity and probe bytes. Priority: required for immutable render process snapshots. Depends on: S-9, S-14, S-8-1. Acceptance: the build command produces a verified immutable build directory; the render command serves that directory and completes an actual SSR request before receiving traffic; replacements preserve responses already using the previous process and stop and wait for that process after those responses finish. A failed build or preparation makes new requests fail explicitly. An unexpected render process exit is observed without polling and starts a replacement from the same completed build. Shutdown stops and waits for children and reports forced termination. Evidence: tracked process, readiness, failed rebuild, streaming drain, exit, restart and cleanup tests; `make check` passes.
 - [o] S-10 Implement snapshots keyed by the server bundle hash, the deno_core version and the library
   version; a context reset restores from the snapshot; a key mismatch creates a new snapshot.
   Depends on: S-6. Acceptance: a snapshot includes initialized server globals and Web APIs;

@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- Run build and render commands in separate processes, validate completed build directories and
+  actual SSR preparation before serving requests, retain active response processes during replacement,
+  and restart an exited render process from its completed build. Report rebuild and shutdown failures,
+  collect child exit statuses, and watch declared source inputs with explicit output exclusions.
+
 - Add `Build::write` and `Build::read` for complete build directories named by the manifest
   SHA-256. Publish private and public files with one directory rename, preserve equal writes and
   previous builds, and reject changed manifests, missing or extra files, invalid paths, symbolic

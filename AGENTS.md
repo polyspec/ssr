@@ -18,7 +18,10 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 - JSON documents of the public contract use ordered-json.
 - Develop one `0.0.1` library. The crates are `ssr-core`, `ssr-build`, `ssr-runtime`,
   `ssr-adapter-react`, `ssr-adapter-vue`, `ssr-adapter-svelte`, `ssr-adapter-vanilla` and `ssr-server`.
-- The library runs no Node process: bundling and rendering run inside the Rust process.
+- Rust build and render commands run in separate processes; neither runs Node. A render process
+  keeps one immutable build for its lifetime. Manage child stdin separately from process exit
+  observation. Collect every child exit status; a process that exceeds its graceful shutdown
+  duration is killed and waited for, and shutdown reports that failure.
 - Preserve generated JavaScript, component CSS and server head in their defined destinations.
   Missing required output and compiler warnings fail the build or render. Publish only source maps
   that identify the final output accurately.

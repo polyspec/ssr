@@ -16,7 +16,9 @@
 - 공개 계약의 JSON 문서는 ordered-json을 사용한다.
 - `0.0.1` 라이브러리 하나를 개발한다. 크레이트는 `ssr-core`, `ssr-build`, `ssr-runtime`, `ssr-adapter-react`,
   `ssr-adapter-vue`, `ssr-adapter-svelte`, `ssr-adapter-vanilla`, `ssr-server`다.
-- 라이브러리는 Node 프로세스를 실행하지 않는다. 번들링과 렌더링은 Rust 프로세스 안에서 실행한다.
+- Rust 빌드와 렌더 명령은 별도 프로세스에서 실행하며 둘 다 Node를 실행하지 않는다. 렌더 프로세스는
+  실행 동안 불변 빌드 하나를 유지한다. 자식 stdin 소유와 프로세스 종료 관측을 분리한다. 모든 자식의
+  종료 상태를 수집하며 정상 종료 제한 시간을 넘기면 강제 종료하고 종료를 확인하며 해당 실패를 보고한다.
 - 생성한 JavaScript, 컴포넌트 CSS와 서버 head를 정의된 위치에 반영한다. 필수 출력 누락과
   컴파일러 경고는 빌드 또는 렌더 실패다. 최종 출력의 위치를 정확히 표시하는 소스맵만 게시한다.
 - 로컬 패키지 통합 테스트는 무시된 `var/checkouts.txt`에서 체크아웃 경로를 읽고 검증한 npm
