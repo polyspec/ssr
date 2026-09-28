@@ -89,6 +89,10 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   dependencies in this checklist and update the specification before implementation. Finish current work unless
   the user explicitly requires immediate action or the defect must be fixed first. Run independent
   items in parallel without adding another task list. An uncommitted worktree covers one item;
+- Marking an item `[o]` writes its implementation, tests, records and changelog entry in one
+  commit. A received instruction is triaged first: finish the item in progress unless the
+  instruction is explicit and urgent, then place the new work by priority before starting it.
+
   commit that item's implementation, tests, and records when marking it `[o]`.
 - A newly found issue in a completed item is added as a numbered sub-item; the completed item does
   not go back to `[~]`.
