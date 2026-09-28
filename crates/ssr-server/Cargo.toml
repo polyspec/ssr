@@ -12,6 +12,7 @@ ssr-runtime = { path = "../ssr-runtime", version = "=0.0.1" }
 ssr-adapter-react = { path = "../ssr-adapter-react", version = "=0.0.1" }
 ssr-adapter-svelte = { path = "../ssr-adapter-svelte", version = "=0.0.1" }
 ssr-adapter-vanilla = { path = "../ssr-adapter-vanilla", version = "=0.0.1" }
+ssr-nonce = { path = "../ssr-nonce", version = "=0.0.1" }
 sourcemap.workspace = true
 tracing.workspace = true
 sha2.workspace = true
@@ -20,7 +21,6 @@ tokio.workspace = true
 hyper.workspace = true
 hyper-util.workspace = true
 http-body-util.workspace = true
-lol_html.workspace = true
 getrandom.workspace = true
 
 [dev-dependencies]
