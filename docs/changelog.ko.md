@@ -4,6 +4,8 @@
 
 ## 0.0.1
 
+- 개발 이미지 렌더링에 독립 isolate group을 지원하는 대상별 Linux V8 archive를 요구한다.
+
 - 설정한 dependency 디렉터리에서 application package를 해석해 중첩 package 복사본이 별도 module instance를 만들지 않게 한다.
 
 - Vue, Svelte, vanilla 어댑터를 완성한다. `features.json`은 지원 기능마다 정확한 실행 사례를 지정하며

@@ -4,6 +4,8 @@
 
 ## 0.0.1
 
+- Require a target-specific Linux V8 archive with independent isolate-group support for development image rendering.
+
 - Resolve application packages from the configured dependency directory so nested package copies do not create separate module instances.
 
 - Complete the Vue, Svelte and vanilla adapters. `features.json` names an exact executable case for
