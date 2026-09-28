@@ -141,6 +141,70 @@ async fn sample_build_has_stable_files_and_manifest() {
 }
 
 #[tokio::test]
+async fn package_resolution_uses_the_application_dependency_directory() {
+    let root = std::env::temp_dir().join(format!(
+        "ssr-build-package-resolution-{}",
+        std::process::id()
+    ));
+    if root.exists() {
+        fs::remove_dir_all(&root).unwrap();
+    }
+    fs::create_dir_all(root.join("src/node_modules/shared")).unwrap();
+    fs::create_dir_all(root.join("node_modules/shared")).unwrap();
+    fs::write(root.join("app.css"), "").unwrap();
+    fs::write(
+        root.join("node_modules/shared/package.json"),
+        r#"{"type":"module","main":"index.js"}"#,
+    )
+    .unwrap();
+    fs::write(
+        root.join("node_modules/shared/index.js"),
+        "export const marker = 'root-dependency';",
+    )
+    .unwrap();
+    fs::write(
+        root.join("src/node_modules/shared/package.json"),
+        r#"{"type":"module","main":"index.js"}"#,
+    )
+    .unwrap();
+    fs::write(
+        root.join("src/node_modules/shared/index.js"),
+        "export const marker = 'nested-dependency';",
+    )
+    .unwrap();
+    fs::write(
+        root.join("src/local.js"),
+        "import {marker} from 'shared'; export const local = marker;",
+    )
+    .unwrap();
+    fs::write(
+        root.join("src/server.js"),
+        "import {marker} from 'shared'; import {local} from './local.js'; export function render() { return {html: marker + local, head: '', state: null}; }",
+    )
+    .unwrap();
+    fs::write(
+        root.join("client.js"),
+        "import {marker} from 'shared'; document.body.dataset.marker = marker;",
+    )
+    .unwrap();
+    let root = root.canonicalize().unwrap();
+    let output = build(&BuildConfig {
+        root: root.clone(),
+        server_entry: root.join("src/server.js"),
+        react_framework_entry: None,
+        client_entry: root.join("client.js"),
+        css_entry: root.join("app.css"),
+        asset_route: "/assets".into(),
+    })
+    .await
+    .unwrap();
+    let server = String::from_utf8(output.files[&output.manifest.server.path].clone()).unwrap();
+    assert!(server.contains("root-dependency"));
+    assert!(!server.contains("nested-dependency"));
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test]
 async fn invalid_entries_imports_and_route_fail() {
     let mut config = config();
     config.react_framework_entry = Some(config.server_entry.clone());

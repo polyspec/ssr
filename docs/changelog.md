@@ -4,6 +4,8 @@
 
 ## 0.0.1
 
+- Resolve application packages from the configured dependency directory so nested package copies do not create separate module instances.
+
 - Complete the Vue, Svelte and vanilla adapters. `features.json` names an exact executable case for
   every supported feature, and `make check` runs every declared case.
 - Record supported adapter rendering, public asset, source map and React form capabilities in

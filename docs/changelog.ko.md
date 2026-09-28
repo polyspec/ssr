@@ -4,6 +4,8 @@
 
 ## 0.0.1
 
+- 설정한 dependency 디렉터리에서 application package를 해석해 중첩 package 복사본이 별도 module instance를 만들지 않게 한다.
+
 - Vue, Svelte, vanilla 어댑터를 완성한다. `features.json`은 지원 기능마다 정확한 실행 사례를 지정하며
   `make check`는 선언한 모든 사례를 실행한다.
 - 지원하는 어댑터 렌더링, 공개 자산, 소스맵, React 폼 기능을 `features.json`에 기록한다.
