@@ -118,6 +118,7 @@ async fn browser_retries_failed_suspense_content_and_uses_error_boundary() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();

@@ -24,6 +24,7 @@ async fn compiler_stops_before_v8_after_renderer_selection() {
         react_framework_entry: None,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     };
     let result = build(&config).await;
     assert!(

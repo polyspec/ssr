@@ -56,6 +56,7 @@ async fn suspense_error_keeps_recovery_stream_and_records_request_error() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();

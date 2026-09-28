@@ -28,6 +28,19 @@ pub struct BuildConfig {
     pub client_entry: PathBuf,
     pub css_entry: PathBuf,
     pub asset_route: String,
+    /// The directory every application package import resolves from. When it
+    /// is set, packages under a `node_modules` directory of the application
+    /// source are never used, so one package has one module instance.
+    pub dependencies: Option<PathBuf>,
+}
+
+impl BuildConfig {
+    /// The single directory package imports resolve from.
+    pub fn package_directory(&self) -> PathBuf {
+        self.dependencies
+            .clone()
+            .unwrap_or_else(|| self.root.join("node_modules"))
+    }
 }
 
 #[derive(Debug)]

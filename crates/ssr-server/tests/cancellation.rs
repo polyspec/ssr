@@ -53,6 +53,7 @@ globalThis.render = async (_App, props, state) => ({
         client_entry: client,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();

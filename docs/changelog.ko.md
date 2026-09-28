@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- 모든 애플리케이션 패키지 import를 하나의 설정된 의존성 디렉터리에서 해석한다: 베어 패키지
+  지정자는 그 디렉터리에서만 해석되므로 같은 패키지의 중첩 `node_modules` 사본이 렌더 context
+  provider와 consumer 옆에 두 번째 모듈 인스턴스를 만들 수 없다.
+
 - 소비 엔진 이미지 안에서 공식 Linux V8 archive와 binding을 검증한다: digest 확인,
   ordered-json을 포함한 읽기 전용 소스 마운트, V8 소스 컴파일 없는 네이티브 동일 스냅샷 병렬 렌더링.
 

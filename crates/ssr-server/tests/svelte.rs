@@ -37,6 +37,7 @@ async fn svelte_http_preserves_head_css_and_request_nonce() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();

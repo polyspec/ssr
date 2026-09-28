@@ -155,6 +155,7 @@ async fn browser_preserves_server_dom_and_renders_csr_and_shells() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();

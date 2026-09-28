@@ -456,6 +456,7 @@ mod tests {
                 react_framework_entry: None,
                 css_entry: root.join("app.css"),
                 asset_route: "/assets".into(),
+                dependencies: None,
             })
             .await;
             finish_tx.send(()).unwrap();

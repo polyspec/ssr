@@ -21,6 +21,7 @@ fn config() -> BuildConfig {
         css_entry: root.join("app.css"),
         root,
         asset_route: "/assets".into(),
+        dependencies: None,
     }
 }
 
@@ -195,6 +196,7 @@ async fn package_resolution_uses_the_application_dependency_directory() {
         client_entry: root.join("client.js"),
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();
@@ -246,4 +248,58 @@ async fn root_asset_route_has_one_leading_slash() {
             assert!(client.contains(url));
         }
     }
+}
+
+#[tokio::test]
+async fn configured_dependencies_replace_nested_node_modules_packages() {
+    let root = std::env::temp_dir().join(format!("ssr-build-deps-{}", std::process::id()));
+    let nested = root.join("node_modules/shared-value");
+    let dependencies = root.join("dependencies");
+    let configured = dependencies.join("shared-value");
+    fs::create_dir_all(&nested).unwrap();
+    fs::create_dir_all(&configured).unwrap();
+    for (directory, marker) in [(&nested, "nested-copy"), (&configured, "dependency-copy")] {
+        fs::write(
+            directory.join("package.json"),
+            r#"{"name":"shared-value","main":"index.js"}"#,
+        )
+        .unwrap();
+        fs::write(
+            directory.join("index.js"),
+            format!("export const marker = '{marker}';"),
+        )
+        .unwrap();
+    }
+    let root = root.canonicalize().unwrap();
+    let entry = root.join("entry.js");
+    fs::write(
+        &entry,
+        "import { marker } from 'shared-value'; export function render(props, state) { return {head:'', html:'<p>' + marker + '</p>', state}; }",
+    )
+    .unwrap();
+    let css = root.join("app.css");
+    fs::write(&css, "main{color:red}").unwrap();
+    let client = root.join("client.js");
+    fs::write(&client, "console.log('client');").unwrap();
+    let output = build(&BuildConfig {
+        root: root.clone(),
+        server_entry: entry,
+        react_framework_entry: None,
+        client_entry: client,
+        css_entry: css,
+        asset_route: "/assets".into(),
+        dependencies: Some(dependencies),
+    })
+    .await
+    .unwrap();
+    let server = String::from_utf8(output.files[&output.manifest.server.path].clone()).unwrap();
+    assert!(
+        server.contains("dependency-copy"),
+        "the nested node_modules copy was bundled: {server}"
+    );
+    assert!(
+        !server.contains("nested-copy"),
+        "the nested node_modules copy was bundled: {server}"
+    );
+    fs::remove_dir_all(root).unwrap();
 }

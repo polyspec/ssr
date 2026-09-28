@@ -18,6 +18,7 @@ use rolldown_sourcemap::{OwnedSourceMap, SourceMap};
 #[derive(Debug)]
 pub(crate) struct SveltePlugin {
     root: PathBuf,
+    packages: PathBuf,
     mode: &'static str,
     styles: Arc<Mutex<BTreeMap<PathBuf, String>>>,
 }
@@ -25,10 +26,16 @@ pub(crate) struct SveltePlugin {
 impl SveltePlugin {
     pub(crate) fn new(
         root: PathBuf,
+        packages: PathBuf,
         mode: &'static str,
         styles: Arc<Mutex<BTreeMap<PathBuf, String>>>,
     ) -> Self {
-        Self { root, mode, styles }
+        Self {
+            root,
+            packages,
+            mode,
+            styles,
+        }
     }
 }
 
@@ -125,8 +132,8 @@ impl Plugin for SveltePlugin {
             return Ok(None);
         }
         let source = self
-            .root
-            .join("node_modules/svelte/src/internal/server/render-context.js");
+            .packages
+            .join("svelte/src/internal/server/render-context.js");
         if args.importer != source.to_str() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
@@ -166,7 +173,7 @@ impl Plugin for SveltePlugin {
             )
             .into());
         }
-        let compiler_path = self.root.join("node_modules/svelte/compiler/index.js");
+        let compiler_path = self.packages.join("svelte/compiler/index.js");
         if compiler_path.canonicalize()? != compiler_path || !compiler_path.is_file() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,

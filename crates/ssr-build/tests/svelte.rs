@@ -24,6 +24,7 @@ async fn svelte_source_compiles_in_rust_and_publishes_component_css() {
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
         react_framework_entry: None,
+        dependencies: None,
     };
     let output = build(&config).await.unwrap();
     assert!(output.manifest.styles.len() >= 2);

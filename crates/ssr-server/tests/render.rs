@@ -504,6 +504,7 @@ async fn generated_source_map_maps_a_live_render_failure() {
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
         root,
+        dependencies: None,
     })
     .await
     .unwrap();

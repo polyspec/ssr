@@ -40,7 +40,7 @@ impl SourceProvider for PackageProvider {
                 })?
                 .join(specifier)
         } else {
-            self.root.join("node_modules").join(specifier)
+            self.root.join(specifier)
         };
         Ok(ResolveResult::File(path.canonicalize()?))
     }
@@ -69,7 +69,7 @@ fn bundle_source(
 ) -> Result<BuildFile, Error> {
     let provider = PackageProvider {
         files: FileProvider::new(),
-        root: config.root.clone(),
+        root: config.package_directory(),
         virtual_css: virtual_css.map(|css| (source_path.to_path_buf(), css)),
     };
     let mut bundler = Bundler::new(&provider, None, ParserOptions::default());

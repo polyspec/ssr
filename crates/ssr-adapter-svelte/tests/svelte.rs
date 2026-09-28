@@ -190,6 +190,7 @@ async fn browser_case(empty: bool) {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
+        dependencies: None,
     })
     .await
     .unwrap();

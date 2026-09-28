@@ -21,6 +21,7 @@ fn config() -> BuildConfig {
         css_entry: root.join("app.css"),
         root,
         asset_route: "/assets".into(),
+        dependencies: None,
     }
 }
 
