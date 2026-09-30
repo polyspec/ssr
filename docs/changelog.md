@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Resolve configured JavaScript imports with the standard resolver so scoped
+  conditional exports select their declared entry and unexported subpaths fail.
+  Preserve the single dependency directory and reject nested dependency replacements.
+
 - Resolve every application package import from one configured dependency directory: bare
   package specifiers resolve only there, so a nested `node_modules` copy of the same package
   cannot create a second module instance beside the render context provider and consumer.

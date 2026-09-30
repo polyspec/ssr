@@ -292,3 +292,5 @@
   bundle에서 하나의 package 경로를 사용하고 render context provider와 consumer가 같은 module
   instance를 공유한다. 증거: 추적하는 resolver fixture가 수정 전 실패하고 수정 후 통과하며 소비하는
   SSR 요청이 missing-context 오류 없이 document를 반환한다.
+
+- [o] S-15-7-1 표준 JavaScript resolver로 설정된 의존성 exports를 해결한다. 우선순위: 선언된 의존성 디렉터리를 소비하는 데 필요하다. 원인: 자체 의존성 resolver가 패키지 exports를 무시하여 export된 하위 경로를 거부한다. 수락 기준: 추적 RED가 범위가 지정된 조건부 export 실패를 재현하고 export되지 않은 하위 경로의 거부를 요구한다. 표준 resolver가 두 사례와 기존 단일 디렉터리 사례를 통과하며 의존성 디렉터리의 페이지·브라우저 사례가 통과한다. 의존: S-15-7.

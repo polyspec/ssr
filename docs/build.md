@@ -149,3 +149,8 @@ replacement for CSS is Lightning CSS's bundler with a package-aware `SourceProvi
 asset URL replacement. The present build does not request CSS source maps. Enabling the CSS
 `sourcemap` feature adds `parcel_sourcemap` and `rkyv` to that caller's dependency graph, so that
 graph requires its own advisory check before use.
+
+When a dependency directory is configured, every bare import resolves only from that
+directory through the JavaScript resolver. Scoped names, exported subpaths and import
+conditions use the package exports contract. An unexported subpath fails even when a
+file with that name exists; a nested dependency copy cannot replace the configured one.

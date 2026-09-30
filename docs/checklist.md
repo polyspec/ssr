@@ -350,3 +350,5 @@ completion evidence.
   context provider and its consumer share the same module instance. Evidence: the tracked
   resolver fixture fails before the correction and passes after it, and the consuming SSR request
   returns a document without a missing-context error.
+
+- [o] S-15-7-1 Resolve configured dependency exports through the standard JavaScript resolver. Priority: required for consuming declared dependency directories. Cause: the custom dependency resolver ignores package exports and rejects exported subpaths. Acceptance: tracked RED cases reproduce a scoped conditional export failure and require rejection of an unexported subpath. The standard resolver passes both cases and the existing single-directory case; the page and browser cases of a dependency directory pass. Depends on: S-15-7.

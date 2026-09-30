@@ -15,107 +15,6 @@ use crate::{
     svelte::SveltePlugin,
 };
 
-/// Resolves every bare application package import from the configured
-/// dependency directory only; a package under a nested `node_modules`
-/// directory of the application source is never used.
-#[derive(Debug)]
-struct DependencyPlugin {
-    packages: PathBuf,
-    external: Vec<String>,
-}
-
-impl Plugin for DependencyPlugin {
-    fn name(&self) -> std::borrow::Cow<'static, str> {
-        std::borrow::Cow::Borrowed("ssr-build-dependencies")
-    }
-
-    fn register_hook_usage(&self) -> rolldown::plugin::HookUsage {
-        rolldown::plugin::HookUsage::ResolveId
-    }
-
-    async fn resolve_id(
-        &self,
-        _ctx: &rolldown::plugin::PluginContext,
-        args: &rolldown::plugin::HookResolveIdArgs<'_>,
-    ) -> rolldown::plugin::HookResolveIdReturn {
-        let specifier = args.specifier;
-        if specifier.starts_with('.')
-            || specifier.starts_with('/')
-            || specifier.starts_with('\0')
-            || specifier.starts_with("node:")
-            || specifier.contains(':')
-            || self.external.iter().any(|name| name == specifier)
-        {
-            return Ok(None);
-        }
-        let name = specifier.split('/').next().unwrap_or(specifier);
-        if !self.packages.join(name).symlink_metadata().is_ok() {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                format!(
-                    "application package {name:?} is not in the configured dependency directory {}",
-                    self.packages.display()
-                ),
-            )
-            .into());
-        }
-        match probe_package(&self.packages.join(specifier)) {
-            Some(path) => Ok(Some(rolldown::plugin::HookResolveIdOutput::from_id(
-                path.to_string_lossy().into_owned(),
-            ))),
-            None => Err(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                format!(
-                    "application package import {specifier:?} has no entry in the configured dependency directory {}",
-                    self.packages.display()
-                ),
-            )
-            .into()),
-        }
-    }
-}
-
-/// Resolves a package path the way a package directory does: a file, a file
-/// with a known extension, or a directory through its `package.json` entry or
-/// index file.
-fn probe_package(base: &Path) -> Option<PathBuf> {
-    if base.is_file() {
-        return Some(base.to_path_buf());
-    }
-    for extension in ["js", "jsx", "mjs", "cjs", "ts", "tsx", "json"] {
-        let candidate = PathBuf::from(format!("{}.{}", base.display(), extension));
-        if candidate.is_file() {
-            return Some(candidate);
-        }
-    }
-    if base.is_dir() {
-        let entry = std::fs::read_to_string(base.join("package.json"))
-            .ok()
-            .and_then(|manifest| {
-                ordered_json::parse_bytes_reject_duplicates(manifest.as_bytes()).ok()
-            })
-            .and_then(|value| {
-                value
-                    .get("main")
-                    .or_else(|| value.get("module"))
-                    .and_then(|field| field.string_value().ok())
-                    .filter(|entry| !entry.is_empty())
-            });
-        if let Some(entry) = entry
-            && let Some(path) = probe_package(&base.join(entry.trim_start_matches("./")))
-        {
-            return Some(path);
-        }
-        for index in ["index.js", "index.mjs", "index.cjs"] {
-            let candidate = base.join(index);
-            if candidate.is_file() {
-                return Some(candidate);
-            }
-        }
-    }
-    None
-}
-
 pub(crate) async fn bundle(
     config: &BuildConfig,
     entry: &Path,
@@ -180,17 +79,6 @@ pub(crate) async fn bundle(
         ..Default::default()
     };
     let styles = Arc::new(Mutex::new(BTreeMap::new()));
-    let external = if react_application {
-        vec!["react".to_owned(), "react/jsx-runtime".to_owned()]
-    } else {
-        Vec::new()
-    };
-    let dependency_plugin = config.dependencies.as_ref().map(|packages| {
-        DependencyPlugin::new_shared(DependencyPlugin {
-            packages: packages.clone(),
-            external,
-        })
-    });
     let mut bundler = Bundler::with_plugins(
         options,
         vec![
@@ -205,10 +93,7 @@ pub(crate) async fn bundle(
                 Arc::clone(&styles),
             )),
             ReactCssPlugin::new_shared(ReactCssPlugin),
-        ]
-        .into_iter()
-        .chain(dependency_plugin)
-        .collect(),
+        ],
     )
     .map_err(|error| Error::JavaScript(error.to_string()))?;
     let output = bundler

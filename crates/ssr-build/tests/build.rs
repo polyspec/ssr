@@ -303,3 +303,6 @@ async fn configured_dependencies_replace_nested_node_modules_packages() {
     );
     fs::remove_dir_all(root).unwrap();
 }
+
+#[path = "exports.rs"]
+mod exports;
