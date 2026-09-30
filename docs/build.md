@@ -102,7 +102,8 @@ Run `make verify-build` to install the pinned sample packages, run the verificat
 check the probe dependencies. The probe is a separate Cargo workspace under `tools/build-probe`.
 It uses a checkout of the CSS library because its bundler feature separates source locations
 from source-map generation. The probe manifest names
-that checkout by its path, which only the verification probe uses. The product workspace has no
+the CSS library checkout path declared in the root manifest.
+`tools/test_local_paths.py` requires both manifests to name the same existing checkout. The product workspace has no
 build dependency until S-5, when that crate must be connected to the product build.
 
 ## Result and API

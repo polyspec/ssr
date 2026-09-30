@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Declare each local V8, CSS and JSON checkout path once in the root manifest.
+  The engine Compose preparation and mount check read those paths, and a
+  tracked case rejects an absent or differing path in any manifest.
+
 - Resolve configured JavaScript imports with the standard resolver so scoped
   conditional exports select their declared entry and unexported subpaths fail.
   Preserve the single dependency directory and reject nested dependency replacements.

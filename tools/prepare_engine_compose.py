@@ -4,6 +4,8 @@ from pathlib import Path
 from string import Template
 import sys
 
+from tools import local_paths
+
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / "verification/engine/linux/compose.yaml"
@@ -13,9 +15,14 @@ OUTPUT = ROOT / "var/engine-compose.yaml"
 def main() -> int:
     cargo = ROOT / "var/engine-cargo"
     target = ROOT / "var/engine-target"
-    v8 = Path("/opt/ssr/v8-local")
-    ordered_json = Path("/opt/polyspec/ordered-json")
-    if not (ordered_json / "rust" / "Cargo.toml").is_file():
+    try:
+        paths = local_paths.declared(ROOT)
+        v8 = local_paths.checkout(paths["v8"])
+        ordered_json = local_paths.checkout(paths["ordered-json"])
+    except (OSError, ValueError) as error:
+        print(f"FAIL engine Compose preparation: {error}", file=sys.stderr)
+        return 1
+    if not (paths["ordered-json"] / "Cargo.toml").is_file():
         print(f"FAIL engine Compose preparation: missing ordered-json source {ordered_json}", file=sys.stderr)
         return 1
     if not (v8 / "Cargo.toml").is_file():

@@ -1,18 +1,29 @@
 """Check the engine build container's source, cache, and output mounts."""
 
+import os
 from pathlib import Path
 import signal
 import sys
 import time
 
 
-EXPECTED = {
+FIXED = {
     "/src": "ro",
-    "/opt/ssr/v8-local": "ro",
-    "/opt/polyspec/ordered-json": "ro",
     "/cargo": "rw",
     "/target": "rw",
 }
+DECLARED = ("SSR_V8_DIR", "SSR_ORDERED_JSON_DIR")
+
+
+def expected() -> dict[str, str]:
+    """Return the required mounts; declared checkouts come from the environment."""
+    mounts = dict(FIXED)
+    for name in DECLARED:
+        value = os.environ.get(name, "")
+        if not value.startswith("/"):
+            raise ValueError(f"{name} must name an absolute checkout path")
+        mounts[value] = "ro"
+    return mounts
 
 
 def main() -> int:
@@ -25,12 +36,17 @@ def main() -> int:
 
     signal.signal(signal.SIGALRM, timeout)
     signal.alarm(30)
+    try:
+        required = expected()
+    except ValueError as error:
+        print(f"FAIL engine mount verification {time.monotonic() - start:.3f}s: {error}")
+        return 1
     mounts = {}
     for line in Path("/proc/self/mountinfo").read_text().splitlines():
         left, right = line.split(" - ", 1)
         fields = left.split()
         mounts[fields[4]] = (set(fields[5].split(",")), right.split()[0])
-    for path, access in EXPECTED.items():
+    for path, access in required.items():
         if path not in mounts:
             print(f"FAIL engine mount verification {time.monotonic() - start:.3f}s: {path} is not mounted")
             return 1
