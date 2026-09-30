@@ -59,7 +59,7 @@ fn full_change_queue_reports_the_rejected_result_and_stops_supervision() {
         Arc::clone(&current),
         changes,
         None,
-        Box::new(|_| panic!("no process starts in this case")),
+        Box::new(|_, _| panic!("no process starts in this case")),
         Vec::new(),
         options,
     );

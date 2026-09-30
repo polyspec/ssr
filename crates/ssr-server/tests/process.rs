@@ -12,7 +12,7 @@ async fn development_requires_an_absolute_source_root_before_running_commands() 
         vec![PathBuf::from("relative")],
         Vec::new(),
         Command::new("must-not-run"),
-        |_| Command::new("must-not-run"),
+        |_, _| Command::new("must-not-run"),
         Page::from_json(PAGE).unwrap(),
         ProcessOptions {
             ready_timeout: Duration::from_secs(5),

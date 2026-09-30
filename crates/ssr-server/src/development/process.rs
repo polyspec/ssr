@@ -1,17 +1,21 @@
 use super::DevelopmentError;
 use http::header::CONTENT_TYPE;
-use http::{Request, Response, StatusCode, Uri};
+use http::{Request, Response, StatusCode};
 use http_body_util::{BodyExt, Full};
 use hyper::body::{Bytes, Incoming};
-use hyper_util::client::legacy::{Client, connect::HttpConnector};
-use hyper_util::rt::TokioExecutor;
+use hyper_util::rt::TokioIo;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::io::{AsyncReadExt, BufReader};
+use tokio::net::UnixStream;
 use tokio::process::{Child, ChildStdin, ChildStdout};
 use tokio::sync::{mpsc, watch};
+
+#[cfg(test)]
+#[path = "process_tests.rs"]
+mod tests;
 
 pub(super) enum Control {
     Stop,
@@ -20,8 +24,7 @@ pub(super) enum Control {
 
 pub(super) struct Generation {
     pub id: u64,
-    uri: Uri,
-    client: Client<HttpConnector, Full<Bytes>>,
+    socket: PathBuf,
     stop: mpsc::UnboundedSender<Control>,
 }
 
@@ -39,15 +42,26 @@ impl Generation {
             .uri()
             .path_and_query()
             .ok_or_else(|| DevelopmentError("request path is missing".into()))?;
-        let authority = self
-            .uri
-            .authority()
-            .ok_or_else(|| DevelopmentError("render address has no authority".into()))?;
-        *request.uri_mut() = format!("http://{authority}{path}")
-            .parse()
-            .map_err(|e| DevelopmentError(format!("request URI failed: {e}")))?;
-        self.client
-            .request(request.map(|body| Full::new(Bytes::from(body))))
+        let stream = UnixStream::connect(&self.socket)
+            .await
+            .map_err(|e| DevelopmentError(format!("render socket connection failed: {e}")))?;
+        let (mut sender, connection) = hyper::client::conn::http1::handshake(TokioIo::new(stream))
+            .await
+            .map_err(|e| DevelopmentError(format!("render connection failed: {e}")))?;
+        tokio::spawn(async move {
+            if let Err(error) = connection.await {
+                tracing::error!(%error, "render connection failed");
+            }
+        });
+        *request.uri_mut() = path.clone().into();
+        if !request.headers().contains_key(http::header::HOST) {
+            request.headers_mut().insert(
+                http::header::HOST,
+                http::HeaderValue::from_static("ssr-server"),
+            );
+        }
+        sender
+            .send_request(request.map(|body| Full::new(Bytes::from(body))))
             .await
             .map_err(|e| DevelopmentError(format!("render request failed: {e:?}")))
     }
@@ -68,6 +82,7 @@ pub(super) struct Process {
     input: Option<ChildStdin>,
     output: BufReader<ChildStdout>,
     control: mpsc::UnboundedReceiver<Control>,
+    socket: super::socket::Socket,
 }
 
 pub(super) struct Exit {
@@ -79,12 +94,14 @@ pub(super) struct Exit {
 impl Process {
     pub async fn start(
         id: u64,
-        command: Command,
+        command: impl FnOnce(&Path) -> Command,
         probe: &[u8],
         timeout: Duration,
         max_probe_bytes: usize,
         mut cancel: watch::Receiver<bool>,
     ) -> Result<Self, DevelopmentError> {
+        let owned_socket = super::socket::Socket::new()?;
+        let command = command(owned_socket.path());
         validate_program(&command)?;
         let mut child = tokio::process::Command::from(command)
             .stdin(Stdio::piped())
@@ -104,16 +121,12 @@ impl Process {
             .take()
             .ok_or_else(|| DevelopmentError("render stdout is missing".into()))?;
         let mut output = BufReader::new(stdout);
-        let client = Client::builder(TokioExecutor::new()).build_http();
         let (stop, control) = mpsc::unbounded_channel();
         let result = tokio::select! {
             result = tokio::time::timeout(timeout, async {
-                let uri: Uri = read_line(&mut output).await?.parse()
-                    .map_err(|e| DevelopmentError(format!("render address is invalid: {e}")))?;
-                if uri.scheme_str() != Some("http") || uri.authority().is_none() || uri.path() != "/" || uri.query().is_some() {
-                    return Err(DevelopmentError("render address must be an absolute HTTP root URL".into()));
-                }
-                let generation = Arc::new(Generation { id, uri, client, stop: stop.clone() });
+                let socket = PathBuf::from(read_line(&mut output).await?);
+                owned_socket.validate(&socket)?;
+                let generation = Arc::new(Generation { id, socket, stop: stop.clone() });
                 let response = generation.request(Request::builder().method("POST").uri(ssr_core::CALL_PATH)
                     .header(CONTENT_TYPE, "application/json").body(probe.to_vec())
                     .map_err(|e| DevelopmentError(format!("preparation request failed: {e}")))?).await?;
@@ -145,9 +158,13 @@ impl Process {
                     input: Some(input),
                     output,
                     control,
+                    socket: owned_socket,
                 })
             }
-            Err(error) => Err(kill_and_wait(&mut child, error).await),
+            Err(error) => {
+                let error = kill_and_wait(&mut child, error).await;
+                combine_cleanup(Err(error), owned_socket.close())
+            }
         }
     }
 
@@ -197,6 +214,7 @@ impl Process {
                 },
             }
         };
+        let result = combine_cleanup(result, self.socket.close());
         match &result {
             Ok(()) => tracing::info!(generation = id, expected, "render process exit collected"),
             Err(error) => {
@@ -307,5 +325,16 @@ async fn kill_and_wait(child: &mut Child, error: DevelopmentError) -> Developmen
         (kill, wait) => DevelopmentError(format!(
             "{error}; process kill: {kill:?}; process wait: {wait:?}"
         )),
+    }
+}
+
+fn combine_cleanup<T>(
+    result: Result<T, DevelopmentError>,
+    cleanup: Result<(), DevelopmentError>,
+) -> Result<T, DevelopmentError> {
+    match (result, cleanup) {
+        (Ok(value), Ok(())) => Ok(value),
+        (Err(error), Ok(())) | (Ok(_), Err(error)) => Err(error),
+        (Err(error), Err(cleanup)) => Err(DevelopmentError(format!("{error}; {cleanup}"))),
     }
 }

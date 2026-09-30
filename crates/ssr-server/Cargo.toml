@@ -32,3 +32,7 @@ hyper = { workspace = true, features = ["server"] }
 [[example]]
 name = "development_process"
 path = "tests/support/development_process.rs"
+
+[[example]]
+name = "socket_process"
+path = "tests/support/socket_process.rs"

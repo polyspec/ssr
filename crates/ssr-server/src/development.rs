@@ -3,6 +3,7 @@ mod config;
 pub use config::ProcessOptions;
 use config::validate_excluded;
 mod process;
+mod socket;
 mod supervisor;
 
 use http::{Request, Response};
@@ -49,7 +50,7 @@ impl Development {
         roots: Vec<PathBuf>,
         excluded: Vec<PathBuf>,
         build: Command,
-        render: impl Fn(&Path) -> Command + Send + Sync + 'static,
+        render: impl Fn(&Path, &Path) -> Command + Send + Sync + 'static,
         probe: Page,
         options: ProcessOptions,
     ) -> Result<(Self, mpsc::Receiver<Result<(), DevelopmentError>>), DevelopmentError> {
@@ -176,7 +177,7 @@ impl Development {
 
     pub async fn from_build(
         directory: PathBuf,
-        render: impl Fn(&Path) -> Command + Send + Sync + 'static,
+        render: impl Fn(&Path, &Path) -> Command + Send + Sync + 'static,
         probe: Page,
         options: ProcessOptions,
     ) -> Result<(Self, mpsc::Receiver<Result<(), DevelopmentError>>), DevelopmentError> {

@@ -11,7 +11,7 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, watch};
 use tokio::task::JoinSet;
 
-type RenderCommand = Box<dyn Fn(&Path) -> Command + Send + Sync>;
+type RenderCommand = Box<dyn Fn(&Path, &Path) -> Command + Send + Sync>;
 
 pub(super) struct Supervisor {
     current: Current,
@@ -170,7 +170,7 @@ impl Supervisor {
             .ok_or_else(|| DevelopmentError("render generation overflow".into()))?;
         let process = Process::start(
             id,
-            (self.render)(&directory),
+            |socket| (self.render)(&directory, socket),
             &self.probe,
             self.options.ready_timeout,
             self.options.max_probe_bytes,

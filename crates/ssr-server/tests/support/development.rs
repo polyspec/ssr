@@ -92,17 +92,19 @@ impl Case {
             .env("PROCESS_LOG", &self.log);
         build
     }
-    pub fn renderer(&self) -> impl Fn(&Path) -> Command + Send + Sync + 'static {
+    pub fn renderer(&self) -> impl Fn(&Path, &Path) -> Command + Send + Sync + 'static {
         let log = self.log.clone();
         let fail = Arc::clone(&self.prepare_fail);
         let ignore_stop = self.ignore_stop;
         let shutdown_stdout = self.shutdown_stdout;
-        move |directory: &Path| {
+        move |directory: &Path, socket: &Path| {
             let mut render = Command::new(Self::program());
             render
                 .arg("render")
                 .arg("-build")
                 .arg(directory)
+                .arg("-listen")
+                .arg(socket)
                 .env("PROCESS_LOG", &log);
             if fail.load(Ordering::SeqCst) {
                 render.env("PROCESS_PREPARE_FAIL", "1");

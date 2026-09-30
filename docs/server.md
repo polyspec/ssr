@@ -55,7 +55,7 @@ rejected event and cause, fails new requests, stops supervision and reports the 
 Source paths and output exclusions are checked before an event enters the source queue.
 
 `Development::start` accepts absolute source paths, explicitly excluded paths, a build `Command`,
-a function that creates a render `Command` for a completed build directory, an SSR `Page` for
+a function that creates a render `Command` from the completed build directory and owned socket path, an SSR `Page` for
 preparation and explicit `ProcessOptions`. Paths contain no symbolic links.
 Source directories are watched recursively. A source file uses a nonrecursive watch of its parent
 with exact path filtering so replacing that file preserves observation. Excluded paths must be
@@ -65,8 +65,8 @@ enters it. Access events do not rebuild. New source files remain watched.
 
 Both commands execute Rust programs. The build command writes only the absolute immutable directory
 returned by `Build::write` and a newline to stdout; diagnostics use stderr. The render command
-serves its supplied completed directory and writes its absolute HTTP root URL and a newline to
-stdout after its listener starts. It emits no further stdout. It stops accepting requests and
+serves its supplied completed directory through the supplied private Unix socket and writes that
+absolute socket path and a newline to stdout after its listener starts. It emits no further stdout. It stops accepting requests and
 finishes active responses when stdin closes. The supervisor retains child stdin independently of
 process exit observation. Build output must be outside watched inputs or under an explicit exclusion.
 
@@ -111,3 +111,7 @@ are sent. Output-limit failure remains an explicit render or response-body error
 `Server::health`, `Server::wait` and `Server::close` expose the owned pool's availability, closure
 event and explicit shutdown result. A renderer process uses the closure event to stop accepting
 requests when native work cannot be cleaned up.
+
+Supervised parent and child requests use a private Unix socket. Service DNS names remain external request addresses; process readiness does not resolve a service address. A request preserves its supplied Host header; a request without that header uses the internal HTTP authority `ssr-server`.
+
+The supervisor must allocate and own the private socket directory before process startup and supply the exact socket path to the render command factory. The child declaration must match that path. A declared path alone does not authorize removal; the supervisor removes only its own socket and directory after collecting process exit.

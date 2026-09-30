@@ -14,7 +14,7 @@ use std::sync::Arc;
 use std::task::{Context, Poll};
 use std::time::Duration;
 use tokio::io::AsyncReadExt;
-use tokio::net::TcpListener;
+use tokio::net::UnixListener;
 use tokio::sync::watch;
 use tokio::task::JoinSet;
 
@@ -51,14 +51,14 @@ async fn main() -> Result<()> {
             println!("{}", output.display());
             Ok(())
         }
-        Some("render") if args.len() == 3 && args[1] == "-build" => {
-            render(PathBuf::from(&args[2])).await
+        Some("render") if args.len() == 5 && args[1] == "-build" && args[3] == "-listen" => {
+            render(PathBuf::from(&args[2]), PathBuf::from(&args[4])).await
         }
         _ => Err("invalid process arguments".into()),
     }
 }
 
-async fn render(directory: PathBuf) -> Result<()> {
+async fn render(directory: PathBuf, socket: PathBuf) -> Result<()> {
     record("render")?;
     let build = Build::read(&directory)?;
     let server = Arc::new(Server::new(
@@ -76,8 +76,8 @@ async fn render(directory: PathBuf) -> Result<()> {
             max_heap_bytes: 134217728,
         },
     )?);
-    let listener = TcpListener::bind("127.0.0.1:0").await?;
-    println!("http://{}/", listener.local_addr()?);
+    let listener = UnixListener::bind(&socket)?;
+    println!("{}", socket.display());
     std::io::stdout().flush()?;
     let (stop, _) = watch::channel(false);
     let mut connections = JoinSet::new();
