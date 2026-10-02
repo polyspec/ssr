@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Release the scheduler of a finished React stream render, so the context of
+  every finished render can be collected and repeated renders keep the heap
+  bounded.
+
 - Declare each local V8, CSS and JSON checkout path once in the root manifest.
   The engine Compose preparation and mount check read those paths, and a
   tracked case rejects an absent or differing path in any manifest.

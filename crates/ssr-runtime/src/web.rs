@@ -23,6 +23,11 @@ impl FrameworkScheduler {
     pub(crate) fn next(&self) -> Option<v8::Global<v8::Function>> {
         self.callbacks.borrow_mut().pop_front()
     }
+
+    /// release drops the callbacks that a finished render left queued.
+    pub(crate) fn release(&self) {
+        self.callbacks.borrow_mut().clear();
+    }
 }
 
 pub(crate) fn external_references() -> Vec<v8::ExternalReference> {

@@ -123,78 +123,85 @@ pub(crate) fn render(
     v8::scope!(let scope, runtime);
     let framework = v8::Context::new(scope, Default::default());
     let scheduler = FrameworkScheduler::attach(framework, nonce);
-    let scope = &mut v8::ContextScope::new(scope, framework);
-    v8::tc_scope!(let scope, scope);
-    let global = framework.global(scope);
-    let app = property(scope, global, "__ssrApp")?;
-    if !app.is_function() {
-        return Err(Error::InvalidBundle("React application function required"));
-    }
-    let props = engine::parse(scope, props).ok_or_else(|| caught!(scope))?;
-    let input_state = engine::parse(scope, input_state).ok_or_else(|| caught!(scope))?;
-    let nonce = v8::String::new(scope, nonce)
-        .ok_or(Error::InvalidResult("nonce exceeds V8 string limit"))?;
-    let shell = call(
-        scope,
-        global,
-        "render",
-        &[app, props, input_state, nonce.into()],
-    )?;
-    let shell = finish_promise(scope, framework, &scheduler, shell)?;
-    let shell = v8::Local::<v8::Object>::try_from(shell)
-        .map_err(|_| Error::InvalidResult("React shell object required"))?;
-    let stream = property(scope, shell, "stream")?;
-    let stream = v8::Local::<v8::Object>::try_from(stream)
-        .map_err(|_| Error::InvalidResult("React ReadableStream required"))?;
-    let state_value = property(scope, shell, "state")?;
-    let (state, mut output_bytes) = state(
-        scope,
-        framework,
-        serializer,
-        state_value,
-        output.max_output_bytes,
-    )?;
-    let reader = call(scope, stream, "getReader", &[])?;
-    let reader = v8::Local::<v8::Object>::try_from(reader)
-        .map_err(|_| Error::InvalidResult("React stream reader required"))?;
-    let heap_used_bytes = scope.get_heap_statistics().used_heap_size();
-    output.send(Event::Shell(state, heap_used_bytes))?;
-    loop {
-        output.request.check()?;
-        let read = call(scope, reader, "read", &[])?;
-        let read = finish_promise(scope, framework, &scheduler, read)?;
-        let read = v8::Local::<v8::Object>::try_from(read)
-            .map_err(|_| Error::InvalidResult("React stream read object required"))?;
-        let done = property(scope, read, "done")?;
-        if !done.is_boolean() {
-            return Err(Error::InvalidResult("React stream done must be a boolean"));
+    let result = (|| {
+        let scope = &mut v8::ContextScope::new(scope, framework);
+        v8::tc_scope!(let scope, scope);
+        let global = framework.global(scope);
+        let app = property(scope, global, "__ssrApp")?;
+        if !app.is_function() {
+            return Err(Error::InvalidBundle("React application function required"));
         }
-        if done.boolean_value(scope) {
-            return Ok(());
-        }
-        let value = property(scope, read, "value")?;
-        let bytes = v8::Local::<v8::Uint8Array>::try_from(value)
-            .map_err(|_| Error::InvalidResult("React stream chunk must be Uint8Array"))?;
-        let backing = bytes.get_backing_store().ok_or(Error::InvalidResult(
-            "React stream chunk has no backing store",
-        ))?;
-        let start = bytes.byte_offset();
-        let end = start
-            .checked_add(bytes.byte_length())
-            .filter(|end| *end <= backing.byte_length())
-            .ok_or(Error::InvalidResult(
-                "React stream chunk exceeds backing store",
+        let props = engine::parse(scope, props).ok_or_else(|| caught!(scope))?;
+        let input_state = engine::parse(scope, input_state).ok_or_else(|| caught!(scope))?;
+        let nonce = v8::String::new(scope, nonce)
+            .ok_or(Error::InvalidResult("nonce exceeds V8 string limit"))?;
+        let shell = call(
+            scope,
+            global,
+            "render",
+            &[app, props, input_state, nonce.into()],
+        )?;
+        let shell = finish_promise(scope, framework, &scheduler, shell)?;
+        let shell = v8::Local::<v8::Object>::try_from(shell)
+            .map_err(|_| Error::InvalidResult("React shell object required"))?;
+        let stream = property(scope, shell, "stream")?;
+        let stream = v8::Local::<v8::Object>::try_from(stream)
+            .map_err(|_| Error::InvalidResult("React ReadableStream required"))?;
+        let state_value = property(scope, shell, "state")?;
+        let (state, mut output_bytes) = state(
+            scope,
+            framework,
+            serializer,
+            state_value,
+            output.max_output_bytes,
+        )?;
+        let reader = call(scope, stream, "getReader", &[])?;
+        let reader = v8::Local::<v8::Object>::try_from(reader)
+            .map_err(|_| Error::InvalidResult("React stream reader required"))?;
+        let heap_used_bytes = scope.get_heap_statistics().used_heap_size();
+        output.send(Event::Shell(state, heap_used_bytes))?;
+        loop {
+            output.request.check()?;
+            let read = call(scope, reader, "read", &[])?;
+            let read = finish_promise(scope, framework, &scheduler, read)?;
+            let read = v8::Local::<v8::Object>::try_from(read)
+                .map_err(|_| Error::InvalidResult("React stream read object required"))?;
+            let done = property(scope, read, "done")?;
+            if !done.is_boolean() {
+                return Err(Error::InvalidResult("React stream done must be a boolean"));
+            }
+            if done.boolean_value(scope) {
+                return Ok(());
+            }
+            let value = property(scope, read, "value")?;
+            let bytes = v8::Local::<v8::Uint8Array>::try_from(value)
+                .map_err(|_| Error::InvalidResult("React stream chunk must be Uint8Array"))?;
+            let backing = bytes.get_backing_store().ok_or(Error::InvalidResult(
+                "React stream chunk has no backing store",
             ))?;
-        let chunk_bytes = end - start;
-        output_bytes = output_bytes
-            .checked_add(chunk_bytes)
-            .ok_or(Error::LimitExceeded("output bytes"))?;
-        if output_bytes > output.max_output_bytes {
-            return Err(Error::LimitExceeded("output bytes"));
+            let start = bytes.byte_offset();
+            let end = start
+                .checked_add(bytes.byte_length())
+                .filter(|end| *end <= backing.byte_length())
+                .ok_or(Error::InvalidResult(
+                    "React stream chunk exceeds backing store",
+                ))?;
+            let chunk_bytes = end - start;
+            output_bytes = output_bytes
+                .checked_add(chunk_bytes)
+                .ok_or(Error::LimitExceeded("output bytes"))?;
+            if output_bytes > output.max_output_bytes {
+                return Err(Error::LimitExceeded("output bytes"));
+            }
+            for part in backing[start..end].chunks(output.max_chunk_bytes) {
+                let chunk = part.iter().map(std::cell::Cell::get).collect();
+                output.send(Event::Chunk(chunk))?;
+            }
         }
-        for part in backing[start..end].chunks(output.max_chunk_bytes) {
-            let chunk = part.iter().map(std::cell::Cell::get).collect();
-            output.send(Event::Chunk(chunk))?;
-        }
-    }
+    })();
+    // The scheduler holds handles to callbacks of the context: releasing them
+    // and the slot lets the context of a finished render be collected.
+    scheduler.release();
+    framework.remove_slot::<FrameworkScheduler>();
+    result
 }

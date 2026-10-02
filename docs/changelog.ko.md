@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- 끝난 React stream render의 scheduler를 해제해 끝난 모든 render의 context가
+  회수되고 반복 render가 heap을 일정 범위 안에 유지한다.
+
 - 각 로컬 V8, CSS, JSON 체크아웃 경로를 루트 매니페스트에 한 번만 선언한다.
   engine Compose 준비와 마운트 검사는 그 경로를 읽고, 추적 사례는 어느
   매니페스트에서든 존재하지 않거나 다른 경로를 거부한다.
