@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Judge the queued cancellation and timeout cases by a test-only queue entry
+  signal and the returned error kind instead of wall-clock limits.
+
 - State that only the owning Red and Green tests and `tools/check.py` run
   before a commit, and that the full suite runs once when every active
   checklist item is complete.

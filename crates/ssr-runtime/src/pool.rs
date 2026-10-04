@@ -72,6 +72,12 @@ impl Drop for Admission<'_> {
         }
     }
 }
+#[cfg(test)]
+#[derive(Default)]
+pub(crate) struct QueueEntry {
+    pub(crate) delay: std::time::Duration,
+    pub(crate) entered: Option<Sender<()>>,
+}
 pub struct Pool {
     pub(crate) workers: Vec<Worker>,
     available_tx: Sender<usize>,
@@ -79,6 +85,8 @@ pub struct Pool {
     waiting: Mutex<Waiting>,
     pub(crate) health: Arc<Health>,
     options: PoolOptions,
+    #[cfg(test)]
+    pub(crate) queue_entry: Mutex<QueueEntry>,
 }
 
 impl Pool {
@@ -94,6 +102,8 @@ impl Pool {
             waiting: Mutex::new(Waiting::default()),
             health: Arc::new(Health::new()),
             options,
+            #[cfg(test)]
+            queue_entry: Mutex::new(QueueEntry::default()),
         };
         for index in 0..options.worker_count {
             let worker = Worker::new(
@@ -122,11 +132,6 @@ impl Pool {
                 "pool closure signal contained a value",
             )),
         }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn waiting(&self) -> usize {
-        self.waiting.lock().unwrap().count
     }
 
     pub fn close(&self) -> Result<(), Error> {
@@ -187,6 +192,15 @@ impl Pool {
             Err(TryRecvError::Disconnected) => return Err(Error::WorkerStopped),
             Err(TryRecvError::Empty) => {}
         }
+        #[cfg(test)]
+        let entered = {
+            let mut entry = self.queue_entry.lock().map_err(|_| Error::WorkerStopped)?;
+            let delay = entry.delay;
+            let entered = entry.entered.take();
+            drop(entry);
+            std::thread::sleep(delay);
+            entered
+        };
         {
             let mut waiting = self.waiting.lock().map_err(|_| Error::WorkerStopped)?;
             if waiting.count >= self.options.queue_capacity {
@@ -206,6 +220,12 @@ impl Pool {
             waiting: &self.waiting,
             bytes: input_bytes,
         };
+        #[cfg(test)]
+        if let Some(entered) = entered {
+            entered.send(()).map_err(|_| {
+                Error::InvalidConfiguration("queue entry signal receiver is closed")
+            })?;
+        }
         select_biased! {
             recv(request.cancellation.canceled()) -> _ => Err(request.cancellation.failure()?),
             recv(self.health.closed()) -> _ => self.health().and(Err(Error::WorkerStopped)),

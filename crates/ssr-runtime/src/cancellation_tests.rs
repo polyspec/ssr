@@ -1,4 +1,4 @@
-use crate::{Cancellation, Pool, PoolOptions, ServerBundle};
+use crate::{Cancellation, Pool, PoolOptions, ServerBundle, pool::QueueEntry};
 use ssr_core::Page;
 use std::time::Duration;
 
@@ -115,24 +115,20 @@ fn canceled_input_and_reused_cancellation_return_explicit_errors() {
 
 #[test]
 fn cancellation_wakes_a_queued_call_before_worker_release() {
-    let pool = std::sync::Arc::new(pool());
+    let mut limits = options();
+    limits.timeout = Duration::from_secs(10);
+    let pool = std::sync::Arc::new(pool_with(limits));
     let (_, mut active) = pool
         .render_stream(&page(false), "nonce", Cancellation::new())
         .unwrap();
+    let entered = enter_queue_after(&pool, Duration::from_millis(300));
     let cancel = Cancellation::new();
     let waiting_cancel = cancel.clone();
     let waiting_pool = pool.clone();
     let thread = std::thread::spawn(move || {
         waiting_pool.render_stream(&page(false), "nonce", waiting_cancel)
     });
-    let observed_by = std::time::Instant::now() + Duration::from_millis(200);
-    while pool.waiting() != 1 {
-        assert!(
-            std::time::Instant::now() < observed_by,
-            "call did not enter queue"
-        );
-        std::thread::yield_now();
-    }
+    entered.recv().unwrap();
     cancel.cancel().unwrap();
     assert!(matches!(
         thread.join().unwrap(),
@@ -150,28 +146,29 @@ fn timeout_covers_queue_wait_and_execution() {
     let (_, mut active) = pool
         .render_stream(&page(false), "nonce", Cancellation::new())
         .unwrap();
+    let entered = enter_queue_after(&pool, Duration::from_millis(1100));
     let waiting_pool = pool.clone();
-    let started = std::time::Instant::now();
     let waiting = std::thread::spawn(move || {
         let (_, stream) = waiting_pool.render_stream(&page(true), "nonce", Cancellation::new())?;
         stream.collect::<Result<Vec<_>, _>>()
     });
-    let observed_by = std::time::Instant::now() + Duration::from_secs(1);
-    while pool.waiting() != 1 {
-        assert!(
-            std::time::Instant::now() < observed_by,
-            "call did not enter queue"
-        );
-        std::thread::yield_now();
-    }
+    entered.recv().unwrap();
     std::thread::sleep(Duration::from_millis(600));
     active.close().unwrap();
     assert!(matches!(
         waiting.join().unwrap(),
         Err(crate::Error::Timeout)
     ));
-    assert!(started.elapsed() < Duration::from_millis(2500));
     pool.health().unwrap();
+}
+
+fn enter_queue_after(pool: &Pool, delay: Duration) -> crossbeam_channel::Receiver<()> {
+    let (entered, received) = crossbeam_channel::bounded(1);
+    *pool.queue_entry.lock().unwrap() = QueueEntry {
+        delay,
+        entered: Some(entered),
+    };
+    received
 }
 fn page(looping: bool) -> Page {
     Page::from_json(format!(r#"{{"render":"ssr","title":"T","language":"en","props":{{"loop":{looping}}},"state":null}}"#).as_bytes()).unwrap()

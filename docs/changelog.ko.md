@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- queue에 들어간 호출의 cancellation과 timeout 사례를 wall-clock 한도 대신
+  테스트 전용 queue 진입 신호와 반환된 오류 종류로 판정한다.
+
 - 커밋 전에는 변경을 소유한 Red·Green 테스트와 `tools/check.py`만 실행하고,
   전체 묶음은 활성 체크리스트 항목이 모두 끝났을 때 한 번 실행한다고 적는다.
 
