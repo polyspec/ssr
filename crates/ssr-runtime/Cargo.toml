@@ -17,4 +17,5 @@ tracing.workspace = true
 
 [dev-dependencies]
 wait-timeout.workspace = true
+libc.workspace = true
 ssr-build = { path = "../ssr-build", version = "=0.0.1" }

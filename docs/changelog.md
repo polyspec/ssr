@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Judge the render benchmark by process CPU time: CPU renders per second and
+  CPU p99 have limits, and wall-clock values and context reset times are
+  reported only.
+
 - Judge the queued cancellation and timeout cases by a test-only queue entry
   signal and the returned error kind instead of wall-clock limits.
 

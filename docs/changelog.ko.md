@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- render benchmark를 process CPU time으로 판정한다. CPU 초당 render 수와 CPU p99에
+  한도를 두고, wall-clock 값과 context 초기화 시간은 보고만 한다.
+
 - queue에 들어간 호출의 cancellation과 timeout 사례를 wall-clock 한도 대신
   테스트 전용 queue 진입 신호와 반환된 오류 종류로 판정한다.
 

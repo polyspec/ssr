@@ -3620,6 +3620,7 @@ dependencies = [
  "crossbeam-channel",
  "deno_core",
  "getrandom 0.4.3",
+ "libc",
  "ordered-json",
  "sha2",
  "ssr-build",

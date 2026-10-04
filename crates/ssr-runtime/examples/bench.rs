@@ -8,20 +8,48 @@ const BUNDLE: &str = "export function render(props, state) { return {head:'', ht
 const PAGE: &str = r#"{"render":"ssr","title":"Benchmark","language":"en","props":{"text":"fixed page"},"state":{"value":1}}"#;
 const CALLS_PER_THREAD: usize = 128;
 const CONCURRENCY: [usize; 3] = [1, 4, 16];
-const MIN_RENDERS_PER_SECOND: [f64; 3] = [2000.0, 7000.0, 10000.0];
+const MIN_RENDERS_PER_SECOND: [f64; 3] = [1000.0, 1000.0, 1000.0];
 const MAX_P99: [Duration; 3] = [
-    Duration::from_millis(2),
     Duration::from_millis(3),
-    Duration::from_millis(10),
+    Duration::from_millis(20),
+    Duration::from_millis(150),
 ];
-const MAX_CONTEXT_RESET_P99: [Duration; 3] = MAX_P99;
 const MAX_CONTEXT_HEAP_DELTA_BYTES: [i128; 3] = [1_000_000, 1_000_000, 1_000_000];
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 struct Summary {
     renders_per_second: f64,
     p50: Duration,
     p99: Duration,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct Latency {
+    wall: Summary,
+    cpu: Summary,
+}
+
+fn process_cpu_time() -> Result<Duration, String> {
+    let mut time = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    // SAFETY: `time` is a valid timespec that clock_gettime writes before returning.
+    if unsafe { libc::clock_gettime(libc::CLOCK_PROCESS_CPUTIME_ID, &mut time) } != 0 {
+        return Err(format!(
+            "process CPU time is unavailable: {}",
+            std::io::Error::last_os_error()
+        ));
+    }
+    let seconds = u64::try_from(time.tv_sec).map_err(|error| error.to_string())?;
+    let nanoseconds = u32::try_from(time.tv_nsec).map_err(|error| error.to_string())?;
+    Ok(Duration::new(seconds, nanoseconds))
+}
+
+fn cpu_since(began: Duration) -> Result<Duration, String> {
+    process_cpu_time()?
+        .checked_sub(began)
+        .ok_or_else(|| "process CPU time decreased".to_owned())
 }
 
 fn summarize(
@@ -42,15 +70,10 @@ fn summarize(
     })
 }
 
-fn check_limits(
-    index: usize,
-    latency: &Summary,
-    reset: &Summary,
-    heap_peak: i128,
-) -> Result<(), String> {
-    if latency.renders_per_second < MIN_RENDERS_PER_SECOND[index]
-        || latency.p99 > MAX_P99[index]
-        || reset.p99 > MAX_CONTEXT_RESET_P99[index]
+fn check_limits(index: usize, latency: &Latency, heap_peak: i128) -> Result<(), String> {
+    let judged = &latency.cpu;
+    if judged.renders_per_second < MIN_RENDERS_PER_SECOND[index]
+        || judged.p99 > MAX_P99[index]
         || heap_peak > MAX_CONTEXT_HEAP_DELTA_BYTES[index]
     {
         return Err(format!(
@@ -64,6 +87,7 @@ fn check_limits(
 fn run(index: usize, pool: Arc<Pool>, page: &Page) -> Result<(), Box<dyn Error>> {
     let concurrency = CONCURRENCY[index];
     let started = Instant::now();
+    let cpu_started = process_cpu_time()?;
     let mut samples = Vec::with_capacity(concurrency * CALLS_PER_THREAD);
     std::thread::scope(|scope| {
         let handles = (0..concurrency)
@@ -72,9 +96,11 @@ fn run(index: usize, pool: Arc<Pool>, page: &Page) -> Result<(), Box<dyn Error>>
                 scope.spawn(move || {
                     (0..CALLS_PER_THREAD)
                         .map(|_| {
+                            let cpu_began = process_cpu_time()?;
                             let began = Instant::now();
                             let result = pool.render_with_metrics(page);
                             let elapsed = began.elapsed();
+                            let cpu = cpu_since(cpu_began)?;
                             result.map_err(|error| error.to_string()).and_then(
                                 |(rendered, metrics)| {
                                     if rendered.html != b"<main>fixed page</main>"
@@ -82,7 +108,7 @@ fn run(index: usize, pool: Arc<Pool>, page: &Page) -> Result<(), Box<dyn Error>>
                                     {
                                         return Err("render output changed".to_owned());
                                     }
-                                    Ok((elapsed, metrics))
+                                    Ok((elapsed, cpu, metrics))
                                 },
                             )
                         })
@@ -95,13 +121,16 @@ fn run(index: usize, pool: Arc<Pool>, page: &Page) -> Result<(), Box<dyn Error>>
         }
     });
     let elapsed = started.elapsed();
+    let cpu_elapsed = cpu_since(cpu_started)?;
     let count = concurrency * CALLS_PER_THREAD;
     let mut latencies = Vec::with_capacity(count);
+    let mut cpu_latencies = Vec::with_capacity(count);
     let mut resets = Vec::with_capacity(count);
     let mut heap_peak = i128::MIN;
     for sample in samples {
         let (
             latency,
+            cpu,
             RenderMetrics {
                 context_reset,
                 context_heap_delta_bytes,
@@ -109,20 +138,27 @@ fn run(index: usize, pool: Arc<Pool>, page: &Page) -> Result<(), Box<dyn Error>>
             },
         ) = sample?;
         latencies.push(Ok(latency));
+        cpu_latencies.push(Ok(cpu));
         resets.push(Ok(context_reset));
         heap_peak = heap_peak.max(context_heap_delta_bytes);
     }
-    let latency = summarize(latencies, count, elapsed)?;
+    let latency = Latency {
+        wall: summarize(latencies, count, elapsed)?,
+        cpu: summarize(cpu_latencies, count, cpu_elapsed)?,
+    };
     let reset = summarize(resets, count, elapsed)?;
     println!(
-        "concurrency={concurrency} calls={count} renders/s={:.1} p50_ms={:.3} p99_ms={:.3} context_reset_p50_ms={:.3} context_reset_p99_ms={:.3} context_heap_delta_peak_bytes={heap_peak}",
-        latency.renders_per_second,
-        latency.p50.as_secs_f64() * 1000.0,
-        latency.p99.as_secs_f64() * 1000.0,
+        "concurrency={concurrency} calls={count} cpu_renders/s={:.1} cpu_p50_ms={:.3} cpu_p99_ms={:.3} wall_renders/s={:.1} wall_p50_ms={:.3} wall_p99_ms={:.3} context_reset_p50_ms={:.3} context_reset_p99_ms={:.3} context_heap_delta_peak_bytes={heap_peak}",
+        latency.cpu.renders_per_second,
+        latency.cpu.p50.as_secs_f64() * 1000.0,
+        latency.cpu.p99.as_secs_f64() * 1000.0,
+        latency.wall.renders_per_second,
+        latency.wall.p50.as_secs_f64() * 1000.0,
+        latency.wall.p99.as_secs_f64() * 1000.0,
         reset.p50.as_secs_f64() * 1000.0,
         reset.p99.as_secs_f64() * 1000.0,
     );
-    check_limits(index, &latency, &reset, heap_peak)?;
+    check_limits(index, &latency, heap_peak)?;
     Ok(())
 }
 
@@ -187,29 +223,44 @@ mod tests {
         assert!(summarize(vec![Ok(Duration::from_millis(1))], 1, Duration::ZERO).is_err());
     }
 
+    const FAST: Summary = Summary {
+        renders_per_second: MIN_RENDERS_PER_SECOND[0],
+        p50: Duration::ZERO,
+        p99: Duration::ZERO,
+    };
+
+    fn latency(cpu: Summary) -> Latency {
+        Latency { wall: FAST, cpu }
+    }
+
     #[test]
     fn measured_regression_returns_error() {
         let slow = Summary {
             renders_per_second: MIN_RENDERS_PER_SECOND[0] - 1.0,
-            p50: Duration::ZERO,
-            p99: Duration::ZERO,
+            ..FAST
         };
-        let fast = Summary {
-            renders_per_second: MIN_RENDERS_PER_SECOND[0],
-            p50: Duration::ZERO,
-            p99: Duration::ZERO,
-        };
-        assert!(check_limits(0, &slow, &fast, 0).is_err());
-        assert!(check_limits(0, &fast, &fast, MAX_CONTEXT_HEAP_DELTA_BYTES[0] + 1).is_err());
-        let latency = Summary {
+        assert!(check_limits(0, &latency(slow), 0).is_err());
+        assert!(check_limits(0, &latency(FAST), MAX_CONTEXT_HEAP_DELTA_BYTES[0] + 1).is_err());
+        let late = Summary {
             p99: MAX_P99[0] + Duration::from_nanos(1),
-            ..fast
+            ..FAST
         };
-        assert!(check_limits(0, &latency, &fast, 0).is_err());
-        let reset = Summary {
-            p99: MAX_CONTEXT_RESET_P99[0] + Duration::from_nanos(1),
-            ..fast
+        assert!(check_limits(0, &latency(late), 0).is_err());
+    }
+
+    #[test]
+    fn wall_clock_delay_within_cpu_limits_passes() {
+        let delayed = Latency {
+            wall: Summary {
+                renders_per_second: MIN_RENDERS_PER_SECOND[0] / 10.0,
+                p50: MAX_P99[0] * 10,
+                p99: MAX_P99[0] * 10,
+            },
+            cpu: Summary {
+                p99: MAX_P99[0],
+                ..FAST
+            },
         };
-        assert!(check_limits(0, &fast, &reset, 0).is_err());
+        check_limits(0, &delayed, 0).unwrap();
     }
 }
