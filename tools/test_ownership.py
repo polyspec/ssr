@@ -504,30 +504,55 @@ def validate(root, declaration):
 
 
 def run(root, cases, command=run_cargo):
+    """Build every workspace test once, then run the declared cases on those builds.
+
+    A separate `-p` run for each case resolves features for that package alone, so shared
+    crates are compiled again for each feature set. One workspace build matches the later
+    workspace test run, and one nextest run executes every case with its own nextest timeout.
+    """
     root = Path(root)
+    build = ["cargo", "nextest", "run", "--workspace", "--locked", "--no-run", "--color", "never"]
+    print("RUN build workspace tests", flush=True)
+    started = time.monotonic()
+    try:
+        result = command(build, cwd=root)
+    except subprocess.TimeoutExpired as error:
+        raise OwnershipError(f"timeout build workspace tests after {time.monotonic() - started:.1f}s") from error
+    if result.returncode:
+        raise OwnershipError(
+            f"build workspace tests: failed (exit {result.returncode})\n{result.stdout + result.stderr}"
+        )
+    print(f"PASS build workspace tests {time.monotonic() - started:.1f}s", flush=True)
+    expression = " | ".join(
+        f"(package(={item.crate}) & binary(={item.target}) & test(={item.test}))" for item in cases
+    )
+    args = [
+        "cargo", "nextest", "run", "--workspace", "--locked", "--no-tests", "fail",
+        "--color", "never", "-E", expression,
+    ]
+    print(f"RUN {len(cases)} ownership cases", flush=True)
+    started = time.monotonic()
+    try:
+        result = command(args, cwd=root)
+    except subprocess.TimeoutExpired as error:
+        raise OwnershipError(f"timeout ownership cases after {time.monotonic() - started:.1f}s") from error
+    output = result.stdout + result.stderr
+    missing = []
     for item in cases:
-        args = [
-            "cargo", "nextest", "run", "-p", item.crate, "--test", item.target,
-            "--locked", "--no-tests", "fail", "--color", "never", "--", "--exact", item.test,
-        ]
         label = f"{item.behavior}: {item.crate}::{item.target} {item.test}"
-        print(f"RUN {label}", flush=True)
-        started = time.monotonic()
-        try:
-            result = command(args, cwd=root)
-        except subprocess.TimeoutExpired as error:
-            raise OwnershipError(f"timeout {label} after {time.monotonic() - started:.1f}s") from error
-        output = result.stdout + result.stderr
         passed = any(
             "PASS [" in line and line.rstrip().endswith(f"{item.crate}::{item.target} {item.test}")
             for line in output.splitlines()
         )
-        if result.returncode or not passed:
-            raise OwnershipError(
-                f"{label}: {'failed' if result.returncode else 'did not pass'} "
-                f"(exit {result.returncode})\n{output}"
-            )
-        print(f"PASS {label} {time.monotonic() - started:.1f}s", flush=True)
+        print(f"{'PASS' if passed else 'FAIL'} {label}", flush=True)
+        if not passed:
+            missing.append(label)
+    if result.returncode or missing:
+        raise OwnershipError(
+            f"ownership cases {'failed' if result.returncode else 'did not pass'} "
+            f"(exit {result.returncode}): {', '.join(missing)}\n{output}"
+        )
+    print(f"PASS {len(cases)} ownership cases {time.monotonic() - started:.1f}s", flush=True)
 
 
 def main():

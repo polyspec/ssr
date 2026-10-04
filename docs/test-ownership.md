@@ -16,8 +16,11 @@ do not count as imports. Grouped imports and renamed symbols are supported; wild
 and crate aliases for declared owners fail because they do not identify a public root name.
 Missing or repeated export declarations, unrecognized owner exports, missing consumers and
 declared consumers without actual source use fail. The checker verifies that each named function
-is a nonempty test in its own crate, and executes every named test with
-`cargo nextest`. Missing, misplaced, empty, failed, ignored and timed-out cases fail. The checker
+is a nonempty test in its own crate. It then builds every workspace test once with
+`cargo nextest run --workspace --no-run` and executes all named tests in one `cargo nextest` run
+on those builds. A separate run for each package would resolve features for that package alone
+and compile the shared crates again for each feature set; the workspace build is also the build
+that the later workspace test suite uses. Missing, misplaced, empty, failed, ignored and timed-out cases fail. The checker
 reports each case and its result; `make check` runs it after package installation and before
 the workspace test suite. This check establishes test execution and location. The named tests
 assert the behavior's input and output in their own crates.

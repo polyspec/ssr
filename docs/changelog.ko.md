@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- 소유 사례 전에 워크스페이스 테스트를 한 번 빌드하고, 모든 사례를 그 빌드에서
+  nextest 실행 한 번으로 실행한다.
+
 - render benchmark를 위해 render CPU time을 워커 thread에서 측정해, 동시 호출이
   더 이상 호출의 CPU time에 더해지지 않는다.
 

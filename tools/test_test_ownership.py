@@ -191,20 +191,17 @@ class TestOwnershipTest(unittest.TestCase):
         def command(args, **kwargs):
             self.assertNotIn("timeout", kwargs)
             self.assertNotIn("capture_output", kwargs)
-            crate = args[args.index("-p") + 1]
-            target = args[args.index("--test") + 1]
-            return subprocess.CompletedProcess(args, 0, f"PASS [ 0.001s] {crate}::{target} {args[-1]}", "")
+            output = "".join(f"PASS [ 0.001s] {case.crate}::{case.target} {case.test}\n" for case in cases)
+            return subprocess.CompletedProcess(args, 0, output, "")
         test_ownership.run(self.root, cases, command=command)
 
     def test_nextest_pass_on_stderr_is_accepted(self):
         cases = test_ownership.validate(self.root, self.declaration)
         def passed(args, **kwargs):
-            crate = args[args.index("-p") + 1]
-            target = args[args.index("--test") + 1]
-            name = args[-1]
-            return subprocess.CompletedProcess(
-                args, 0, "", f"PASS [ 0.001s] (1/1) {crate}::{target} {name}\n"
+            output = "".join(
+                f"PASS [ 0.001s] (1/2) {case.crate}::{case.target} {case.test}\n" for case in cases
             )
+            return subprocess.CompletedProcess(args, 0, "", output)
         test_ownership.run(self.root, cases, command=passed)
 
     def test_timed_out_test_is_rejected(self):
@@ -213,6 +210,26 @@ class TestOwnershipTest(unittest.TestCase):
             raise subprocess.TimeoutExpired("cargo nextest", 180)
         with self.assertRaisesRegex(test_ownership.OwnershipError, "timeout"):
             test_ownership.run(self.root, cases, command=timeout)
+
+    def test_cases_run_once_on_one_workspace_build(self):
+        cases = test_ownership.validate(self.root, self.declaration)
+        calls = []
+        def command(args, **kwargs):
+            calls.append(args)
+            output = "".join(
+                f"PASS [ 0.001s] ({index}/2) {case.crate}::{case.target} {case.test}\n"
+                for index, case in enumerate(cases, 1)
+            )
+            return subprocess.CompletedProcess(args, 0, "" if "--no-run" in args else output, "")
+        test_ownership.run(self.root, cases, command=command)
+        self.assertEqual(len(calls), 2)
+        build, tests = calls
+        self.assertEqual(build[:3], ["cargo", "nextest", "run"])
+        self.assertIn("--workspace", build)
+        self.assertIn("--no-run", build)
+        self.assertIn("--workspace", tests)
+        self.assertNotIn("--no-run", tests)
+        self.assertNotIn("-p", tests)
 
     def test_ignored_test_is_rejected(self):
         cases = test_ownership.validate(self.root, self.declaration)

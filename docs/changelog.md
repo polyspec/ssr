@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Build the workspace tests once before the ownership cases and run every case
+  in one nextest run on that build.
+
 - Measure the render CPU time in the worker thread for the render benchmark,
   so concurrent calls no longer add to the CPU time of a call.
 
