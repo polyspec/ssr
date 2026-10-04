@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Decide the browser cases by page events and process exit, print each browser
+  step with its elapsed time, and bound a browser case only to detect a hang.
+
 - Judge the render benchmark by process CPU time: CPU renders per second and
   CPU p99 have limits, and wall-clock values and context reset times are
   reported only.

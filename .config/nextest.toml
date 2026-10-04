@@ -2,3 +2,13 @@
 slow-timeout = { period = "30s", terminate-after = 1 }
 status-level = "all"
 final-status-level = "all"
+
+# A browser case builds the application, starts a browser and waits for page events, which
+# normally takes about 18 s. Its slow-timeout reports the case every 60 s and stops a hung
+# case after 30 minutes, about one hundred times its normal duration. The case prints each
+# browser step with its elapsed time.
+[[profile.default.overrides]]
+filter = 'test(/^browser_/)'
+slow-timeout = { period = "60s", terminate-after = 30 }
+success-output = "final"
+failure-output = "immediate-final"

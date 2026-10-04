@@ -1,3 +1,4 @@
+mod browser;
 mod support;
 use ssr_adapter_svelte::{SvelteAdapter, client_entry, server_entry};
 use ssr_build::{Build, BuildConfig, build};
@@ -8,12 +9,10 @@ use std::fs;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpListener;
 use std::path::Path;
-use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
-use wait_timeout::ChildExt;
 
 fn page(render: &str) -> Page {
     Page::from_json(format!(r#"{{"render":"{render}","title":"Example","language":"en","props":{{"name":"Ada"}},"state":{{"count":4}}}}"#).as_bytes()).unwrap()
@@ -127,11 +126,6 @@ fn server_head_is_preserved() {
     );
 }
 
-#[cfg(target_os = "macos")]
-const BROWSER: &str = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-#[cfg(target_os = "linux")]
-const BROWSER: &str = "/usr/bin/google-chrome";
-
 #[tokio::test]
 async fn browser_preserves_server_dom_and_renders_csr_and_shells() {
     browser_case(false).await;
@@ -144,8 +138,9 @@ async fn browser_hydrates_empty_ssr_and_reports_missing_markers() {
 
 async fn browser_case(empty: bool) {
     assert!(
-        Path::new(BROWSER).is_file(),
-        "browser test environment missing: {BROWSER}"
+        Path::new(browser::BROWSER).is_file(),
+        "browser test environment missing: {}",
+        browser::BROWSER
     );
     let root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../tools/build-probe/tests/fixtures")
@@ -292,12 +287,10 @@ async fn browser_case(empty: bool) {
             let stopping = Arc::clone(&server_stopping);
             handlers.push(thread::spawn(move || {
                 let mut stream = incoming.unwrap();
-                stream.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
                 let mut line = String::new();
                 match BufReader::new(&stream).read_line(&mut line) {
                     Ok(0) => return,
                     Ok(_) => {},
-                    Err(error) if matches!(error.kind(), std::io::ErrorKind::TimedOut | std::io::ErrorKind::WouldBlock) => return,
                     Err(error) => panic!("browser request read failed: {error}"),
                 }
                 let path = line.split_whitespace().nth(1).expect("browser request path");
@@ -319,42 +312,12 @@ async fn browser_case(empty: bool) {
             handler.join().unwrap();
         }
     });
-    let mut child = Command::new("node")
-        .arg(root.join("browser-svelte.mjs"))
-        .arg(format!("http://{address}"))
-        .arg(BROWSER)
-        .arg(if empty { "empty" } else { "main" })
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .unwrap();
-    if child
-        .wait_timeout(Duration::from_secs(25))
-        .unwrap()
-        .is_none()
-    {
-        child.kill().unwrap();
-        let output = child.wait_with_output().unwrap();
-        panic!(
-            "browser timed out: stdout: {}; stderr: {}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    let output = child.wait_with_output().unwrap();
-    assert!(
-        output.status.success(),
-        "browser failed: stdout: {}; stderr: {}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
+    let output = browser::run(
+        &root.join("browser-svelte.mjs"),
+        &format!("http://{address}"),
+        &[if empty { "empty" } else { "main" }],
     );
-    assert_eq!(
-        String::from_utf8(output.stdout)
-            .unwrap()
-            .matches("PASS ")
-            .count(),
-        if empty { 2 } else { 6 }
-    );
+    assert_eq!(output.matches("PASS ").count(), if empty { 2 } else { 6 });
     let mut stop = std::net::TcpStream::connect(address).unwrap();
     stop.write_all(b"GET /__stop HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
         .unwrap();

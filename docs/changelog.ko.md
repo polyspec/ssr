@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- browser 사례를 page event와 process 종료로 판정하고, 각 browser 단계를 경과
+  시간과 함께 출력하며, 시간 한도는 멈춘 사례를 감지하는 데만 쓴다.
+
 - render benchmark를 process CPU time으로 판정한다. CPU 초당 render 수와 CPU p99에
   한도를 두고, wall-clock 값과 context 초기화 시간은 보고만 한다.
 

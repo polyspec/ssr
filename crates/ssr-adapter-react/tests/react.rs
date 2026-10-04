@@ -1,3 +1,4 @@
+mod browser;
 mod support;
 use ssr_adapter_react::{ReactAdapter, client_entry, framework_entry, server_entry};
 use ssr_build::{Build, BuildConfig, build};
@@ -8,13 +9,11 @@ use std::fs;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpListener;
 use std::path::Path;
-use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::sync::Barrier;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
-use wait_timeout::ChildExt;
 
 const GENERATED_ENTRY_DIR: &str = "node_modules/.ssr-adapter-react-entry";
 const GENERATED_BROWSER_DIR: &str = "node_modules/.ssr-adapter-react-browser";
@@ -273,56 +272,9 @@ async fn suspense_failure_keeps_fallback_and_client_recovery_in_stream() {
     assert!(document.contains("late server failure"), "{document}");
 }
 
-#[cfg(target_os = "macos")]
-const BROWSER: &str = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-#[cfg(target_os = "linux")]
-const BROWSER: &str = "/usr/bin/google-chrome";
-
 fn run_browser(base: &str, script: &Path) {
-    assert!(
-        Path::new(BROWSER).is_file(),
-        "browser test environment missing: {BROWSER}"
-    );
-    assert!(
-        script.is_file(),
-        "browser test script missing: {}",
-        script.display()
-    );
-    let mut child = Command::new("node")
-        .arg(script)
-        .arg(base)
-        .arg(BROWSER)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .unwrap();
-    if child
-        .wait_timeout(Duration::from_secs(25))
-        .unwrap()
-        .is_none()
-    {
-        child.kill().unwrap();
-        let output = child.wait_with_output().unwrap();
-        panic!(
-            "browser timed out: stdout: {}; stderr: {}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    let output = child.wait_with_output().unwrap();
-    assert!(
-        output.status.success(),
-        "browser failed: stdout: {}; stderr: {}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    );
-    assert_eq!(
-        String::from_utf8(output.stdout)
-            .unwrap()
-            .matches("PASS ")
-            .count(),
-        8
-    );
+    let output = browser::run(script, base, &[]);
+    assert_eq!(output.matches("PASS ").count(), 8);
 }
 
 #[tokio::test]
@@ -449,12 +401,10 @@ async fn browser_hydrates_ssr_and_renders_csr_and_static_shells() {
             let stopping = Arc::clone(&server_stopping);
             handlers.push(thread::spawn(move || {
                 let mut stream = incoming.unwrap();
-                stream.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
                 let mut line = String::new();
                 match BufReader::new(&stream).read_line(&mut line) {
                     Ok(0) => return,
                     Ok(_) => {}
-                    Err(error) if matches!(error.kind(), std::io::ErrorKind::TimedOut | std::io::ErrorKind::WouldBlock) => return,
                     Err(error) => panic!("browser request read failed: {error}"),
                 }
                 let path = line.split_whitespace().nth(1).expect("browser request path");
