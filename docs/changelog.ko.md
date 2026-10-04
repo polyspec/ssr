@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- 커밋 전에는 변경을 소유한 Red·Green 테스트와 `tools/check.py`만 실행하고,
+  전체 묶음은 활성 체크리스트 항목이 모두 끝났을 때 한 번 실행한다고 적는다.
+
 - 끝난 React stream render의 scheduler를 해제해 끝난 모든 render의 context가
   회수되고 반복 render가 heap을 일정 범위 안에 유지한다.
 

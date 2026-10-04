@@ -89,21 +89,19 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   dependencies in this checklist and update the specification before implementation. Finish current work unless
   the user explicitly requires immediate action or the defect must be fixed first. Run independent
   items in parallel without adding another task list. An uncommitted worktree covers one item;
+  commit that item's implementation, tests, and records when marking it `[o]`.
 - Marking an item `[o]` writes its implementation, tests, records and changelog entry in one
   commit. A received instruction is triaged first: finish the item in progress unless the
   instruction is explicit and urgent, then place the new work by priority before starting it.
-- The repository's full test suite runs once, when every checklist item is complete.
 - Write commit messages in English as `type(scope): subject (#issue)`: a subject of at most 50
   characters, capitalized, imperative, without a trailing period; a blank line; a body wrapped
   near 72 characters explaining what changed and why; an optional footer for references. The
   type is one of feat, fix, docs, style, refactor, test or chore.
-- During development run only the tests of the modified area; run the full suite once, when the
-  item is marked `[o]`. Every test reports its own running, completion, success or failure with
-  its elapsed time and has its own timeout; a whole-suite timeout is not used. A long
-  operation gets detailed step logs instead of a timeout, so its process and result stay
-  observable.
-
-  commit that item's implementation, tests, and records when marking it `[o]`.
+- During development run only the Red and Green tests that own the change; run the full suite
+  once, when every active checklist item is complete, never after each fix or item. Every test
+  reports its own running, completion, success or failure with its elapsed time and has its own
+  timeout; a whole-suite timeout is not used. A long operation gets detailed step logs instead
+  of a timeout, so its process and result stay observable.
 - A newly found issue in a completed item is added as a numbered sub-item; the completed item does
   not go back to `[~]`.
 - Marking an item `[o]` requires its implementation, tests and records to be committed in the same
@@ -160,4 +158,5 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   trailers) and no conversation or investigation history; a sentence without such a fact about ssr
   is deleted. Such context stays in local memory outside Git.
 - English is canonical. Update the `.ko.md` file in the same change with equal information.
-- Run `make check`, which includes the record and terminology checks, before each commit.
+- Before each commit, run the Red and Green tests that own the change and `tools/check.py`,
+  which runs the record and terminology checks.

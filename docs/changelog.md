@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- State that only the owning Red and Green tests and `tools/check.py` run
+  before a commit, and that the full suite runs once when every active
+  checklist item is complete.
+
 - Release the scheduler of a finished React stream render, so the context of
   every finished render can be collected and repeated renders keep the heap
   bounded.
