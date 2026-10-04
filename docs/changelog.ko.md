@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- 각각은 timeout 안에 들지만 합치면 넘는 queue 대기와 실행으로 request deadline
+  하나가 queue 대기와 실행을 함께 덮는지 증명한다.
+
 - browser 사례를 page event와 process 종료로 판정하고, 각 browser 단계를 경과
   시간과 함께 출력하며, 시간 한도는 멈춘 사례를 감지하는 데만 쓴다.
 

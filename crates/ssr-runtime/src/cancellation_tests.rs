@@ -5,6 +5,7 @@ use std::time::Duration;
 const FRAMEWORK: &str = r#"
  globalThis.__ssrReact = {}; globalThis.__ssrJsxRuntime = {};
  globalThis.render = async (App, props, state) => {
+   if (props.busy) {const end = Date.now() + props.busy; while (Date.now() < end) {}}
    let reads = 0;
    return {state, stream: {getReader() {return {read() {
      reads++;
@@ -140,26 +141,49 @@ fn cancellation_wakes_a_queued_call_before_worker_release() {
 
 #[test]
 fn timeout_covers_queue_wait_and_execution() {
+    // Queue wait D and execution E each fit in the timeout T, but together they exceed it:
+    // D < T, E < T and D + E > T. One deadline for both ends in a timeout; separate
+    // deadlines for the queue and the execution would let the call succeed.
+    let queue_wait = Duration::from_secs(2);
+    let execution = Duration::from_secs(2);
     let mut limits = options();
-    limits.timeout = Duration::from_secs(2);
+    limits.timeout = Duration::from_secs(3);
     let pool = std::sync::Arc::new(pool_with(limits));
+    let (_, alone) = pool
+        .render_stream(&busy_page(execution), "nonce", Cancellation::new())
+        .unwrap();
+    assert_eq!(
+        alone.collect::<Result<Vec<_>, _>>().unwrap().concat(),
+        b"okokokok"
+    );
     let (_, mut active) = pool
         .render_stream(&page(false), "nonce", Cancellation::new())
         .unwrap();
-    let entered = enter_queue_after(&pool, Duration::from_millis(1100));
+    let entered = enter_queue_after(&pool, queue_wait);
     let waiting_pool = pool.clone();
     let waiting = std::thread::spawn(move || {
-        let (_, stream) = waiting_pool.render_stream(&page(true), "nonce", Cancellation::new())?;
+        let (_, stream) =
+            waiting_pool.render_stream(&busy_page(execution), "nonce", Cancellation::new())?;
         stream.collect::<Result<Vec<_>, _>>()
     });
     entered.recv().unwrap();
-    std::thread::sleep(Duration::from_millis(600));
     active.close().unwrap();
     assert!(matches!(
         waiting.join().unwrap(),
         Err(crate::Error::Timeout)
     ));
     pool.health().unwrap();
+}
+
+fn busy_page(execution: Duration) -> Page {
+    Page::from_json(
+        format!(
+            r#"{{"render":"ssr","title":"T","language":"en","props":{{"busy":{}}},"state":null}}"#,
+            execution.as_millis()
+        )
+        .as_bytes(),
+    )
+    .unwrap()
 }
 
 fn enter_queue_after(pool: &Pool, delay: Duration) -> crossbeam_channel::Receiver<()> {

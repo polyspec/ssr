@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Prove that one request deadline covers the queue wait and the execution with a
+  queue wait and an execution that each fit in the timeout but not together.
+
 - Decide the browser cases by page events and process exit, print each browser
   step with its elapsed time, and bound a browser case only to detect a hang.
 
