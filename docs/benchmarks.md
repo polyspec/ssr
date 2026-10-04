@@ -5,17 +5,18 @@ the HTML and state. The command runs 128 calls per caller at concurrency 1, 4 an
 on a render error, a missing sample, a changed result or a limit violation. The build reports its Cargo command and compiler progress without a total duration limit;
 running the benchmark has a 120-second timeout.
 
-Each call is measured twice, starting before `Pool::render_with_metrics` and ending after its
-return: as wall-clock time and as process CPU time (`CLOCK_PROCESS_CPUTIME_ID`). Rendering runs
-on the pool worker threads, so the CPU time of the calling thread alone does not contain the
-render; the process CPU time contains the caller, the worker and the V8 threads. At concurrency 1
-the process CPU time of a call is the CPU time of that call; at concurrency 4 and 16 it also
-contains the CPU time of the other calls that run at the same time. CPU throughput divides all
-completed calls by the process CPU time of the scenario; wall-clock throughput divides them by
-the elapsed time of the scenario. p50 and p99 use the nearest rank of every call. Context reset
-time is the wall-clock time around V8 context creation. Memory is the change in live V8 heap
-bytes immediately around that creation, not process resident memory. The command reports the
-largest observed change.
+The benchmark builds `ssr-runtime` with its `bench` feature. With that feature,
+`RenderMetrics::render_cpu` is the CPU time of the worker thread for one render
+(`CLOCK_THREAD_CPUTIME_ID`), from the start of the context reset to the serialized result.
+It does not contain the CPU time of other calls that run at the same time. The feature is
+for the benchmark only and is not part of the public API.
+
+The wall-clock time of a call starts before `Pool::render_with_metrics` and ends after its
+return. CPU throughput divides all completed calls by the sum of their render CPU times;
+wall-clock throughput divides them by the elapsed time of the scenario. p50 and p99 use the
+nearest rank of every call. Context reset time is the wall-clock time around V8 context
+creation. Memory is the change in live V8 heap bytes immediately around that creation, not
+process resident memory. The command reports the largest observed change.
 
 The command judges only CPU throughput, CPU p99 and the peak heap change. Wall-clock throughput,
 wall-clock p50 and p99 and context reset times are reported and not judged, because other work on
@@ -23,23 +24,23 @@ the host changes them without a change in the runtime.
 
 The following output was measured on macOS 26.6.2, Apple M3 Pro, 36 GiB memory, Rust 1.98.1,
 using the Cargo development profile with debug information disabled and the verified official
-V8 150.4.0 simdutf release archive on 2026-10-05, while the host load average was about 150. The
+V8 150.4.0 simdutf release archive on 2026-10-05, while the host load average was about 300. The
 benchmark includes worker communication, JSON parsing and result validation in call latency; it
 does not include bundle compilation or HTTP transport.
 
 | Concurrent calls | Calls | CPU renders/s | CPU p50 ms | CPU p99 ms | Wall renders/s | Wall p50 ms | Wall p99 ms | Reset p50 ms | Reset p99 ms | Peak heap change bytes |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | 128 | 2,291.6 | 0.375 | 0.843 | 890.4 | 0.696 | 5.222 | 0.277 | 1.338 | 202,112 |
-| 4 | 512 | 2,580.6 | 1.293 | 4.812 | 6,155.6 | 0.533 | 2.836 | 0.314 | 1.436 | 202,064 |
-| 16 | 2,048 | 2,491.0 | 2.512 | 76.551 | 5,341.5 | 0.873 | 32.606 | 0.316 | 7.770 | 204,672 |
+| 1 | 128 | 2,543.1 | 0.363 | 0.700 | 1,942.7 | 0.509 | 1.445 | 0.361 | 0.743 | 202,112 |
+| 4 | 512 | 3,308.0 | 0.210 | 1.039 | 6,163.6 | 0.475 | 2.827 | 0.193 | 1.166 | 202,064 |
+| 16 | 2,048 | 3,443.7 | 0.218 | 0.914 | 10,923.4 | 0.535 | 10.253 | 0.227 | 1.743 | 204,960 |
 
-The maintained benchmark enforces these limits for each scenario. In the measured runs on the
-loaded host, CPU throughput stayed between 1,961 and 3,951 renders/s, and CPU p99 stayed at or
-below 0.94 ms, 5.75 ms and 76.6 ms for concurrency 1, 4 and 16. The limits allow that variation
-while still failing for a substantial regression.
+The maintained benchmark enforces these limits for each scenario. In five runs on the loaded
+host, CPU throughput stayed between 2,108 and 3,444 renders/s and CPU p99 stayed at or below
+1.43 ms at every concurrency. The limits allow that variation while still failing for a
+substantial regression.
 
 | Concurrent calls | Minimum CPU renders/s | Maximum CPU p99 ms | Maximum peak heap change bytes |
 | ---: | ---: | ---: | ---: |
-| 1 | 1,000 | 3 | 1,000,000 |
-| 4 | 1,000 | 20 | 1,000,000 |
-| 16 | 1,000 | 150 | 1,000,000 |
+| 1 | 1,000 | 4 | 1,000,000 |
+| 4 | 1,000 | 4 | 1,000,000 |
+| 16 | 1,000 | 4 | 1,000,000 |

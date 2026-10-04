@@ -10,9 +10,9 @@ const CALLS_PER_THREAD: usize = 128;
 const CONCURRENCY: [usize; 3] = [1, 4, 16];
 const MIN_RENDERS_PER_SECOND: [f64; 3] = [1000.0, 1000.0, 1000.0];
 const MAX_P99: [Duration; 3] = [
-    Duration::from_millis(3),
-    Duration::from_millis(20),
-    Duration::from_millis(150),
+    Duration::from_millis(4),
+    Duration::from_millis(4),
+    Duration::from_millis(4),
 ];
 const MAX_CONTEXT_HEAP_DELTA_BYTES: [i128; 3] = [1_000_000, 1_000_000, 1_000_000];
 
@@ -27,29 +27,6 @@ struct Summary {
 struct Latency {
     wall: Summary,
     cpu: Summary,
-}
-
-fn process_cpu_time() -> Result<Duration, String> {
-    let mut time = libc::timespec {
-        tv_sec: 0,
-        tv_nsec: 0,
-    };
-    // SAFETY: `time` is a valid timespec that clock_gettime writes before returning.
-    if unsafe { libc::clock_gettime(libc::CLOCK_PROCESS_CPUTIME_ID, &mut time) } != 0 {
-        return Err(format!(
-            "process CPU time is unavailable: {}",
-            std::io::Error::last_os_error()
-        ));
-    }
-    let seconds = u64::try_from(time.tv_sec).map_err(|error| error.to_string())?;
-    let nanoseconds = u32::try_from(time.tv_nsec).map_err(|error| error.to_string())?;
-    Ok(Duration::new(seconds, nanoseconds))
-}
-
-fn cpu_since(began: Duration) -> Result<Duration, String> {
-    process_cpu_time()?
-        .checked_sub(began)
-        .ok_or_else(|| "process CPU time decreased".to_owned())
 }
 
 fn summarize(
@@ -84,23 +61,26 @@ fn check_limits(index: usize, latency: &Latency, heap_peak: i128) -> Result<(), 
     Ok(())
 }
 
-fn run(index: usize, pool: Arc<Pool>, page: &Page) -> Result<(), Box<dyn Error>> {
-    let concurrency = CONCURRENCY[index];
+struct Measured {
+    count: usize,
+    latency: Latency,
+    reset: Summary,
+    heap_peak: i128,
+}
+
+fn measure(concurrency: usize, pool: &Arc<Pool>, page: &Page) -> Result<Measured, String> {
     let started = Instant::now();
-    let cpu_started = process_cpu_time()?;
     let mut samples = Vec::with_capacity(concurrency * CALLS_PER_THREAD);
     std::thread::scope(|scope| {
         let handles = (0..concurrency)
             .map(|_| {
-                let pool = Arc::clone(&pool);
+                let pool = Arc::clone(pool);
                 scope.spawn(move || {
                     (0..CALLS_PER_THREAD)
                         .map(|_| {
-                            let cpu_began = process_cpu_time()?;
                             let began = Instant::now();
                             let result = pool.render_with_metrics(page);
                             let elapsed = began.elapsed();
-                            let cpu = cpu_since(cpu_began)?;
                             result.map_err(|error| error.to_string()).and_then(
                                 |(rendered, metrics)| {
                                     if rendered.html != b"<main>fixed page</main>"
@@ -108,7 +88,7 @@ fn run(index: usize, pool: Arc<Pool>, page: &Page) -> Result<(), Box<dyn Error>>
                                     {
                                         return Err("render output changed".to_owned());
                                     }
-                                    Ok((elapsed, cpu, metrics))
+                                    Ok((elapsed, metrics))
                                 },
                             )
                         })
@@ -121,32 +101,47 @@ fn run(index: usize, pool: Arc<Pool>, page: &Page) -> Result<(), Box<dyn Error>>
         }
     });
     let elapsed = started.elapsed();
-    let cpu_elapsed = cpu_since(cpu_started)?;
     let count = concurrency * CALLS_PER_THREAD;
     let mut latencies = Vec::with_capacity(count);
     let mut cpu_latencies = Vec::with_capacity(count);
     let mut resets = Vec::with_capacity(count);
+    let mut cpu_elapsed = Duration::ZERO;
     let mut heap_peak = i128::MIN;
     for sample in samples {
         let (
             latency,
-            cpu,
             RenderMetrics {
                 context_reset,
                 context_heap_delta_bytes,
+                render_cpu,
                 ..
             },
         ) = sample?;
         latencies.push(Ok(latency));
-        cpu_latencies.push(Ok(cpu));
+        cpu_latencies.push(Ok(render_cpu));
+        cpu_elapsed += render_cpu;
         resets.push(Ok(context_reset));
         heap_peak = heap_peak.max(context_heap_delta_bytes);
     }
-    let latency = Latency {
-        wall: summarize(latencies, count, elapsed)?,
-        cpu: summarize(cpu_latencies, count, cpu_elapsed)?,
-    };
-    let reset = summarize(resets, count, elapsed)?;
+    Ok(Measured {
+        count,
+        latency: Latency {
+            wall: summarize(latencies, count, elapsed)?,
+            cpu: summarize(cpu_latencies, count, cpu_elapsed)?,
+        },
+        reset: summarize(resets, count, elapsed)?,
+        heap_peak,
+    })
+}
+
+fn run(index: usize, pool: &Arc<Pool>, page: &Page) -> Result<(), Box<dyn Error>> {
+    let concurrency = CONCURRENCY[index];
+    let Measured {
+        count,
+        latency,
+        reset,
+        heap_peak,
+    } = measure(concurrency, pool, page)?;
     println!(
         "concurrency={concurrency} calls={count} cpu_renders/s={:.1} cpu_p50_ms={:.3} cpu_p99_ms={:.3} wall_renders/s={:.1} wall_p50_ms={:.3} wall_p99_ms={:.3} context_reset_p50_ms={:.3} context_reset_p99_ms={:.3} context_heap_delta_peak_bytes={heap_peak}",
         latency.cpu.renders_per_second,
@@ -162,9 +157,8 @@ fn run(index: usize, pool: Arc<Pool>, page: &Page) -> Result<(), Box<dyn Error>>
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let page = Page::from_json(PAGE.as_bytes())?;
-    let pool = Arc::new(Pool::new(
+fn bench_pool() -> Result<Arc<Pool>, ssr_runtime::Error> {
+    Ok(Arc::new(Pool::new(
         ServerBundle {
             entry_path: "server/bench.js".into(),
             entry_bytes: BUNDLE.as_bytes().to_vec(),
@@ -181,9 +175,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             max_output_bytes: 67108864,
             max_heap_bytes: 134217728,
         },
-    )?);
+    )?))
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let page = Page::from_json(PAGE.as_bytes())?;
+    let pool = bench_pool()?;
     for index in 0..CONCURRENCY.len() {
-        run(index, Arc::clone(&pool), &page)?;
+        run(index, &pool, &page)?;
     }
     Ok(())
 }
@@ -191,6 +190,20 @@ fn main() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cpu_time_of_a_call_excludes_concurrent_calls() {
+        let pool = bench_pool().unwrap();
+        let page = Page::from_json(PAGE.as_bytes()).unwrap();
+        let alone = measure(1, &pool, &page).unwrap().latency.cpu.p50;
+        let concurrent = measure(16, &pool, &page).unwrap().latency.cpu.p50;
+        println!("CPU p50 alone={alone:?} concurrent={concurrent:?}");
+        assert!(
+            concurrent < alone * 4,
+            "CPU p50 alone={alone:?} concurrent={concurrent:?}"
+        );
+        pool.close().unwrap();
+    }
 
     #[test]
     fn nearest_rank_uses_every_sample() {

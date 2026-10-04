@@ -9,7 +9,7 @@ import time
 def main():
     started = time.monotonic()
     print("RUN build render benchmark", flush=True)
-    command = ["cargo", "build", "--offline", "--locked", "-p", "ssr-runtime", "--example", "bench", "--verbose"]
+    command = ["cargo", "build", "--offline", "--locked", "-p", "ssr-runtime", "--example", "bench", "--features", "bench", "--verbose"]
     print(f"COMMAND {' '.join(command)}", flush=True)
     build = subprocess.run(command, check=False)
     if build.returncode:

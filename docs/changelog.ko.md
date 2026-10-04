@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- render benchmark를 위해 render CPU time을 워커 thread에서 측정해, 동시 호출이
+  더 이상 호출의 CPU time에 더해지지 않는다.
+
 - 각각은 timeout 안에 들지만 합치면 넘는 queue 대기와 실행으로 request deadline
   하나가 queue 대기와 실행을 함께 덮는지 증명한다.
 

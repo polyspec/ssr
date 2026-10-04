@@ -20,13 +20,13 @@ check:
 	python3 tools/test_ownership.py
 	python3 tools/check.py
 	cargo fmt --all -- --check
-	cargo clippy --workspace --all-targets --locked -- -D warnings
+	cargo clippy --workspace --all-targets --features ssr-runtime/bench --locked -- -D warnings
 	cargo deny check
 	$(MAKE) verify-engine-deps
 	cargo build -p ssr-server --example development_process --example socket_process --locked
 	cargo nextest run --workspace --locked --no-tests fail
 	python3 tools/check_features.py
-	cargo nextest run -p ssr-runtime --example bench --locked --no-tests fail
+	cargo nextest run -p ssr-runtime --example bench --features bench --locked --no-tests fail
 
 bench:
 	python3 tools/bench.py

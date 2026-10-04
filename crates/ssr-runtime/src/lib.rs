@@ -1,6 +1,8 @@
 #![forbid(unsafe_code)]
 
 mod construct;
+#[cfg(feature = "bench")]
+mod cpu;
 mod dispatch;
 mod engine;
 mod error;
@@ -37,11 +39,16 @@ pub struct RenderMetrics {
     pub heap_used_bytes: usize,
     pub context_reset: Duration,
     pub context_heap_delta_bytes: i128,
+    /// CPU time of the worker thread for the render; present only for the render benchmark.
+    #[cfg(feature = "bench")]
+    pub render_cpu: Duration,
 }
 struct ContextRender {
     result: RenderResult,
     context_reset: Duration,
     context_heap_delta_bytes: i128,
+    #[cfg(feature = "bench")]
+    render_cpu: Duration,
 }
 struct WorkerReply {
     result: Result<ContextRender, Error>,

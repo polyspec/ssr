@@ -11,3 +11,5 @@ class BenchmarkBuildTest(TestCase):
             self.assertEqual(bench.main(), 7)
         self.assertNotIn("timeout", run.call_args.kwargs)
         self.assertIn("--verbose", run.call_args.args[0])
+        command = run.call_args.args[0]
+        self.assertEqual(command[command.index("--features") + 1], "bench")

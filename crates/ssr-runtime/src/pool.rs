@@ -298,6 +298,8 @@ impl Pool {
             result,
             context_reset,
             context_heap_delta_bytes,
+            #[cfg(feature = "bench")]
+            render_cpu,
         } = result?;
         Ok((
             result,
@@ -306,6 +308,8 @@ impl Pool {
                 heap_used_bytes,
                 context_reset,
                 context_heap_delta_bytes,
+                #[cfg(feature = "bench")]
+                render_cpu,
             },
         ))
     }

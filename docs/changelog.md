@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Measure the render CPU time in the worker thread for the render benchmark,
+  so concurrent calls no longer add to the CPU time of a call.
+
 - Prove that one request deadline covers the queue wait and the execution with a
   queue wait and an execution that each fit in the timeout but not together.
 

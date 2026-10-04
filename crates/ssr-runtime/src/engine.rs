@@ -211,6 +211,8 @@ fn render(
     state: &str,
     max_output_bytes: usize,
 ) -> Result<ContextRender, Error> {
+    #[cfg(feature = "bench")]
+    let cpu_started = crate::cpu::thread_time()?;
     v8::scope!(let scope, runtime);
     let heap_before = scope.get_heap_statistics().used_heap_size() as i128;
     let reset_started = Instant::now();
@@ -290,6 +292,8 @@ fn render(
         result: RenderResult { html, head, state },
         context_reset,
         context_heap_delta_bytes,
+        #[cfg(feature = "bench")]
+        render_cpu: crate::cpu::thread_time_since(cpu_started)?,
     })
 }
 
