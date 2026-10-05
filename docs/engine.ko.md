@@ -73,6 +73,8 @@ container는 `ssr-engine-<자리>-engine`, image는 `localhost/ssr-engine-verify
 실행은 그 record와 함께 거부되고, holder가 더 이상 실행되지 않는 lock은 보고하고
 `python3 -m tools.holder_lock remove-stopped <lock file>`이 지울 때까지 남겨 두며, holder만
 lock을 해제한다. 각 단계는 command, 출력, 결과를 경과 시간과 함께 시간 제한 없이 출력한다.
+첫 실패 단계가 단계를 끝내고, stack이 시작된 뒤에는 실패한 뒤에도 단계가 끝나면 stack을 멈추며,
+실행은 실패한 단계와 멈춤의 결과를 보고한다.
 네이티브 GNU 링커는 Rust 대상의 링크 인자를 유지한다.
 로컬 V8, ordered-json, lightningcss 체크아웃도 Cargo의 절대 경로에 읽기 전용으로 마운트한다.
 컨테이너는 어떤 소스 체크아웃도 수정할 수 없다. 이미지에는 Clippy와 cargo-nextest 0.9.146도 있다.

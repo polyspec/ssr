@@ -1,6 +1,15 @@
+"""Run every tool test case in its own process with its own time limit.
+
+Each case runs in a new process group. A case that exceeds its limit is reported with the output
+it wrote, and its whole process group is killed and waited for, so no process that the case
+started keeps running.
+"""
+
 import importlib
+import os
 import pathlib
 import pkgutil
+import signal
 import subprocess
 import sys
 import time
@@ -25,6 +34,29 @@ def test_ids():
     return list(walk(suite))
 
 
+def run_case(command, timeout, cwd=None):
+    """Run one command in its own process group; return ``PASS``, ``FAIL`` or ``TIMEOUT``, its
+    exit status, its standard output and its standard error. The group is killed when the
+    command ends or exceeds ``timeout`` seconds."""
+    process = subprocess.Popen(command, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               text=True, start_new_session=True)
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        stdout, stderr = process.communicate()
+        return "TIMEOUT", process.returncode, stdout, stderr
+    try:
+        # Processes that the command left running are stopped with it. A group whose members have
+        # all ended is gone (ProcessLookupError) or, on macOS, holds only exited members (EPERM).
+        os.killpg(process.pid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        pass
+    if process.returncode or "skipped=" in stderr:
+        return "FAIL", process.returncode, stdout, stderr
+    return "PASS", process.returncode, stdout, stderr
+
+
 def main():
     ids = test_ids()
     if not ids:
@@ -34,22 +66,15 @@ def main():
     for test_id in ids:
         print(f"RUN {test_id}", flush=True)
         start = time.monotonic()
-        try:
-            result = subprocess.run(
-                [sys.executable, "-m", "unittest", test_id],
-                capture_output=True, text=True, timeout=30, check=False,
-            )
-        except subprocess.TimeoutExpired:
-            print(f"TIMEOUT {test_id} {time.monotonic() - start:.3f}s")
-            failures += 1
-            continue
+        status, _, stdout, stderr = run_case([sys.executable, "-m", "unittest", test_id], 30)
         elapsed = time.monotonic() - start
-        if result.returncode or "skipped=" in result.stderr:
-            print(f"FAIL {test_id} {elapsed:.3f}s")
-            print(result.stdout + result.stderr, file=sys.stderr)
-            failures += 1
+        if status == "TIMEOUT":
+            print(f"TIMEOUT {test_id} after the limit of 30 s, {elapsed:.3f}s; its output:", flush=True)
         else:
-            print(f"PASS {test_id} {elapsed:.3f}s")
+            print(f"{status} {test_id} {elapsed:.3f}s", flush=True)
+        if status != "PASS":
+            print(stdout + stderr, file=sys.stderr, flush=True)
+            failures += 1
     print(f"SUMMARY {len(ids) - failures} passed, {failures} failed")
     return 1 if failures else 0
 

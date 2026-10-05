@@ -3,9 +3,10 @@ import pathlib
 import platform
 import re
 import socket
-import subprocess
 import tempfile
 import unittest
+
+from tools import run_tests
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -51,18 +52,18 @@ class BrowserLaunchTests(unittest.TestCase):
                 f"mock.module({json.dumps(steps)}, {{ exports: {{ ...real, LAUNCH_TIMEOUT: 1000 }} }});\n",
                 encoding="utf-8",
             )
-            result = subprocess.run(
+            # The script runs in its own process group, which is killed with the browser that it
+            # started when the script ends or exceeds the limit.
+            status, code, stdout, stderr = run_tests.run_case(
                 ["node", "--experimental-test-module-mocks", "--no-warnings", "--import", str(preload),
-                 str(FIXTURES / name), closed_base(), str(slow), *SCRIPTS[name]],
-                cwd=FIXTURES, capture_output=True, text=True, timeout=30, check=False,
-            )
-        report = f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
-        launched = re.match(r"RUN launch\nDONE launch (\d+\.\d+)s\nRUN /", result.stdout)
+                 str(FIXTURES / name), closed_base(), str(slow), *SCRIPTS[name]], 30, cwd=FIXTURES)
+        report = f"{status} exit {code}\nstdout:\n{stdout}\nstderr:\n{stderr}"
+        self.assertEqual(status, "FAIL", report)
+        launched = re.match(r"RUN launch\nDONE launch (\d+\.\d+)s\nRUN /", stdout)
         self.assertIsNotNone(launched, report)
         self.assertGreaterEqual(float(launched.group(1)), DELAY)
-        self.assertRegex(result.stdout, r"\nRUN close\nDONE close \d+\.\d+s\n\Z", report)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("ERR_CONNECTION_REFUSED", result.stderr)
+        self.assertRegex(stdout, r"\nRUN close\nDONE close \d+\.\d+s\n\Z", report)
+        self.assertIn("ERR_CONNECTION_REFUSED", stderr)
 
     def test_react_script_proceeds_after_a_slow_launch(self):
         self.run_script("browser.mjs")

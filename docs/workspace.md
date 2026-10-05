@@ -10,6 +10,10 @@ Run `make check` to check the document pairs and links, records, terminology, Py
 Rust formatting, Clippy warnings, dependency advisories, licenses and sources, and Rust unit tests.
 Rust tests run with cargo-nextest 0.9.146. The nextest configuration terminates each test after
 30 seconds and prints its start and result with elapsed time. A missing test tool fails the command.
+The Python tool tests run through `tools/run_tests.py`, each in its own process group with a limit
+of 30 seconds; a case that exceeds it is reported with its output, and its whole process group is
+killed, so no process that the case started keeps running. Rust tests remove their temporary
+directories through a guard, also when an assertion fails.
 `make check` runs the full suite through `tools/full_run.py`: the setup steps `CHECK_SETUP`
 (the archive check and the fixture installs), then each target of `CHECK_TARGETS` as its own make
 target. Before any step it refuses the run, with the reasons and a nonzero exit status, while an

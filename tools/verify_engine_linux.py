@@ -5,6 +5,8 @@ checkout (``tools/prepare_engine_compose.py``). Two sessions in one checkout sha
 verification and the removal of the stack run under the checkout lock ``engine-verification``: a
 second run is refused with the holder's checkout, pid and process start time. Every step prints its
 command, its output as it arrives and its result with the elapsed time; no step has a time limit.
+The first failing step ends the steps; once the stack was started, it is stopped after the steps,
+also after a failure, and the run reports both results.
 
     python3 -m tools.verify_engine_linux verify
     python3 -m tools.verify_engine_linux down
@@ -38,12 +40,12 @@ def verify_steps(root=ROOT):
         ["container", "exec", "-w", "/src", "-e", "CARGO_NET_OFFLINE=false", container, "cargo", "fetch",
          "--locked", "--manifest-path", "/src/verification/engine/Cargo.toml"],
         ["container", "exec", "-w", "/src", container, "python3", "/src/tools/verify_engine.py", TARGET],
-        ["containerctl", "-f", str(OUTPUT), "down"],
     ]
 
 
-def down_steps():
-    return [["containerctl", "-f", str(OUTPUT), "down"]]
+def stop():
+    """The command that stops the checkout's stack."""
+    return ["containerctl", "-f", str(OUTPUT), "down"]
 
 
 def run_step(command):
@@ -57,8 +59,10 @@ def run_step(command):
     return status
 
 
-def run_locked(steps, lock_path=LOCK):
-    """Run the steps in order under the lock; the first failing step ends the run."""
+def run_locked(steps, lock_path=LOCK, stop_command=None, starts=None):
+    """Run the steps in order under the lock; the first failing step ends the steps. After the step
+    ``starts`` ran, ``stop_command`` runs once the steps end, also after a failure, and the result
+    is the first failure."""
     try:
         lock = holder_lock.acquire(lock_path)
     except holder_lock.HolderLockRefused as refused:
@@ -66,11 +70,20 @@ def run_locked(steps, lock_path=LOCK):
         return 1
     print(f"PASS lock: acquired {lock_path} (pid {lock.record['pid']})", flush=True)
     try:
-        for command in steps:
+        status = 0
+        started = False
+        for index, command in enumerate(steps, 1):
+            started = started or command == starts
             status = run_step(command)
             if status:
-                return status
-        return 0
+                print(f"FAIL step {index} of {len(steps)} exit {status}: {' '.join(command)}", flush=True)
+                break
+        if started:
+            stopped = run_step(stop_command)
+            if stopped:
+                print(f"FAIL stop exit {stopped}: {' '.join(stop_command)}", flush=True)
+            status = status or stopped
+        return status
     finally:
         lock.release()
         print(f"PASS lock: released {lock_path}", flush=True)
@@ -78,9 +91,10 @@ def run_locked(steps, lock_path=LOCK):
 
 def main(argv):
     if argv == ["verify"]:
-        return run_locked(verify_steps())
+        steps = verify_steps()
+        return run_locked(steps, LOCK, stop(), steps[3])
     if argv == ["down"]:
-        return run_locked(down_steps())
+        return run_locked([stop()])
     print("usage: python3 -m tools.verify_engine_linux verify|down", file=sys.stderr)
     return 2
 

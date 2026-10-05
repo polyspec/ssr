@@ -1,7 +1,6 @@
 use std::fs;
 use std::os::unix::fs::{MetadataExt, symlink};
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use ssr_build::{BuildConfig, PublicFiles, build};
 
@@ -25,18 +24,39 @@ fn config() -> BuildConfig {
     }
 }
 
-fn directory() -> PathBuf {
-    let name = format!(
-        "ssr-publish-{}-{}",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    );
-    let dir = std::env::temp_dir().canonicalize().unwrap().join(name);
+/// A publication directory of one test, created new and removed when the test ends, also when an
+/// assertion fails.
+struct Directory(PathBuf);
+
+impl Drop for Directory {
+    fn drop(&mut self) {
+        fs::remove_dir_all(&self.0).unwrap();
+    }
+}
+
+impl std::ops::Deref for Directory {
+    type Target = Path;
+    fn deref(&self) -> &Path {
+        &self.0
+    }
+}
+
+impl AsRef<Path> for Directory {
+    fn as_ref(&self) -> &Path {
+        &self.0
+    }
+}
+
+fn directory() -> Directory {
+    let mut random = [0u8; 16];
+    getrandom::fill(&mut random).unwrap();
+    let name: String = random.iter().map(|byte| format!("{byte:02x}")).collect();
+    let dir = std::env::temp_dir()
+        .canonicalize()
+        .unwrap()
+        .join(format!("ssr-publish-{name}"));
     fs::create_dir(&dir).unwrap();
-    dir
+    Directory(dir)
 }
 
 #[tokio::test]
@@ -65,7 +85,6 @@ async fn publish_creates_public_files_preserves_equal_files_and_rejects_changes(
     fs::write(&client_path, b"different bytes").unwrap();
     assert!(public.publish(&dir).is_err());
     assert_eq!(fs::read(&client_path).unwrap(), b"different bytes");
-    fs::remove_dir_all(dir).unwrap();
 }
 
 #[tokio::test]
@@ -79,7 +98,6 @@ async fn publication_rejects_nonregular_targets_and_invalid_directory() {
     fs::create_dir(&target).unwrap();
     assert!(public.publish(&dir).is_err());
     assert!(public.publish(Path::new("relative")).is_err());
-    fs::remove_dir_all(dir).unwrap();
 }
 
 #[tokio::test]
@@ -91,8 +109,6 @@ async fn publication_rejects_symbolic_link_parent_before_writing() {
     symlink(&other, dir.join("assets")).unwrap();
     assert!(public.publish(&dir).is_err());
     assert_eq!(fs::read_dir(&other).unwrap().count(), 0);
-    fs::remove_dir_all(dir).unwrap();
-    fs::remove_dir_all(other).unwrap();
 }
 
 #[tokio::test]
@@ -113,7 +129,6 @@ async fn changed_target_prevents_other_public_files_from_being_created() {
     fs::write(&target, b"different bytes").unwrap();
     assert!(public.publish(&dir).is_err());
     assert_eq!(fs::read_dir(target.parent().unwrap()).unwrap().count(), 1);
-    fs::remove_dir_all(dir).unwrap();
 }
 
 #[tokio::test]

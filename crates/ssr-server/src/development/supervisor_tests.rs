@@ -123,12 +123,16 @@ async fn events_during_a_build_start_one_follow_up_build() {
         .iter()
         .map(|byte| format!("{byte:02x}"))
         .collect::<String>();
-    let root = std::env::temp_dir()
-        .canonicalize()
-        .unwrap()
-        .join(format!("ssr-coalesce-{name}"));
+    let directory = Directory(
+        std::env::temp_dir()
+            .canonicalize()
+            .unwrap()
+            .join(format!("ssr-coalesce-{name}")),
+    );
+    std::fs::create_dir(&directory.0).unwrap();
+    let root = directory.0.clone();
     let source = root.join("source");
-    std::fs::create_dir_all(&source).unwrap();
+    std::fs::create_dir(&source).unwrap();
     std::fs::create_dir(root.join("output")).unwrap();
     std::fs::write(source.join("client.js"), "window.marker = 'one';").unwrap();
     std::fs::write(source.join("app.css"), "body { color: red; }").unwrap();
@@ -230,9 +234,17 @@ async fn events_during_a_build_start_one_follow_up_build() {
         .lines()
         .filter(|line| line.starts_with("build:"))
         .count();
-    std::fs::remove_dir_all(&root).unwrap();
     assert_eq!(
         builds, 4,
         "one build for the first event, one follow-up for each build with events, one for the last write"
     );
+}
+
+/// The directory of one case, removed when the case ends, also when an assertion fails.
+struct Directory(PathBuf);
+
+impl Drop for Directory {
+    fn drop(&mut self) {
+        std::fs::remove_dir_all(&self.0).unwrap();
+    }
 }

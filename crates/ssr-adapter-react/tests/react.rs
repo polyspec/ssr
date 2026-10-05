@@ -15,6 +15,32 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
 
+/// A temporary directory of one test, created new and removed when the test ends, also when an
+/// assertion fails. The name holds the process ID and the time in nanoseconds; an existing
+/// directory of that name fails the test.
+struct Temporary(std::path::PathBuf);
+
+impl Temporary {
+    fn new(prefix: &str) -> Self {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir()
+            .canonicalize()
+            .unwrap()
+            .join(format!("{prefix}-{}-{nanos}", std::process::id()));
+        fs::create_dir(&path).unwrap();
+        Self(path)
+    }
+}
+
+impl Drop for Temporary {
+    fn drop(&mut self) {
+        fs::remove_dir_all(&self.0).unwrap();
+    }
+}
+
 const GENERATED_ENTRY_DIR: &str = "node_modules/.ssr-adapter-react-entry";
 const GENERATED_BROWSER_DIR: &str = "node_modules/.ssr-adapter-react-browser";
 
@@ -31,7 +57,8 @@ fn concurrent_react_tests_keep_their_generated_sources() {
             .map(|name| fs::read_to_string(path.join(name)).unwrap())
     }
 
-    let root = std::env::temp_dir().join(format!("ssr-react-test-{}", std::process::id()));
+    let directory = Temporary::new("ssr-react-test");
+    let root = directory.0.clone();
     let entry = root.join(GENERATED_ENTRY_DIR);
     let browser = root.join(GENERATED_BROWSER_DIR);
     let start = Barrier::new(2);
@@ -41,7 +68,6 @@ fn concurrent_react_tests_keep_their_generated_sources() {
         let browser_worker = scope.spawn(|| prepare(&browser, "browser", &start, &written));
         (entry_worker.join().unwrap(), browser_worker.join().unwrap())
     });
-    fs::remove_dir_all(root).unwrap();
     assert_eq!(
         entry_sources,
         [
@@ -441,7 +467,8 @@ async fn configured_dependencies_share_one_package_instance_for_provider_and_con
         .join("../../tools/build-probe/tests/fixtures")
         .canonicalize()
         .unwrap();
-    let root = std::env::temp_dir().join(format!("ssr-react-deps-{}", std::process::id()));
+    let directory = Temporary::new("ssr-react-deps");
+    let root = directory.0.clone();
     let dependencies = root.join("dependencies");
     let nested = root.join("node_modules/shared-context");
     let configured = dependencies.join("shared-context");
@@ -536,5 +563,4 @@ async fn configured_dependencies_share_one_package_instance_for_provider_and_con
     );
     assert!(!html.contains("nested-copy"), "{html}");
     assert!(!html.contains(">missing<"), "{html}");
-    fs::remove_dir_all(root).unwrap();
 }

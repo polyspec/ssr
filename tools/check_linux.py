@@ -20,8 +20,7 @@ from pathlib import Path
 import sys
 
 from tools.prepare_engine_compose import OUTPUT, names
-from tools import holder_lock
-from tools.verify_engine_linux import LOCK, run_step
+from tools.verify_engine_linux import LOCK, run_locked, stop
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,42 +49,12 @@ def steps(root=ROOT):
     ]
 
 
-def stop():
-    return ["containerctl", "-f", str(OUTPUT), "down"]
-
-
-def run(commands, stop_command, starts, lock_path=LOCK):
-    """Run the steps in order under the lock; after the step ``starts`` ran, ``stop_command``
-    runs once the steps end, and the result is the first failure."""
-    try:
-        lock = holder_lock.acquire(lock_path)
-    except holder_lock.HolderLockRefused as refused:
-        print(f"FAIL lock: {refused}", file=sys.stderr, flush=True)
-        return 1
-    print(f"PASS lock: acquired {lock_path} (pid {lock.record['pid']})", flush=True)
-    try:
-        status = 0
-        started = False
-        for command in commands:
-            started = started or command == starts
-            status = run_step(command)
-            if status:
-                break
-        if started:
-            stopped = run_step(stop_command)
-            status = status or stopped
-        return status
-    finally:
-        lock.release()
-        print(f"PASS lock: released {lock_path}", flush=True)
-
-
 def main(argv):
     if argv:
         print("usage: python3 -m tools.check_linux", file=sys.stderr)
         return 2
     commands = steps()
-    return run(commands, stop(), commands[3])
+    return run_locked(commands, LOCK, stop(), commands[3])
 
 
 if __name__ == "__main__":

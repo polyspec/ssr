@@ -4,7 +4,7 @@ import sys
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from tools import check_linux, prepare_engine_compose
+from tools import check_linux, prepare_engine_compose, verify_engine_linux
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,16 +50,16 @@ class CheckLinuxTest(TestCase):
             step = lambda text, code=0: [sys.executable, "-c",
                                          f"open({str(log)!r}, 'a').write({text!r}); raise SystemExit({code})"]
             commands = [step("a"), step("up"), step("b", 3), step("c")]
-            self.assertEqual(check_linux.run(commands, step("down"), commands[1], lock_path), 3)
+            self.assertEqual(verify_engine_linux.run_locked(commands, lock_path, step("down"), commands[1]), 3)
             self.assertEqual(log.read_text(), "aupbdown")
             self.assertFalse(lock_path.exists())
             log.unlink()
             commands = [step("a", 4), step("up")]
-            self.assertEqual(check_linux.run(commands, step("down"), commands[1], lock_path), 4)
+            self.assertEqual(verify_engine_linux.run_locked(commands, lock_path, step("down"), commands[1]), 4)
             self.assertEqual(log.read_text(), "a")
             log.unlink()
             commands = [step("up"), step("b")]
-            self.assertEqual(check_linux.run(commands, step("down", 5), commands[0], lock_path), 5)
+            self.assertEqual(verify_engine_linux.run_locked(commands, lock_path, step("down", 5), commands[0]), 5)
             self.assertEqual(log.read_text(), "upbdown")
 
     def test_checkouts_are_mounted_read_only_and_only_cache_and_output_are_writable(self):

@@ -5,6 +5,30 @@ use ordered_json::parse_bytes;
 use sha2::{Digest, Sha256};
 use ssr_build::{BuildConfig, build};
 
+/// A temporary directory of one test, created new and removed when the test ends, also when an
+/// assertion fails.
+struct Temporary(PathBuf);
+
+impl Temporary {
+    fn new(prefix: &str) -> Self {
+        let mut random = [0u8; 16];
+        getrandom::fill(&mut random).unwrap();
+        let name: String = random.iter().map(|byte| format!("{byte:02x}")).collect();
+        let path = std::env::temp_dir()
+            .canonicalize()
+            .unwrap()
+            .join(format!("{prefix}-{name}"));
+        fs::create_dir(&path).unwrap();
+        Self(path)
+    }
+}
+
+impl Drop for Temporary {
+    fn drop(&mut self) {
+        fs::remove_dir_all(&self.0).unwrap();
+    }
+}
+
 fn fixture() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../tools/build-probe/tests/fixtures")
@@ -141,15 +165,28 @@ async fn sample_build_has_stable_files_and_manifest() {
     );
 }
 
+#[test]
+fn a_failed_assertion_removes_the_temporary_directory() {
+    let mut created = None;
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let temporary = Temporary::new("ssr-build-failed-case");
+        fs::write(temporary.0.join("file"), "content").unwrap();
+        created = Some(temporary.0.clone());
+        panic!("a failed assertion of the case");
+    }));
+    assert!(result.is_err());
+    let created = created.unwrap();
+    assert!(
+        !created.exists(),
+        "the directory of a failed case remains: {}",
+        created.display()
+    );
+}
+
 #[tokio::test]
 async fn package_resolution_uses_the_application_dependency_directory() {
-    let root = std::env::temp_dir().join(format!(
-        "ssr-build-package-resolution-{}",
-        std::process::id()
-    ));
-    if root.exists() {
-        fs::remove_dir_all(&root).unwrap();
-    }
+    let temporary = Temporary::new("ssr-build-package-resolution");
+    let root = temporary.0.clone();
     fs::create_dir_all(root.join("src/node_modules/shared")).unwrap();
     fs::create_dir_all(root.join("node_modules/shared")).unwrap();
     fs::write(root.join("app.css"), "").unwrap();
@@ -203,7 +240,6 @@ async fn package_resolution_uses_the_application_dependency_directory() {
     let server = String::from_utf8(output.files[&output.manifest.server.path].clone()).unwrap();
     assert!(server.contains("root-dependency"));
     assert!(!server.contains("nested-dependency"));
-    fs::remove_dir_all(root).unwrap();
 }
 
 #[tokio::test]
@@ -252,7 +288,8 @@ async fn root_asset_route_has_one_leading_slash() {
 
 #[tokio::test]
 async fn configured_dependencies_replace_nested_node_modules_packages() {
-    let root = std::env::temp_dir().join(format!("ssr-build-deps-{}", std::process::id()));
+    let temporary = Temporary::new("ssr-build-deps");
+    let root = temporary.0.clone();
     let nested = root.join("node_modules/shared-value");
     let dependencies = root.join("dependencies");
     let configured = dependencies.join("shared-value");
@@ -301,7 +338,6 @@ async fn configured_dependencies_replace_nested_node_modules_packages() {
         !server.contains("nested-copy"),
         "the nested node_modules copy was bundled: {server}"
     );
-    fs::remove_dir_all(root).unwrap();
 }
 
 #[path = "exports.rs"]

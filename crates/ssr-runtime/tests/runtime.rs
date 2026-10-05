@@ -9,7 +9,6 @@ use std::process::{Command, Stdio};
 use std::sync::{Arc, Barrier};
 use std::thread;
 use std::time::{Duration, Instant};
-use wait_timeout::ChildExt;
 
 fn page(props: &str) -> Page {
     Page::from_json(format!(r#"{{"render":"ssr","title":"T","language":"en","props":{props},"state":{{"input":3}}}}"#).as_bytes()).unwrap()
@@ -335,6 +334,8 @@ fn console_writes_to_stderr() {
         assert_eq!(pool.render(&page("{}")).unwrap().html, b"ok");
         return;
     }
+    // The child's standard error is read while it runs, so a full pipe cannot stop it; the
+    // nextest limit of this case bounds the child, which runs in the case's process group.
     let mut child = Command::new(std::env::current_exe().unwrap())
         .args(["--exact", "console_writes_to_stderr", "--nocapture"])
         .env("SSR_CONSOLE_CHILD", "1")
@@ -342,21 +343,13 @@ fn console_writes_to_stderr() {
         .stderr(Stdio::piped())
         .spawn()
         .unwrap();
-    let status = match child.wait_timeout(Duration::from_secs(5)).unwrap() {
-        Some(status) => status,
-        None => {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("console subprocess timed out");
-        }
-    };
-    let mut stderr = String::new();
-    child
-        .stderr
-        .take()
-        .unwrap()
-        .read_to_string(&mut stderr)
-        .unwrap();
+    let mut pipe = child.stderr.take().unwrap();
+    let reader = thread::spawn(move || {
+        let mut text = String::new();
+        pipe.read_to_string(&mut text).map(|_| text)
+    });
+    let status = child.wait().unwrap();
+    let stderr = reader.join().unwrap().unwrap();
     assert!(status.success(), "{stderr}");
     assert!(stderr.contains("runtime console 3"), "{stderr}");
 }

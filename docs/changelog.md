@@ -4,6 +4,12 @@
 
 ## 0.0.1
 
+- Collect the processes and directories of tests and verification steps: a
+  started engine stack is stopped also after a failing step, each tool test
+  and browser script runs in its own process group that is killed at its end
+  and at its limit, and Rust tests remove their temporary directories also
+  when an assertion fails.
+
 - Require the CSS checkout in the engine mount check case of
   `tools/test_local_paths.py`, which failed after the mount was added.
 

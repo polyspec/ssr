@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- test와 검증 단계의 process와 directory를 회수한다. 시작된 engine stack은
+  실패 단계 뒤에도 멈추고, 각 도구 test와 browser script는 끝과 제한에서
+  죽는 자기 process group에서 실행되며, Rust test는 assertion이 실패해도
+  임시 directory를 지운다.
+
 - `tools/test_local_paths.py`의 engine mount 검사 사례가 CSS checkout을 요구한다.
   mount가 추가된 뒤 이 사례는 실패했다.
 

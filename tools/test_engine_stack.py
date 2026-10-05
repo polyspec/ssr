@@ -55,3 +55,25 @@ class EngineStackTest(TestCase):
             self.assertFalse(lock_path.exists())
             self.assertEqual(verify_engine_linux.run_locked([step("d")], lock_path), 0)
             self.assertEqual(log.read_text(), "abd")
+
+    def test_a_started_stack_is_stopped_after_a_failing_step(self):
+        with TemporaryDirectory() as temporary:
+            lock_path = Path(temporary).resolve() / "engine-verification.lock"
+            log = Path(temporary) / "log"
+            step = lambda text, code=0: [sys.executable, "-c",
+                                         f"open({str(log)!r}, 'a').write({text!r}); raise SystemExit({code})"]
+            commands = [step("a"), step("b"), step("c", 3), step("d")]
+            self.assertEqual(verify_engine_linux.run_locked(commands, lock_path, step("z"), commands[1]), 3)
+            self.assertEqual(log.read_text(), "abcz")
+            log.unlink()
+            commands = [step("a", 4), step("b")]
+            self.assertEqual(verify_engine_linux.run_locked(commands, lock_path, step("z"), commands[1]), 4)
+            self.assertEqual(log.read_text(), "a")
+            self.assertFalse(lock_path.exists())
+
+    def test_verification_stops_the_stack_it_started(self):
+        steps = verify_engine_linux.verify_steps(ROOT)
+        self.assertEqual(steps[3], ["containerctl", "-f", str(prepare_engine_compose.OUTPUT), "up"])
+        self.assertEqual(verify_engine_linux.stop(),
+                         ["containerctl", "-f", str(prepare_engine_compose.OUTPUT), "down"])
+        self.assertNotIn(verify_engine_linux.stop(), steps)

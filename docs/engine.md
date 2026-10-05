@@ -76,7 +76,9 @@ record names the checkout, pid and process start time of its holder; a second
 run is refused with that record, a lock whose holder no longer runs is
 reported and kept until `python3 -m tools.holder_lock remove-stopped <lock file>`
 removes it, and only the holder releases the lock. Each step prints its command,
-its output and its result with the elapsed time, without a time limit. The native GNU linker
+its output and its result with the elapsed time, without a time limit. The first failing step
+ends the steps; once the stack was started, it is stopped after the steps, also after a
+failure, and the run reports the failing step and the result of the stop. The native GNU linker
 retains the Rust target's link arguments.
 The local V8, ordered-json and lightningcss checkouts are also mounted read only at
 their absolute Cargo paths. The container cannot modify any source checkout. The image
