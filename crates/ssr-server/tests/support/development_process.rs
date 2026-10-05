@@ -35,6 +35,13 @@ async fn main() -> Result<()> {
     match args.first().map(String::as_str) {
         Some("build") if args.len() == 3 => {
             record("build")?;
+            // A test holds the build here: the build waits for one byte from a FIFO that the
+            // test opens for writing, so the test knows that this build is running.
+            if let Some(hold) = std::env::var_os("PROCESS_BUILD_HOLD")
+                && std::path::Path::new(&hold).exists()
+            {
+                std::io::Read::read_exact(&mut std::fs::File::open(&hold)?, &mut [0])?;
+            }
             let root = PathBuf::from(&args[1]);
             let config = BuildConfig {
                 root: root.clone(),

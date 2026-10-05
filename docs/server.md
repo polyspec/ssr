@@ -63,6 +63,8 @@ strict descendants of a source path; a missing excluded path requires a verified
 Only source changes with an included input path enter the queue; an event with unknown paths also
 enters it. Access events do not rebuild. New source files remain watched. An event that reports
 dropped file events (`Rescan`) starts a rebuild and a warning unless all its paths are excluded.
+A source event starts one rebuild for itself and every event already queued; the events that
+arrive while a rebuild runs start exactly one more rebuild after it.
 
 On macOS the source watch registers every watched directory and regular file with `kqueue(2)`,
 which reports each change of a registered file in the kernel without a daemon in between. Its walk

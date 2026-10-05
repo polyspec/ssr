@@ -237,18 +237,47 @@ impl Supervisor {
                     break;
                 },
                 event = async { match &mut events { Some(events) => events.recv().await, None => std::future::pending().await } } => {
-                    let result = match event {
-                        Some(Ok(event)) if source_event(&event, &self.excluded) => {
-                            if event.need_rescan() {
-                                tracing::warn!(paths = ?event.paths, "source watch dropped events; rebuilding");
+                    let Some(event) = event else { break };
+                    // Every event queued before a build starts is answered by that build; the
+                    // events that arrive while it runs start exactly one more build after it.
+                    let mut pending = vec![event];
+                    let mut closed = false;
+                    loop {
+                        if let Some(queue) = &mut events {
+                            loop {
+                                match queue.try_recv() {
+                                    Ok(event) => pending.push(event),
+                                    Err(mpsc::error::TryRecvError::Empty) => break,
+                                    Err(mpsc::error::TryRecvError::Disconnected) => {
+                                        closed = true;
+                                        break;
+                                    }
+                                }
                             }
-                            self.rebuild(cancel.clone()).await
-                        },
-                        Some(Ok(_)) => continue,
-                        Some(Err(error)) => Err(DevelopmentError(format!("watch failed: {error}"))),
-                        None => break,
-                    };
-                    self.report(result, true);
+                        }
+                        let mut source = 0;
+                        for event in pending.drain(..) {
+                            match event {
+                                Ok(event) if source_event(&event, &self.excluded) => {
+                                    if event.need_rescan() {
+                                        tracing::warn!(paths = ?event.paths, "source watch dropped events; rebuilding");
+                                    }
+                                    source += 1;
+                                }
+                                Ok(_) => {}
+                                Err(error) => self.report(Err(DevelopmentError(format!("watch failed: {error}"))), true),
+                            }
+                        }
+                        if source == 0 || *cancel.borrow() || self.observer_failed {
+                            break;
+                        }
+                        tracing::info!(events = source, "source events start one rebuild");
+                        let result = self.rebuild(cancel.clone()).await;
+                        self.report(result, true);
+                    }
+                    if closed {
+                        break;
+                    }
                 },
                 exit = self.running.join_next(), if !self.running.is_empty() => {
                     let exit = match exit {

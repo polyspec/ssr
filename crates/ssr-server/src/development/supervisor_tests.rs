@@ -94,3 +94,145 @@ fn dropped_event_reports_rebuild_unless_only_excluded() {
     assert!(!source_event(&excluded_rescan, &excluded));
     assert!(!source_event(&Event::new(EventKind::Other), &excluded));
 }
+
+/// A build that the test holds: the build program waits on the hold FIFO, and opening the
+/// FIFO for writing returns only when a build is waiting on it.
+struct Hold(PathBuf);
+
+impl Hold {
+    async fn release(&self, then: impl FnOnce() + Send + 'static) {
+        let fifo = self.0.clone();
+        tokio::task::spawn_blocking(move || {
+            let mut writer = std::fs::OpenOptions::new().write(true).open(&fifo).unwrap();
+            then();
+            std::io::Write::write_all(&mut writer, &[0]).unwrap();
+        })
+        .await
+        .unwrap();
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn events_during_a_build_start_one_follow_up_build() {
+    use super::{DevelopmentError, ProcessOptions, Supervisor};
+    use std::sync::{Arc, RwLock};
+    use std::time::Duration;
+    let mut random = [0u8; 8];
+    getrandom::fill(&mut random).unwrap();
+    let name = random
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    let root = std::env::temp_dir()
+        .canonicalize()
+        .unwrap()
+        .join(format!("ssr-coalesce-{name}"));
+    let source = root.join("source");
+    std::fs::create_dir_all(&source).unwrap();
+    std::fs::create_dir(root.join("output")).unwrap();
+    std::fs::write(source.join("client.js"), "window.marker = 'one';").unwrap();
+    std::fs::write(source.join("app.css"), "body { color: red; }").unwrap();
+    let server = source.join("server.js");
+    std::fs::write(
+        &server,
+        "export function render(_props, state) { return {html: '<p>one</p>', head: '', state}; }",
+    )
+    .unwrap();
+    let hold = Hold(root.join("hold"));
+    let status = std::process::Command::new("mkfifo")
+        .arg(&hold.0)
+        .status()
+        .unwrap();
+    assert!(status.success());
+    let log = root.join("process.log");
+    let program = std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("examples/development_process");
+    assert!(
+        program.is_file(),
+        "build the maintained development_process example"
+    );
+    let mut build = std::process::Command::new(&program);
+    build
+        .arg("build")
+        .arg(&source)
+        .arg(root.join("output"))
+        .env("PROCESS_LOG", &log)
+        .env("PROCESS_BUILD_HOLD", &hold.0);
+    let render_log = log.clone();
+    let current = Arc::new(RwLock::new(Err(DevelopmentError("preparing".into()))));
+    let (changes, mut results) = tokio::sync::mpsc::channel(32);
+    let supervisor = Supervisor::new(
+        Arc::clone(&current),
+        changes,
+        Some((vec![source.clone()], Vec::new(), build)),
+        Box::new(move |directory, socket| {
+            let mut render = std::process::Command::new(&program);
+            render
+                .arg("render")
+                .arg("-build")
+                .arg(directory)
+                .arg("-listen")
+                .arg(socket)
+                .env("PROCESS_LOG", &render_log);
+            render
+        }),
+        br#"{"render":"ssr","title":"Page","language":"en","props":{},"state":null}"#.to_vec(),
+        ProcessOptions {
+            ready_timeout: Duration::from_secs(30),
+            drain_timeout: Duration::from_secs(5),
+            restart_limit: 1,
+            event_capacity: 32,
+            max_probe_bytes: 1024 * 1024,
+        },
+    );
+    let (events, received) = tokio::sync::mpsc::channel(32);
+    let (_failed, failure) = tokio::sync::watch::channel(None);
+    let (_stop, cancel) = tokio::sync::watch::channel(false);
+    let run = tokio::spawn(supervisor.run(Some((received, failure)), cancel));
+    let modified = Event::new(EventKind::Modify(ModifyKind::Data(
+        notify::event::DataChange::Content,
+    )))
+    .add_path(server.clone());
+    let write = || Ok(modified.clone());
+    events.send(write()).await.unwrap();
+    // The first build waits on the hold FIFO; three events arrive while it runs.
+    let during = events.clone();
+    let event = modified.clone();
+    hold.release(move || {
+        for _ in 0..3 {
+            during.try_send(Ok(event.clone())).unwrap();
+        }
+    })
+    .await;
+    results.recv().await.unwrap().unwrap();
+    // The follow-up build waits on the hold FIFO; one event arrives while it runs.
+    let during = events.clone();
+    let event = write();
+    hold.release(move || during.try_send(event).unwrap()).await;
+    results.recv().await.unwrap().unwrap();
+    // One more follow-up build for that event; later builds no longer wait.
+    let path = hold.0.clone();
+    hold.release(move || std::fs::remove_file(path).unwrap())
+        .await;
+    results.recv().await.unwrap().unwrap();
+    // A write after the follow-up builds is still observed.
+    events.send(write()).await.unwrap();
+    results.recv().await.unwrap().unwrap();
+    drop(events);
+    run.await.unwrap().unwrap();
+    let builds = std::fs::read_to_string(&log)
+        .unwrap()
+        .lines()
+        .filter(|line| line.starts_with("build:"))
+        .count();
+    std::fs::remove_dir_all(&root).unwrap();
+    assert_eq!(
+        builds, 4,
+        "one build for the first event, one follow-up for each build with events, one for the last write"
+    );
+}

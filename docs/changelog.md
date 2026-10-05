@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- Build once for the source events that arrive while a build runs: the
+  supervisor starts one rebuild for every queued event and exactly one more for
+  the events that arrive during it, so one write no longer builds the
+  application once per event, and no event is dropped.
+
 - Compile the Linux source watch: the `inotify` watch module no longer shadows
   the `notify` crate, so `ssr-server` compiles for Linux again.
 
