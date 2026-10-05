@@ -3,8 +3,8 @@
 `make bench`는 16개 워커의 스냅샷 런타임에서 고정 SSR 페이지 하나를 렌더한다. 각 호출은 HTML과
 상태를 검사한다. 동시 호출 1, 4, 16에서 호출자마다 128번 실행하며 렌더 오류, 표본 누락, 결과 변경
 시 실패한다. 성능은 측정하며 실패시키지 않는다. 기록된 한도를 넘은 측정은 `WARNING` 줄을 출력하고,
-GitHub Actions에서는 `::warning::` annotation도 출력한다. 빌드는 전체 경과 시간 제한 없이 Cargo 명령과 컴파일러 진행을 기록하며
-측정 실행의 제한 시간은 120초다.
+GitHub Actions에서는 `::warning::` annotation도 출력한다. 빌드는 Cargo 명령과 컴파일러 진행을, 측정 실행은 경과 시간을 기록하며
+둘 다 시간 제한이 없는 긴 작업이다.
 
 벤치마크는 `ssr-runtime`을 `bench` feature로 빌드한다. 이 feature에서 `RenderMetrics::render_cpu`는
 렌더 하나에 쓴 워커 thread의 CPU time(`CLOCK_THREAD_CPUTIME_ID`)이며, 컨텍스트 초기화 시작부터

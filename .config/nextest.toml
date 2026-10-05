@@ -1,6 +1,8 @@
 # Setup scripts are an experimental feature of the pinned cargo-nextest 0.9.146.
 experimental = ["setup-scripts"]
 
+# A case's limit only ends a hung case, far above the time a case takes; it is not a performance
+# criterion. nextest reports such a case as TIMEOUT, which tools/cargo_case.py names hung.
 [profile.default]
 slow-timeout = { period = "30s", terminate-after = 1 }
 status-level = "all"

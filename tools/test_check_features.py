@@ -84,16 +84,15 @@ class FeatureCheckTest(TestCase):
             with self.assertRaises(ValueError):
                 check_features.check(path, lambda *_args, **_kwargs: self.fail("runner called"))
 
-    def test_command_failure_and_timeout_fail_the_check(self):
+    def test_command_failure_fails_the_check(self):
         def failed(command, *, cwd):
             return subprocess.CompletedProcess(command, 3, "", "failed")
 
-        def timed_out(command, *, cwd):
-            raise subprocess.TimeoutExpired(command, 30)
+        with self.assertRaises(RuntimeError):
+            self.run_manifest(manifest([feature("react-ssr", "case")]), failed)
 
-        for runner in (failed, timed_out):
-            with self.subTest(runner=runner), self.assertRaises(RuntimeError):
-                self.run_manifest(manifest([feature("react-ssr", "case")]), runner)
+    def test_the_feature_check_handles_no_time_limit(self):
+        self.assertNotIn("TimeoutExpired", Path(check_features.__file__).read_text())
 
     def test_failed_case_does_not_drop_the_following_case(self):
         executed = []

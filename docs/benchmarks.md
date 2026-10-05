@@ -4,8 +4,8 @@
 the HTML and state. The command runs 128 calls per caller at concurrency 1, 4 and 16 and fails
 on a render error, a missing sample or a changed result. Performance is measured and never fails it:
 a measurement beyond its recorded limit prints a `WARNING` line, and in GitHub Actions also a
-`::warning::` annotation. The build reports its Cargo command and compiler progress without a total duration limit;
-running the benchmark has a 120-second timeout.
+`::warning::` annotation. The build reports its Cargo command and compiler progress, and the run its elapsed time; both are
+long operations without a time limit.
 
 The benchmark builds `ssr-runtime` with its `bench` feature. With that feature,
 `RenderMetrics::render_cpu` is the CPU time of the worker thread for one render

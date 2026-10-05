@@ -35,9 +35,10 @@ def test_ids():
 
 
 def run_case(command, timeout, cwd=None, env=None):
-    """Run one command in its own process group; return ``PASS``, ``FAIL`` or ``TIMEOUT``, its
+    """Run one command in its own process group; return ``PASS``, ``FAIL`` or ``HUNG``, its
     exit status, its standard output and its standard error. The group is killed when the
-    command ends or exceeds ``timeout`` seconds."""
+    command ends or runs past ``timeout`` seconds; the limit only ends a hung case, far above the
+    time a case takes, so a case past it is reported as hung."""
     process = subprocess.Popen(command, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                text=True, start_new_session=True)
     try:
@@ -45,7 +46,7 @@ def run_case(command, timeout, cwd=None, env=None):
     except subprocess.TimeoutExpired:
         os.killpg(process.pid, signal.SIGKILL)
         stdout, stderr = process.communicate()
-        return "TIMEOUT", process.returncode, stdout, stderr
+        return "HUNG", process.returncode, stdout, stderr
     try:
         # Processes that the command left running are stopped with it. A group whose members have
         # all ended is gone (ProcessLookupError) or, on macOS, holds only exited members (EPERM).
@@ -68,8 +69,8 @@ def main():
         start = time.monotonic()
         status, _, stdout, stderr = run_case([sys.executable, "-m", "unittest", test_id], 30)
         elapsed = time.monotonic() - start
-        if status == "TIMEOUT":
-            print(f"TIMEOUT {test_id} after the limit of 30 s, {elapsed:.3f}s; its output:", flush=True)
+        if status == "HUNG":
+            print(f"HUNG {test_id}: ended by its case limit of 30 s after {elapsed:.3f}s; its output:", flush=True)
         else:
             print(f"{status} {test_id} {elapsed:.3f}s", flush=True)
         if status != "PASS":

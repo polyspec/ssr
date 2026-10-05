@@ -40,11 +40,17 @@ def verify(target):
             executable = target_dir / target / "debug/ssr-engine-verification"
             print(f"START engine execution {target} executable={executable}", flush=True)
             execution_start = time.monotonic()
-            result = subprocess.run([str(executable)], env=env, timeout=30, check=False)
+            # The execution normally ends within a second; its limit only ends a hung execution.
+            try:
+                result = subprocess.run([str(executable)], env=env, timeout=30, check=False)
+            except subprocess.TimeoutExpired:
+                print(f"HUNG engine execution {target}: {executable} did not exit within its 30 s limit "
+                      f"({time.monotonic() - execution_start:.3f}s)", file=sys.stderr)
+                return 1
             if result.returncode:
                 raise ValueError(f"engine execution exit={result.returncode}")
             print(f"PASS engine execution {target} {time.monotonic() - execution_start:.3f}s", flush=True)
-    except (OSError, ValueError, subprocess.TimeoutExpired) as error:
+    except (OSError, ValueError) as error:
         print(f"FAIL engine verification {target} {time.monotonic() - started:.3f}s: {error}", file=sys.stderr)
         return 1
     return 0

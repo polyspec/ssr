@@ -1,6 +1,7 @@
 """Build and run the render benchmark.
 
-The build reports its commands and progress without a time limit. The executable is the one that
+The build and the benchmark run are long operations: they report their commands, progress and
+elapsed time and have no time limit. The executable is the one that
 Cargo reports for the ``bench`` example in its JSON messages, so the benchmark runs exactly the
 program that this build made, whatever the target directory.
 """
@@ -41,12 +42,7 @@ def main():
     print(f"PASS build render benchmark {time.monotonic() - started:.3f}s: {program}", flush=True)
     started = time.monotonic()
     print("RUN render benchmark", flush=True)
-    try:
-        result = subprocess.run([program], timeout=120, check=False)
-    except subprocess.TimeoutExpired:
-        print(f"TIMEOUT render benchmark: {program} did not exit within its limit of 120 s "
-              f"({time.monotonic() - started:.3f}s)", file=sys.stderr)
-        return 1
+    result = subprocess.run([program], check=False)
     print(f"{'PASS' if result.returncode == 0 else 'FAIL'} render benchmark exit {result.returncode} "
           f"{time.monotonic() - started:.3f}s", flush=True)
     return result.returncode

@@ -30,6 +30,44 @@ def closed_base():
         return f"http://127.0.0.1:{listener.getsockname()[1]}"
 
 
+HUNG_SCRIPT = """
+import { begin } from "./browser-steps.mjs";
+class TimeoutError extends Error {
+  constructor(message) { super(message); this.name = "TimeoutError"; }
+}
+begin("/ssr");
+try {
+  await Promise.reject(new TimeoutError("page.waitForSelector: Timeout 60000ms exceeded."));
+} finally {
+  console.log("closed");
+}
+"""
+
+
+class BrowserHangTests(unittest.TestCase):
+    """A page step that gets no page event within its limit is reported as hung, with its step and
+    the limit, not as a slow step. The driver is a stub: no package installation or browser runs."""
+
+    def test_a_page_step_past_its_limit_is_hung(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = pathlib.Path(directory)
+            driver = directory / "packages/node_modules/playwright-core"
+            driver.mkdir(parents=True)
+            (driver / "index.mjs").write_text("export const chromium = {};\n", encoding="utf-8")
+            scripts = directory / "fixtures"
+            scripts.mkdir()
+            (scripts / "browser-steps.mjs").write_bytes((FIXTURES / "browser-steps.mjs").read_bytes())
+            (scripts / "hung.mjs").write_text(HUNG_SCRIPT, encoding="utf-8")
+            status, code, stdout, stderr = run_tests.run_case(
+                ["node", str(scripts / "hung.mjs")], 30, cwd=scripts,
+                env={**os.environ, "SSR_PACKAGES": str(directory / "packages")})
+        report = f"{status} exit {code}\nstdout:\n{stdout}\nstderr:\n{stderr}"
+        self.assertEqual((status, code), ("FAIL", 1), report)
+        self.assertEqual(stdout, "RUN /ssr\nclosed\n", report)
+        self.assertTrue(stderr.startswith("HUNG /ssr: no page event within the 60 s step limit\n"
+                                          "TimeoutError: page.waitForSelector: Timeout 60000ms exceeded."), report)
+
+
 class BrowserLaunchTests(unittest.TestCase):
     """A script passes no limit to the browser launch and proceeds after a slow launch. The browser
     is a fake: a real browser's launch time grows with the page-ins of its executable under memory

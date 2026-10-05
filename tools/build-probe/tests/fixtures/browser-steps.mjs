@@ -1,3 +1,4 @@
+import { writeSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -18,9 +19,23 @@ export const { chromium } = await import(
 // their RUN and DONE lines report them, and their result or error decides them.
 export const STEP_TIMEOUT = 60_000;
 
+let current = "the script start";
+
 export function begin(name) {
+  current = name;
   console.log(`RUN ${name}`);
 }
+
+// A wait past STEP_TIMEOUT fails with the driver's TimeoutError, which names a duration; the
+// script fails with the step that hung, before the error, so the failure reads as a hang and
+// not as a slow page. The error is written synchronously before the process exits.
+process.on("uncaughtException", (error) => {
+  const hung = error?.name === "TimeoutError"
+    ? `HUNG ${current}: no page event within the ${STEP_TIMEOUT / 1000} s step limit\n`
+    : "";
+  writeSync(2, `${hung}${error?.stack ?? error}\n`);
+  process.exit(1);
+});
 
 export async function step(name, action) {
   begin(name);

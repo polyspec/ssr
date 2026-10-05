@@ -16,15 +16,17 @@ ENVIRONMENT = {"NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"}
 
 
 def results(output):
-    """The last event of each test in the report: ``ok``, ``failed``, ``ignored`` or ``timeout``.
-    A test is named ``<package>::<binary>$<test>``; lines that are not report events are skipped."""
+    """The last event of each test in the report: ``ok``, ``failed``, ``ignored`` or ``hung``.
+    A test is named ``<package>::<binary>$<test>``; lines that are not report events are skipped.
+    nextest ends a case at its slow-timeout limit, which only ends a hung case, and reports it as
+    ``timeout``; that event is named ``hung``."""
     events = {}
     for line in output.splitlines():
         if not line.startswith('{"type":'):
             continue
         event = json.loads(line)
         if event.get("type") == "test" and event.get("event") != "started":
-            events[event["name"]] = event["event"]
+            events[event["name"]] = "hung" if event["event"] == "timeout" else event["event"]
     return events
 
 

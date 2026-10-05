@@ -25,10 +25,11 @@ class EngineStatusTest(TestCase):
         self.assertEqual(code, 1)
         self.assertIn("containerctl status --json exited with 3: no daemon", error)
 
-    def test_a_timeout_names_the_command_and_its_limit(self):
+    def test_a_hung_status_command_is_named_with_its_limit(self):
         code, error = self.run_status(subprocess.TimeoutExpired(["containerctl"], 30, output="partial", stderr=""))
         self.assertEqual(code, 1)
-        self.assertIn("containerctl status --json did not exit within 30 s", error)
+        self.assertIn("HUNG engine Compose status: containerctl status --json did not exit within its 30 s limit",
+                      error)
         self.assertIn("'partial'", error)
 
     def test_the_stack_of_the_checkout_passes(self):

@@ -3,7 +3,6 @@
 import json
 import pathlib
 import re
-import subprocess
 import sys
 import time
 
@@ -57,15 +56,6 @@ def load(path):
     return cases
 
 
-def output(value, destination):
-    if value:
-        if isinstance(value, bytes):
-            destination.buffer.write(value)
-        else:
-            destination.write(value)
-        destination.flush()
-
-
 def check(path, runner=run):
     failures = []
     cases = load(path)
@@ -77,21 +67,15 @@ def check(path, runner=run):
         ]
         print(f"RUN feature {name}: {case['package']}::{case['binary']}::{case['case']}", flush=True)
         started = time.monotonic()
-        try:
-            result = runner(command, cwd=ROOT)
-            expected = f"{case['package']}::{case['binary']}${case['case']}"
-            event = results(result.stdout + result.stderr).get(expected, "not run")
-            if result.returncode or event != "ok":
-                failures.append(name)
-                print(f"FAIL feature {name}: exit {result.returncode}, {expected}: {event} "
-                      f"({time.monotonic()-started:.3f}s)", flush=True)
-            else:
-                print(f"PASS feature {name} ({time.monotonic()-started:.3f}s)", flush=True)
-        except subprocess.TimeoutExpired as error:
-            output(error.stdout, sys.stdout)
-            output(error.stderr, sys.stderr)
+        result = runner(command, cwd=ROOT)
+        expected = f"{case['package']}::{case['binary']}${case['case']}"
+        event = results(result.stdout + result.stderr).get(expected, "not run")
+        if result.returncode or event != "ok":
             failures.append(name)
-            print(f"TIMEOUT feature {name}: {error.timeout}s", flush=True)
+            print(f"FAIL feature {name}: exit {result.returncode}, {expected}: {event} "
+                  f"({time.monotonic()-started:.3f}s)", flush=True)
+        else:
+            print(f"PASS feature {name} ({time.monotonic()-started:.3f}s)", flush=True)
     if failures:
         raise RuntimeError(f"feature cases failed: {', '.join(failures)}")
 

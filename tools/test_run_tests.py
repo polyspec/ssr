@@ -27,18 +27,18 @@ def running(pid):
 
 
 class RunCaseTest(TestCase):
-    def test_timeout_kills_the_process_group_and_keeps_the_output(self):
+    def test_a_hung_case_is_killed_with_its_process_group_and_keeps_the_output(self):
         with TemporaryDirectory() as directory:
             record = Path(directory) / "pid"
             status, _, stdout, stderr = run_tests.run_case([sys.executable, "-c", CHILD, str(record)], 2)
-            self.assertEqual(status, "TIMEOUT")
+            self.assertEqual(status, "HUNG")
             self.assertEqual(stdout, "started the grandchild\n")
             self.assertEqual(stderr, "the case waits\n")
             pid = int(record.read_text())
             deadline = time.monotonic() + 5
             while running(pid) and time.monotonic() < deadline:
                 time.sleep(0.05)
-            self.assertFalse(running(pid), f"grandchild {pid} still runs after the timeout")
+            self.assertFalse(running(pid), f"grandchild {pid} still runs after the hung case was killed")
 
     def test_exit_status_and_skip_decide_the_result(self):
         self.assertEqual(run_tests.run_case([sys.executable, "-c", "print('ok')"], 10), ("PASS", 0, "ok\n", ""))

@@ -34,7 +34,7 @@ def main() -> int:
         if not any(service["name"] == "engine" for service in group["services"]):
             raise ValueError("engine service is missing")
     except subprocess.TimeoutExpired as error:
-        print(f"TIMEOUT engine Compose status: containerctl status --json did not exit within 30 s "
+        print(f"HUNG engine Compose status: containerctl status --json did not exit within its 30 s limit "
               f"({time.monotonic() - start:.3f}s); output: {error.stdout!r} {error.stderr!r}", file=sys.stderr)
         return 1
     except (OSError, ValueError, KeyError, StopIteration) as error:

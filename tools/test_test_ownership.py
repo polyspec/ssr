@@ -245,12 +245,18 @@ class TestOwnershipTest(unittest.TestCase):
         with self.assertRaisesRegex(test_ownership.OwnershipError, "did not pass"):
             test_ownership.run(self.root, cases, command=human)
 
-    def test_timed_out_test_is_rejected(self):
+    def test_the_ownership_run_handles_no_time_limit(self):
+        self.assertNotIn("TimeoutExpired", Path(test_ownership.__file__).read_text())
+
+    def test_a_hung_case_is_named(self):
         cases = test_ownership.validate(self.root, self.declaration)
-        def timeout(*args, **kwargs):
-            raise subprocess.TimeoutExpired("cargo nextest", 180)
-        with self.assertRaisesRegex(test_ownership.OwnershipError, "timeout"):
-            test_ownership.run(self.root, cases, command=timeout)
+        def hung(args, **kwargs):
+            output = "".join(f'{{"type":"test","event":"timeout","name":"{case.crate}::{case.target}${case.test}"}}\n'
+                             for case in cases)
+            return subprocess.CompletedProcess(args, 0 if "--no-run" in args else 100, output, "")
+        with self.assertRaisesRegex(test_ownership.OwnershipError, "failed"), redirect_stdout(io.StringIO()) as output:
+            test_ownership.run(self.root, cases, command=hung)
+        self.assertIn("(hung)", output.getvalue())
 
     def test_cases_run_once_on_one_workspace_build(self):
         cases = test_ownership.validate(self.root, self.declaration)

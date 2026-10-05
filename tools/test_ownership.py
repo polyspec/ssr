@@ -548,16 +548,14 @@ def run(root, cases, command=run_cargo):
 
     A separate `-p` run for each case resolves features for that package alone, so shared
     crates are compiled again for each feature set. One workspace build matches the later
-    workspace test run, and one nextest run executes every case with its own nextest timeout.
+    workspace test run, and one nextest run executes every case with its own nextest limit, which only ends a hung case.
+    The build and the run are long operations with no time limit.
     """
     root = Path(root)
     build = ["cargo", "nextest", "run", "--workspace", "--locked", "--no-run", "--color", "never"]
     print("RUN build workspace tests", flush=True)
     started = time.monotonic()
-    try:
-        result = command(build, cwd=root)
-    except subprocess.TimeoutExpired as error:
-        raise OwnershipError(f"timeout build workspace tests after {time.monotonic() - started:.1f}s") from error
+    result = command(build, cwd=root)
     if result.returncode:
         raise OwnershipError(
             f"build workspace tests: failed (exit {result.returncode})\n{result.stdout + result.stderr}"
@@ -572,10 +570,7 @@ def run(root, cases, command=run_cargo):
     ]
     print(f"RUN {len(cases)} ownership cases", flush=True)
     started = time.monotonic()
-    try:
-        result = command(args, cwd=root)
-    except subprocess.TimeoutExpired as error:
-        raise OwnershipError(f"timeout ownership cases after {time.monotonic() - started:.1f}s") from error
+    result = command(args, cwd=root)
     output = result.stdout + result.stderr
     events = results(output)
     missing = []

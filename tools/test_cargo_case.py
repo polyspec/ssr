@@ -24,6 +24,14 @@ class CargoCaseTest(TestCase):
         self.assertNotIn("timeout", start.call_args.kwargs)
         self.assertTrue(start.call_args.kwargs["start_new_session"])
 
+    def test_a_case_ended_at_its_nextest_limit_is_hung(self):
+        output = "\n".join([
+            '{"type":"test","event":"started","name":"crate::binary$slow"}',
+            '{"type":"test","event":"timeout","name":"crate::binary$slow"}',
+            '{"type":"test","event":"ok","name":"crate::binary$fast"}',
+        ])
+        self.assertEqual(cargo_case.results(output), {"crate::binary$slow": "hung", "crate::binary$fast": "ok"})
+
     def test_interruption_terminates_group_and_reaps_child(self):
         class Interrupted(io.StringIO):
             def __next__(self):

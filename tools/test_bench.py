@@ -15,6 +15,15 @@ class BenchmarkBuildTest(TestCase):
         command = run.call_args.args[0]
         self.assertEqual(command[command.index("--features") + 1], "bench")
 
+    def test_the_benchmark_run_has_no_time_limit(self):
+        messages = ('{"reason":"compiler-artifact","target":{"name":"bench","kind":["example"]},'
+                    '"executable":"/target/debug/examples/bench"}')
+        results = [SimpleNamespace(returncode=0, stdout=messages), SimpleNamespace(returncode=0)]
+        with patch.object(bench.subprocess, "run", side_effect=results) as run:
+            self.assertEqual(bench.main(), 0)
+        self.assertEqual(run.call_args.args[0], ["/target/debug/examples/bench"])
+        self.assertNotIn("timeout", run.call_args.kwargs)
+
     def test_the_benchmark_runs_the_executable_that_cargo_reports(self):
         messages = "\n".join([
             '{"reason":"compiler-artifact","target":{"name":"ssr-runtime","kind":["lib"]},"executable":null}',
