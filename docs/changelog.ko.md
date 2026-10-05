@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- browser 사례를 host의 browser 대신 test package와 함께 설치되는, playwright-core가
+  고정한 chromium build로 실행한다.
+
 - GitHub CI에서 Linux로 `ssr`를 build하고 test한다. arm64와 x86_64 job은 make
   target만 실행하고, 모든 검사를 실패를 지나 실행하며, target별 log와 첫 실패 줄을
   담은 요약을 upload한다. push 검사 job도 같은 방식으로 log를 upload한다.

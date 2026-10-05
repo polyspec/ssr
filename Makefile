@@ -124,7 +124,7 @@ verify-engine-deps:
 verify-build:
 	python3 -m tools.tool_versions check
 	status=0; \
-	assignments=$$(python3 -m tools.install_packages) && eval "$$assignments" && export SSR_PACKAGES SSR_FIXTURES || { status=1; echo 'FAIL verify-build: install packages'; }; \
+	assignments=$$(python3 -m tools.install_packages) && eval "$$assignments" && export SSR_PACKAGES SSR_FIXTURES SSR_BROWSER || { status=1; echo 'FAIL verify-build: install packages'; }; \
 	cargo fmt --manifest-path tools/build-probe/Cargo.toml -- --check || { status=1; echo 'FAIL verify-build: cargo fmt'; }; \
 	CARGO_TARGET_DIR=$(CURDIR)/target cargo clippy --manifest-path tools/build-probe/Cargo.toml --all-targets --locked -- -D warnings || { status=1; echo 'FAIL verify-build: cargo clippy'; }; \
 	CARGO_TARGET_DIR=$(CURDIR)/target cargo nextest run --manifest-path tools/build-probe/Cargo.toml --test build_verification --locked --no-tests fail || { status=1; echo 'FAIL verify-build: cargo nextest run'; }; \

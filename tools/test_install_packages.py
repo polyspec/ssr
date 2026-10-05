@@ -11,8 +11,17 @@ from tools import install_packages
 
 FAKE_NPM = """#!/bin/sh
 echo "$*" >> "$NPM_LOG"
-mkdir -p node_modules/sample
+mkdir -p node_modules/sample node_modules/playwright-core
 echo '{}' > node_modules/sample/package.json
+cat > node_modules/playwright-core/cli.js <<'SCRIPT'
+const fs = require("node:fs");
+if (process.argv.slice(2).join(" ") !== "install chromium") process.exit(3);
+fs.mkdirSync(process.env.PLAYWRIGHT_BROWSERS_PATH + "/chromium", { recursive: true });
+fs.writeFileSync(process.env.PLAYWRIGHT_BROWSERS_PATH + "/chromium/chrome", "browser");
+SCRIPT
+cat > node_modules/playwright-core/index.mjs <<'SCRIPT'
+export const chromium = { executablePath: () => process.env.PLAYWRIGHT_BROWSERS_PATH + "/chromium/chrome" };
+SCRIPT
 if [ -n "$NPM_LINK" ]; then ln -s sample node_modules/linked; fi
 """
 
@@ -83,7 +92,15 @@ class InstallPackagesTest(TestCase):
                 patch.dict(os.environ, {"NEXTEST_ENV": str(destination)}):
             self.assertEqual(install_packages.main([]), 0)
         target = self.packages / install_packages.digest(self.fixtures)
-        self.assertEqual(destination.read_text(), f"SSR_PACKAGES={target}\nSSR_FIXTURES={self.fixtures}\n")
+        self.assertEqual(destination.read_text(), f"SSR_PACKAGES={target}\nSSR_FIXTURES={self.fixtures}\n"
+                                                  f"SSR_BROWSER={target}/browsers/chromium/chrome\n")
+
+    def test_the_installation_holds_the_pinned_browser(self):
+        target = install_packages.install(self.fixtures, self.packages)
+        self.assertEqual(install_packages.browser(target), target / "browsers/chromium/chrome")
+        (target / "browsers/chromium/chrome").unlink()
+        with self.assertRaisesRegex(ValueError, "no chromium executable in .*browsers"):
+            install_packages.install(self.fixtures, self.packages)
 
 
 class FilterTest(TestCase):

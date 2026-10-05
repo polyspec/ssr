@@ -4,10 +4,21 @@ use std::process::{Command, Stdio};
 use std::thread;
 use std::time::Instant;
 
-#[cfg(target_os = "macos")]
-pub const BROWSER: &str = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-#[cfg(target_os = "linux")]
-pub const BROWSER: &str = "/usr/bin/google-chrome";
+/// The chromium build of the package installation, which the nextest setup script
+/// `install-packages` names (`tools/install_packages.py`): the same browser on every machine.
+pub fn browser() -> String {
+    let path = std::env::var("SSR_BROWSER").unwrap_or_else(|_| {
+        panic!(
+            "SSR_BROWSER is not set; the nextest setup script install-packages sets it, so run \
+             the tests with cargo nextest"
+        )
+    });
+    assert!(
+        Path::new(&path).is_absolute() && Path::new(&path).is_file(),
+        "SSR_BROWSER must name the chromium executable: {path}"
+    );
+    path
+}
 
 /// Runs a browser script until its process exits and returns its standard output.
 ///
@@ -15,10 +26,7 @@ pub const BROWSER: &str = "/usr/bin/google-chrome";
 /// each page step and gives the browser launch and close no limit; the nextest browser
 /// override bounds the whole case.
 pub fn run(script: &Path, base: &str, arguments: &[&str]) -> String {
-    assert!(
-        Path::new(BROWSER).is_file(),
-        "browser test environment missing: {BROWSER}"
-    );
+    let browser = browser();
     assert!(
         script.is_file(),
         "browser test script missing: {}",
@@ -29,7 +37,7 @@ pub fn run(script: &Path, base: &str, arguments: &[&str]) -> String {
     let mut child = Command::new("node")
         .arg(script)
         .arg(base)
-        .arg(BROWSER)
+        .arg(&browser)
         .args(arguments)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

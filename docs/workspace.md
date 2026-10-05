@@ -56,7 +56,9 @@ the packages of `tools/build-probe/tests/fixtures` once per lock into the immuta
 it in `SSR_PACKAGES` and the sources in `SSR_FIXTURES`. Each test copies the sources into a new
 temporary root of its own (`crates/ssr-build/tests/fixture/mod.rs`), writes its generated entries
 there, builds with the installation as `BuildConfig::dependencies` and removes the root when it
-ends; the browser scripts import `playwright-core` from `SSR_PACKAGES`. The filter of the script
+ends; the browser scripts import `playwright-core` from `SSR_PACKAGES`, and the browser cases run the
+chromium build that this `playwright-core` pins, installed into the same directory and named in
+`SSR_BROWSER`, never a browser of the host. The filter of the script
 names exactly the test binaries that read the installation, which `tools/check.py` checks.
 
 A push happens only when no item of `docs/checklist.md`, sub-items included, is `[~]`. The tracked

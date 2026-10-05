@@ -88,7 +88,7 @@ class ToolVersionsTest(TestCase):
 
     def test_the_repository_declares_every_tool_it_runs(self):
         self.assertEqual(set(tool_versions.declared()), {
-            "python3", "make", "rustc", "cargo-nextest", "cargo-deny", "node", "npm", "zig", "chrome",
+            "python3", "make", "rustc", "cargo-nextest", "cargo-deny", "node", "npm", "zig",
             "container", "containerctl"})
 
 

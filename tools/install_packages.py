@@ -8,9 +8,11 @@ directory under ``var/packages`` and is published by one rename; a run that find
 of its digest uses it, and the installation of a concurrent run that published first is removed.
 Nothing is written into the checkout's fixture directory.
 
-As the nextest setup script ``install-packages`` (``.config/nextest.toml``) the tool writes
-``SSR_PACKAGES``, the published directory, and ``SSR_FIXTURES``, the fixture source directory, to the
-file that ``NEXTEST_ENV`` names. Without ``NEXTEST_ENV`` it prints both assignments, which
+The installation also holds the chromium build that its playwright-core version pins, installed
+with ``playwright-core install chromium`` into ``browsers``, so the browser cases run the same browser
+on every machine. As the nextest setup script ``install-packages`` (``.config/nextest.toml``) the tool
+writes ``SSR_PACKAGES``, the published directory, ``SSR_FIXTURES``, the fixture source directory, and
+``SSR_BROWSER``, the chromium executable, to the file that ``NEXTEST_ENV`` names. Without ``NEXTEST_ENV`` it prints both assignments, which
 ``make verify-build`` and the tool tests use.
 
     python3 -m tools.install_packages
@@ -33,8 +35,13 @@ PACKAGES = ROOT / "var/packages"
 FILES = ("package.json", "package-lock.json")
 
 
+# The installation holds the packages and the browser build of their playwright-core; the digest
+# names this content, so an installation of another layout is never reused.
+LAYOUT = b"npm ci --no-bin-links; playwright-core install chromium into browsers\0"
+
+
 def digest(fixtures=FIXTURES):
-    sha = hashlib.sha256()
+    sha = hashlib.sha256(LAYOUT)
     for name in FILES:
         content = (fixtures / name).read_bytes()
         sha.update(f"{name}\0{len(content)}\0".encode())
@@ -43,7 +50,8 @@ def digest(fixtures=FIXTURES):
 
 
 def check(directory, fixtures=FIXTURES):
-    """An installation holds the declared files and a node_modules without symbolic links."""
+    """An installation holds the declared files, a node_modules without symbolic links and the
+    browser build of its playwright-core."""
     for name in FILES:
         if (directory / name).read_bytes() != (fixtures / name).read_bytes():
             raise ValueError(f"{directory / name} differs from {fixtures / name}")
@@ -53,6 +61,21 @@ def check(directory, fixtures=FIXTURES):
     for path in modules.rglob("*"):
         if path.is_symlink():
             raise ValueError(f"installed package contains a symbolic link: {path}")
+    browser(directory)
+
+
+def browser(directory):
+    """The executable of the chromium build that playwright-core installed in ``directory``."""
+    script = ("import(process.argv[1]).then((module) => "
+              "process.stdout.write(module.chromium.executablePath()))")
+    entry = (directory / "node_modules/playwright-core/index.mjs").as_uri()
+    result = subprocess.run(["node", "-e", script, entry], capture_output=True, text=True, check=False,
+                            env={**os.environ, "PLAYWRIGHT_BROWSERS_PATH": str(directory / "browsers")})
+    path = Path(result.stdout.strip())
+    if result.returncode or not path.is_absolute() or not path.is_file():
+        raise ValueError(f"no chromium executable in {directory / 'browsers'}: exit {result.returncode}, "
+                         f"path {result.stdout.strip()!r}, {result.stderr.strip()}")
+    return path
 
 
 def install(fixtures=FIXTURES, packages=PACKAGES):
@@ -71,6 +94,14 @@ def install(fixtures=FIXTURES, packages=PACKAGES):
         print(f"RUN {' '.join(command)} in {temporary}", file=sys.stderr, flush=True)
         started = time.monotonic()
         result = subprocess.run(command, cwd=temporary, stdout=sys.stderr, check=False)
+        if result.returncode:
+            raise RuntimeError(f"{' '.join(command)} exited with {result.returncode} in {temporary}")
+        # The browser is the chromium build that this playwright-core version pins, the same on
+        # every machine, never a browser of the host that updates itself.
+        command = ["node", str(temporary / "node_modules/playwright-core/cli.js"), "install", "chromium"]
+        print(f"RUN {' '.join(command)}", file=sys.stderr, flush=True)
+        result = subprocess.run(command, cwd=temporary, stdout=sys.stderr, check=False,
+                                env={**os.environ, "PLAYWRIGHT_BROWSERS_PATH": str(temporary / "browsers")})
         if result.returncode:
             raise RuntimeError(f"{' '.join(command)} exited with {result.returncode} in {temporary}")
         check(temporary, fixtures)
@@ -144,7 +175,12 @@ def main(argv):
     except (OSError, ValueError, RuntimeError) as error:
         print(f"FAIL packages: {error}", file=sys.stderr)
         return 1
-    assignments = f"SSR_PACKAGES={target}\nSSR_FIXTURES={FIXTURES}\n"
+    try:
+        executable = browser(target)
+    except (OSError, ValueError) as error:
+        print(f"FAIL packages: {error}", file=sys.stderr)
+        return 1
+    assignments = f"SSR_PACKAGES={target}\nSSR_FIXTURES={FIXTURES}\nSSR_BROWSER={executable}\n"
     destination = os.environ.get("NEXTEST_ENV")
     if destination:
         with open(destination, "a", encoding="utf-8") as environment:

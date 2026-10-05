@@ -8,7 +8,6 @@
     {"name": "node", "command": ["node", "--version"], "version": "v26.8.1"},
     {"name": "npm", "command": ["npm", "--version"], "version": "11.19.0"},
     {"name": "zig", "command": ["zig", "version"], "version": "0.16.0"},
-    {"name": "chrome", "command": ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "--version"], "version": "Google Chrome 154.0.8037.93"},
     {"name": "container", "command": ["container", "--version"], "version": "container CLI version 1.3.1 (build: release, commit: unspeci)"},
     {"name": "containerctl", "program": "containerctl", "sha256": "e8483816ebc63273797a4252dce78c9ac2cb0bbfa930bb45551b77d8c34bdb97"}
   ]

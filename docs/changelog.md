@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Run the browser cases with the chromium build that playwright-core pins,
+  installed with the test packages, instead of the host's browser.
+
 - Build and test `ssr` on Linux in GitHub CI: an arm64 and an x86_64 job run
   only make targets, run every check past failures and upload the per-target
   logs and a summary with the first failure lines; the push check job uploads
