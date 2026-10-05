@@ -176,6 +176,56 @@ def check_outside_paths(root):
     return errors
 
 
+# A measured time: an elapsed duration or a clock reading.
+MEASURED_TIME = re.compile(r"\belapsed\b|monotonic\(|perf_counter|performance\.now|Date\.now|time\.time\(|Instant::now")
+ASSERTION = re.compile(r"\b(?:debug_)?assert(?:_eq|_ne)?!\s*\(|\bself\.assert\w*\s*\(|\bassert\.\w+\s*\(|"
+                       r"\bexpect\s*\(|^[ \t]*assert\s", re.MULTILINE)
+SOURCES = ("*.rs", "*.py", "*.js", "*.mjs", "*.ts", "*.tsx")
+
+
+def assertion_text(text, match, quotes):
+    """The text an assertion judges: the balanced arguments of an assertion call, whose string
+    literals (delimited by ``quotes``) take no part in the balance, or the rest of the line of an
+    ``assert`` statement."""
+    if not match.group().endswith("("):
+        end = text.find("\n", match.end())
+        return text[match.end():len(text) if end < 0 else end]
+    depth, index, quote = 1, match.end(), None
+    while index < len(text):
+        character = text[index]
+        if quote:
+            if character == "\\":
+                index += 1
+            elif character == quote:
+                quote = None
+        elif character in quotes:
+            quote = character
+        else:
+            depth += {"(": 1, ")": -1}.get(character, 0)
+            if depth == 0:
+                return text[match.end():index]
+        index += 1
+    return text[match.end():]
+
+
+def check_timed_assertions(root):
+    """No test judges a measured time. Performance is measured and printed, and never fails a test:
+    a slower host fails a correct test by the clock and not by its result, so a test asserts the
+    behaviour (the work finished, the event happened) and prints the time it took."""
+    errors = []
+    for pattern in SOURCES:
+        for path in tracked(root, pattern):
+            text = path.read_text(encoding="utf-8")
+            for match in ASSERTION.finditer(text):
+                # A Rust apostrophe also starts a lifetime, so only double quotes delimit its strings.
+                quotes = '"' if path.suffix == ".rs" else "\"'`"
+                if MEASURED_TIME.search(assertion_text(text, match, quotes)):
+                    number = text.count("\n", 0, match.start()) + 1
+                    errors.append(f"{path.relative_to(root)}:{number}: an assertion judges a measured time; "
+                                  "assert the behaviour and print the time")
+    return errors
+
+
 def check_untracked(root):
     """Files that are neither tracked nor ignored: the checks read tracked files only, so such a
     file must be added or ignored before the checks can judge it."""
@@ -196,7 +246,7 @@ def check_hooks(root):
 def main():
     try:
         errors = (check_untracked(ROOT) + check_outside_paths(ROOT) + check_pairs_and_links(ROOT) + check_words(ROOT)
-                  + check_react_document(ROOT) + check_hooks(ROOT))
+                  + check_react_document(ROOT) + check_hooks(ROOT) + check_timed_assertions(ROOT))
     except OSError as error:
         print(error, file=sys.stderr)
         return 1

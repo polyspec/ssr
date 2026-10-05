@@ -4,7 +4,6 @@ import io
 import json
 import os
 from pathlib import Path
-import re
 import shutil
 import subprocess
 import tempfile
@@ -301,8 +300,6 @@ class TestOwnershipTest(unittest.TestCase):
         self.assertRegex(output.getvalue(),
                          r"\ARUN cargo metadata --no-deps --offline --format-version 1\n"
                          r"PASS cargo metadata (\d+\.\d)s\n")
-        elapsed = float(re.search(r"PASS cargo metadata (\d+\.\d)s", output.getvalue()).group(1))
-        self.assertGreaterEqual(elapsed, 2.0)
 
     def test_cargo_metadata_failure_names_its_exit_code(self):
         output = io.StringIO()

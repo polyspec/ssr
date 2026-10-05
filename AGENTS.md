@@ -161,6 +161,10 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
    `make ci-setup` (`tools/fetch_v8.py`), which verifies their SHA-256 before any build. Long builds report their commands and progress without a total
    duration limit; test cases retain individual time limits.
 7. Performance claims are measured by the maintained benchmark (`make bench`) with recorded limits.
+   Performance is measured and never fails a test or check: a measurement beyond its limit prints a
+   warning, with a `::warning::` annotation in CI. A test asserts the behaviour (the work finished,
+   the event happened) and prints the time it took; `tools/check.py` rejects an assertion on a
+   measured time.
 8. No polling where an event exists, no symbolic links, no relative paths in configuration and no
    temporary scripts for repeatable work: repeatable commands are make targets or tools in Git.
 9. Containerctl verification mounts source checkouts read only. When a build needs host inspection

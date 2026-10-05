@@ -47,18 +47,42 @@ fn summarize(
     })
 }
 
-fn check_limits(index: usize, latency: &Latency, heap_peak: i128) -> Result<(), String> {
+/// The measurements of one scenario beyond their recorded limits. Performance is measured and
+/// never fails the benchmark: each one is reported as a warning.
+fn limit_warnings(index: usize, latency: &Latency, heap_peak: i128) -> Vec<String> {
+    let concurrency = CONCURRENCY[index];
     let judged = &latency.cpu;
-    if judged.renders_per_second < MIN_RENDERS_PER_SECOND[index]
-        || judged.p99 > MAX_P99[index]
-        || heap_peak > MAX_CONTEXT_HEAP_DELTA_BYTES[index]
-    {
-        return Err(format!(
-            "concurrency={} exceeded recorded benchmark limits",
-            CONCURRENCY[index]
+    let mut warnings = Vec::new();
+    if judged.renders_per_second < MIN_RENDERS_PER_SECOND[index] {
+        warnings.push(format!(
+            "concurrency={concurrency} cpu_renders/s={:.1} is below the recorded minimum {:.1}",
+            judged.renders_per_second, MIN_RENDERS_PER_SECOND[index]
         ));
     }
-    Ok(())
+    if judged.p99 > MAX_P99[index] {
+        warnings.push(format!(
+            "concurrency={concurrency} cpu_p99_ms={:.3} is above the recorded maximum {:.3}",
+            judged.p99.as_secs_f64() * 1000.0,
+            MAX_P99[index].as_secs_f64() * 1000.0
+        ));
+    }
+    if heap_peak > MAX_CONTEXT_HEAP_DELTA_BYTES[index] {
+        warnings.push(format!(
+            "concurrency={concurrency} context_heap_delta_peak_bytes={heap_peak} is above the recorded maximum {}",
+            MAX_CONTEXT_HEAP_DELTA_BYTES[index]
+        ));
+    }
+    warnings
+}
+
+/// The lines that report one warning: a `WARNING` line, and in GitHub Actions also a
+/// `::warning::` annotation.
+fn warning_lines(warning: &str, github_actions: bool) -> Vec<String> {
+    let mut lines = vec![format!("WARNING {warning}")];
+    if github_actions {
+        lines.push(format!("::warning::{warning}"));
+    }
+    lines
 }
 
 struct Measured {
@@ -153,7 +177,12 @@ fn run(index: usize, pool: &Arc<Pool>, page: &Page) -> Result<(), Box<dyn Error>
         reset.p50.as_secs_f64() * 1000.0,
         reset.p99.as_secs_f64() * 1000.0,
     );
-    check_limits(index, &latency, heap_peak)?;
+    let github_actions = std::env::var_os("GITHUB_ACTIONS").is_some();
+    for warning in limit_warnings(index, &latency, heap_peak) {
+        for line in warning_lines(&warning, github_actions) {
+            println!("{line}");
+        }
+    }
     Ok(())
 }
 
@@ -247,18 +276,39 @@ mod tests {
     }
 
     #[test]
-    fn measured_regression_returns_error() {
+    fn measured_regression_warns_and_does_not_fail() {
         let slow = Summary {
             renders_per_second: MIN_RENDERS_PER_SECOND[0] - 1.0,
             ..FAST
         };
-        assert!(check_limits(0, &latency(slow), 0).is_err());
-        assert!(check_limits(0, &latency(FAST), MAX_CONTEXT_HEAP_DELTA_BYTES[0] + 1).is_err());
+        assert_eq!(
+            limit_warnings(0, &latency(slow), 0),
+            ["concurrency=1 cpu_renders/s=999.0 is below the recorded minimum 1000.0"]
+        );
+        assert_eq!(
+            limit_warnings(0, &latency(FAST), MAX_CONTEXT_HEAP_DELTA_BYTES[0] + 1),
+            [
+                "concurrency=1 context_heap_delta_peak_bytes=1000001 is above the recorded maximum 1000000"
+            ]
+        );
         let late = Summary {
-            p99: MAX_P99[0] + Duration::from_nanos(1),
+            p99: MAX_P99[0] + Duration::from_micros(1),
             ..FAST
         };
-        assert!(check_limits(0, &latency(late), 0).is_err());
+        assert_eq!(
+            limit_warnings(0, &latency(late), 0),
+            ["concurrency=1 cpu_p99_ms=4.001 is above the recorded maximum 4.000"]
+        );
+        assert!(limit_warnings(0, &latency(FAST), 0).is_empty());
+    }
+
+    #[test]
+    fn a_warning_is_annotated_in_github_actions() {
+        assert_eq!(warning_lines("slow", false), ["WARNING slow"]);
+        assert_eq!(
+            warning_lines("slow", true),
+            ["WARNING slow", "::warning::slow"]
+        );
     }
 
     #[test]
@@ -274,6 +324,6 @@ mod tests {
                 ..FAST
             },
         };
-        check_limits(0, &delayed, 0).unwrap();
+        assert!(limit_warnings(0, &delayed, 0).is_empty());
     }
 }

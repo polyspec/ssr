@@ -2,7 +2,9 @@
 
 `make bench` renders one fixed SSR page through a 16-worker snapshot runtime. Each call checks
 the HTML and state. The command runs 128 calls per caller at concurrency 1, 4 and 16 and fails
-on a render error, a missing sample, a changed result or a limit violation. The build reports its Cargo command and compiler progress without a total duration limit;
+on a render error, a missing sample or a changed result. Performance is measured and never fails it:
+a measurement beyond its recorded limit prints a `WARNING` line, and in GitHub Actions also a
+`::warning::` annotation. The build reports its Cargo command and compiler progress without a total duration limit;
 running the benchmark has a 120-second timeout.
 
 The benchmark builds `ssr-runtime` with its `bench` feature. With that feature,
@@ -18,8 +20,8 @@ nearest rank of every call. Context reset time is the wall-clock time around V8 
 creation. Memory is the change in live V8 heap bytes immediately around that creation, not
 process resident memory. The command reports the largest observed change.
 
-The command judges only CPU throughput, CPU p99 and the peak heap change. Wall-clock throughput,
-wall-clock p50 and p99 and context reset times are reported and not judged, because other work on
+The command compares only CPU throughput, CPU p99 and the peak heap change with their limits. Wall-clock throughput,
+wall-clock p50 and p99 and context reset times are reported and not compared, because other work on
 the host changes them without a change in the runtime.
 
 The following output was measured on macOS 26.6.2, Apple M3 Pro, 36 GiB memory, Rust 1.98.1,
@@ -34,9 +36,9 @@ does not include bundle compilation or HTTP transport.
 | 4 | 512 | 3,308.0 | 0.210 | 1.039 | 6,163.6 | 0.475 | 2.827 | 0.193 | 1.166 | 202,064 |
 | 16 | 2,048 | 3,443.7 | 0.218 | 0.914 | 10,923.4 | 0.535 | 10.253 | 0.227 | 1.743 | 204,960 |
 
-The maintained benchmark enforces these limits for each scenario. In five runs on the loaded
+The maintained benchmark warns past these limits for each scenario. In five runs on the loaded
 host, CPU throughput stayed between 2,108 and 3,444 renders/s and CPU p99 stayed at or below
-1.43 ms at every concurrency. The limits allow that variation while still failing for a
+1.43 ms at every concurrency. The limits allow that variation while still warning for a
 substantial regression.
 
 | Concurrent calls | Minimum CPU renders/s | Maximum CPU p99 ms | Maximum peak heap change bytes |

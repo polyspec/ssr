@@ -112,6 +112,30 @@ class WorkspaceTest(unittest.TestCase):
     def test_the_repository_names_no_home_directory(self):
         self.assertEqual(check.check_outside_paths(ROOT), [])
 
+    def test_an_assertion_on_a_measured_time_is_named(self):
+        # The sources are composed, so this file holds no assertion on a measured time itself.
+        word = "assert"
+        error = "an assertion judges a measured time; assert the behaviour and print the time"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            (root / "src").mkdir()
+            (root / "src/worker.rs").write_text(
+                "fn case() {\n    let started = Instant::now();\n    work();\n"
+                f"    {word}!(\n        started.elapsed()\n            < Duration::from_secs(1)\n    );\n"
+                f"    {word}_eq!(work(), Ok(()));\n    println!(\"{{:?}}\", started.elapsed());\n}}\n")
+            (root / "test_tool.py").write_text(
+                f"started = time.monotonic()\n{word} time.monotonic() - started < 2\n"
+                f"self.{word}Less(elapsed, 2.0)\nself.{word}Equal(result, 0)\nprint(time.monotonic() - started)\n")
+            (root / "steps.mjs").write_text(
+                f"{word}.ok(performance.now() - started < 1000);\n{word}.equal(done, true);\n")
+            commit_all(root)
+            self.assertEqual(check.check_timed_assertions(root), [
+                f"src/worker.rs:4: {error}", f"test_tool.py:2: {error}", f"test_tool.py:3: {error}",
+                f"steps.mjs:1: {error}"])
+
+    def test_no_assertion_judges_a_measured_time(self):
+        self.assertEqual(check.check_timed_assertions(ROOT), [])
+
     def test_untracked_file_is_named(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = pathlib.Path(temporary)
