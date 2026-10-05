@@ -10,6 +10,11 @@ on:
 permissions:
   contents: read
 
+# Runners are limited, so a new push to a ref cancels the run of the previous one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   linux:
     strategy:

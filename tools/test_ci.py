@@ -47,6 +47,11 @@ class WorkflowRuleTest(TestCase):
                 if "uses: " in line:
                     self.assertRegex(line, r"uses: [a-z-]+/[a-z-]+@[0-9a-f]{40} # v\d+$", workflow.name)
 
+    def test_a_new_push_cancels_the_previous_run(self):
+        text = (ROOT / ".github/workflows/ci.yml").read_text()
+        self.assertIn("\nconcurrency:\n  group: ${{ github.workflow }}-${{ github.ref }}\n  cancel-in-progress: true\n",
+                      text)
+
     def test_the_linux_jobs_build_both_architectures(self):
         text = (ROOT / ".github/workflows/ci.yml").read_text()
         self.assertIn("runner: [ubuntu-24.04-arm, ubuntu-24.04]", text)
