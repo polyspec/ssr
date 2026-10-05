@@ -15,6 +15,8 @@ STRAY = (
     "- [o] S-1 Mark an item `[o]` when it is complete.\n"
     "  The continuation names [!] in prose.\n"
     "- [~] S-1-1 Keep this item in progress. - [ ] S-1-2\n"
+    "- [x] S-1-3 Close the item in the task list form.\n"
+    "- [o] S-1-4 Name `[X]` in the text.\n"
 )
 CLEAN = (
     "# Checklist\n"
@@ -43,7 +45,8 @@ class ChecklistMarkerTests(unittest.TestCase):
         expected = []
         for name in ("docs/checklist.md", "docs/checklist.ko.md"):
             for location, marker in (("1:10", "[ ]"), ("1:25", "[~]"), ("5:9", "[o]"),
-                                     ("7:25", "[o]"), ("8:26", "[!]"), ("9:43", "[ ]")):
+                                     ("7:25", "[o]"), ("8:26", "[!]"), ("9:43", "[ ]"),
+                                     ("10:3", "[x]"), ("11:19", "[X]")):
                 expected.append(f"{name}:{location}: state marker {marker} outside an item state; "
                                 "a checklist marker appears only as the state of an item")
         self.assertEqual(errors, expected)

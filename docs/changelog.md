@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Treat the task list states of GitHub as state markers: `tools/check.py` also
+  fails for an x or a capital X between brackets in the checklists that is not
+  the state of an item line.
+
 - Allow a state marker in the checklist only as the state of an item:
   `tools/check.py` fails for any other bracketed state marker of
   `docs/checklist.md` and `docs/checklist.ko.md` and names its file, line and
