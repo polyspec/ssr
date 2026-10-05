@@ -434,8 +434,7 @@ async fn assets_outside_the_root_and_the_package_directory_are_rejected() {
     .unwrap();
     let error = build(&config).await.unwrap_err().to_string();
     assert!(
-        error.contains("Could not load ../outside/mark.svg")
-            && error.contains("plugin `ssr-build-assets` threw an error"),
+        error.contains("asset must be a file inside application root or package directory"),
         "{error}"
     );
 }

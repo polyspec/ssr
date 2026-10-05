@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- 실패한 JavaScript build에 asset plugin의 오류를 적는다. 거부되거나 읽을 수 없는
+  asset은 이제 plugin의 메시지를 버리는 rolldown 오류 옆에 원인을 보고한다.
+
 - browser launch 사례를 browser 없이 판정한다. 가짜 launch가 option을 기록하고 launch
   제한을 거부하므로, 사례는 더 이상 host가 실제 browser를 page-in하는 속도에 따라
   달라지지 않는다.

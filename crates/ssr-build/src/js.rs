@@ -79,6 +79,7 @@ pub(crate) async fn bundle(
         ..Default::default()
     };
     let styles = Arc::new(Mutex::new(BTreeMap::new()));
+    let asset_errors = Arc::new(Mutex::new(Vec::new()));
     let mut bundler = Bundler::with_plugins(
         options,
         vec![
@@ -86,6 +87,7 @@ pub(crate) async fn bundle(
                 config.root.clone(),
                 config.package_directory(),
                 config.asset_route.clone(),
+                Arc::clone(&asset_errors),
             )),
             SveltePlugin::new_shared(SveltePlugin::new(
                 config.root.clone(),
@@ -97,10 +99,19 @@ pub(crate) async fn bundle(
         ],
     )
     .map_err(|error| Error::JavaScript(error.to_string()))?;
-    let output = bundler
-        .generate()
-        .await
-        .map_err(|error| Error::JavaScript(error.to_string()))?;
+    let output = bundler.generate().await.map_err(|error| {
+        // Rolldown drops the message of a plugin's load error, so the errors that the asset
+        // plugin kept are named with the build error.
+        match asset_errors.lock() {
+            Ok(errors) if errors.is_empty() => Error::JavaScript(error.to_string()),
+            Ok(errors) => {
+                Error::JavaScript(format!("{error}; ssr-build-assets: {}", errors.join("; ")))
+            }
+            Err(_) => {
+                Error::JavaScript(format!("{error}; the asset load error record is poisoned"))
+            }
+        }
+    })?;
     if !output.warnings.is_empty() {
         return Err(Error::JavaScript(format!(
             "warnings: {:?}",

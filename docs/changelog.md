@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Name the asset plugin's error in a failed JavaScript build: a rejected or
+  unreadable asset now reports its cause next to the rolldown error, which
+  drops the plugin's message.
+
 - Judge the browser launch cases without a browser: a fake launch records its
   options and refuses a launch limit, so the cases no longer depend on how fast
   the host pages a real browser in.
