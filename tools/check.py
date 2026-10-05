@@ -17,9 +17,20 @@ STATE = re.compile(r"^- \[([ ~o!])\] (S-\d+(?:-\d+)*)\b", re.MULTILINE)
 MARKER = re.compile(r"\[[ ~o!xX]\]")
 
 
+def tracked(root, pattern):
+    """The tracked files of the checkout ``root`` that match the Git pathspec ``pattern``. Files
+    that the tree does not hold, untracked or ignored, are not read, so the result is the same in
+    every checkout of the tree."""
+    result = subprocess.run(["git", "ls-files", "-z", "--", pattern], cwd=root, capture_output=True,
+                            text=True, check=False)
+    if result.returncode:
+        raise OSError(f"git ls-files -- {pattern} in {root} exited with {result.returncode}: "
+                      f"{result.stderr.strip()}")
+    return sorted(root / path for path in result.stdout.split("\0") if path)
+
+
 def markdown_files(root):
-    excluded = {"var", "target", "node_modules"}
-    return sorted(path for path in root.rglob("*.md") if not excluded.intersection(path.relative_to(root).parts))
+    return tracked(root, "*.md")
 
 
 def check_markers(root, path):
@@ -97,7 +108,7 @@ def check_words(root):
         for word in TERM_WORDS:
             if re.search(r"(?<![\w-])" + re.escape(word) + r"(?![\w-])", content, re.IGNORECASE):
                 errors.append(f"{path}: unapproved term {word}")
-    for path in sorted((root / "crates").rglob("*.rs")) if (root / "crates").exists() else []:
+    for path in tracked(root, "crates/*.rs"):
         for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if line.lstrip().startswith("//") and found(line):
                 errors.append(f"{path}:{number}: prohibited record word")
@@ -143,13 +154,30 @@ def check_react_document(root):
     return errors
 
 
+def check_untracked(root):
+    """Files that are neither tracked nor ignored: the checks read tracked files only, so such a
+    file must be added or ignored before the checks can judge it."""
+    result = subprocess.run(["git", "ls-files", "-z", "--others", "--exclude-standard"], cwd=root,
+                            capture_output=True, text=True, check=False)
+    if result.returncode:
+        raise OSError(f"git ls-files --others in {root} exited with {result.returncode}: "
+                      f"{result.stderr.strip()}")
+    return [f"{path}: untracked file; add it to Git or ignore it, the checks read tracked files only"
+            for path in result.stdout.split("\0") if path]
+
+
 def check_hooks(root):
     """The pre-push hook runs in this checkout (tools/push_gate.py hooks-check)."""
     return [f"hooks-check: {error}" for error in push_gate.hooks_check(root)]
 
 
 def main():
-    errors = check_pairs_and_links(ROOT) + check_words(ROOT) + check_react_document(ROOT) + check_hooks(ROOT)
+    try:
+        errors = (check_untracked(ROOT) + check_pairs_and_links(ROOT) + check_words(ROOT)
+                  + check_react_document(ROOT) + check_hooks(ROOT))
+    except OSError as error:
+        print(error, file=sys.stderr)
+        return 1
     result = subprocess.run(["cargo", "nextest", "--version"], capture_output=True, text=True, check=False)
     if result.returncode or not result.stdout.startswith("cargo-nextest 0.9.146 "):
         errors.append("cargo-nextest 0.9.146 is required")

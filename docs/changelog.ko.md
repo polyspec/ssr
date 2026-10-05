@@ -4,6 +4,12 @@
 
 ## 0.0.1
 
+- 추적되지 않는 file이 있으면 전체 실행을 거부한다. `make check`와
+  `make rerun-failed`의 guard는 추적되지도 무시되지도 않는 file이 있는 동안
+  각 file을 적고 거부한다. 단계는 기록되는 tree에 없는 그런 file을 읽을 수
+  있기 때문이다. `tools/check.py`는 추적되는 file만 읽고, 무시되지 않는
+  추적되지 않는 file마다 실패한다.
+
 - 전체 묶음에서 `ssr-server`를 AArch64 Linux에서 native로 빌드하고 lint하고 test한다.
   `make check-linux`는 모든 소스 checkout을 읽기 전용으로 mount하는 checkout의
   container stack에서 Linux gcc toolchain으로 `ssr-server`의 Clippy, 예제 빌드, 단위,

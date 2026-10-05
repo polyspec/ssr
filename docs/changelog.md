@@ -4,6 +4,12 @@
 
 ## 0.0.1
 
+- Refuse a full run with untracked files: the guard of `make check` and
+  `make rerun-failed` refuses while files that are neither tracked nor ignored
+  exist and names each, because a step would read such a file although the
+  recorded tree does not hold it. `tools/check.py` reads only tracked files
+  and fails for each untracked file that is not ignored.
+
 - Build, lint and test `ssr-server` natively on AArch64 Linux in the full suite:
   `make check-linux` runs Clippy, the example builds and the unit, `development`
   and `process` tests of `ssr-server` with the Linux gcc toolchain of the

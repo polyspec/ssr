@@ -117,8 +117,8 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   timeout; a whole-suite timeout is not used. A long operation gets detailed step logs instead
   of a timeout, so its process and result stay observable.
 - `make check` enforces this: before any step it refuses while a checklist item, sub-items
-  included, is `[~]`, while tracked files have uncommitted changes, while the pre-push hook is not
-  installed, and when `var/full-run.json` records a full run of the same tree. Commit, complete every active item, then run `make check`
+  included, is `[~]`, while tracked files have uncommitted changes, while files that are neither
+  tracked nor ignored exist, while the pre-push hook is not installed, and when `var/full-run.json` records a full run of the same tree. Commit, complete every active item, then run `make check`
   once. `make rerun-failed` reruns, on the recorded tree, only the targets that did not pass, for
   a failure whose cause lies outside the tree (an environment or a machine resource). A failure
   of the code is fixed as a checklist item; its commit makes a new tree, whose full suite runs
@@ -180,4 +180,5 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   is deleted. Such context stays in local memory outside Git.
 - English is canonical. Update the `.ko.md` file in the same change with equal information.
 - Before each commit, run the Red and Green tests that own the change and `tools/check.py`,
-  which runs the record and terminology checks.
+  which runs the record and terminology checks on tracked files and fails for each file that is
+  neither tracked nor ignored.

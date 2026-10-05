@@ -7,6 +7,13 @@ from tools import check
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+
+
+def commit_all(root):
+    """Make ``root`` a Git checkout whose one commit tracks every file not ignored."""
+    for arguments in (["init", "-q"], ["add", "-A"],
+                      ["-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-q", "-m", "init"]):
+        subprocess.run(["git", *arguments], cwd=root, capture_output=True, text=True, check=True)
 CRATES = (
     "ssr-core",
     "ssr-build",
@@ -40,6 +47,7 @@ class WorkspaceTest(unittest.TestCase):
             root = pathlib.Path(temporary)
             (root / "docs").mkdir()
             (root / "docs/example.md").write_text("[missing](absent.md)\n")
+            commit_all(root)
             errors = check.check_pairs_and_links(root)
             self.assertEqual(len(errors), 2)
 
@@ -49,6 +57,7 @@ class WorkspaceTest(unittest.TestCase):
             (root / "docs").mkdir()
             (root / "docs/checklist.md").write_text("- [!] S-0-2 cause; retry condition\n")
             (root / "docs/checklist.ko.md").write_text("- [ ] S-0-2 원인; 재시도 조건\n")
+            commit_all(root)
             self.assertIn(
                 "docs/checklist.md: item IDs or states differ from Korean document",
                 check.check_pairs_and_links(root),
@@ -60,6 +69,7 @@ class WorkspaceTest(unittest.TestCase):
             (root / "docs").mkdir()
             (root / "docs/checklist.md").write_text("- [o] S-0-2-1 Define the threshold.\n")
             (root / "docs/checklist.ko.md").write_text("- [ ] S-0-2-1 기준 정의.\n")
+            commit_all(root)
             self.assertIn(
                 "docs/checklist.md: item IDs or states differ from Korean document",
                 check.check_pairs_and_links(root),
@@ -69,18 +79,40 @@ class WorkspaceTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = pathlib.Path(temporary)
             (root / "example.md").write_text("orphan site\n")
+            commit_all(root)
             errors = check.check_words(root)
             self.assertEqual(len(errors), 2)
 
-    def test_nested_installed_package_documents_are_excluded(self):
+    def test_untracked_and_ignored_documents_are_not_read(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = pathlib.Path(temporary)
             package = root / "crates" / "sample" / "node_modules" / "package"
             package.mkdir(parents=True)
+            (root / ".gitignore").write_text("node_modules/\n")
             (package / "README.md").write_text("orphan site [missing](absent.md)\n")
             (root / "record.md").write_text("orphan site [missing](absent.md)\n")
+            commit_all(root)
+            (root / "notes.md").write_text("orphan site [missing](absent.md)\n")
+            (root / "crates" / "sample" / "lib.rs").write_text("// orphan\n")
             self.assertEqual(len(check.check_pairs_and_links(root)), 2)
             self.assertEqual(len(check.check_words(root)), 2)
+
+    def test_untracked_file_is_named(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            (root / ".gitignore").write_text("/var/\n")
+            commit_all(root)
+            (root / "var").mkdir()
+            (root / "var/record.json").write_text("{}\n")
+            (root / "docs").mkdir()
+            (root / "docs/new.md").write_text("new\n")
+            self.assertEqual(check.check_untracked(root), [
+                "docs/new.md: untracked file; add it to Git or ignore it, the checks read tracked files only"])
+
+    def test_a_checkout_that_git_cannot_read_fails(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaisesRegex(OSError, r"git ls-files -- \*\.md in .* exited with 128: fatal: not a git repository"):
+                check.markdown_files(pathlib.Path(temporary))
 
     def test_license_exceptions_are_exact_versions(self):
         with tempfile.TemporaryDirectory() as temporary:

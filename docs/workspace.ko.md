@@ -12,7 +12,7 @@ Rust 1.98.1 워크스페이스는 AGENTS.md에 적힌 여덟 크레이트로 구
 `make check`는 `tools/full_run.py`로 전체 묶음을 실행한다: setup 단계 `CHECK_SETUP`(archive 검사와
 fixture 설치) 다음에 `CHECK_TARGETS`의 각 target을 자기 make target으로 실행한다. 어떤 단계보다 먼저, `docs/checklist.md`의
 항목(하위 항목 포함)이 `[~]`인 동안(각 항목을 ID와 제목으로 적는다), 추적하는 file에 commit하지 않은 변경이 있는
-동안, pre-push hook이 설치되지 않은 동안(아래 참고), 그리고 `var/full-run.json`이 같은 tree(`git rev-parse HEAD^{tree}`)의 전체 실행을 기록하고 있을 때(그 실행을
+동안, 추적되지도 무시되지도 않는 file이 있는 동안(각 file을 적는다. 단계는 tree에 없는 그런 file을 읽을 수 있다), pre-push hook이 설치되지 않은 동안(아래 참고), 그리고 `var/full-run.json`이 같은 tree(`git rev-parse HEAD^{tree}`)의 전체 실행을 기록하고 있을 때(그 실행을
 적는다) 이유와 0이 아닌 종료 상태로 실행을 거부한다. 기록은 tree, commit, 결과, 통과하지 못한 target과 각 단계의
 시각을 담는다. 첫 단계 전과 각 단계의 시작과 끝마다 쓰므로 강제 종료된 실행은 `incomplete`로 남는다. 실패한
 target이 있어도 실행은 멈추지 않는다. `make rerun-failed`는 setup 단계와 그 기록에서 통과하지 못한 target만 다시

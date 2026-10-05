@@ -10,8 +10,9 @@ HOOKS_PATH := $(shell test "$$(git config core.hooksPath)" = .githooks || git co
 
 # make check runs the full suite: the setup steps, then every target, each as its own make target
 # through tools/full_run.py. The guard refuses the run before any step while a checklist item is in
-# progress, while tracked files have uncommitted changes, and when var/full-run.json records a full
-# run of the same tree; make rerun-failed runs only the targets of that record that did not pass.
+# progress, while tracked files have uncommitted changes, while untracked files that are not ignored
+# exist, and when var/full-run.json records a full run of the same tree; make rerun-failed runs
+# only the targets of that record that did not pass.
 # The setup steps install the build-probe fixture packages that the targets read, so they run
 # before the targets of both entries. Both entries run under the checkout lock check
 # (tools/holder_lock.py): a second run of the checkout is refused with the holder's checkout, pid

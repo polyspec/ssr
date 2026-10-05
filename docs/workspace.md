@@ -14,7 +14,9 @@ Rust tests run with cargo-nextest 0.9.146. The nextest configuration terminates 
 (the archive check and the fixture installs), then each target of `CHECK_TARGETS` as its own make
 target. Before any step it refuses the run, with the reasons and a nonzero exit status, while an
 item of `docs/checklist.md`, sub-items included, is `[~]` (each is named with its ID and title),
-while tracked files have uncommitted changes, while the pre-push hook is not installed (see below),
+while tracked files have uncommitted changes, while files that are neither tracked nor ignored exist
+(each is named; a step would read such a file although the tree does not hold it), while the
+pre-push hook is not installed (see below),
 and when `var/full-run.json` records a full run of
 the same tree (`git rev-parse HEAD^{tree}`), which it names. The record holds the tree, the commit,
 the result, the targets that did not pass and the times of each step; it is written before the

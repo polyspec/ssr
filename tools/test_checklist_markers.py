@@ -1,4 +1,5 @@
 import pathlib
+import subprocess
 import tempfile
 import unittest
 
@@ -54,6 +55,8 @@ def checklist_root(directory, content):
     docs.mkdir()
     for name in ("checklist.md", "checklist.ko.md"):
         (docs / name).write_text(content, encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True)
     return root
 
 
