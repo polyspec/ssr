@@ -4,6 +4,17 @@
 
 ## 0.0.1
 
+- Use a private Unix socket for supervised renderer requests: the supervisor
+  creates and owns the socket directory before it starts the render process,
+  passes the socket path to the render command and removes only its own
+  directory after it collects the process exit; readiness no longer resolves a
+  service address. The supervisor rejects a socket path longer than a Unix
+  socket address before it creates the socket directory, and readiness names a
+  declared path that is not a Unix socket and a socket directory open to other
+  users as separate errors. The development cases require that every socket
+  directory is removed after its process exit and that a dropped response
+  cancels the child response.
+
 - Keep only items and headings in the checklist: `tools/check.py` fails for a
   checklist line that is not blank, a heading, an item line or a continuation
   line of an item. The requirements moved to `docs/requirements.md`, and

@@ -214,6 +214,14 @@ impl Body for OpenBody {
     }
 }
 
+impl Drop for OpenBody {
+    fn drop(&mut self) {
+        if let Err(error) = record("canceled") {
+            eprintln!("cancellation record failed: {error}");
+        }
+    }
+}
+
 struct BrokenBody {
     first: bool,
     finish: Pin<Box<tokio::time::Sleep>>,

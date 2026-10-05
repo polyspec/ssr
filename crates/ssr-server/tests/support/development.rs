@@ -6,8 +6,8 @@ use ssr_server::{Development, DevelopmentError, ProcessOptions};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc::Receiver;
 
@@ -24,6 +24,7 @@ pub struct Case {
     pub ignore_stop: bool,
     pub shutdown_stdout: bool,
     pub options: ProcessOptions,
+    sockets: Arc<Mutex<Vec<PathBuf>>>,
 }
 impl Case {
     pub fn new() -> Self {
@@ -54,6 +55,7 @@ impl Case {
             prepare_fail: Arc::new(AtomicBool::new(false)),
             ignore_stop: false,
             shutdown_stdout: false,
+            sockets: Arc::new(Mutex::new(Vec::new())),
             options: ProcessOptions {
                 ready_timeout: Duration::from_secs(5),
                 drain_timeout: Duration::from_millis(300),
@@ -97,7 +99,9 @@ impl Case {
         let fail = Arc::clone(&self.prepare_fail);
         let ignore_stop = self.ignore_stop;
         let shutdown_stdout = self.shutdown_stdout;
+        let sockets = Arc::clone(&self.sockets);
         move |directory: &Path, socket: &Path| {
+            sockets.lock().unwrap().push(socket.to_path_buf());
             let mut render = Command::new(Self::program());
             render
                 .arg("render")
@@ -153,6 +157,20 @@ impl Case {
             self.options,
         )
         .await
+    }
+    /// Requires one socket path for each started render process and requires that the
+    /// supervisor removed every socket directory after it collected the process exit.
+    pub fn assert_sockets_removed(&self, processes: usize) {
+        let sockets = self.sockets.lock().unwrap().clone();
+        assert_eq!(sockets.len(), processes, "{sockets:?}");
+        for socket in sockets {
+            let directory = socket.parent().unwrap();
+            assert!(
+                !directory.exists(),
+                "socket directory remains: {}",
+                directory.display()
+            );
+        }
     }
     pub fn count(&self, stage: &str) -> usize {
         fs::read_to_string(&self.log)

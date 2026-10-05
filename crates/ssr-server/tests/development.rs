@@ -44,6 +44,7 @@ async fn changes_replace_render_and_public_files_and_fail_explicitly() {
     contains(&development, &mut changes, "<p>three</p>").await;
     development.close().await.unwrap();
     assert_eq!(case.count("render"), case.count("stopped"));
+    case.assert_sockets_removed(case.count("render"));
 }
 
 #[tokio::test]
@@ -61,6 +62,7 @@ async fn a_listening_process_is_not_ready_until_its_ssr_request_completes() {
         error.to_string().contains("process exit collected"),
         "{error}"
     );
+    case.assert_sockets_removed(1);
 }
 
 #[tokio::test]
@@ -83,6 +85,7 @@ async fn replacement_retains_the_previous_process_until_its_stream_is_dropped() 
     }
     development.close().await.unwrap();
     assert_eq!(case.count("render"), case.count("stopped"));
+    case.assert_sockets_removed(case.count("render"));
 }
 
 #[tokio::test]
@@ -102,6 +105,7 @@ async fn unexpected_process_exit_restarts_the_completed_build_without_rebuilding
     assert_eq!(case.count("render"), 2);
     development.close().await.unwrap();
     assert_eq!(case.count("stopped"), 1);
+    case.assert_sockets_removed(2);
 }
 
 #[tokio::test]
@@ -120,6 +124,7 @@ async fn shutdown_reports_forced_termination_and_collects_process_exit() {
         error.to_string().contains("process exit collected"),
         "{error}"
     );
+    case.assert_sockets_removed(1);
 }
 
 #[tokio::test]
@@ -128,6 +133,7 @@ async fn dropping_the_supervisor_waits_for_its_child_process() {
     let (development, _changes) = case.prepared().await.unwrap();
     drop(development);
     assert_eq!(case.count("render"), case.count("stopped"));
+    case.assert_sockets_removed(1);
 }
 
 #[tokio::test]
@@ -200,6 +206,7 @@ async fn automatic_replacement_stops_at_the_declared_restart_limit() {
             .contains("restart limit exhausted")
     );
     development.close().await.unwrap();
+    case.assert_sockets_removed(2);
 }
 
 #[tokio::test]
@@ -301,4 +308,22 @@ async fn failed_rebuild_starts_the_previous_process_shutdown_duration() {
             .to_string()
             .contains("forced termination")
     );
+}
+
+#[tokio::test]
+async fn dropping_a_response_cancels_the_child_response() {
+    let case = Case::new();
+    let (development, _changes) = case.prepared().await.unwrap();
+    let response = development
+        .handle(Request::builder().uri("/stream").body(Vec::new()).unwrap())
+        .await
+        .unwrap();
+    let mut body = Box::pin(response.into_body());
+    let first = body.frame().await.unwrap().unwrap().into_data().unwrap();
+    assert_eq!(first.as_ref(), b"first");
+    drop(body);
+    development.close().await.unwrap();
+    assert_eq!(case.count("canceled"), 1);
+    assert_eq!(case.count("stopped"), 1);
+    case.assert_sockets_removed(1);
 }

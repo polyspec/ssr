@@ -15,6 +15,10 @@ impl Socket {
         let root = std::env::temp_dir()
             .canonicalize()
             .map_err(|e| DevelopmentError(format!("socket root failed: {e}")))?;
+        Self::create(&root)
+    }
+
+    pub fn create(root: &Path) -> Result<Self, DevelopmentError> {
         let mut random = [0u8; 8];
         getrandom::fill(&mut random)
             .map_err(|e| DevelopmentError(format!("socket name failed: {e}")))?;
@@ -23,6 +27,13 @@ impl Socket {
             .map(|byte| format!("{byte:02x}"))
             .collect::<String>();
         let directory = root.join(format!("ssr-{name}"));
+        let path = directory.join("render");
+        std::os::unix::net::SocketAddr::from_pathname(&path).map_err(|e| {
+            DevelopmentError(format!(
+                "render socket path exceeds the Unix socket address length: {}: {e}",
+                path.display()
+            ))
+        })?;
         std::fs::DirBuilder::new()
             .mode(0o700)
             .create(&directory)
@@ -30,7 +41,7 @@ impl Socket {
         let metadata = std::fs::symlink_metadata(&directory)
             .map_err(|e| DevelopmentError(format!("socket directory metadata failed: {e}")))?;
         Ok(Self {
-            path: directory.join("render"),
+            path,
             directory,
             device: metadata.dev(),
             inode: metadata.ino(),
@@ -67,10 +78,16 @@ impl Socket {
             .map_err(|e| DevelopmentError(format!("render socket directory failed: {e}")))?
             .permissions()
             .mode();
-        if !metadata.file_type().is_socket() || mode & 0o077 != 0 {
+        if !metadata.file_type().is_socket() {
             return Err(DevelopmentError(
-                "render socket requires a private directory".into(),
+                "render socket is not a Unix socket".into(),
             ));
+        }
+        if mode & 0o077 != 0 {
+            return Err(DevelopmentError(format!(
+                "render socket directory is open to other users: mode {:o}",
+                mode & 0o777
+            )));
         }
         let entries = std::fs::read_dir(directory)
             .map_err(|e| DevelopmentError(format!("render socket directory read failed: {e}")))?

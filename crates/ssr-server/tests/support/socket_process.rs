@@ -13,7 +13,24 @@ use tokio::task::JoinSet;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let path = std::env::args().nth(1).ok_or("socket path is missing")?;
-    let listener = UnixListener::bind(&path)?;
+    let directory = std::path::Path::new(&path)
+        .parent()
+        .ok_or("socket directory is missing")?;
+    let kind = std::env::var("SOCKET_KIND").ok();
+    let listener = match kind.as_deref() {
+        Some("file") => None,
+        _ => Some(UnixListener::bind(&path)?),
+    };
+    match kind.as_deref() {
+        None => {}
+        Some("file") => std::fs::write(&path, b"")?,
+        Some("shared") => std::fs::set_permissions(
+            directory,
+            std::os::unix::fs::PermissionsExt::from_mode(0o755),
+        )?,
+        Some("extra") => std::fs::write(directory.join("extra"), b"")?,
+        Some(other) => return Err(format!("unknown SOCKET_KIND {other}").into()),
+    }
     match std::env::var_os("SOCKET_DECLARE") {
         Some(declared) => println!("{}", std::path::PathBuf::from(declared).display()),
         None => println!("{path}"),
@@ -21,6 +38,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     std::io::stdout().flush()?;
     let mut stdin = tokio::io::stdin();
     let mut input = Vec::new();
+    let Some(listener) = listener else {
+        stdin.read_to_end(&mut input).await?;
+        return Ok(());
+    };
     let mut connections = JoinSet::new();
     loop {
         tokio::select! {
@@ -55,10 +76,7 @@ async fn handle(request: Request<Incoming>) -> Result<Response<Full<Bytes>>, Inf
     assert_eq!(request.uri().path(), "/_render");
     if request.uri().query().is_some() {
         assert_eq!(request.uri().query(), Some("case=socket"));
-        assert_eq!(
-            request.headers()[http::header::HOST],
-            "app.example.test"
-        );
+        assert_eq!(request.headers()[http::header::HOST], "app.example.test");
     }
     assert_eq!(
         request.into_body().collect().await.unwrap().to_bytes(),
