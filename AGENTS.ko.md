@@ -139,6 +139,33 @@
     hydration을 증명할 수 없다.
 11. 동시에 실행하는 테스트가 애플리케이션 진입점 파일을 생성하면 테스트마다 별도 디렉터리를 사용한다.
 
+## 멱등성
+
+같은 tree는 언제 어느 machine에서든 같은 결과를 낸다. 한 곳에서 발견한 결함은 하나의 부류다. 이 저장소의 모든
+도구, 테스트, recipe에서 그것을 확인하고 모든 곳에서 고친다.
+
+1. 어떤 결과도 시간이나 외부 세계에 따라 달라지지 않는다. 검사는 live registry 조회(`npm outdated`, `npm audit`,
+   `npm view`, 실행 시점에 정해지는 잠금 파일, 보안 공지 database)를 하지 않고, 실행 중에 도구를 설치하지 않으며
+   (`@latest`, rustup 자동 설치), 모든 도구를 `tools/tool-versions.json`이 선언한 version으로 이 host와 CI에서 같은
+   방식으로 실행한다. 보안 공지는 따로 검토한다(`make review-advisories`).
+2. 테스트는 자기가 만든 것이나 자기 실행이 설치하고 검증한 것만 읽는다. 다른 실행이 남긴 build 출력, 설치된 package
+   사본, target directory, 추적되지 않는 file, 다른 checkout을 가리키는 컴파일 시점 고정 경로, checkout 사이에 공유한
+   target directory를 읽지 않는다.
+3. 다른 process가 읽는 출력은 한 단계로 게시한다. 임시 경로에 쓰고 이름을 바꾸며, 제자리에서 지우고 다시 쓰지 않는다.
+4. 한 실행은 모든 검사를 보고한다. 단계는 상태를 누적하고, 실패한 단계는 그 출력을 읽는 것만 건너뛰며, 어떤 recipe나
+   CI 단계도 첫 실패에서 멈추지 않는다(`|| exit`, `-k` 없는 `make`, `if: ${{ !cancelled() }}` 없는 CI 단계).
+5. 실패는 스스로를 설명한다. command, 그 출력, 기대 값과 실제 값을 적는다. bare timeout, "error above", 도구의 오류
+   없는 종료 상태를 쓰지 않는다.
+6. 검사는 실행되지 않고 통과할 수 없다. 빈 선택, 빈 목록, 실행되지 않는 사례는 실패한다.
+7. 테스트는 자기가 시작한 것을 회수한다. child는 자기 process group에서 실행되고 그 group을 죽인 뒤 기다리며, 임시
+   directory는 assertion이 실패해도 guard가 지운다.
+8. version이나 맥락마다 형식이 다른 출력에서 결과를 읽지 않는다. 도구 결과는 고정된 형식의 기계용 보고에서 읽고,
+   recipe는 `make -n`이 아니라 Makefile에서 읽는다.
+9. 추적되는 모든 file은 `tools/test-owners.json`에 소유 테스트를 가지고, 다른 crate가 의존하는 모든 crate는
+   `tools/test-ownership.json`에 선언된 동작을 가진다.
+10. 공유 상태는 한 번에 한 소유자만 가진다. 동시 실행은 자기 directory, holder lock, 내용 주소의 불변 경로를 쓰고,
+    lease 없는 공유 임시·출력 directory, database, port를 쓰지 않는다.
+
 ## 기록
 
 - 기록은 커밋 로그, 문서, 주석, i18n 텍스트, `docs/changelog.md`(+ `.ko.md`)다. 현재 제품과 그 변경을

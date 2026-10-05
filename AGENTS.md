@@ -167,6 +167,40 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
     after client hydration. Bundle text inspection does not prove hydration.
 11. Concurrent tests that generate application entry files use separate directories for each test.
 
+## Idempotency
+
+The same tree gives the same result at any time and on any machine. A defect found in one place
+is a class: check every tool, test and recipe of this repository for it and fix it everywhere.
+
+1. No result depends on the time or the outside world. Checks make no live registry query
+   (`npm outdated`, `npm audit`, `npm view`, a lock resolved at run time, a security advisory
+   database), install no tool at run time (`@latest`, rustup auto-install) and run every tool at
+   the version that `tools/tool-versions.json` declares, the same way on this host and in CI.
+   Advisories are reviewed separately (`make review-advisories`).
+2. A test reads only what it creates or what its run installs and verifies: no build output,
+   installed package copy or target directory left by another run, no untracked file, no path
+   fixed at compile time that names another checkout and no target directory shared across
+   checkouts.
+3. Output that other processes read is published in one step: written to a temporary path and
+   renamed, never removed and rewritten in place.
+4. A run reports every check: steps accumulate their status, a failed step skips only what reads
+   its output, and no recipe or CI step stops at the first failure (`|| exit`, `make` without
+   `-k`, a CI step without `if: ${{ !cancelled() }}`).
+5. A failure explains itself: it names the command, its output, and the expected and the actual
+   value; no bare timeout, no "error above", no exit status without the tool's error.
+6. A check cannot pass without running: an empty selection, an empty list or a case that does not
+   run fails.
+7. Tests collect what they start: children run in their own process group, which is killed and
+   waited for, and temporary directories are removed by a guard, also when an assertion fails.
+8. No result is read from output whose format differs between versions or contexts: tool results
+   come from machine-readable reports at a pinned format, and recipes are read from the Makefile,
+   not from `make -n`.
+9. Every tracked file has owning tests in `tools/test-owners.json`, and every crate that another
+   crate depends on has a declared behavior in `tools/test-ownership.json`.
+10. Shared state has one owner at a time: concurrent runs use their own directories, a holder lock
+    or a content-addressed immutable path, never a shared temporary or output directory, database
+    or port without a lease.
+
 ## Records
 
 - Records are the commit log, documentation, comments, i18n text and `docs/changelog.md`
