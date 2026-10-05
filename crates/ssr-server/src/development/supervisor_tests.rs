@@ -149,17 +149,7 @@ async fn events_during_a_build_start_one_follow_up_build() {
         .unwrap();
     assert!(status.success());
     let log = root.join("process.log");
-    let program = std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("examples/development_process");
-    assert!(
-        program.is_file(),
-        "build the maintained development_process example"
-    );
+    let program = crate::development::test_programs::program("SSR_DEVELOPMENT_PROCESS");
     let mut build = std::process::Command::new(&program);
     build
         .arg("build")

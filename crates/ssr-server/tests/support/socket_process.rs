@@ -13,6 +13,15 @@ use tokio::task::JoinSet;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let path = std::env::args().nth(1).ok_or("socket path is missing")?;
+    // The tests compare this digest with the source, so a program built from other sources fails
+    // them.
+    if path == "source-digest" {
+        use sha2::Digest;
+        let digest = sha2::Sha256::digest(include_bytes!("socket_process.rs"));
+        let text: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
+        println!("{text}");
+        return Ok(());
+    }
     let directory = std::path::Path::new(&path)
         .parent()
         .ok_or("socket directory is missing")?;

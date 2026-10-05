@@ -8,6 +8,34 @@ use std::fs;
 use std::sync::atomic::Ordering;
 use support::{Case, PAGE, change, contains, render};
 
+#[test]
+fn programs_are_built_from_the_current_sources() {
+    use sha2::Digest;
+    let support = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/support");
+    for (name, variable) in [
+        ("development_process", "SSR_DEVELOPMENT_PROCESS"),
+        ("socket_process", "SSR_SOCKET_PROCESS"),
+    ] {
+        let program = support::program(variable);
+        let output = std::process::Command::new(&program)
+            .arg("source-digest")
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{}: {output:?}", program.display());
+        let source = fs::read(support.join(format!("{name}.rs"))).unwrap();
+        let expected: String = sha2::Sha256::digest(&source)
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
+        assert_eq!(
+            String::from_utf8(output.stdout).unwrap().trim(),
+            expected,
+            "{} was built from other sources than tests/support/{name}.rs",
+            program.display()
+        );
+    }
+}
+
 #[tokio::test]
 async fn changes_replace_render_and_public_files_and_fail_explicitly() {
     let case = Case::new();

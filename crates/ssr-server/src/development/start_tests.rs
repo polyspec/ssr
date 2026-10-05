@@ -62,19 +62,7 @@ impl Case {
         .unwrap();
     }
     fn program() -> PathBuf {
-        let path = std::env::current_exe()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .join("examples/development_process");
-        assert!(
-            path.is_file(),
-            "build the maintained development_process example before this test: {}",
-            path.display()
-        );
-        path
+        super::test_programs::program("SSR_DEVELOPMENT_PROCESS")
     }
     fn builds(&self) -> usize {
         match std::fs::read_to_string(&self.log) {

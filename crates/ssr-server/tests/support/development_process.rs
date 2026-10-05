@@ -61,6 +61,15 @@ async fn main() -> Result<()> {
         Some("render") if args.len() == 5 && args[1] == "-build" && args[3] == "-listen" => {
             render(PathBuf::from(&args[2]), PathBuf::from(&args[4])).await
         }
+        // The tests compare this digest with the source, so a program built from other sources
+        // fails them.
+        Some("source-digest") if args.len() == 1 => {
+            println!(
+                "{}",
+                source_digest(include_bytes!("development_process.rs"))
+            );
+            Ok(())
+        }
         _ => Err("invalid process arguments".into()),
     }
 }
@@ -254,4 +263,12 @@ impl Body for BrokenBody {
     fn size_hint(&self) -> SizeHint {
         SizeHint::default()
     }
+}
+
+fn source_digest(source: &[u8]) -> String {
+    use sha2::Digest;
+    sha2::Sha256::digest(source)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }

@@ -8,6 +8,8 @@ mod source;
 #[cfg(test)]
 mod start_tests;
 mod supervisor;
+#[cfg(test)]
+mod test_programs;
 
 use http::{Request, Response};
 use hyper::body::{Body as HttpBody, Bytes};

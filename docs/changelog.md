@@ -4,6 +4,12 @@
 
 ## 0.0.1
 
+- Run the example programs that the test build compiled: a nextest setup
+  script builds the `development_process` and `socket_process` examples before
+  any test of `ssr-server` and names them in `SSR_DEVELOPMENT_PROCESS` and
+  `SSR_SOCKET_PROCESS`, so a run of one test target no longer runs a program
+  built from older sources.
+
 - Collect the processes and directories of tests and verification steps: a
   started engine stack is stopped also after a failing step, each tool test
   and browser script runs in its own process group that is killed at its end

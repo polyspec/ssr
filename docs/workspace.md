@@ -13,7 +13,13 @@ Rust tests run with cargo-nextest 0.9.146. The nextest configuration terminates 
 The Python tool tests run through `tools/run_tests.py`, each in its own process group with a limit
 of 30 seconds; a case that exceeds it is reported with its output, and its whole process group is
 killed, so no process that the case started keeps running. Rust tests remove their temporary
-directories through a guard, also when an assertion fails.
+directories through a guard, also when an assertion fails. Before any test of `ssr-server`, the
+nextest setup script `build-programs` (`tools/build_programs.py`, an experimental feature of the
+pinned nextest) builds the `development_process` and `socket_process` examples that the
+development and socket tests run and names them in `SSR_DEVELOPMENT_PROCESS` and
+`SSR_SOCKET_PROCESS`; the tests run the programs only from these variables, so a run of one test
+target never runs a program built from older sources. The build verification workspace
+`tools/build-probe` has its own nextest configuration.
 `make check` runs the full suite through `tools/full_run.py`: the setup steps `CHECK_SETUP`
 (the archive check and the fixture installs), then each target of `CHECK_TARGETS` as its own make
 target. Before any step it refuses the run, with the reasons and a nonzero exit status, while an

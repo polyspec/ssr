@@ -71,19 +71,7 @@ impl Case {
         fs::write(self.source.join("server.js"), format!("export function render(_props, state) {{ return {{html: '<p>{value}</p>', head: '', state}}; }}")).unwrap();
     }
     pub fn program() -> PathBuf {
-        let path = std::env::current_exe()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .join("examples/development_process");
-        assert!(
-            path.is_file(),
-            "build the maintained development_process example before this test: {}",
-            path.display()
-        );
-        path.canonicalize().unwrap()
+        program("SSR_DEVELOPMENT_PROCESS")
     }
     pub fn builder(&self) -> Command {
         let mut build = Command::new(Self::program());
@@ -225,4 +213,21 @@ pub async fn contains(
             break;
         }
     }
+}
+
+/// The program that the nextest setup script `build-programs` built for this run and named in
+/// `variable` (`tools/build_programs.py`).
+pub fn program(variable: &str) -> PathBuf {
+    let path = PathBuf::from(std::env::var_os(variable).unwrap_or_else(|| {
+        panic!(
+            "{variable} is not set; it names the program that the nextest setup script \
+             build-programs builds, so run the tests with cargo nextest"
+        )
+    }));
+    assert!(
+        path.is_absolute() && path.is_file(),
+        "{variable} must name the built program, an absolute file: {}",
+        path.display()
+    );
+    path
 }

@@ -7,17 +7,7 @@ fn socket_command() -> (
 ) {
     let path = Arc::new(std::sync::Mutex::new(None));
     let captured = path.clone();
-    let executable = std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("examples/socket_process");
-    assert!(
-        executable.is_file(),
-        "build the maintained socket_process example"
-    );
+    let executable = crate::development::test_programs::program("SSR_SOCKET_PROCESS");
     (path, move |socket: &Path| {
         *captured.lock().unwrap() = Some(socket.to_path_buf());
         let mut command = Command::new(executable);

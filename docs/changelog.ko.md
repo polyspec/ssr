@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- test build가 컴파일한 예제 프로그램을 실행한다. nextest setup script가
+  `ssr-server`의 어떤 test보다 먼저 `development_process`와 `socket_process`
+  예제를 build하고 `SSR_DEVELOPMENT_PROCESS`와 `SSR_SOCKET_PROCESS`로 알리므로,
+  test target 하나의 실행이 더 이상 이전 소스로 build된 프로그램을 실행하지 않는다.
+
 - test와 검증 단계의 process와 directory를 회수한다. 시작된 engine stack은
   실패 단계 뒤에도 멈추고, 각 도구 test와 browser script는 끝과 제한에서
   죽는 자기 process group에서 실행되며, Rust test는 assertion이 실패해도

@@ -11,7 +11,11 @@ Rust 1.98.1 워크스페이스는 AGENTS.md에 적힌 여덟 크레이트로 구
 각 테스트를 30초 뒤 종료하고 시작 및 결과와 경과 시간을 출력한다. 테스트 도구가 없으면 명령은 실패한다.
 Python 도구 테스트는 `tools/run_tests.py`로 각자 자기 process group에서 30초 제한으로 실행한다. 제한을 넘은
 사례는 출력과 함께 보고하고 그 process group 전체를 죽이므로 사례가 시작한 process가 계속 실행되지 않는다.
-Rust 테스트는 assertion이 실패해도 guard로 임시 디렉터리를 지운다.
+Rust 테스트는 assertion이 실패해도 guard로 임시 디렉터리를 지운다. `ssr-server`의 어떤 테스트보다 먼저
+nextest setup script `build-programs`(`tools/build_programs.py`, 고정된 nextest의 실험 기능)가 development와
+socket 테스트가 실행하는 `development_process`와 `socket_process` 예제를 빌드하고 `SSR_DEVELOPMENT_PROCESS`와
+`SSR_SOCKET_PROCESS`로 알린다. 테스트는 이 변수에서만 프로그램을 실행하므로 test target 하나의 실행이 이전
+소스로 빌드된 프로그램을 실행하지 않는다. 빌드 검증 workspace `tools/build-probe`는 자기 nextest 설정을 가진다.
 `make check`는 `tools/full_run.py`로 전체 묶음을 실행한다: setup 단계 `CHECK_SETUP`(archive 검사와
 fixture 설치) 다음에 `CHECK_TARGETS`의 각 target을 자기 make target으로 실행한다. 어떤 단계보다 먼저, `docs/checklist.md`의
 항목(하위 항목 포함)이 `[~]`인 동안(각 항목을 ID와 제목으로 적는다), 추적하는 file에 commit하지 않은 변경이 있는
