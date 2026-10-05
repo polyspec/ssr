@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Judge the browser launch cases without a browser: a fake launch records its
+  options and refuses a launch limit, so the cases no longer depend on how fast
+  the host pages a real browser in.
+
 - Remove the symbolic links of the React dependency case: it copies the
   packages it needs into its own root.
 

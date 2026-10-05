@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- browser launch 사례를 browser 없이 판정한다. 가짜 launch가 option을 기록하고 launch
+  제한을 거부하므로, 사례는 더 이상 host가 실제 browser를 page-in하는 속도에 따라
+  달라지지 않는다.
+
 - React 의존성 사례의 symbolic link를 없앤다. 사례는 필요한 package를 자기 root로
   복사한다.
 
