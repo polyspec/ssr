@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- `tools/test_local_paths.py`의 engine mount 검사 사례가 CSS checkout을 요구한다.
+  mount가 추가된 뒤 이 사례는 실패했다.
+
 - 추적되지 않는 file이 있으면 전체 실행을 거부한다. `make check`와
   `make rerun-failed`의 guard는 추적되지도 무시되지도 않는 file이 있는 동안
   각 file을 적고 거부한다. 단계는 기록되는 tree에 없는 그런 file을 읽을 수

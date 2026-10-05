@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Require the CSS checkout in the engine mount check case of
+  `tools/test_local_paths.py`, which failed after the mount was added.
+
 - Refuse a full run with untracked files: the guard of `make check` and
   `make rerun-failed` refuses while files that are neither tracked nor ignored
   exist and names each, because a step would read such a file although the

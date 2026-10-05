@@ -28,11 +28,14 @@ class LocalPathsTest(unittest.TestCase):
             self.assertIn(f"- {root}:{root}:ro", content)
 
     def test_mount_check_requires_absolute_environment_paths(self):
-        with mock.patch.dict(os.environ, {"SSR_V8_DIR": "/v8", "SSR_ORDERED_JSON_DIR": "json"}):
-            with self.assertRaisesRegex(ValueError, "SSR_ORDERED_JSON_DIR"):
-                verify_engine_mounts.expected()
-        with mock.patch.dict(os.environ, {"SSR_V8_DIR": "/v8", "SSR_ORDERED_JSON_DIR": "/json"}):
-            self.assertEqual(verify_engine_mounts.expected()["/json"], "ro")
+        paths = {"SSR_V8_DIR": "/v8", "SSR_ORDERED_JSON_DIR": "/json", "SSR_LIGHTNINGCSS_DIR": "/css"}
+        for name in paths:
+            with mock.patch.dict(os.environ, {**paths, name: "relative"}):
+                with self.assertRaisesRegex(ValueError, f"{name} must name an absolute checkout path"):
+                    verify_engine_mounts.expected()
+        with mock.patch.dict(os.environ, paths):
+            mounts = verify_engine_mounts.expected()
+        self.assertEqual({path: mounts[path] for path in paths.values()}, {"/v8": "ro", "/json": "ro", "/css": "ro"})
 
     def test_unsupported_path_declaration_fails(self):
         with tempfile.TemporaryDirectory() as temporary:
