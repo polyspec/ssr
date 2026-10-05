@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- Build and test `ssr` on Linux in GitHub CI: an arm64 and an x86_64 job run
+  only make targets, run every check past failures and upload the per-target
+  logs and a summary with the first failure lines; the push check job uploads
+  its logs the same way.
+
 - Send an interruption to every process of a full run step, so an interrupted
   `make check` also stops the cargo that a step's tool started.
 

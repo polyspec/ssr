@@ -1,7 +1,7 @@
 {
   "owners": [
     {"paths": [".config/nextest.toml"], "tests": ["cargo nextest run -p ssr-server", "python3 -m unittest tools.test_build_programs", "python3 -m unittest tools.test_check_features"]},
-    {"paths": [".githooks/pre-push", ".github/workflows/push-gate.yml"], "tests": ["python3 -m unittest tools.test_push_gate"]},
+    {"paths": [".githooks/pre-push", ".github/workflows/push-gate.yml"], "tests": ["python3 -m unittest tools.test_push_gate", "python3 -m unittest tools.test_ci"]},
     {"paths": [".gitignore"], "tests": ["python3 -m unittest tools.test_full_run", "python3 tools/check.py"]},
     {"paths": ["AGENTS.md", "AGENTS.ko.md", "docs/*.md"], "tests": ["python3 tools/check.py"]},
     {"paths": ["docs/checklist.md", "docs/checklist.ko.md"], "tests": ["python3 -m unittest tools.test_checklist_markers", "python3 -m unittest tools.test_full_run", "python3 -m unittest tools.test_push_gate"]},
@@ -71,6 +71,7 @@
     {"paths": ["tools/test_owning_tests.py"], "tests": ["python3 -m unittest tools.test_owning_tests"]},
     {"paths": ["tools/install_packages.py"], "tests": ["python3 -m unittest tools.test_install_packages", "python3 -m unittest tools.test_browser_launch", "cargo nextest run --workspace"]},
     {"paths": ["tools/test_install_packages.py"], "tests": ["python3 -m unittest tools.test_install_packages"]},
-    {"paths": ["crates/ssr-build/tests/fixture/*"], "tests": ["cargo nextest run --workspace", "make verify-build"]}
+    {"paths": ["crates/ssr-build/tests/fixture/*"], "tests": ["cargo nextest run --workspace", "make verify-build"]},
+    {"paths": ["tools/ci_run.py", "tools/fetch_v8.py", "tools/test_ci.py", ".github/workflows/ci.yml"], "tests": ["python3 -m unittest tools.test_ci"]}
   ]
 }

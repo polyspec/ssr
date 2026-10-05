@@ -152,8 +152,9 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
    start, pass, fail, skip and timeout with elapsed time. Check exit codes; do not hide them behind
    pipes. Check at least 10 GiB free disk space and the pinned local V8 inputs before a long run.
    `make check` and `make bench` verify the target, SHA-256, binding and Cargo features of the
-   official local archive before linking. Missing or changed inputs fail; do not download V8 or
-   substitute a V8 source build. Long builds report their commands and progress without a total
+   official local archive before linking. Missing or changed inputs fail; no build downloads V8 or
+   substitutes a V8 source build. A CI runner fetches the official archive and binding only through
+   `make ci-setup` (`tools/fetch_v8.py`), which verifies their SHA-256 before any build. Long builds report their commands and progress without a total
    duration limit; test cases retain individual time limits.
 7. Performance claims are measured by the maintained benchmark (`make bench`) with recorded limits.
 8. No polling where an event exists, no symbolic links, no relative paths in configuration and no

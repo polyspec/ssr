@@ -32,13 +32,13 @@ FULL_RUN = python3 -m tools.holder_lock run check -- python3 -m tools.full_run
 
 # A make without a target runs the full suite entry, so no command runs its steps without the guard.
 .DEFAULT_GOAL := check
-.PHONY: check rerun-failed review-advisories hooks hooks-check $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
+.PHONY: check rerun-failed review-advisories ci-setup ci ci-nextest ci-push ci-python push-check hooks hooks-check $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
 
-$(CHECK_SETUP) $(CHECK_HOST_TARGETS) bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
-$(CHECK_SETUP) $(CHECK_HOST_TARGETS) bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
-$(CHECK_SETUP) $(CHECK_HOST_TARGETS) bench verify-build: export CARGO_INCREMENTAL := 0
-$(CHECK_SETUP) $(CHECK_HOST_TARGETS) bench verify-build: export CARGO_BUILD_JOBS := 1
-$(CHECK_SETUP) $(CHECK_HOST_TARGETS) bench verify-build: export CARGO_NET_OFFLINE := true
+$(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
+$(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
+$(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-build: export CARGO_INCREMENTAL := 0
+$(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-build: export CARGO_BUILD_JOBS := 1
+$(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-build: export CARGO_NET_OFFLINE := true
 bench: verify-archive
 
 verify-archive:
@@ -130,3 +130,34 @@ verify-build:
 	CARGO_TARGET_DIR=$(CURDIR)/target cargo nextest run --manifest-path tools/build-probe/Cargo.toml --test build_verification --locked --no-tests fail || { status=1; echo 'FAIL verify-build: cargo nextest run'; }; \
 	cargo deny --manifest-path tools/build-probe/Cargo.toml --config deny.toml --locked check --hide-inclusion-graph $(DENY_CHECKS) || { status=1; echo 'FAIL verify-build: cargo deny'; }; \
 	exit $$status
+
+# GitHub CI (.github/workflows/ci.yml and push-gate.yml) runs only make targets. ci-setup prepares a
+# fresh Linux runner: the pinned toolchain and test tools, the verified official V8 inputs of the
+# host target and the locked dependencies. ci runs the CI targets through tools/ci_run.py, which
+# runs every target past failures and writes var/ci/<target>.log and var/ci/summary.md.
+CI_TARGETS = check-fmt check-clippy check-deny check-examples ci-nextest
+CI_PUSH_TARGETS = ci-python push-check
+
+ci-setup:
+	rustup toolchain install 1.98.1 --profile minimal --component clippy --component rustfmt --no-self-update
+	cargo install --locked cargo-nextest --version 0.9.146
+	cargo install --locked cargo-deny --version 0.20.2
+	python3 -m tools.fetch_v8 "$$(RUSTUP_AUTO_INSTALL=0 rustc -vV | sed -n 's/^host: //p')"
+	cargo fetch --locked
+
+ci:
+	python3 -m tools.tool_versions check python3 rustc
+	python3 -m tools.ci_run $(CI_TARGETS)
+
+ci-nextest:
+	cargo nextest run --workspace --locked --no-tests fail
+
+ci-push:
+	python3 -m tools.ci_run $(CI_PUSH_TARGETS)
+
+ci-python:
+	python3 -m tools.tool_versions check python3
+
+push-check:
+	python3 -m tools.push_gate commit HEAD
+

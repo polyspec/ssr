@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- GitHub CI에서 Linux로 `ssr`를 build하고 test한다. arm64와 x86_64 job은 make
+  target만 실행하고, 모든 검사를 실패를 지나 실행하며, target별 log와 첫 실패 줄을
+  담은 요약을 upload한다. push 검사 job도 같은 방식으로 log를 upload한다.
+
 - full run 단계의 모든 process에 중단을 보내므로, 중단된 `make check`는 단계의 도구가
   시작한 cargo도 멈춘다.
 

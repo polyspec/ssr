@@ -48,8 +48,10 @@ class ToolVersionsTest(TestCase):
         self.assertEqual(tool_versions.declared()["python3"]["minor"], "Python 3.9")
         workflow = (ROOT / ".github/workflows/push-gate.yml").read_text()
         self.assertIn('python-version: "3.9"', workflow)
-        self.assertIn("run: python3 -m tools.tool_versions check python3", workflow)
-        self.assertLess(workflow.index("tools.tool_versions check python3"), workflow.index("tools.push_gate commit"))
+        self.assertIn("run: make ci-push", workflow)
+        self.assertIn("CI_PUSH_TARGETS = ci-python push-check", (ROOT / "Makefile").read_text().splitlines())
+        self.assertEqual(recipe("ci-python"), ["python3 -m tools.tool_versions check python3"])
+        self.assertEqual(recipe("push-check"), ["python3 -m tools.push_gate commit HEAD"])
         for line in workflow.splitlines():
             if "uses: " in line:
                 self.assertRegex(line, r"uses: [a-z-]+/[a-z-]+@[0-9a-f]{40} # v\d+$")
