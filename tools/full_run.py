@@ -149,19 +149,24 @@ class Interrupted(Exception):
 
 
 def run_step(root, step, record, path):
-    """Run one make target, recording its start and result. SIGINT, SIGTERM and SIGHUP go to the
-    step; the run then stops with the step recorded as interrupted."""
+    """Run one make target, recording its start and result. SIGINT, SIGTERM and SIGHUP go to every
+    process of the step; the run then stops with the step recorded as interrupted."""
     print(f"RUN {step['name']}", flush=True)
     step.pop("reason", None)
     step.update(status="running", exit=None, started=now(), ended=None)
     write(path, record)
     started = time.monotonic()
-    child = subprocess.Popen(["make", "--no-print-directory", step["name"]], cwd=root)
+    # The step runs in a process group of its own, and a signal goes to the whole group, so every
+    # process that the step started, not only make, receives it.
+    child = subprocess.Popen(["make", "--no-print-directory", step["name"]], cwd=root, start_new_session=True)
     received = []
 
     def forward(number, _frame):
         received.append(number)
-        child.send_signal(number)
+        try:
+            os.killpg(child.pid, number)
+        except ProcessLookupError:
+            pass
 
     previous = {number: signal.signal(number, forward)
                 for number in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)}

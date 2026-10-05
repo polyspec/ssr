@@ -4,6 +4,17 @@ import subprocess
 import sys
 from tempfile import TemporaryDirectory
 from unittest import TestCase
+import os
+import signal
+import time
+
+
+def alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
 
 from tools import full_run
 
@@ -230,6 +241,41 @@ class GuardTest(TestCase):
             again = checkout.run("rerun-failed")
             self.assertEqual(again.returncode, 2)
             self.assertIn("nothing to rerun", again.stdout)
+
+    def test_a_signal_reaches_every_process_of_the_step(self):
+        with TemporaryDirectory() as directory:
+            checkout = Checkout(directory, DONE)
+            started = Path(directory) / "started"
+            makefile = checkout.root / "Makefile"
+            # The step runs a tool that starts a command in a session of its own, as the ownership and
+            # feature checks start cargo through tools/cargo_case.py.
+            finished = Path(directory) / "finished"
+            program = ("from tools.cargo_case import run; "
+                       f"run(['sh', '-c', 'echo $$$$ > {started}; sleep 20; echo done > {finished}'], cwd='.')")
+            makefile.write_text(makefile.read_text().replace(
+                "\techo a >> {log}".format(log=checkout.log),
+                f"\tPYTHONPATH={ROOT} {sys.executable} -c \"{program}\""))
+            git(checkout.root, "-c", "user.name=test", "-c", "user.email=test@example.com",
+                "commit", "-q", "-am", "hold")
+            arguments = [sys.executable, "-m", "tools.full_run", "check", "--root", str(checkout.root),
+                         "--setup", "setup", "--targets", "a", "b", "c"]
+            run = subprocess.Popen(arguments, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            while not started.exists() or not started.read_text().strip():
+                if run.poll() is not None:
+                    self.fail(f"the run ended before its step started: {run.communicate()}")
+                time.sleep(0.05)
+            sleeper = int(started.read_text())
+            run.send_signal(signal.SIGINT)
+            stdout, stderr = run.communicate()
+            self.assertEqual(run.returncode, 128 + signal.SIGINT, stdout + stderr)
+            deadline = time.monotonic() + 5
+            while alive(sleeper) and time.monotonic() < deadline:
+                time.sleep(0.05)
+            self.assertFalse(alive(sleeper), f"process {sleeper} of the interrupted step still runs")
+            # The command was stopped by the signal; it did not run to its end.
+            self.assertFalse(finished.exists(), "the command of the interrupted step ran to its end")
+            self.assertEqual([(target["name"], target["status"]) for target in checkout.record()["targets"]],
+                             [("a", "interrupted"), ("b", "not run"), ("c", "not run")])
 
     def test_killed_run_stays_incomplete(self):
         with TemporaryDirectory() as directory:

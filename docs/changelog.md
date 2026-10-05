@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Send an interruption to every process of a full run step, so an interrupted
+  `make check` also stops the cargo that a step's tool started.
+
 - Build from published and pinned dependency sources only: v8 150.4.0 from
   crates.io with the official archive, lightningcss and ordered-json from pinned
   Git commits, and a check that fails for an absolute path into a home directory

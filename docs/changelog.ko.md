@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- full run 단계의 모든 process에 중단을 보내므로, 중단된 `make check`는 단계의 도구가
+  시작한 cargo도 멈춘다.
+
 - 공개되고 고정된 의존성 소스로만 build한다. v8 150.4.0은 crates.io에서 공식
   archive와 함께, lightningcss와 ordered-json은 고정된 Git commit에서 오며, 추적되는
   어떤 파일에서든 home directory로 가는 절대 경로가 있으면 검사가 실패한다.
