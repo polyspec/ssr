@@ -11,7 +11,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from tools.cargo_case import run as run_cargo
+from tools.cargo_case import REPORT, results, run as run_cargo
 
 DECLARATION = ROOT / "tools/test-ownership.json"
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
@@ -534,7 +534,7 @@ def run(root, cases, command=run_cargo):
     )
     args = [
         "cargo", "nextest", "run", "--workspace", "--locked", "--no-tests", "fail",
-        "--color", "never", "-E", expression,
+        "--color", "never", *REPORT, "-E", expression,
     ]
     print(f"RUN {len(cases)} ownership cases", flush=True)
     started = time.monotonic()
@@ -543,14 +543,13 @@ def run(root, cases, command=run_cargo):
     except subprocess.TimeoutExpired as error:
         raise OwnershipError(f"timeout ownership cases after {time.monotonic() - started:.1f}s") from error
     output = result.stdout + result.stderr
+    events = results(output)
     missing = []
     for item in cases:
         label = f"{item.behavior}: {item.crate}::{item.target} {item.test}"
-        passed = any(
-            "PASS [" in line and line.rstrip().endswith(f"{item.crate}::{item.target} {item.test}")
-            for line in output.splitlines()
-        )
-        print(f"{'PASS' if passed else 'FAIL'} {label}", flush=True)
+        event = events.get(f"{item.crate}::{item.target}${item.test}", "not run")
+        passed = event == "ok"
+        print(f"{'PASS' if passed else 'FAIL'} {label}{'' if passed else f' ({event})'}", flush=True)
         if not passed:
             missing.append(label)
     if result.returncode or missing:

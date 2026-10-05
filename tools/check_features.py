@@ -10,7 +10,7 @@ import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from tools.cargo_case import run
+from tools.cargo_case import REPORT, results, run
 
 
 def unique_members(pairs):
@@ -71,7 +71,7 @@ def check(path, runner=run):
     cases = load(path)
     for name, case in cases:
         command = [
-            "cargo", "nextest", "run", "--locked", "--no-tests", "fail", "--color", "never",
+            "cargo", "nextest", "run", "--locked", "--no-tests", "fail", "--color", "never", *REPORT,
             "-p", case["package"], "--test", case["binary"],
             "--", "--exact", case["case"],
         ]
@@ -79,12 +79,12 @@ def check(path, runner=run):
         started = time.monotonic()
         try:
             result = runner(command, cwd=ROOT)
-            expected = f"{case['package']}::{case['binary']} {case['case']}"
-            passed = any("PASS [" in line and line.rstrip().endswith(expected)
-                         for line in (result.stdout + result.stderr).splitlines())
-            if result.returncode or not passed:
+            expected = f"{case['package']}::{case['binary']}${case['case']}"
+            event = results(result.stdout + result.stderr).get(expected, "not run")
+            if result.returncode or event != "ok":
                 failures.append(name)
-                print(f"FAIL feature {name}: exit {result.returncode}, declared_case_pass={passed} ({time.monotonic()-started:.3f}s)", flush=True)
+                print(f"FAIL feature {name}: exit {result.returncode}, {expected}: {event} "
+                      f"({time.monotonic()-started:.3f}s)", flush=True)
             else:
                 print(f"PASS feature {name} ({time.monotonic()-started:.3f}s)", flush=True)
         except subprocess.TimeoutExpired as error:

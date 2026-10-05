@@ -14,6 +14,12 @@ from unittest.mock import patch
 from tools import test_ownership
 
 
+def report(case, event="ok"):
+    """A libtest-json report line of nextest for one declared case."""
+    name = f"{case.crate}::{case.target}${case.test}"
+    return json.dumps({"type": "test", "event": event, "name": name}, separators=(",", ":")) + "\n"
+
+
 class TestOwnershipTest(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -198,18 +204,23 @@ class TestOwnershipTest(unittest.TestCase):
         def command(args, **kwargs):
             self.assertNotIn("timeout", kwargs)
             self.assertNotIn("capture_output", kwargs)
-            output = "".join(f"PASS [ 0.001s] {case.crate}::{case.target} {case.test}\n" for case in cases)
+            output = "".join(report(case) for case in cases)
             return subprocess.CompletedProcess(args, 0, output, "")
         test_ownership.run(self.root, cases, command=command)
 
-    def test_nextest_pass_on_stderr_is_accepted(self):
+    def test_nextest_report_on_stderr_is_accepted(self):
         cases = test_ownership.validate(self.root, self.declaration)
         def passed(args, **kwargs):
-            output = "".join(
-                f"PASS [ 0.001s] (1/2) {case.crate}::{case.target} {case.test}\n" for case in cases
-            )
-            return subprocess.CompletedProcess(args, 0, "", output)
+            return subprocess.CompletedProcess(args, 0, "", "".join(report(case) for case in cases))
         test_ownership.run(self.root, cases, command=passed)
+
+    def test_the_human_output_of_nextest_is_not_read(self):
+        cases = test_ownership.validate(self.root, self.declaration)
+        def human(args, **kwargs):
+            output = "".join(f"PASS [ 0.001s] {case.crate}::{case.target} {case.test}\n" for case in cases)
+            return subprocess.CompletedProcess(args, 0, output, "")
+        with self.assertRaisesRegex(test_ownership.OwnershipError, "did not pass"):
+            test_ownership.run(self.root, cases, command=human)
 
     def test_timed_out_test_is_rejected(self):
         cases = test_ownership.validate(self.root, self.declaration)
@@ -223,10 +234,7 @@ class TestOwnershipTest(unittest.TestCase):
         calls = []
         def command(args, **kwargs):
             calls.append(args)
-            output = "".join(
-                f"PASS [ 0.001s] ({index}/2) {case.crate}::{case.target} {case.test}\n"
-                for index, case in enumerate(cases, 1)
-            )
+            output = "".join(report(case) for case in cases)
             return subprocess.CompletedProcess(args, 0, "" if "--no-run" in args else output, "")
         test_ownership.run(self.root, cases, command=command)
         self.assertEqual(len(calls), 2)

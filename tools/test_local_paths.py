@@ -52,5 +52,17 @@ class LocalPathsTest(unittest.TestCase):
                 local_paths.declared(root)
 
 
+
+    def test_mounts_are_judged_by_access_alone(self):
+        mountinfo = "\n".join([
+            "1 0 0:1 / /src ro,relatime - virtiofs source ro",
+            "2 0 0:2 / /cargo rw,relatime - fakeowner cache rw",
+            "3 0 0:3 / /target ro,relatime - ext4 output ro",
+        ])
+        required = {"/src": "ro", "/cargo": "rw", "/target": "rw", "/v8": "ro"}
+        self.assertEqual(verify_engine_mounts.check(required, mountinfo), [
+            "/target: expected access rw, actual mount options ['relatime', 'ro']",
+            "/v8 is not mounted"])
+
 if __name__ == "__main__":
     unittest.main()

@@ -2,7 +2,6 @@
 
 import os
 from pathlib import Path
-import signal
 import sys
 import time
 
@@ -26,37 +25,35 @@ def expected() -> dict[str, str]:
     return mounts
 
 
+def check(required: dict[str, str], mountinfo: str) -> list[str]:
+    """The errors of the mounts in ``mountinfo`` (the text of ``/proc/self/mountinfo``): each
+    required path is mounted with its required access, ``ro`` or ``rw``. The filesystem type is
+    not judged; it differs between container runtimes and versions."""
+    mounts = {}
+    for line in mountinfo.splitlines():
+        left, _right = line.split(" - ", 1)
+        fields = left.split()
+        mounts[fields[4]] = set(fields[5].split(","))
+    errors = []
+    for path, access in required.items():
+        if path not in mounts:
+            errors.append(f"{path} is not mounted")
+        elif access not in mounts[path]:
+            errors.append(f"{path}: expected access {access}, actual mount options {sorted(mounts[path])}")
+    return errors
+
+
 def main() -> int:
     start = time.monotonic()
     print("START engine mount verification", flush=True)
-
-    def timeout(_signal: int, _frame: object) -> None:
-        print(f"TIMEOUT engine mount verification {time.monotonic() - start:.3f}s")
-        raise SystemExit(1)
-
-    signal.signal(signal.SIGALRM, timeout)
-    signal.alarm(30)
     try:
-        required = expected()
-    except ValueError as error:
+        errors = check(expected(), Path("/proc/self/mountinfo").read_text())
+    except (OSError, ValueError) as error:
+        errors = [str(error)]
+    for error in errors:
         print(f"FAIL engine mount verification {time.monotonic() - start:.3f}s: {error}")
+    if errors:
         return 1
-    mounts = {}
-    for line in Path("/proc/self/mountinfo").read_text().splitlines():
-        left, right = line.split(" - ", 1)
-        fields = left.split()
-        mounts[fields[4]] = (set(fields[5].split(",")), right.split()[0])
-    for path, access in required.items():
-        if path not in mounts:
-            print(f"FAIL engine mount verification {time.monotonic() - start:.3f}s: {path} is not mounted")
-            return 1
-        options, filesystem = mounts[path]
-        if filesystem != "virtiofs" or access not in options:
-            print(
-                f"FAIL engine mount verification {time.monotonic() - start:.3f}s: "
-                f"{path} is {filesystem} with {sorted(options)}"
-            )
-            return 1
     print(f"PASS engine mount verification {time.monotonic() - start:.3f}s")
     return 0
 

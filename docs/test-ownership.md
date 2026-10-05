@@ -30,4 +30,7 @@ time, and judges it by its exit code without a time limit; Cargo progress and er
 error as they arrive. Cargo output is forwarded as it arrives. Compilation has no total duration
 limit; nextest enforces the configured deadline for each test. An interrupted runner terminates its
 Cargo process group and waits for the child. A zero exit code without the exact declared case's pass
-result is a failure.
+result is a failure. The result of each case is read from the machine-readable report of nextest
+(`--message-format libtest-json` at `--message-format-version 0.1`), never from its human output,
+whose text differs between nextest versions; the feature check (`tools/check_features.py`) reads
+its cases the same way.

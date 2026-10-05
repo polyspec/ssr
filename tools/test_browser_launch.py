@@ -63,7 +63,9 @@ class BrowserLaunchTests(unittest.TestCase):
         self.assertIsNotNone(launched, report)
         self.assertGreaterEqual(float(launched.group(1)), DELAY)
         self.assertRegex(stdout, r"\nRUN close\nDONE close \d+\.\d+s\n\Z", report)
-        self.assertIn("ERR_CONNECTION_REFUSED", stderr)
+        # The script fails at its first page step, before any page passes; the browser's error
+        # text differs between browser versions, so the exit status and the step lines decide.
+        self.assertNotIn("PASS ", stdout, report)
 
     def test_react_script_proceeds_after_a_slow_launch(self):
         self.run_script("browser.mjs")

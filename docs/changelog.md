@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- Judge tool results by stable output: the ownership and feature checks read
+  the libtest-json report of nextest, the engine mount check judges access
+  modes only, and the browser and archive cases no longer read browser error
+  text or `make --dry-run` output.
+
 - Make each failure name its cause: the benchmark runs the executable that
   its build reports, and the engine status, archive, record and runtime child
   checks name the command output and the expected and actual values.

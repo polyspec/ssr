@@ -21,10 +21,18 @@ class ArchiveTest(TestCase):
         packages = json.loads(metadata.stdout)["packages"]
         dependencies = {item["name"] for package in packages for item in package["dependencies"]}
         self.assertFalse({"deno_core", "v8"} & dependencies)
-        result = subprocess.run(["make", "--dry-run", "verify-build"], cwd=root,
-                                capture_output=True, text=True, check=False)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertNotIn("tools/verify_archive.py", result.stdout)
+        # The recipe is read from the Makefile, not from the output of make --dry-run, whose
+        # text depends on the make version and on sub-makes.
+        lines = (root / "Makefile").read_text().splitlines()
+        self.assertIn("verify-build:", lines)
+        recipe = []
+        for line in lines[lines.index("verify-build:") + 1:]:
+            if not line.startswith("\t"):
+                break
+            recipe.append(line)
+        self.assertTrue(recipe)
+        self.assertFalse([line for line in recipe if "verify_archive" in line or "verify-archive" in line], recipe)
+        self.assertFalse([line for line in lines if line.startswith("verify-build") and "verify-archive" in line])
 
     def test_less_than_ten_gib_free_fails(self):
         with patch.object(verify_archive.shutil, "disk_usage", return_value=SimpleNamespace(free=10 * 1024**3 - 1)):

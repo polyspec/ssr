@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- 도구 결과를 안정된 출력으로 판정한다. ownership과 feature 검사는 nextest의
+  libtest-json 보고를 읽고, engine mount 검사는 접근 mode만 판정하며, browser와
+  archive 사례는 더 이상 browser 오류 문구나 `make --dry-run` 출력을 읽지 않는다.
+
 - 각 실패가 원인을 적게 한다. 벤치마크는 자기 build가 보고한 실행 파일을
   실행하고, engine 상태, archive, 기록, runtime child 검사는 command 출력과 기대
   값, 실제 값을 적는다.
