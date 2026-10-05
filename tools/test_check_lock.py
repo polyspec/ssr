@@ -23,10 +23,12 @@ def recipe(target):
 
 class CheckLockTest(TestCase):
     def test_check_runs_its_steps_under_the_checkout_lock(self):
-        self.assertEqual(recipe("check"), ["python3 -m tools.holder_lock run check -- $(MAKE) check-steps"])
-        steps = recipe("check-steps")
-        self.assertIn("npm ci --prefix tools/build-probe/tests/fixtures --install-links --ignore-scripts --no-audit --no-fund", steps)
-        self.assertIn("cargo nextest run --workspace --locked --no-tests fail", steps)
+        self.assertIn("FULL_RUN = python3 -m tools.holder_lock run check -- python3 -m tools.full_run",
+                      (ROOT / "Makefile").read_text().splitlines())
+        self.assertEqual(recipe("check"), ["$(FULL_RUN) check --setup $(CHECK_SETUP) --targets $(CHECK_TARGETS)"])
+        self.assertEqual(recipe("rerun-failed"), ["$(FULL_RUN) rerun-failed --setup $(CHECK_SETUP)"])
+        self.assertEqual(recipe("check-fixtures"), ["npm ci --prefix tools/build-probe/tests/fixtures --install-links --ignore-scripts --no-audit --no-fund"])
+        self.assertEqual(recipe("check-nextest"), ["cargo nextest run --workspace --locked --no-tests fail"])
 
     def test_run_holds_the_lock_while_the_command_runs(self):
         with TemporaryDirectory() as temporary:

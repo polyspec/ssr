@@ -1,0 +1,179 @@
+import json
+from pathlib import Path
+import subprocess
+import sys
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+
+from tools import full_run
+
+
+ROOT = Path(__file__).resolve().parents[1]
+CHECKLIST = """# Checklist
+
+## Items
+
+- [o] S-1 Finish the first item. Evidence: done.
+- [~] S-2 Run the second item. Priority: next.
+- [o] S-2-1 Close a part of the second item.
+- [~] S-2-2 Keep the nested part active. Cause: open.
+- [ ] S-3 Wait for the third item.
+"""
+DONE = CHECKLIST.replace("[~]", "[o]")
+# Each stub target appends its name to the log outside the checkout; `b` passes only while the
+# untracked file `pass-b` exists, so a test changes its result without changing the tree.
+MAKEFILE = """setup:
+\techo setup >> {log}
+a:
+\techo a >> {log}
+b:
+\techo b >> {log}; test -f pass-b
+c:
+\techo c >> {log}
+"""
+
+
+def git(root, *arguments):
+    subprocess.run(["git", *arguments], cwd=root, check=True, capture_output=True, text=True)
+
+
+class Checkout:
+    """A Git checkout in a temporary directory with a checklist and a Makefile of stub targets."""
+
+    def __init__(self, directory, checklist):
+        self.root = Path(directory).resolve() / "checkout"
+        self.log = Path(directory).resolve() / "ran.log"
+        (self.root / "docs").mkdir(parents=True)
+        (self.root / "docs/checklist.md").write_text(checklist)
+        (self.root / "Makefile").write_text(MAKEFILE.format(log=self.log))
+        (self.root / ".gitignore").write_text("/var/\npass-b\n")
+        git(self.root, "init", "-q")
+        git(self.root, "add", ".")
+        git(self.root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-q", "-m", "init")
+
+    def run(self, mode):
+        arguments = [sys.executable, "-m", "tools.full_run", mode, "--root", str(self.root), "--setup", "setup"]
+        if mode == "check":
+            arguments += ["--targets", "a", "b", "c"]
+        return subprocess.run(arguments, cwd=ROOT, capture_output=True, text=True, check=False)
+
+    def ran(self):
+        names = self.log.read_text().split() if self.log.exists() else []
+        self.log.unlink(missing_ok=True)
+        return names
+
+    def record(self):
+        return json.loads((self.root / "var/full-run.json").read_text())
+
+
+class DecisionTest(TestCase):
+    def test_active_items_include_sub_items(self):
+        self.assertEqual(full_run.active_items(CHECKLIST), [
+            ("S-2", "Run the second item."), ("S-2-2", "Keep the nested part active.")])
+
+    def test_check_with_an_active_item_is_refused(self):
+        decision = full_run.decide("check", full_run.active_items(CHECKLIST), [], "t1", None, ["a"])
+        self.assertFalse(decision.allowed)
+        self.assertIn("S-2 Run the second item.", "\n".join(decision.reasons))
+        self.assertIn("S-2-2 Keep the nested part active.", "\n".join(decision.reasons))
+
+    def test_check_of_a_committed_tree_without_a_record_is_allowed(self):
+        decision = full_run.decide("check", [], [], "t1", None, ["a", "b"])
+        self.assertTrue(decision.allowed)
+        self.assertEqual(decision.targets, ["a", "b"])
+
+    def test_rerun_of_another_tree_is_refused(self):
+        record = {"tree": "t0", "targets": [{"name": "a", "status": "failed"}]}
+        decision = full_run.decide("rerun-failed", [], [], "t1", record, None)
+        self.assertFalse(decision.allowed)
+        self.assertIn("tree t0", decision.reasons[0])
+
+
+class EntryTest(TestCase):
+    def test_make_check_starts_with_the_guard(self):
+        lines = (ROOT / "Makefile").read_text().splitlines()
+        self.assertEqual(lines[lines.index("check:") + 1].strip(),
+                         "$(FULL_RUN) check --setup $(CHECK_SETUP) --targets $(CHECK_TARGETS)")
+        self.assertEqual(lines[lines.index("rerun-failed:") + 1].strip(),
+                         "$(FULL_RUN) rerun-failed --setup $(CHECK_SETUP)")
+        self.assertIn("FULL_RUN = python3 -m tools.holder_lock run check -- python3 -m tools.full_run", lines)
+        self.assertIn(".DEFAULT_GOAL := check", lines)
+
+
+class GuardTest(TestCase):
+    def test_active_item_refuses_before_any_step(self):
+        with TemporaryDirectory() as directory:
+            checkout = Checkout(directory, CHECKLIST)
+            result = checkout.run("check")
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            self.assertIn("full-run: refused make check", result.stdout)
+            self.assertIn("S-2 Run the second item.", result.stdout)
+            self.assertIn("S-2-2 Keep the nested part active.", result.stdout)
+            self.assertEqual(checkout.ran(), [])
+            self.assertFalse((checkout.root / "var/full-run.json").exists())
+
+    def test_uncommitted_tracked_change_refuses(self):
+        with TemporaryDirectory() as directory:
+            checkout = Checkout(directory, DONE)
+            (checkout.root / "Makefile").write_text((checkout.root / "Makefile").read_text() + "\n")
+            result = checkout.run("check")
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("uncommitted changes of tracked files", result.stdout)
+            self.assertIn("Makefile", result.stdout)
+            self.assertEqual(checkout.ran(), [])
+
+    def test_second_full_run_of_the_same_tree_is_refused(self):
+        with TemporaryDirectory() as directory:
+            checkout = Checkout(directory, DONE)
+            first = checkout.run("check")
+            self.assertEqual(first.returncode, 1, first.stdout + first.stderr)
+            self.assertEqual(checkout.ran(), ["setup", "a", "b", "c"])
+            record = checkout.record()
+            self.assertEqual(record["result"], "failed")
+            self.assertEqual(record["failed"], ["b"])
+            self.assertEqual(record["tree"], subprocess.run(
+                ["git", "rev-parse", "HEAD^{tree}"], cwd=checkout.root, capture_output=True,
+                text=True, check=True).stdout.strip())
+            second = checkout.run("check")
+            self.assertEqual(second.returncode, 2)
+            self.assertIn(f"the full run of tree {record['tree']} started {record['started']}", second.stdout)
+            self.assertEqual(checkout.ran(), [])
+
+    def test_rerun_without_a_record_is_refused(self):
+        with TemporaryDirectory() as directory:
+            checkout = Checkout(directory, DONE)
+            result = checkout.run("rerun-failed")
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("no full run is recorded", result.stdout)
+            self.assertEqual(checkout.ran(), [])
+
+    def test_rerun_runs_only_the_recorded_failed_targets(self):
+        with TemporaryDirectory() as directory:
+            checkout = Checkout(directory, DONE)
+            checkout.run("check")
+            checkout.ran()
+            (checkout.root / "pass-b").write_text("")
+            result = checkout.run("rerun-failed")
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(checkout.ran(), ["setup", "b"])
+            record = checkout.record()
+            self.assertEqual(record["result"], "passed")
+            self.assertEqual(record["failed"], [])
+            self.assertEqual([rerun["targets"] for rerun in record["reruns"]], [["b"]])
+            again = checkout.run("rerun-failed")
+            self.assertEqual(again.returncode, 2)
+            self.assertIn("nothing to rerun", again.stdout)
+
+    def test_killed_run_stays_incomplete(self):
+        with TemporaryDirectory() as directory:
+            checkout = Checkout(directory, DONE)
+            makefile = checkout.root / "Makefile"
+            makefile.write_text(makefile.read_text().replace("\techo a >> ", "\tkill -KILL $$(ps -o ppid= -p $$PPID); echo a >> "))
+            git(checkout.root, "-c", "user.name=test", "-c", "user.email=test@example.com",
+                "commit", "-q", "-am", "kill")
+            result = checkout.run("check")
+            self.assertEqual(result.returncode, -9)
+            record = checkout.record()
+            self.assertEqual(record["result"], "incomplete")
+            self.assertEqual([(target["name"], target["status"]) for target in record["targets"]],
+                             [("a", "running"), ("b", "not run"), ("c", "not run")])

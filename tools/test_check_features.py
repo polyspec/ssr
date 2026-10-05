@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -28,8 +29,9 @@ class FeatureCheckTest(TestCase):
 
     def test_make_check_runs_feature_cases(self):
         makefile = (check_features.ROOT / "Makefile").read_text()
-        recipe = makefile.split("\ncheck:\n", 1)[1].split("\nbench:\n", 1)[0]
-        self.assertIn("\tpython3 tools/check_features.py\n", recipe)
+        targets = re.search(r"^CHECK_TARGETS = (.*)$", makefile, re.MULTILINE).group(1).split()
+        self.assertIn("check-features", targets)
+        self.assertIn("\ncheck-features:\n\tpython3 tools/check_features.py\n", makefile)
 
     def run_manifest(self, data, runner):
         with TemporaryDirectory() as temporary:

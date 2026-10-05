@@ -102,6 +102,13 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   reports its own running, completion, success or failure with its elapsed time and has its own
   timeout; a whole-suite timeout is not used. A long operation gets detailed step logs instead
   of a timeout, so its process and result stay observable.
+- `make check` enforces this: before any step it refuses while a checklist item, sub-items
+  included, is `[~]`, while tracked files have uncommitted changes, and when `var/full-run.json`
+  records a full run of the same tree. Commit, complete every active item, then run `make check`
+  once. `make rerun-failed` reruns, on the recorded tree, only the targets that did not pass, for
+  a failure whose cause lies outside the tree (an environment or a machine resource). A failure
+  of the code is fixed as a checklist item; its commit makes a new tree, whose full suite runs
+  once when every active item is complete. Do not delete or edit the record to run again.
 - A newly found issue in a completed item is added as a numbered sub-item; the completed item does
   not go back to `[~]`.
 - Marking an item `[o]` requires its implementation, tests and records to be committed in the same

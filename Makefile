@@ -1,37 +1,72 @@
-.PHONY: check check-steps bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
-
 V8_TARGET := $(shell rustc -vV | sed -n 's/^host: //p')
 V8_ARCHIVE := $(CURDIR)/var/v8/librusty_v8_simdutf_release_$(V8_TARGET).a.gz
 V8_BINDING := $(CURDIR)/var/v8/src_binding_simdutf_release_$(V8_TARGET).rs
 
-check-steps bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
-check-steps bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
-check-steps bench verify-build: export CARGO_INCREMENTAL := 0
-check-steps bench verify-build: export CARGO_BUILD_JOBS := 1
-check-steps bench verify-build: export CARGO_NET_OFFLINE := true
-check-steps bench: verify-archive
+# make check runs the full suite: the setup steps, then every target, each as its own make target
+# through tools/full_run.py. The guard refuses the run before any step while a checklist item is in
+# progress, while tracked files have uncommitted changes, and when var/full-run.json records a full
+# run of the same tree; make rerun-failed runs only the targets of that record that did not pass.
+# The setup steps install the build-probe fixture packages that the targets read, so they run
+# before the targets of both entries. Both entries run under the checkout lock check
+# (tools/holder_lock.py): a second run of the checkout is refused with the holder's checkout, pid
+# and process start time.
+CHECK_SETUP = verify-archive check-fixtures
+CHECK_TARGETS = check-tools check-ownership check-records check-fmt check-clippy check-deny check-engine-deps check-examples check-nextest check-features check-bench
+FULL_RUN = python3 -m tools.holder_lock run check -- python3 -m tools.full_run
+
+# A make without a target runs the full suite entry, so no command runs its steps without the guard.
+.DEFAULT_GOAL := check
+.PHONY: check rerun-failed $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
+
+$(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
+$(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
+$(CHECK_SETUP) $(CHECK_TARGETS) bench verify-build: export CARGO_INCREMENTAL := 0
+$(CHECK_SETUP) $(CHECK_TARGETS) bench verify-build: export CARGO_BUILD_JOBS := 1
+$(CHECK_SETUP) $(CHECK_TARGETS) bench verify-build: export CARGO_NET_OFFLINE := true
+bench: verify-archive
 
 verify-archive:
 	python3 tools/verify_archive.py
 
-# make check installs the build-probe fixture that its tests read, so its steps run under the
-# checkout lock check (tools/holder_lock.py): a second make check of the checkout is refused with
-# the holder's checkout, pid and process start time.
 check:
-	python3 -m tools.holder_lock run check -- $(MAKE) check-steps
+	$(FULL_RUN) check --setup $(CHECK_SETUP) --targets $(CHECK_TARGETS)
 
-check-steps:
+rerun-failed:
+	$(FULL_RUN) rerun-failed --setup $(CHECK_SETUP)
+
+check-fixtures:
 	npm ci --prefix tools/build-probe/tests/fixtures --install-links --ignore-scripts --no-audit --no-fund
+
+check-tools:
 	python3 tools/run_tests.py
+
+check-ownership:
 	python3 tools/test_ownership.py
+
+check-records:
 	python3 tools/check.py
+
+check-fmt:
 	cargo fmt --all -- --check
+
+check-clippy:
 	cargo clippy --workspace --all-targets --features ssr-runtime/bench --locked -- -D warnings
+
+check-deny:
 	cargo deny check
-	$(MAKE) verify-engine-deps
+
+check-engine-deps: verify-engine-deps
+
+check-examples:
 	cargo build -p ssr-server --example development_process --example socket_process --locked
+
+check-nextest:
 	cargo nextest run --workspace --locked --no-tests fail
+
+check-features:
 	python3 tools/check_features.py
+
+check-bench:
 	cargo nextest run -p ssr-runtime --example bench --features bench --locked --no-tests fail
 
 bench:

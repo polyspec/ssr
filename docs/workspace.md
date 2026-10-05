@@ -10,10 +10,21 @@ Run `make check` to check the document pairs and links, records, terminology, Py
 Rust formatting, Clippy warnings, dependency advisories, licenses and sources, and Rust unit tests.
 Rust tests run with cargo-nextest 0.9.146. The nextest configuration terminates each test after
 30 seconds and prints its start and result with elapsed time. A missing test tool fails the command.
-`make check` installs the build-probe fixture that its tests read, so
-`python3 -m tools.holder_lock run check` holds the checkout lock `var/locks/check.lock` for all of its
-steps (`make check-steps`): a second `make check` of the same checkout is refused with the holder's
-checkout, pid and process start time. A test run outside `make check` does not take this lock.
+`make check` runs the full suite through `tools/full_run.py`: the setup steps `CHECK_SETUP`
+(the archive check and the fixture installs), then each target of `CHECK_TARGETS` as its own make
+target. Before any step it refuses the run, with the reasons and a nonzero exit status, while an
+item of `docs/checklist.md`, sub-items included, is `[~]` (each is named with its ID and title),
+while tracked files have uncommitted changes, and when `var/full-run.json` records a full run of
+the same tree (`git rev-parse HEAD^{tree}`), which it names. The record holds the tree, the commit,
+the result, the targets that did not pass and the times of each step; it is written before the
+first step and after each step starts and ends, so a killed run stays recorded as `incomplete`.
+A failed target does not stop the run. `make rerun-failed` reruns the setup steps and only the
+targets of that record that did not pass, and is refused without a record of the current tree or
+when every target passed. A fresh checkout has no record. Both entries install
+the build-probe fixture that the tests read, so `python3 -m tools.holder_lock run check` holds the
+checkout lock `var/locks/check.lock` for all of their steps: a second run of the same checkout is
+refused with the holder's checkout, pid and process start time. A make without a target runs
+`make check`.
 
 Run `make bench` to execute Cargo benchmarks. The maintained measurements and limits are specified
 in S-11.

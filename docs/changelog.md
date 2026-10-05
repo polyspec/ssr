@@ -4,6 +4,14 @@
 
 ## 0.0.1
 
+- Refuse the full suite before any step unless it may run: `make check` runs
+  through `tools/full_run.py`, which refuses while a checklist item is `[~]`
+  (listing each ID and title), while tracked files have uncommitted changes and
+  when `var/full-run.json` records a full run of the same tree. The record is
+  written before the first step and after each step, so a killed run stays
+  `incomplete`. `make rerun-failed` runs only the targets of the record of the
+  current tree that did not pass. A `make` without a target runs `make check`.
+
 - Run the steps of `make check` under the checkout lock `var/locks/check.lock`,
   so a second `make check` of the same checkout no longer reinstalls the
   build-probe fixture while the first run's tests read them; it

@@ -4,6 +4,13 @@
 
 ## 0.0.1
 
+- 실행할 수 없는 전체 묶음을 어떤 단계보다 먼저 거부한다. `make check`는
+  `tools/full_run.py`를 거쳐 실행되고, 체크리스트 항목이 `[~]`인 동안(각 ID와 제목을
+  나열한다), 추적하는 file에 commit하지 않은 변경이 있는 동안, `var/full-run.json`이 같은
+  tree의 전체 실행을 기록하고 있을 때 거부된다. 기록은 첫 단계 전과 각 단계마다 쓰이므로
+  강제 종료된 실행은 `incomplete`로 남는다. `make rerun-failed`는 현재 tree의 기록에서
+  통과하지 못한 target만 실행한다. target 없는 `make`는 `make check`를 실행한다.
+
 - `make check`의 단계를 checkout lock `var/locks/check.lock` 아래에서 실행하므로,
   같은 checkout의 두 번째 `make check`가 첫 실행의 test가 읽는 동안
   build-probe fixture를 다시 설치하지 않는다. 두 번째 실행은 holder의 checkout, pid,
