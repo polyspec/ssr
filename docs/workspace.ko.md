@@ -10,7 +10,8 @@ Rust 1.98.1 워크스페이스는 AGENTS.md에 적힌 여덟 크레이트로 구
 라이선스·출처, Rust 단위 테스트를 검사한다. 보안 공지는 시간에 따라 바뀌는 database에서 오므로 `make check`는 이를
 읽지 않고, `make review-advisories`가 workspace, engine 검증, build 검증의 보안 공지를 검토한다.
 `tools/tool-versions.json`은 검사, build, test가 실행하는 모든 도구를 version 보고의 정확한 첫 줄로, 그것이 없는 도구는
-실행 파일의 SHA-256으로 적는다. `tools/tool_versions.py`는 설치된 도구를 `make check`와 `make rerun-failed`의 어떤 단계보다
+실행 파일의 SHA-256으로 적는다. Python은
+minor version 3.9로 고정하고, 검사는 실행 중인 patch release를 출력한다. `tools/tool_versions.py`는 설치된 도구를 `make check`와 `make rerun-failed`의 어떤 단계보다
 먼저, `tools/check.py`에서, 다른 make target의 첫 command로, 그리고 Python은 pre-push hook에서 비교하고, 기대 보고와 실제
 보고를 적고 실패한다. 모든 make 호출은 `RUSTUP_AUTO_INSTALL=0`을 설정하므로 없는 toolchain은 설치되지 않고 실패한다. Rust 테스트는 cargo-nextest 0.9.146으로 실행한다. nextest 설정은
 각 테스트를 30초 뒤 종료하고 시작 및 결과와 경과 시간을 출력한다. 테스트 도구가 없으면 명령은 실패한다.
@@ -47,6 +48,8 @@ push의 앞선 commit은 읽지 않는다. push되는 tip commit에 `docs/checkl
 `.github/workflows/push-gate.yml`은 모든 push의 push된 tip commit과 모든 pull request의 head commit(merge commit이 아님)에서 job
 `push-gate`로 `python3 -m tools.push_gate commit HEAD`를 실행한다. 진행 중인 각 항목을 error annotation과 job
 summary에 적고 실패하며, commit이 hook을 mode 100755로 추적하지 않을 때도 실패한다.
+job은 `actions/setup-python`의 Python 3.9로 `ubuntu-24.04-arm`에서 실행되고, action은 commit에 고정되며, push 검사 전에
+선언된 Python을 검사한다.
 
 `make bench`는 Cargo 벤치마크를 실행한다. 유지할 측정과 한도는 S-11에 명시한다.
 

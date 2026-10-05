@@ -12,6 +12,7 @@ Security advisories come from a database that changes over time, so `make check`
 them; `make review-advisories` reviews them for the workspace, the engine verification and the
 build verification. `tools/tool-versions.json` names every tool that the checks, builds and tests
 run with the exact first line of its version report, or the SHA-256 of a tool without one;
+Python is pinned to its minor version 3.9, and the check prints the running patch release;
 `tools/tool_versions.py` compares the installed tools before any step of `make check` and
 `make rerun-failed`, in `tools/check.py`, as the first command of the other make targets and,
 for Python, in the pre-push hook, and fails naming the expected and the actual report. Every make
@@ -64,6 +65,8 @@ where make has run; `make hooks` sets it and runs `make hooks-check`, which fail
 `python3 -m tools.push_gate commit HEAD` in the job `push-gate` on the pushed tip commit of every push
 and on the head commit of every pull request, not on a merge commit: it fails with each item in progress as an error
 annotation and in the job summary, and when the commit does not track the hook with mode 100755.
+The job runs on `ubuntu-24.04-arm` with Python 3.9 from `actions/setup-python`, the actions pinned
+to commits, and checks the declared Python before the push check.
 
 Run `make bench` to execute Cargo benchmarks. The maintained measurements and limits are specified
 in S-11.

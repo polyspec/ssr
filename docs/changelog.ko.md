@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- GitHub의 push 검사를 선언된 Python으로 실행한다. Python은 minor version 3.9로
+  고정하고 검사는 실행 중인 patch release를 출력하며, workflow는 commit에 고정한
+  action으로 `ubuntu-24.04-arm`에 Python 3.9를 설치하고 push 검사 전에 이를 검사한다.
+
 - 바뀐 모든 파일을 owning test에 대응시킨다. 다른 crate가 의존하는 모든 crate는
   owner test와 소비자 test를 가진 선언된 behavior를 가지고, `tools/test-owners.json`이
   추적되는 모든 파일의 owning test를 적으며, `python3 -m tools.owning_tests select`가

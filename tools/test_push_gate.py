@@ -129,13 +129,13 @@ class HookTest(TestCase):
         with TemporaryDirectory() as directory:
             checkout = Checkout(directory, DONE)
             declaration = checkout.root / "tools/tool-versions.json"
-            declaration.write_text(declaration.read_text().replace('"version": "Python ', '"version": "Python 0.'))
+            declaration.write_text(declaration.read_text().replace('"minor": "Python 3.9"', '"minor": "Python 0.9"'))
             checkout.commit("declare another Python")
             checkout.install()
             result = checkout.push()
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("push refused: the push check runs with another Python than tools/tool-versions.json "
-                          "declares: python3: expected 'Python 0.", result.stderr)
+                          "declares: python3: expected a patch release of 'Python 0.9'", result.stderr)
             self.assertIsNone(checkout.remote_main())
 
     def test_deleting_a_remote_branch_reads_only_the_working_tree(self):

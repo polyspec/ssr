@@ -32,6 +32,28 @@ class ToolVersionsTest(TestCase):
         self.assertEqual(tool_versions.check(tools=self.tools("tool 1.2.4")), [
             f"tool: expected 'tool 1.2.3' from {sys.executable} -c print('tool 1.2.4'), actual 'tool 1.2.4'"])
 
+    def test_a_minor_version_accepts_its_patch_releases_and_records_the_running_one(self):
+        def tools(report):
+            return {"python3": {"name": "python3", "command": [sys.executable, "-c", f"print({report!r})"],
+                                "minor": "Python 3.9"}}
+        evidence = []
+        self.assertEqual(tool_versions.check(tools=tools("Python 3.9.25"), evidence=evidence), [])
+        self.assertEqual(evidence, ["python3: Python 3.9.25 (declared minor version Python 3.9)"])
+        for report in ("Python 3.10.1", "Python 3.9", "Python 3.91.0", "Python 3.9.6rc1"):
+            [error] = tool_versions.check(tools=tools(report))
+            self.assertIn(f"expected a patch release of 'Python 3.9'", error)
+            self.assertIn(f"actual {report!r}", error)
+
+    def test_python_is_pinned_to_its_minor_version_here_and_in_the_workflow(self):
+        self.assertEqual(tool_versions.declared()["python3"]["minor"], "Python 3.9")
+        workflow = (ROOT / ".github/workflows/push-gate.yml").read_text()
+        self.assertIn('python-version: "3.9"', workflow)
+        self.assertIn("run: python3 -m tools.tool_versions check python3", workflow)
+        self.assertLess(workflow.index("tools.tool_versions check python3"), workflow.index("tools.push_gate commit"))
+        for line in workflow.splitlines():
+            if "uses: " in line:
+                self.assertRegex(line, r"uses: [a-z-]+/[a-z-]+@[0-9a-f]{40} # v\d+$")
+
     def test_a_missing_tool_fails_with_its_cause(self):
         tools = {"absent": {"name": "absent", "command": ["/nonexistent/tool", "--version"], "version": "1"}}
         [error] = tool_versions.check(tools=tools)

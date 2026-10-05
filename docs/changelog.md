@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- Run the push check on GitHub with the declared Python: Python is pinned to
+  its minor version 3.9, the check prints the running patch release, and the
+  workflow installs Python 3.9 on `ubuntu-24.04-arm` with actions pinned to
+  commits and checks it before the push check.
+
 - Map every changed file to its owning tests: every crate that another crate
   depends on has a declared behavior with owner and consumer tests, and
   `tools/test-owners.json` names the owning tests of every tracked file, which

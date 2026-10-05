@@ -16,10 +16,17 @@ permissions:
 
 jobs:
   push-gate:
-    runs-on: ubuntu-26.04-arm
+    # actions/setup-python provides Python 3.9 for Ubuntu 24.04, not for 26.04; the tools pin the
+    # minor version 3.9 (tools/tool-versions.json). The actions are pinned to commits.
+    runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.9"
+      - name: declared Python
+        run: python3 -m tools.tool_versions check python3
       - name: no checklist item in progress
         run: python3 -m tools.push_gate commit HEAD
