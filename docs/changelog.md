@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Read the workspace metadata of the ownership check without a time limit,
+  reporting it as a step with its elapsed time and judging it by its exit code.
+
 - Give the browser launch of the browser cases no time limit. The launch and
   close are reported with their elapsed time and decided by their result; page
   steps keep their 60 s limit.

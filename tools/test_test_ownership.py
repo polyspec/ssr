@@ -1,8 +1,15 @@
+from contextlib import redirect_stdout
 import copy
+import io
+import json
+import os
 from pathlib import Path
+import re
+import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from tools import test_ownership
 
@@ -237,6 +244,40 @@ class TestOwnershipTest(unittest.TestCase):
         with self.assertRaisesRegex(test_ownership.OwnershipError, "did not pass"):
             test_ownership.run(self.root, cases, command=lambda *args, **kwargs: ignored)
 
+
+    def slow_cargo(self, body):
+        """Put a cargo first on PATH that is silent for 2 s and then runs body."""
+        folder = self.root / "bin"
+        folder.mkdir()
+        cargo = folder / "cargo"
+        cargo.write_text(f"#!/bin/sh\nsleep 2\n{body}\n")
+        cargo.chmod(0o755)
+        return patch.dict(os.environ, {"PATH": f"{folder}{os.pathsep}{os.environ['PATH']}"})
+
+    def test_cargo_metadata_runs_past_any_limit_to_its_exit(self):
+        def limited(run):
+            def call(*args, **kwargs):
+                if "timeout" in kwargs:
+                    kwargs["timeout"] = 1
+                return run(*args, **kwargs)
+            return call
+        output = io.StringIO()
+        with self.slow_cargo(f'exec {json.dumps(shutil.which("cargo"))} "$@"'), redirect_stdout(output), \
+                patch("tools.test_ownership.subprocess.run", limited(subprocess.run)):
+            cases = test_ownership.validate(self.root, self.declaration)
+        self.assertEqual(len(cases), 2)
+        self.assertRegex(output.getvalue(),
+                         r"\ARUN cargo metadata --no-deps --offline --format-version 1\n"
+                         r"PASS cargo metadata (\d+\.\d)s\n")
+        elapsed = float(re.search(r"PASS cargo metadata (\d+\.\d)s", output.getvalue()).group(1))
+        self.assertGreaterEqual(elapsed, 2.0)
+
+    def test_cargo_metadata_failure_names_its_exit_code(self):
+        output = io.StringIO()
+        with self.slow_cargo("exit 101"), redirect_stdout(output):
+            with self.assertRaisesRegex(test_ownership.OwnershipError, "workspace metadata failed with exit 101"):
+                test_ownership.validate(self.root, self.declaration)
+        self.assertRegex(output.getvalue(), r"FAIL cargo metadata exit 101 \d+\.\ds\n\Z")
 
 if __name__ == "__main__":
     unittest.main()

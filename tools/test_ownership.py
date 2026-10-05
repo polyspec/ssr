@@ -40,12 +40,18 @@ def unique_object(pairs):
 
 
 def workspace(root):
-    result = subprocess.run(
-        ["cargo", "metadata", "--no-deps", "--offline", "--format-version", "1"],
-        cwd=root, capture_output=True, text=True, timeout=30, check=False,
-    )
+    """Read the workspace members. Cargo metadata can resolve the index, so it is a long
+    operation: it has no time limit, Cargo progress and errors reach standard error as they
+    arrive, and the exit code decides the result."""
+    arguments = ["cargo", "metadata", "--no-deps", "--offline", "--format-version", "1"]
+    print(f"RUN {' '.join(arguments)}", flush=True)
+    started = time.monotonic()
+    result = subprocess.run(arguments, cwd=root, stdout=subprocess.PIPE, text=True, check=False)
+    elapsed = time.monotonic() - started
     if result.returncode:
-        raise OwnershipError(f"workspace metadata failed: {result.stderr}")
+        print(f"FAIL cargo metadata exit {result.returncode} {elapsed:.1f}s", flush=True)
+        raise OwnershipError(f"workspace metadata failed with exit {result.returncode}")
+    print(f"PASS cargo metadata {elapsed:.1f}s", flush=True)
     data = json.loads(result.stdout)
     packages = {package["id"]: package for package in data["packages"]}
     members = {packages[member]["name"]: packages[member] for member in data["workspace_members"]}

@@ -25,6 +25,9 @@ reports each case and its result; `make check` runs it after package installatio
 the workspace test suite. This check establishes test execution and location. The named tests
 assert the behavior's input and output in their own crates.
 
-Cargo output is forwarded as it arrives. Compilation has no total duration limit; nextest enforces
-the configured deadline for each test. An interrupted runner terminates its Cargo process group and
-waits for the child. A zero exit code without the exact declared case's pass result is a failure.
+The checker reads workspace metadata with `cargo metadata`, reports it as a step with its elapsed
+time, and judges it by its exit code without a time limit; Cargo progress and errors reach standard
+error as they arrive. Cargo output is forwarded as it arrives. Compilation has no total duration
+limit; nextest enforces the configured deadline for each test. An interrupted runner terminates its
+Cargo process group and waits for the child. A zero exit code without the exact declared case's pass
+result is a failure.
