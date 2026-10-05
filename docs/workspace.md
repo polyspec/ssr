@@ -39,7 +39,10 @@ and when `var/full-run.json` records a full run of
 the same tree (`git rev-parse HEAD^{tree}`), which it names. The record holds the tree, the commit,
 the result, the targets that did not pass and the times of each step; it is written before the
 first step and after each step starts and ends, so a killed run stays recorded as `incomplete`.
-A failed target does not stop the run. `make rerun-failed` reruns the setup steps and only the
+A failed target does not stop the run. Every setup step runs, also after a failed one; `CHECK_NEEDS`
+names the setup steps that each target reads, a target whose setup step failed is recorded as
+`skipped` with that step, and every other target runs. `make verify-build` runs each of its checks
+and names each failed one. `make rerun-failed` reruns the setup steps and only the
 targets of that record that did not pass, and is refused without a record of the current tree or
 when every target passed. A fresh checkout has no record. Both entries install
 the build-probe fixture that the tests read, so `python3 -m tools.holder_lock run check` holds the

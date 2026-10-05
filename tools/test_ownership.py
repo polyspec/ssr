@@ -435,6 +435,8 @@ def case(root, behavior, value, members):
 
 
 def validate(root, declaration):
+    """Check the declaration against the workspace and return its cases. Every declaration error
+    is collected and reported together in one OwnershipError, so one run names them all."""
     root = Path(root)
     members, dependencies = workspace(root)
     if not isinstance(declaration, dict) or set(declaration) != {"behaviors"}:
@@ -442,70 +444,95 @@ def validate(root, declaration):
     behaviors = declaration["behaviors"]
     if not isinstance(behaviors, list) or not behaviors:
         raise OwnershipError("at least one behavior is required")
+    errors = []
     cases = []
     seen = set()
+    valid = []
     for behavior in behaviors:
-        if not isinstance(behavior, dict) or set(behavior) != {"id", "owner", "consumers", "exports"}:
-            raise OwnershipError("behavior must name id, owner, exports and consumers")
-        name = behavior["id"]
-        if not isinstance(name, str) or not IDENTIFIER.fullmatch(name) or name in seen:
-            raise OwnershipError(f"invalid or repeated behavior: {name}")
-        seen.add(name)
-        owner = case(root, name, behavior["owner"], members)
-        exported = behavior["exports"]
-        if (not isinstance(exported, list) or not exported
-                or any(not isinstance(item, str) or not IDENTIFIER.fullmatch(item) for item in exported)
-                or len(exported) != len(set(exported))):
-            raise OwnershipError(f"{name}: exports must be a nonempty list of unique public names")
-        declared = behavior["consumers"]
-        if not isinstance(declared, list):
-            raise OwnershipError(f"{name}: consumers must be a list")
-        consumers = [case(root, name, item, members) for item in declared]
-        names = [item.crate for item in consumers]
-        if len(names) != len(set(names)):
-            raise OwnershipError(f"{name}: repeated consumer crate")
-        cases.extend([owner, *consumers])
+        try:
+            if not isinstance(behavior, dict) or set(behavior) != {"id", "owner", "consumers", "exports"}:
+                raise OwnershipError("behavior must name id, owner, exports and consumers")
+            name = behavior["id"]
+            if not isinstance(name, str) or not IDENTIFIER.fullmatch(name) or name in seen:
+                raise OwnershipError(f"invalid or repeated behavior: {name}")
+            seen.add(name)
+            owner = case(root, name, behavior["owner"], members)
+            exported = behavior["exports"]
+            if (not isinstance(exported, list) or not exported
+                    or any(not isinstance(item, str) or not IDENTIFIER.fullmatch(item) for item in exported)
+                    or len(exported) != len(set(exported))):
+                raise OwnershipError(f"{name}: exports must be a nonempty list of unique public names")
+            declared = behavior["consumers"]
+            if not isinstance(declared, list):
+                raise OwnershipError(f"{name}: consumers must be a list")
+            consumers = []
+            for item in declared:
+                try:
+                    consumers.append(case(root, name, item, members))
+                except OwnershipError as error:
+                    errors.append(str(error))
+            names = [item["crate"] for item in declared if isinstance(item, dict) and "crate" in item]
+            if len(names) != len(set(names)):
+                raise OwnershipError(f"{name}: repeated consumer crate")
+            cases.extend([owner, *consumers])
+            valid.append(behavior)
+        except OwnershipError as error:
+            errors.append(str(error))
 
     owner_exports = {}
     behavior_for_export = {}
-    for behavior in behaviors:
+    for behavior in valid:
         owner_name = behavior["owner"]["crate"]
-        owner_exports.setdefault(owner_name, public_root_exports(root / "crates" / owner_name))
+        try:
+            owner_exports.setdefault(owner_name, public_root_exports(root / "crates" / owner_name))
+        except OwnershipError as error:
+            errors.append(str(error))
+            continue
         for exported in behavior["exports"]:
             if exported not in owner_exports[owner_name]:
-                raise OwnershipError(f"{behavior['id']}: owner does not export {owner_name}::{exported}")
+                errors.append(f"{behavior['id']}: owner does not export {owner_name}::{exported}")
+                continue
             key = (owner_name, exported)
             if key in behavior_for_export:
-                raise OwnershipError(f"public root name is assigned more than once: {owner_name}::{exported}")
+                errors.append(f"public root name is assigned more than once: {owner_name}::{exported}")
+                continue
             behavior_for_export[key] = behavior["id"]
     for owner_name, exports in owner_exports.items():
         declared_exports = {export for crate, export in behavior_for_export if crate == owner_name}
         if exports != declared_exports:
-            raise OwnershipError(
+            errors.append(
                 f"{owner_name}: declared public names {sorted(declared_exports)} differ from root exports {sorted(exports)}"
             )
 
-    actual_consumers = {name: set() for name in seen}
+    actual_consumers = {behavior["id"]: set() for behavior in valid}
     for crate_name, aliases in dependencies.items():
         aliases = {alias: target for alias, target in aliases.items() if target in owner_exports}
         if not aliases:
             continue
         for path in source_files(root / "crates" / crate_name):
-            tokens = rust_tokens(path.read_text())
-            for owner_name, exported in references(tokens, aliases, owner_exports):
+            try:
+                found = references(rust_tokens(path.read_text()), aliases, owner_exports)
+            except OwnershipError as error:
+                errors.append(f"{path}: {error}")
+                continue
+            for owner_name, exported in found:
                 behavior_name = behavior_for_export.get((owner_name, exported))
                 if behavior_name is None:
-                    raise OwnershipError(f"unmapped public name: {owner_name}::{exported}")
+                    errors.append(f"unmapped public name: {owner_name}::{exported}")
+                    continue
                 actual_consumers[behavior_name].add(crate_name)
 
-    for behavior in behaviors:
+    for behavior in valid:
         name = behavior["id"]
         declared = {item["crate"] for item in behavior["consumers"]}
         actual = actual_consumers[name]
         if actual != declared:
-            raise OwnershipError(
+            errors.append(
                 f"{name}: declared consumer crates {sorted(declared)} differ from Rust source consumers {sorted(actual)}"
             )
+    if errors:
+        unique = list(dict.fromkeys(errors))
+        raise OwnershipError(f"{len(unique)} declaration errors:\n" + "\n".join(f"  {error}" for error in unique))
     return cases
 
 

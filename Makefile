@@ -22,6 +22,9 @@ HOOKS_PATH := $(shell test "$$(git config core.hooksPath)" = .githooks || git co
 # and process start time.
 CHECK_SETUP = verify-archive check-fixtures
 CHECK_TARGETS = check-tools check-ownership check-records check-fmt check-clippy check-deny check-engine-deps check-examples check-nextest check-features check-bench check-linux
+# The setup steps that each target reads: a failed setup step skips only these targets, and every
+# other target runs, so one run reports every check that does not depend on the failure.
+CHECK_NEEDS = check-tools=check-fixtures check-ownership=verify-archive,check-fixtures check-clippy=verify-archive check-examples=verify-archive check-nextest=verify-archive,check-fixtures check-features=verify-archive,check-fixtures check-bench=verify-archive
 FULL_RUN = python3 -m tools.holder_lock run check -- python3 -m tools.full_run
 
 # A make without a target runs the full suite entry, so no command runs its steps without the guard.
@@ -46,10 +49,10 @@ hooks-check:
 	python3 -m tools.push_gate hooks-check
 
 check:
-	$(FULL_RUN) check --setup $(CHECK_SETUP) --targets $(CHECK_TARGETS)
+	$(FULL_RUN) check --setup $(CHECK_SETUP) --targets $(CHECK_TARGETS) --needs $(CHECK_NEEDS)
 
 rerun-failed:
-	$(FULL_RUN) rerun-failed --setup $(CHECK_SETUP)
+	$(FULL_RUN) rerun-failed --setup $(CHECK_SETUP) --needs $(CHECK_NEEDS)
 
 check-fixtures:
 	npm ci --prefix tools/build-probe/tests/fixtures --install-links --ignore-scripts --no-audit --no-fund
@@ -113,10 +116,14 @@ verify-engine-down:
 verify-engine-deps:
 	cargo deny --manifest-path verification/engine/Cargo.toml --config deny.toml check --hide-inclusion-graph $(DENY_CHECKS)
 
+# Every check of the build verification runs, also after a failed one; the recipe names each
+# failed check and fails after the last one.
 verify-build:
 	python3 -m tools.tool_versions check
-	npm ci --prefix tools/build-probe/tests/fixtures --install-links --ignore-scripts --no-audit --no-fund
-	cargo fmt --manifest-path tools/build-probe/Cargo.toml -- --check
-	CARGO_TARGET_DIR=$(CURDIR)/target cargo clippy --manifest-path tools/build-probe/Cargo.toml --all-targets --locked -- -D warnings
-	CARGO_TARGET_DIR=$(CURDIR)/target cargo nextest run --manifest-path tools/build-probe/Cargo.toml --test build_verification --locked --no-tests fail
-	cargo deny --manifest-path tools/build-probe/Cargo.toml --config deny.toml --locked check --hide-inclusion-graph $(DENY_CHECKS)
+	status=0; \
+	npm ci --prefix tools/build-probe/tests/fixtures --install-links --ignore-scripts --no-audit --no-fund || { status=1; echo 'FAIL verify-build: npm ci'; }; \
+	cargo fmt --manifest-path tools/build-probe/Cargo.toml -- --check || { status=1; echo 'FAIL verify-build: cargo fmt'; }; \
+	CARGO_TARGET_DIR=$(CURDIR)/target cargo clippy --manifest-path tools/build-probe/Cargo.toml --all-targets --locked -- -D warnings || { status=1; echo 'FAIL verify-build: cargo clippy'; }; \
+	CARGO_TARGET_DIR=$(CURDIR)/target cargo nextest run --manifest-path tools/build-probe/Cargo.toml --test build_verification --locked --no-tests fail || { status=1; echo 'FAIL verify-build: cargo nextest run'; }; \
+	cargo deny --manifest-path tools/build-probe/Cargo.toml --config deny.toml --locked check --hide-inclusion-graph $(DENY_CHECKS) || { status=1; echo 'FAIL verify-build: cargo deny'; }; \
+	exit $$status

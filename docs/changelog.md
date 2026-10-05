@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Report every check of one run: a failed setup step of `make check` skips
+  only the targets that read its output, `make verify-build` runs each of its
+  checks, and the ownership check reports every declaration error.
+
 - Judge tool results by stable output: the ownership and feature checks read
   the libtest-json report of nextest, the engine mount check judges access
   modes only, and the browser and archive cases no longer read browser error

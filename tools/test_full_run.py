@@ -24,6 +24,8 @@ DONE = CHECKLIST.replace("[~]", "[o]")
 # untracked file `pass-b` exists, so a test changes its result without changing the tree.
 MAKEFILE = """setup:
 \techo setup >> {log}
+broken:
+\techo broken >> {log}; false
 a:
 \techo a >> {log}
 b:
@@ -113,9 +115,9 @@ class EntryTest(TestCase):
     def test_make_check_starts_with_the_guard(self):
         lines = (ROOT / "Makefile").read_text().splitlines()
         self.assertEqual(lines[lines.index("check:") + 1].strip(),
-                         "$(FULL_RUN) check --setup $(CHECK_SETUP) --targets $(CHECK_TARGETS)")
+                         "$(FULL_RUN) check --setup $(CHECK_SETUP) --targets $(CHECK_TARGETS) --needs $(CHECK_NEEDS)")
         self.assertEqual(lines[lines.index("rerun-failed:") + 1].strip(),
-                         "$(FULL_RUN) rerun-failed --setup $(CHECK_SETUP)")
+                         "$(FULL_RUN) rerun-failed --setup $(CHECK_SETUP) --needs $(CHECK_NEEDS)")
         self.assertIn("FULL_RUN = python3 -m tools.holder_lock run check -- python3 -m tools.full_run", lines)
         self.assertIn(".DEFAULT_GOAL := check", lines)
 
@@ -162,6 +164,30 @@ class GuardTest(TestCase):
             self.assertIn("untracked files, which the run would read but the tree does not hold:", result.stdout)
             self.assertIn("  docs/module.rs", result.stdout)
             self.assertEqual(checkout.ran(), [])
+
+    def test_a_failed_setup_step_skips_only_the_targets_that_read_it(self):
+        with TemporaryDirectory() as directory:
+            checkout = Checkout(directory, DONE)
+            (checkout.root / "pass-b").write_text("")
+            result = subprocess.run(
+                [sys.executable, "-m", "tools.full_run", "check", "--root", str(checkout.root),
+                 "--setup", "broken", "setup", "--targets", "a", "b", "c", "--needs", "a=broken", "c=setup"],
+                cwd=ROOT, capture_output=True, text=True, check=False)
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertEqual(checkout.ran(), ["broken", "setup", "b", "c"])
+            self.assertIn("SKIP a: it reads the output of the failed setup step broken", result.stdout)
+            record = checkout.record()
+            self.assertEqual([(step["name"], step["status"]) for step in record["targets"]],
+                             [("a", "skipped"), ("b", "passed"), ("c", "passed")])
+            self.assertEqual(record["targets"][0]["reason"], "setup step broken failed")
+            self.assertEqual(record["failed"], ["a"])
+
+    def test_needs_name_known_setup_steps(self):
+        for needs in (["a=other"], ["a="], ["=setup"], ["a=setup", "a=setup"]):
+            self.assertIsNone(full_run.parse("check", ["--setup", "setup", "--targets", "a", "--needs", *needs]),
+                              needs)
+        self.assertEqual(full_run.parse("rerun-failed", ["--setup", "setup", "--needs", "a=setup"])[1:],
+                         (["setup"], [], {"a": ["setup"]}))
 
     def test_second_full_run_of_the_same_tree_is_refused(self):
         with TemporaryDirectory() as directory:

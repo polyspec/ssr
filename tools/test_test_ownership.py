@@ -57,6 +57,16 @@ class TestOwnershipTest(unittest.TestCase):
         self.assertEqual([(case.crate, case.test) for case in cases],
                          [("ssr-core", "base"), ("ssr-runtime", "uses_page")])
 
+    def test_every_declaration_error_is_reported(self):
+        declaration = copy.deepcopy(self.declaration)
+        declaration["behaviors"][0]["consumers"][0]["test"] = "absent"
+        declaration["behaviors"][0]["exports"] = ["Page", "Missing"]
+        with self.assertRaises(test_ownership.OwnershipError) as raised:
+            test_ownership.validate(self.root, declaration)
+        message = str(raised.exception)
+        self.assertIn("missing or repeated test ssr-runtime::use_page absent", message)
+        self.assertIn("owner does not export ssr-core::Missing", message)
+
     def test_missing_consumer_is_rejected(self):
         declaration = copy.deepcopy(self.declaration)
         declaration["behaviors"][0]["consumers"] = []

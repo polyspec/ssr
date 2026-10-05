@@ -81,8 +81,9 @@ class EntryTest(TestCase):
     def test_the_full_suite_checks_no_advisory_and_the_review_does(self):
         self.assertEqual(recipe("check-deny"), ["cargo deny check $(DENY_CHECKS)"])
         self.assertIn("DENY_CHECKS = bans licenses sources", (ROOT / "Makefile").read_text().splitlines())
-        for command in recipe("verify-engine-deps") + recipe("verify-build")[-1:]:
-            self.assertTrue(command.endswith("$(DENY_CHECKS)"), command)
+        self.assertTrue(recipe("verify-engine-deps")[0].endswith("$(DENY_CHECKS)"))
+        [deny] = [command for command in recipe("verify-build") if "cargo deny" in command]
+        self.assertIn("--hide-inclusion-graph $(DENY_CHECKS) || ", deny)
         self.assertEqual([command for command in recipe("review-advisories") if "cargo deny" in command], [
             "cargo deny check advisories",
             "cargo deny --manifest-path verification/engine/Cargo.toml --config deny.toml check "
@@ -91,3 +92,14 @@ class EntryTest(TestCase):
             "--hide-inclusion-graph advisories"])
         self.assertNotIn("review-advisories", next(line for line in (ROOT / "Makefile").read_text().splitlines()
                                                    if line.startswith("CHECK_TARGETS = ")))
+
+
+class AccumulationTest(TestCase):
+    def test_every_check_of_the_build_verification_runs(self):
+        commands = recipe("verify-build")
+        self.assertEqual(commands[:2], ["python3 -m tools.tool_versions check", "status=0; \\"])
+        self.assertEqual(commands[-1], "exit $$status")
+        checks = commands[2:-1]
+        self.assertEqual(len(checks), 5)
+        for command in checks:
+            self.assertRegex(command, r" \|\| \{ status=1; echo 'FAIL verify-build: [a-z ]+'; \}; \\$")

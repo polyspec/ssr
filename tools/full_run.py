@@ -16,12 +16,16 @@ tree, the commit, the result, the targets that did not pass, every setup step an
 status, exit status and times, and each rerun. The guard writes it before the first step and after
 every step starts and ends, so a run that is killed stays recorded with the result
 ``incomplete``. Setup steps install the inputs that the targets read; they run before the targets
-of both entries and are not targets. A failed setup step stops the run. A failed target does not
-stop the run, so one run reports every target. Steps are make targets of the checkout; each step
+of both entries and are not targets. Every setup step runs, also after a failed one. ``--needs``
+names the setup steps that a target reads (``<target>=<setup>,<setup>``); a target whose setup step
+failed is recorded as ``skipped`` with that step, and every other target runs. A failed target does
+not stop the run, so one run reports every target. Steps are make targets of the checkout; each step
 reports its start, result and elapsed time, and none has a time limit.
 
     python3 -m tools.full_run check [--root <checkout>] --setup <target>... --targets <target>...
+        [--needs <target>=<setup>,...]
     python3 -m tools.full_run rerun-failed [--root <checkout>] --setup <target>...
+        [--needs <target>=<setup>,...]
 """
 
 from datetime import datetime, timezone
@@ -148,6 +152,7 @@ def run_step(root, step, record, path):
     """Run one make target, recording its start and result. SIGINT, SIGTERM and SIGHUP go to the
     step; the run then stops with the step recorded as interrupted."""
     print(f"RUN {step['name']}", flush=True)
+    step.pop("reason", None)
     step.update(status="running", exit=None, started=now(), ended=None)
     write(path, record)
     started = time.monotonic()
@@ -181,7 +186,8 @@ def finish(record):
     record["result"] = "failed" if record["failed"] else "passed"
 
 
-def run(mode, setup, targets, root=ROOT):
+def run(mode, setup, targets, root=ROOT, needs=None):
+    needs = needs or {}
     root = Path(root)
     path = root / "var/full-run.json"
     entry = ENTRIES[mode]
@@ -225,13 +231,17 @@ def run(mode, setup, targets, root=ROOT):
     write(path, record)
     selected = [target for target in record["targets"] if target["name"] in decision.targets]
     try:
-        for step in steps:
-            if not run_step(root, step, record, path):
-                print(f"full-run: setup step {step['name']} failed; no target runs", flush=True)
-                break
-        else:
-            for step in selected:
-                run_step(root, step, record, path)
+        failed_setup = [step["name"] for step in steps if not run_step(root, step, record, path)]
+        for step in selected:
+            blocked = [name for name in failed_setup if name in needs.get(step["name"], ())]
+            if blocked:
+                step.update(status="skipped", exit=None, started=None, ended=None,
+                            reason=f"setup step {', '.join(blocked)} failed")
+                write(path, record)
+                print(f"SKIP {step['name']}: it reads the output of the failed setup step "
+                      f"{', '.join(blocked)}", flush=True)
+                continue
+            run_step(root, step, record, path)
     except Interrupted as interrupted:
         print(f"full-run: interrupted by {interrupted}; {entry} is recorded as incomplete in {path}",
               flush=True)
@@ -247,21 +257,46 @@ def run(mode, setup, targets, root=ROOT):
     return 1 if record["failed"] else 0
 
 
+USAGE = ("usage: python3 -m tools.full_run check [--root <checkout>] --setup <target>... --targets <target>... "
+         "[--needs <target>=<setup>,...]\n"
+         "       python3 -m tools.full_run rerun-failed [--root <checkout>] --setup <target>... "
+         "[--needs <target>=<setup>,...]")
+
+
+def parse(mode, rest):
+    """The options of an entry, or None when they are invalid."""
+    options = {"--root": [], "--setup": [], "--targets": [], "--needs": []}
+    current = None
+    for argument in rest:
+        if argument in options:
+            if options[argument] or argument == current:
+                return None
+            current = argument
+        elif current is None:
+            return None
+        else:
+            options[current].append(argument)
+    if len(options["--root"]) > 1 or not options["--setup"] or (mode == "check") != bool(options["--targets"]):
+        return None
+    needs = {}
+    for item in options["--needs"]:
+        target, _, names = item.partition("=")
+        steps = names.split(",") if names else []
+        if (not target or target in needs or not steps
+                or any(step not in options["--setup"] for step in steps)):
+            return None
+        needs[target] = steps
+    root = Path(options["--root"][0]) if options["--root"] else ROOT
+    return root, options["--setup"], options["--targets"], needs
+
+
 def main(argv):
     if argv and argv[0] in ENTRIES:
-        mode, rest = argv[0], argv[1:]
-        root = ROOT
-        if rest[:1] == ["--root"] and len(rest) > 1:
-            root, rest = Path(rest[1]), rest[2:]
-        if rest[:1] == ["--setup"]:
-            rest = rest[1:]
-            separator = rest.index("--targets") if "--targets" in rest else len(rest)
-            setup, targets = rest[:separator], rest[separator + 1:]
-            if setup and (mode == "check") == bool(targets) and (mode == "check") == ("--targets" in rest):
-                return run(mode, setup, targets, root)
-    print("usage: python3 -m tools.full_run check [--root <checkout>] --setup <target>... --targets <target>...\n"
-          "       python3 -m tools.full_run rerun-failed [--root <checkout>] --setup <target>...",
-          file=sys.stderr)
+        parsed = parse(argv[0], argv[1:])
+        if parsed is not None:
+            root, setup, targets, needs = parsed
+            return run(argv[0], setup, targets, root, needs)
+    print(USAGE, file=sys.stderr)
     return 2
 
 

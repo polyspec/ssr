@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- 한 실행의 모든 검사를 보고한다. `make check`의 setup 단계가 실패하면 그 출력을
+  읽는 target만 건너뛰고, `make verify-build`는 각 검사를 실행하며, ownership
+  검사는 모든 선언 오류를 보고한다.
+
 - 도구 결과를 안정된 출력으로 판정한다. ownership과 feature 검사는 nextest의
   libtest-json 보고를 읽고, engine mount 검사는 접근 mode만 판정하며, browser와
   archive 사례는 더 이상 browser 오류 문구나 `make --dry-run` 출력을 읽지 않는다.

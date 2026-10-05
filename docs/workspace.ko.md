@@ -27,7 +27,9 @@ fixture 설치) 다음에 `CHECK_TARGETS`의 각 target을 자기 make target으
 동안, 추적되지도 무시되지도 않는 file이 있는 동안(각 file을 적는다. 단계는 tree에 없는 그런 file을 읽을 수 있다), pre-push hook이 설치되지 않은 동안(아래 참고), 그리고 `var/full-run.json`이 같은 tree(`git rev-parse HEAD^{tree}`)의 전체 실행을 기록하고 있을 때(그 실행을
 적는다) 이유와 0이 아닌 종료 상태로 실행을 거부한다. 기록은 tree, commit, 결과, 통과하지 못한 target과 각 단계의
 시각을 담는다. 첫 단계 전과 각 단계의 시작과 끝마다 쓰므로 강제 종료된 실행은 `incomplete`로 남는다. 실패한
-target이 있어도 실행은 멈추지 않는다. `make rerun-failed`는 setup 단계와 그 기록에서 통과하지 못한 target만 다시
+target이 있어도 실행은 멈추지 않는다. 모든 setup 단계는 앞선 단계가 실패해도 실행된다. `CHECK_NEEDS`는
+각 target이 읽는 setup 단계를 적고, setup 단계가 실패한 target은 그 단계와 함께 `skipped`로 기록되며 다른 모든
+target은 실행된다. `make verify-build`는 각 검사를 실행하고 실패한 검사마다 이름을 적는다. `make rerun-failed`는 setup 단계와 그 기록에서 통과하지 못한 target만 다시
 실행하며, 현재 tree의 기록이 없거나 모든 target이 통과했으면 거부된다. 새 checkout에는 기록이
 없다. 두 진입점 모두 테스트가 읽는 build-probe fixture를 설치하므로, `python3 -m tools.holder_lock run check`가
 모든 단계 동안 checkout lock `var/locks/check.lock`을 잡는다. 같은 checkout의 두 번째 실행은 holder의 checkout,
