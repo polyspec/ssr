@@ -16,13 +16,13 @@ class ArchiveTest(TestCase):
         root = Path(__file__).resolve().parents[1]
         metadata = subprocess.run(["cargo", "metadata", "--manifest-path", "tools/build-probe/Cargo.toml",
                                    "--no-deps", "--offline", "--format-version", "1"], cwd=root,
-                                  capture_output=True, text=True, timeout=10, check=False)
+                                  capture_output=True, text=True, check=False)
         self.assertEqual(metadata.returncode, 0, metadata.stderr)
         packages = json.loads(metadata.stdout)["packages"]
         dependencies = {item["name"] for package in packages for item in package["dependencies"]}
         self.assertFalse({"deno_core", "v8"} & dependencies)
         result = subprocess.run(["make", "--dry-run", "verify-build"], cwd=root,
-                                capture_output=True, text=True, timeout=10, check=False)
+                                capture_output=True, text=True, check=False)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertNotIn("tools/verify_archive.py", result.stdout)
 
@@ -95,8 +95,9 @@ class ArchiveTest(TestCase):
         metadata["resolve"]["nodes"][0]["features"].remove("default")
         verify_archive.check_features(metadata)
         metadata["resolve"]["nodes"][0]["features"].append("v8_enable_pointer_compression")
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, r"expected \['simdutf', 'use_custom_libcxx'\], actual "
+                                                r"\[\['simdutf', 'use_custom_libcxx', 'v8_enable_pointer_compression'\]\]"):
             verify_archive.check_features(metadata)
         metadata["packages"][0]["version"] = "150.3.0"
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, r"selected versions: \['150.3.0'\]"):
             verify_archive.check_features(metadata)

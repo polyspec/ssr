@@ -61,12 +61,15 @@ def check_environment(archive, binding):
 
 def check_features(metadata):
     packages = [package for package in metadata["packages"] if package["name"] == "v8"]
-    if len(packages) != 1 or packages[0]["version"] != "150.4.0":
-        raise ValueError("exactly V8 150.4.0 must be selected")
+    if [package["version"] for package in packages] != ["150.4.0"]:
+        raise ValueError(f"exactly V8 150.4.0 must be selected; selected versions: "
+                         f"{[package['version'] for package in packages]}")
     package_id = packages[0]["id"]
     nodes = [node for node in metadata["resolve"]["nodes"] if node["id"] == package_id]
-    if len(nodes) != 1 or set(nodes[0]["features"]) - {"default"} != {"simdutf", "use_custom_libcxx"}:
-        raise ValueError("V8 Cargo features do not match the simdutf release archive")
+    features = [sorted(set(node["features"]) - {"default"}) for node in nodes]
+    if features != [["simdutf", "use_custom_libcxx"]]:
+        raise ValueError(f"V8 Cargo features do not match the simdutf release archive: expected "
+                         f"['simdutf', 'use_custom_libcxx'], actual {features}")
 
 
 def check_metadata(root, target):

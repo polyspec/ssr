@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Make each failure name its cause: the benchmark runs the executable that
+  its build reports, and the engine status, archive, record and runtime child
+  checks name the command output and the expected and actual values.
+
 - Judge the runtime cancellation cases by events: the unread stream case
   waits for the worker to return its capacity instead of sleeping, and normal
   renders in these cases are no longer bounded by 300 ms.

@@ -115,7 +115,7 @@ def check_words(root):
     if (root / ".git").exists():
         result = subprocess.run(["git", "log", "--format=%B"], cwd=root, capture_output=True, text=True, check=False)
         if result.returncode:
-            errors.append("git log: failed")
+            errors.append(f"git log exited with {result.returncode}: {result.stderr.strip()}")
         elif found(result.stdout):
             errors.append("git log: prohibited record word")
     return errors

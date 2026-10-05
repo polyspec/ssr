@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- 각 실패가 원인을 적게 한다. 벤치마크는 자기 build가 보고한 실행 파일을
+  실행하고, engine 상태, archive, 기록, runtime child 검사는 command 출력과 기대
+  값, 실제 값을 적는다.
+
 - runtime 취소 사례를 event로 판정한다. 읽지 않은 stream 사례는 잠드는 대신
   worker가 capacity를 돌려주기를 기다리고, 이 사례들의 정상 render는 더 이상
   300 ms로 묶이지 않는다.

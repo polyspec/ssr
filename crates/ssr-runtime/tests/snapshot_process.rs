@@ -80,7 +80,6 @@ async fn svelte_compilation_after_snapshot_selection_returns_an_error() {
     use ssr_build::{BuildConfig, build};
     use std::path::Path;
     use std::process::Command;
-    use wait_timeout::ChildExt;
     const TEST: &str = "svelte_compilation_after_snapshot_selection_returns_an_error";
     if std::env::var_os("SSR_COMPILER_AFTER_SNAPSHOT").is_some() {
         let _pool =
@@ -117,22 +116,20 @@ async fn svelte_compilation_after_snapshot_selection_returns_an_error() {
         );
         return;
     }
-    let mut child = Command::new(std::env::current_exe().unwrap())
+    // The child's output is captured and named in a failure; the nextest limit of this case
+    // bounds the child, which runs in the case's process group.
+    let output = Command::new(std::env::current_exe().unwrap())
         .args(["--exact", TEST, "--nocapture"])
         .env("SSR_COMPILER_AFTER_SNAPSHOT", "1")
-        .spawn()
+        .output()
         .unwrap();
-    match child.wait_timeout(Duration::from_secs(20)).unwrap() {
-        Some(status) => assert!(
-            status.success(),
-            "compiler process did not return the required error: {status}"
-        ),
-        None => {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("compiler process timed out");
-        }
-    }
+    assert!(
+        output.status.success(),
+        "the compiler process did not return the required error: {}\nstdout:\n{}\nstderr:\n{}",
+        output.status,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
 #[tokio::test]

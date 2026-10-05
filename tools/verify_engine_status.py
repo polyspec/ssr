@@ -22,18 +22,22 @@ def main() -> int:
             capture_output=True,
             text=True,
             timeout=30,
-            check=True,
+            check=False,
         )
+        if result.returncode:
+            raise ValueError(f"containerctl status --json exited with {result.returncode}: "
+                             f"{(result.stderr or result.stdout).strip()}")
         groups = json.loads(result.stdout)["groups"]
         group = next(group for group in groups if group["name"] == names(ROOT)["project"])
         if group.get("error") or group["stackPath"] != str(COMPOSE):
             raise ValueError(f"invalid engine Compose status: {group.get('error')}, {group['stackPath']}")
         if not any(service["name"] == "engine" for service in group["services"]):
             raise ValueError("engine service is missing")
-    except subprocess.TimeoutExpired:
-        print(f"TIMEOUT engine Compose status {time.monotonic() - start:.3f}s", file=sys.stderr)
+    except subprocess.TimeoutExpired as error:
+        print(f"TIMEOUT engine Compose status: containerctl status --json did not exit within 30 s "
+              f"({time.monotonic() - start:.3f}s); output: {error.stdout!r} {error.stderr!r}", file=sys.stderr)
         return 1
-    except (OSError, subprocess.CalledProcessError, ValueError, KeyError, StopIteration) as error:
+    except (OSError, ValueError, KeyError, StopIteration) as error:
         print(f"FAIL engine Compose status {time.monotonic() - start:.3f}s: {error}", file=sys.stderr)
         return 1
     print(f"PASS engine Compose status {time.monotonic() - start:.3f}s")

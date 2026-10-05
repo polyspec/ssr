@@ -127,7 +127,6 @@ async fn react_stream_pool_restores_request_contexts_for_repeated_calls() {
 #[test]
 fn application_snapshots_restore_in_separate_processes() {
     use std::process::{Command, Stdio};
-    use wait_timeout::ChildExt;
     const FIXTURE: &str = "SSR_SNAPSHOT_PROCESS_CASE";
     const TEST: &str = "realm_tests::application_snapshots_restore_in_separate_processes";
     const FRAMEWORK: &str = "globalThis.__ssrReact = {}; globalThis.__ssrJsxRuntime = {}; globalThis.render = async (App, _props, state) => { const text = App(); let sent = false; return { stream: { getReader() { return { read() { if (sent) return Promise.resolve({done:true}); sent = true; return Promise.resolve({done:false, value:new TextEncoder().encode(text)}); } }; } }, state }; };";
@@ -170,28 +169,35 @@ fn application_snapshots_restore_in_separate_processes() {
         }
         return;
     }
-    let mut children: Vec<_> = ["Ada", "Bea", "Cy", "plain"]
+    // The processes run at the same time; each one's output is captured and named in a failure,
+    // and the nextest limit of this case bounds them in the case's process group.
+    let children: Vec<_> = ["Ada", "Bea", "Cy", "plain"]
         .into_iter()
         .map(|name| {
-            Command::new(std::env::current_exe().unwrap())
+            let child = Command::new(std::env::current_exe().unwrap())
                 .args(["--exact", TEST, "--nocapture"])
                 .env(FIXTURE, name)
                 .stdin(Stdio::null())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
                 .spawn()
-                .unwrap()
+                .unwrap();
+            (name, child)
         })
         .collect();
-    let mut failures = Vec::new();
-    for (index, child) in children.iter_mut().enumerate() {
-        match child.wait_timeout(Duration::from_secs(10)).unwrap() {
-            Some(status) if status.success() => {}
-            Some(status) => failures.push(format!("process {index} failed: {status}")),
-            None => {
-                child.kill().unwrap();
-                child.wait().unwrap();
-                failures.push(format!("process {index} timed out"));
-            }
-        }
-    }
-    assert!(failures.is_empty(), "{failures:?}");
+    let failures: Vec<_> = children
+        .into_iter()
+        .filter_map(|(name, child)| {
+            let output = child.wait_with_output().unwrap();
+            (!output.status.success()).then(|| {
+                format!(
+                    "process {name} failed: {}\nstdout:\n{}\nstderr:\n{}",
+                    output.status,
+                    String::from_utf8_lossy(&output.stdout),
+                    String::from_utf8_lossy(&output.stderr)
+                )
+            })
+        })
+        .collect();
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }

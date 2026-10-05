@@ -423,7 +423,6 @@ mod tests {
         use ssr_build::{BuildConfig, build};
         use std::path::Path;
         use std::process::Command;
-        use wait_timeout::ChildExt;
         const TEST: &str = "snapshot::tests::snapshot_creation_rejects_concurrent_svelte_compiler";
         if std::env::var_os("SSR_CONCURRENT_COMPILER").is_some() {
             let root = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -471,22 +470,20 @@ mod tests {
             );
             return;
         }
-        let mut child = Command::new(std::env::current_exe().unwrap())
+        // The child's output is captured and named in a failure; the nextest limit of this case
+        // bounds the child, which runs in the case's process group.
+        let output = Command::new(std::env::current_exe().unwrap())
             .args(["--exact", TEST, "--nocapture"])
             .env("SSR_CONCURRENT_COMPILER", "1")
-            .spawn()
+            .output()
             .unwrap();
-        match child.wait_timeout(Duration::from_secs(20)).unwrap() {
-            Some(status) => assert!(
-                status.success(),
-                "compiler process did not return the required error: {status}"
-            ),
-            None => {
-                child.kill().unwrap();
-                child.wait().unwrap();
-                panic!("compiler process timed out");
-            }
-        }
+        assert!(
+            output.status.success(),
+            "the compiler process did not return the required error: {}\nstdout:\n{}\nstderr:\n{}",
+            output.status,
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
 
     fn bundle(source: &str) -> Sources {
