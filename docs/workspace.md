@@ -7,7 +7,15 @@ The Rust 1.98.1 workspace contains the eight crates named in AGENTS.md. All crat
 dependency must use an exact version after its official release is checked.
 
 Run `make check` to check the document pairs and links, records, terminology, Python tool tests,
-Rust formatting, Clippy warnings, dependency advisories, licenses and sources, and Rust unit tests.
+Rust formatting, Clippy warnings, dependency bans, licenses and sources, and Rust unit tests.
+Security advisories come from a database that changes over time, so `make check` does not read
+them; `make review-advisories` reviews them for the workspace, the engine verification and the
+build verification. `tools/tool-versions.json` names every tool that the checks, builds and tests
+run with the exact first line of its version report, or the SHA-256 of a tool without one;
+`tools/tool_versions.py` compares the installed tools before any step of `make check` and
+`make rerun-failed`, in `tools/check.py`, as the first command of the other make targets and,
+for Python, in the pre-push hook, and fails naming the expected and the actual report. Every make
+invocation sets `RUSTUP_AUTO_INSTALL=0`, so a missing toolchain fails instead of being installed.
 Rust tests run with cargo-nextest 0.9.146. The nextest configuration terminates each test after
 30 seconds and prints its start and result with elapsed time. A missing test tool fails the command.
 The Python tool tests run through `tools/run_tests.py`, each in its own process group with a limit

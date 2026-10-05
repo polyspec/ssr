@@ -4,6 +4,12 @@
 
 ## 0.0.1
 
+- Remove the time, the registry and unpinned tools from the results:
+  `make check` checks dependency bans, licenses and sources, and
+  `make review-advisories` reviews security advisories separately; the license case reads tracked locks; rustup no longer installs a
+  missing toolchain; and `tools/tool-versions.json` declares every tool, which
+  each entry checks before its first step.
+
 - Run the example programs that the test build compiled: a nextest setup
   script builds the `development_process` and `socket_process` examples before
   any test of `ssr-server` and names them in `SSR_DEVELOPMENT_PROCESS` and

@@ -1,3 +1,4 @@
+import os
 import pathlib
 import subprocess
 import tempfile
@@ -115,22 +116,22 @@ class WorkspaceTest(unittest.TestCase):
                 check.markdown_files(pathlib.Path(temporary))
 
     def test_license_exceptions_are_exact_versions(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = pathlib.Path(temporary)
-            (root / "src").mkdir()
-            (root / "src/lib.rs").write_text("")
-            manifest = root / "Cargo.toml"
-            prefix = '[package]\nname = "license-verification"\nversion = "0.0.1"\nedition = "2024"\nlicense = "MIT"\n'
-            for version, accepted in (("0.8.18", True), ("0.8.17", False)):
-                manifest.write_text(prefix + f'\n[dependencies]\nxxhash-rust = "={version}"\ndragonbox_ecma = "=0.1.12"\n')
-                subprocess.run(["cargo", "generate-lockfile", "--manifest-path", str(manifest)],
-                               capture_output=True, text=True, check=True)
-                result = subprocess.run([
-                    "cargo", "deny", "--manifest-path", str(manifest),
-                    "--config", str(ROOT / "deny.toml"), "--locked", "check", "licenses",
-                    "--hide-inclusion-graph",
-                ], capture_output=True, text=True, check=False)
-                self.assertEqual(result.returncode == 0, accepted, result.stderr)
+        # Each tracked package has a tracked lock, so the case resolves nothing with the registry.
+        for version, accepted in (("0.8.18", True), ("0.8.17", False)):
+            manifest = ROOT / f"tools/license-fixtures/xxhash-{version}/Cargo.toml"
+            result = subprocess.run([
+                "cargo", "deny", "--manifest-path", str(manifest),
+                "--config", str(ROOT / "deny.toml"), "--locked", "--offline", "check", "licenses",
+                "--hide-inclusion-graph",
+            ], capture_output=True, text=True, check=False,
+                env={**os.environ, "CARGO_NET_OFFLINE": "true", "RUSTUP_AUTO_INSTALL": "0"})
+            self.assertEqual(result.returncode == 0, accepted,
+                             f"xxhash-rust {version}: exit {result.returncode}\n{result.stdout}{result.stderr}")
+
+    def test_license_fixtures_lock_the_exact_versions(self):
+        for version in ("0.8.18", "0.8.17"):
+            lock = (ROOT / f"tools/license-fixtures/xxhash-{version}/Cargo.lock").read_text()
+            self.assertIn(f'name = "xxhash-rust"\nversion = "{version}"\n', lock)
 
 
 if __name__ == "__main__":

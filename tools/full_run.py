@@ -5,7 +5,8 @@ Before any step runs, the guard decides and prints the decision with its reasons
 both entries while an item of ``docs/checklist.md``, sub-items included, is in progress (``[~]``),
 naming each such item, while tracked files have uncommitted changes, while files that are neither
 tracked nor ignored exist, which a step would read although the tree does not hold them, and while
-the pre-push hook is not installed (``tools/push_gate.py hooks-check``). ``check`` is refused when
+the pre-push hook is not installed (``tools/push_gate.py hooks-check``), and while a tool differs from
+``tools/tool-versions.json`` (``tools/tool_versions.py``). ``check`` is refused when
 the record names a full run of the current tree (``git rev-parse HEAD^{tree}``): the full suite
 runs once per tree. ``rerun-failed`` is refused unless the record is of the current tree and names
 targets that did not pass; it runs only those targets.
@@ -33,7 +34,7 @@ import subprocess
 import sys
 import time
 
-from tools import push_gate
+from tools import push_gate, tool_versions
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTRIES = {"check": "make check", "rerun-failed": "make rerun-failed"}
@@ -69,7 +70,7 @@ def unfinished(record):
     return [target["name"] for target in record["targets"] if target["status"] != "passed"]
 
 
-def decide(mode, items, changes, untracked, hooks, tree, record, targets):
+def decide(mode, items, changes, untracked, hooks, tools, tree, record, targets):
     """Decide whether ``mode`` may run; ``hooks`` are the reasons why the pre-push hook does not
     run, and ``targets`` are the targets of a full run."""
     reasons = []
@@ -82,6 +83,9 @@ def decide(mode, items, changes, untracked, hooks, tree, record, targets):
     if untracked:
         reasons.append("untracked files, which the run would read but the tree does not hold:")
         reasons += [f"  {path}" for path in untracked]
+    if tools:
+        reasons.append("tools differ from tools/tool-versions.json:")
+        reasons += [f"  {error}" for error in tools]
     if hooks:
         reasons.append("the pre-push hook is not installed:")
         reasons += [f"  {reason}" for reason in hooks]
@@ -186,8 +190,8 @@ def run(mode, setup, targets, root=ROOT):
     untracked = [path for path in git(root, "ls-files", "-z", "--others", "--exclude-standard").split("\0") if path]
     items = active_items((root / "docs/checklist.md").read_text(encoding="utf-8"))
     record = read(path)
-    decision = decide(mode, items, changes, untracked, push_gate.hooks_check(root), tree, record,
-                      targets)
+    decision = decide(mode, items, changes, untracked, push_gate.hooks_check(root), tool_versions.check(),
+                      tree, record, targets)
     if not decision.allowed:
         print(f"full-run: refused {entry}:", flush=True)
         for reason in decision.reasons:

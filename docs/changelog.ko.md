@@ -4,6 +4,12 @@
 
 ## 0.0.1
 
+- 결과에서 시간, registry, 고정되지 않은 도구를 없앤다. `make check`는 의존성
+  금지 목록, 라이선스, 출처를 검사하고 `make review-advisories`가 보안 공지를
+  따로 검토한다. license 사례는 추적되는 잠금 파일을 읽는다.
+  rustup은 더 이상 없는 toolchain을 설치하지 않는다. `tools/tool-versions.json`이
+  모든 도구를 선언하고 각 진입점이 첫 단계 전에 이를 검사한다.
+
 - test build가 컴파일한 예제 프로그램을 실행한다. nextest setup script가
   `ssr-server`의 어떤 test보다 먼저 `development_process`와 `socket_process`
   예제를 build하고 `SSR_DEVELOPMENT_PROCESS`와 `SSR_SOCKET_PROCESS`로 알리므로,

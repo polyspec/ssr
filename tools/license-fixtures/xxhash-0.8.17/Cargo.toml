@@ -1,0 +1,11 @@
+[package]
+name = "license-verification"
+version = "0.0.1"
+edition = "2024"
+license = "MIT"
+
+[workspace]
+
+[dependencies]
+xxhash-rust = "=0.8.17"
+dragonbox_ecma = "=0.1.12"

@@ -7,7 +7,7 @@ from urllib.parse import unquote
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from tools import push_gate  # noqa: E402
+from tools import push_gate, tool_versions  # noqa: E402
 RECORD_WORDS = (
     "envelope", "gate", "orphan", "adopt", "retire", "dead", "first-class", "carries", "speaks", "answers",
 )
@@ -178,9 +178,7 @@ def main():
     except OSError as error:
         print(error, file=sys.stderr)
         return 1
-    result = subprocess.run(["cargo", "nextest", "--version"], capture_output=True, text=True, check=False)
-    if result.returncode or not result.stdout.startswith("cargo-nextest 0.9.146 "):
-        errors.append("cargo-nextest 0.9.146 is required")
+    errors += tool_versions.check()
     for error in errors:
         print(error, file=sys.stderr)
     if errors:

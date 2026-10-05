@@ -76,7 +76,7 @@ class DecisionTest(TestCase):
             ("S-2", "Run the second item."), ("S-2-2", "Keep the nested part active.")])
 
     def test_check_with_an_active_item_is_refused(self):
-        decision = full_run.decide("check", full_run.active_items(CHECKLIST), [], [], [], "t1", None, ["a"])
+        decision = full_run.decide("check", full_run.active_items(CHECKLIST), [], [], [], [], "t1", None, ["a"])
         self.assertFalse(decision.allowed)
         self.assertIn("S-2 Run the second item.", "\n".join(decision.reasons))
         self.assertIn("S-2-2 Keep the nested part active.", "\n".join(decision.reasons))
@@ -84,19 +84,27 @@ class DecisionTest(TestCase):
     def test_check_without_the_pre_push_hook_is_refused(self):
         hooks = ["core.hooksPath is not .githooks; run make hooks"]
         for mode in ("check", "rerun-failed"):
-            decision = full_run.decide(mode, [], [], [], hooks, "t1", None, ["a"])
+            decision = full_run.decide(mode, [], [], [], hooks, [], "t1", None, ["a"])
             self.assertFalse(decision.allowed)
             self.assertIn("the pre-push hook is not installed:", decision.reasons)
             self.assertIn("  core.hooksPath is not .githooks; run make hooks", decision.reasons)
 
     def test_check_of_a_committed_tree_without_a_record_is_allowed(self):
-        decision = full_run.decide("check", [], [], [], [], "t1", None, ["a", "b"])
+        decision = full_run.decide("check", [], [], [], [], [], "t1", None, ["a", "b"])
         self.assertTrue(decision.allowed)
         self.assertEqual(decision.targets, ["a", "b"])
 
+    def test_a_tool_of_another_version_refuses_both_entries(self):
+        tools = ["node: expected 'v26.8.1' from node --version, actual 'v26.9.0'"]
+        for mode in ("check", "rerun-failed"):
+            decision = full_run.decide(mode, [], [], [], [], tools, "t1", None, ["a"])
+            self.assertFalse(decision.allowed)
+            self.assertIn("tools differ from tools/tool-versions.json:", decision.reasons)
+            self.assertIn(f"  {tools[0]}", decision.reasons)
+
     def test_rerun_of_another_tree_is_refused(self):
         record = {"tree": "t0", "targets": [{"name": "a", "status": "failed"}]}
-        decision = full_run.decide("rerun-failed", [], [], [], [], "t1", record, None)
+        decision = full_run.decide("rerun-failed", [], [], [], [], [], "t1", record, None)
         self.assertFalse(decision.allowed)
         self.assertIn("tree t0", decision.reasons[0])
 

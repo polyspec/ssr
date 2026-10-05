@@ -20,7 +20,8 @@ CHECKLIST = """# Checklist
 - [ ] S-3 Wait for the third item.
 """
 DONE = CHECKLIST.replace("[~]", "[o]")
-FILES = ("Makefile", ".githooks/pre-push", "tools/__init__.py", "tools/full_run.py", "tools/push_gate.py")
+FILES = ("Makefile", ".githooks/pre-push", "tools/__init__.py", "tools/full_run.py", "tools/push_gate.py",
+         "tools/tool_versions.py", "tools/tool-versions.json")
 
 
 def run(root, *arguments, env=None, stdin=None):
@@ -122,6 +123,19 @@ class HookTest(TestCase):
             result = checkout.push()
             self.assertNotEqual(result.returncode, 0)
             self.assertIn(f"push refused: refs/heads/main {removed[:12]} has no docs/checklist.md", result.stderr)
+            self.assertIsNone(checkout.remote_main())
+
+    def test_a_python_of_another_version_refuses_the_push(self):
+        with TemporaryDirectory() as directory:
+            checkout = Checkout(directory, DONE)
+            declaration = checkout.root / "tools/tool-versions.json"
+            declaration.write_text(declaration.read_text().replace('"version": "Python ', '"version": "Python 0.'))
+            checkout.commit("declare another Python")
+            checkout.install()
+            result = checkout.push()
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("push refused: the push check runs with another Python than tools/tool-versions.json "
+                          "declares: python3: expected 'Python 0.", result.stderr)
             self.assertIsNone(checkout.remote_main())
 
     def test_deleting_a_remote_branch_reads_only_the_working_tree(self):

@@ -6,8 +6,13 @@ Rust 1.98.1 워크스페이스는 AGENTS.md에 적힌 여덟 크레이트로 구
 0.0.1을 쓴다. 워크스페이스 잠금 파일은 의존성 해석 결과를 기록한다. 직접 의존성은 공식 배포 정보를 확인한 뒤
 정확한 버전으로 지정한다.
 
-`make check`는 문서 쌍과 링크, 기록, 용어, Python 도구 테스트, Rust 형식, Clippy 경고, 의존성 보안 공지와
-라이선스·출처, Rust 단위 테스트를 검사한다. Rust 테스트는 cargo-nextest 0.9.146으로 실행한다. nextest 설정은
+`make check`는 문서 쌍과 링크, 기록, 용어, Python 도구 테스트, Rust 형식, Clippy 경고, 의존성 금지 목록과
+라이선스·출처, Rust 단위 테스트를 검사한다. 보안 공지는 시간에 따라 바뀌는 database에서 오므로 `make check`는 이를
+읽지 않고, `make review-advisories`가 workspace, engine 검증, build 검증의 보안 공지를 검토한다.
+`tools/tool-versions.json`은 검사, build, test가 실행하는 모든 도구를 version 보고의 정확한 첫 줄로, 그것이 없는 도구는
+실행 파일의 SHA-256으로 적는다. `tools/tool_versions.py`는 설치된 도구를 `make check`와 `make rerun-failed`의 어떤 단계보다
+먼저, `tools/check.py`에서, 다른 make target의 첫 command로, 그리고 Python은 pre-push hook에서 비교하고, 기대 보고와 실제
+보고를 적고 실패한다. 모든 make 호출은 `RUSTUP_AUTO_INSTALL=0`을 설정하므로 없는 toolchain은 설치되지 않고 실패한다. Rust 테스트는 cargo-nextest 0.9.146으로 실행한다. nextest 설정은
 각 테스트를 30초 뒤 종료하고 시작 및 결과와 경과 시간을 출력한다. 테스트 도구가 없으면 명령은 실패한다.
 Python 도구 테스트는 `tools/run_tests.py`로 각자 자기 process group에서 30초 제한으로 실행한다. 제한을 넘은
 사례는 출력과 함께 보고하고 그 process group 전체를 죽이므로 사례가 시작한 process가 계속 실행되지 않는다.

@@ -29,7 +29,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-from tools import full_run
+from tools import full_run, tool_versions
 
 
 CHECKLIST = "docs/checklist.md"
@@ -93,6 +93,10 @@ def hook(root, lines):
     items = working_items(root)
     if items:
         entries.append(("working tree", items))
+    tools = tool_versions.check(["python3"])
+    if tools:
+        raise Refused("the push check runs with another Python than tools/tool-versions.json declares: "
+                      + "; ".join(tools))
     return refusal(entries) if entries else []
 
 
