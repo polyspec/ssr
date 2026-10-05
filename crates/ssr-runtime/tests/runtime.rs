@@ -1,10 +1,11 @@
+#[path = "../../ssr-build/tests/fixture/mod.rs"]
+mod fixture;
 mod support;
 use ssr_build::{BuildConfig, build};
 use ssr_core::{Page, Render};
 use ssr_runtime::{Error, Pool, ServerBundle};
 use std::fs;
 use std::io::Read;
-use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Barrier};
 use std::thread;
@@ -277,18 +278,12 @@ fn text_encoder_is_utf8_in_every_render_context() {
 
 #[tokio::test]
 async fn react_server_bundle_executes_with_text_encoder() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    assert!(
-        root.join("node_modules/react").is_dir(),
-        "install sample packages before tests"
-    );
-    let generated = root.join("node_modules/.ssr-runtime");
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
+    let generated = root.join("generated-ssr-runtime");
     fs::create_dir_all(&generated).unwrap();
     let server_entry = generated.join("server.tsx");
-    fs::write(&server_entry, "import React from 'react'; import {renderToString} from 'react-dom/server.edge'; import App from '../../ReactRuntimeApp'; export const render = (props, state) => ({head:'', html: renderToString(<App {...props}/>), state});").unwrap();
+    fs::write(&server_entry, "import React from 'react'; import {renderToString} from 'react-dom/server.edge'; import App from '../ReactRuntimeApp'; export const render = (props, state) => ({head:'', html: renderToString(<App {...props}/>), state});").unwrap();
     let output = build(&BuildConfig {
         root: root.clone(),
         server_entry,
@@ -296,7 +291,7 @@ async fn react_server_bundle_executes_with_text_encoder() {
         client_entry: root.join("client.tsx"),
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();

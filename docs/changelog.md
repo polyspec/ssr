@@ -4,6 +4,12 @@
 
 ## 0.0.1
 
+- Give each run its own build-probe packages and generated entries: the
+  packages are installed once per lock into an immutable directory published by
+  one rename, each test builds in a temporary root of its own with that
+  installation as its dependencies, and nothing writes into the checkout's
+  fixture directory.
+
 - Build the assets of a configured dependency package: a CSS or JavaScript
   asset may be a file under the application root or under the package
   directory, so a package configured with `BuildConfig::dependencies` ships its

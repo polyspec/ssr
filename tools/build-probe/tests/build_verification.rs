@@ -1,3 +1,5 @@
+#[path = "../../../crates/ssr-build/tests/fixture/mod.rs"]
+mod fixture;
 use std::collections::BTreeMap;
 use std::fs;
 use std::io;
@@ -9,13 +11,9 @@ use lightningcss::printer::PrinterOptions;
 use lightningcss::stylesheet::ParserOptions;
 use rolldown::{
     AssetFilenamesOutputOption, Bundler, BundlerOptions, ChunkFilenamesOutputOption,
-    CodeSplittingMode, InputItem, ModuleType, OutputFormat, Platform,
+    CodeSplittingMode, InputItem, ModuleType, OutputFormat, Platform, ResolveOptions,
 };
 use sha2::{Digest, Sha256};
-
-fn fixture() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures")
-}
 
 fn asset_name(path: &Path, bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
@@ -30,7 +28,7 @@ fn asset_name(path: &Path, bytes: &[u8]) -> String {
 
 struct PackageProvider {
     files: FileProvider,
-    root: PathBuf,
+    packages: PathBuf,
 }
 
 impl SourceProvider for PackageProvider {
@@ -48,16 +46,16 @@ impl SourceProvider for PackageProvider {
         let path = if specifier.starts_with("./") || specifier.starts_with("../") {
             originating_file.parent().unwrap().join(specifier)
         } else {
-            self.root.join("node_modules").join(specifier)
+            self.packages.join(specifier)
         };
         Ok(ResolveResult::File(path.canonicalize()?))
     }
 }
 
-fn css_build(root: &Path) -> (String, BTreeMap<String, Vec<u8>>) {
+fn css_build(root: &Path, packages: &Path) -> (String, BTreeMap<String, Vec<u8>>) {
     let provider = PackageProvider {
         files: FileProvider::new(),
-        root: root.to_path_buf(),
+        packages: packages.to_path_buf(),
     };
     let mut bundler = CssBundler::new(&provider, None, ParserOptions::default());
     let stylesheet = bundler.bundle(&root.join("app.css")).unwrap();
@@ -92,7 +90,7 @@ fn css_build(root: &Path) -> (String, BTreeMap<String, Vec<u8>>) {
     (css, assets)
 }
 
-async fn js_build(root: &Path, entry: &str) -> BTreeMap<String, Vec<u8>> {
+async fn js_build(root: &Path, packages: &Path, entry: &str) -> BTreeMap<String, Vec<u8>> {
     let types = [
         "png", "svg", "jpg", "gif", "webp", "avif", "ico", "woff", "woff2", "ttf",
     ]
@@ -118,6 +116,10 @@ async fn js_build(root: &Path, entry: &str) -> BTreeMap<String, Vec<u8>> {
             "assets/[name]-[hash][extname]".into(),
         )),
         module_types: Some(types),
+        resolve: Some(ResolveOptions {
+            modules: Some(vec![packages.to_string_lossy().into_owned()]),
+            ..Default::default()
+        }),
         ..Default::default()
     })
     .unwrap();
@@ -141,13 +143,10 @@ async fn js_build(root: &Path, entry: &str) -> BTreeMap<String, Vec<u8>> {
 
 #[tokio::test]
 async fn react_tsx_css_and_assets_build_with_rust_apis() {
-    let root = fixture();
-    assert!(
-        root.join("node_modules/react").is_dir(),
-        "run make verify-build"
-    );
-    let server = js_build(&root, "server").await;
-    let client = js_build(&root, "client").await;
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
+    let server = js_build(&root, &fixture.packages, "server").await;
+    let client = js_build(&root, &fixture.packages, "client").await;
     for (name, output, marker) in [
         ("server", &server, "renderToString"),
         ("client", &client, "createRoot"),
@@ -175,7 +174,7 @@ async fn react_tsx_css_and_assets_build_with_rust_apis() {
             );
         }
     }
-    let (css, css_assets) = css_build(&root);
+    let (css, css_assets) = css_build(&root, &fixture.packages);
     assert!(css.contains("font-family: Inter"));
     assert!(css.contains("/assets/sample-"));
     assert!(css_assets.keys().any(|name| name.ends_with(".svg")));
@@ -187,7 +186,8 @@ async fn react_tsx_css_and_assets_build_with_rust_apis() {
 
 #[tokio::test]
 async fn missing_js_asset_and_css_import_fail() {
-    let root = fixture();
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
     let mut js = Bundler::new(BundlerOptions {
         cwd: Some(root.clone()),
         input: Some(vec![InputItem {
@@ -202,7 +202,7 @@ async fn missing_js_asset_and_css_import_fail() {
 
     let provider = PackageProvider {
         files: FileProvider::new(),
-        root: root.clone(),
+        packages: fixture.packages.clone(),
     };
     let mut css = CssBundler::new(&provider, None, ParserOptions::default());
     assert!(css.bundle(&root.join("missing.css")).is_err());

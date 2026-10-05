@@ -1,3 +1,5 @@
+#[path = "../../ssr-build/tests/fixture/mod.rs"]
+mod fixture;
 mod support;
 use http::header::{ALLOW, CACHE_CONTROL, CONTENT_TYPE};
 use http::{Method, Request, StatusCode};
@@ -7,7 +9,6 @@ use ssr_build::{Build, BuildConfig, BuildFile, Manifest, build as build_applicat
 use ssr_server::{Adapter, Body, Server};
 use std::collections::BTreeMap;
 use std::io::Write;
-use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -489,14 +490,8 @@ fn each_request_applies_one_distinct_nonce_to_inline_content() {
 
 #[tokio::test]
 async fn generated_source_map_maps_a_live_render_failure() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    assert!(
-        root.join("node_modules/react").is_dir(),
-        "sample packages are required"
-    );
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
     let output = build_application(&BuildConfig {
         server_entry: root.join("server_error.tsx"),
         react_framework_entry: None,
@@ -504,7 +499,7 @@ async fn generated_source_map_maps_a_live_render_failure() {
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
         root,
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();

@@ -27,3 +27,18 @@ slow-timeout = { period = "60s" }
 [[profile.default.scripts]]
 filter = 'package(ssr-server)'
 setup = "build-programs"
+
+# Every test builds with the packages of tools/build-probe/tests/fixtures. Before the tests, this
+# script installs them once per lock into the immutable var/packages/<digest> and names it in
+# SSR_PACKAGES, and names the fixture sources in SSR_FIXTURES (tools/install_packages.py); each
+# test copies the sources into a temporary root of its own. The install has no time limit. The
+# filter names exactly the test binaries that read the installation, which tools/check.py checks
+# (filter_errors of tools/install_packages.py), so tests that need no packages, such as the
+# ssr-server targets of make check-linux, run without npm.
+[scripts.setup.install-packages]
+command = ["python3", "-m", "tools.install_packages"]
+slow-timeout = { period = "60s" }
+
+[[profile.default.scripts]]
+filter = 'binary_id(=ssr-adapter-react::form_rows) | binary_id(=ssr-adapter-react::heap) | binary_id(=ssr-adapter-react::react) | binary_id(=ssr-adapter-react::recovery) | binary_id(=ssr-adapter-svelte::svelte) | binary_id(=ssr-adapter-vanilla::vanilla) | binary_id(=ssr-adapter-vue::vue) | binary_id(=ssr-build) | binary_id(=ssr-build::build) | binary_id(=ssr-build::files) | binary_id(=ssr-build::process) | binary_id(=ssr-build::public) | binary_id(=ssr-build::svelte) | binary_id(=ssr-runtime) | binary_id(=ssr-runtime::runtime) | binary_id(=ssr-runtime::snapshot_process) | binary_id(=ssr-server::cancellation) | binary_id(=ssr-server::react_late_reader) | binary_id(=ssr-server::react_stream) | binary_id(=ssr-server::render) | binary_id(=ssr-server::svelte)'
+setup = "install-packages"

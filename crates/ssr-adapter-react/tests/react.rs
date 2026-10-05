@@ -1,4 +1,6 @@
 mod browser;
+#[path = "../../ssr-build/tests/fixture/mod.rs"]
+mod fixture;
 mod support;
 use ssr_adapter_react::{ReactAdapter, client_entry, framework_entry, server_entry};
 use ssr_build::{Build, BuildConfig, build};
@@ -41,8 +43,8 @@ impl Drop for Temporary {
     }
 }
 
-const GENERATED_ENTRY_DIR: &str = "node_modules/.ssr-adapter-react-entry";
-const GENERATED_BROWSER_DIR: &str = "node_modules/.ssr-adapter-react-browser";
+const GENERATED_ENTRY_DIR: &str = "generated-ssr-adapter-react-entry";
+const GENERATED_BROWSER_DIR: &str = "generated-ssr-adapter-react-browser";
 
 #[test]
 fn concurrent_react_tests_keep_their_generated_sources() {
@@ -186,14 +188,8 @@ fn invalid_entry_urls_and_shell_values_fail() {
 
 #[tokio::test]
 async fn generated_react_entries_build_and_execute() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    assert!(
-        root.join("node_modules/react").is_dir(),
-        "install sample packages before tests"
-    );
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
     let generated = root.join(GENERATED_ENTRY_DIR);
     fs::create_dir_all(&generated).unwrap();
     let application = root.join("ReactApp.tsx");
@@ -218,7 +214,7 @@ async fn generated_react_entries_build_and_execute() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();
@@ -243,15 +239,9 @@ async fn generated_react_entries_build_and_execute() {
 
 #[tokio::test]
 async fn suspense_failure_keeps_fallback_and_client_recovery_in_stream() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    assert!(
-        root.join("node_modules/react").is_dir(),
-        "sample packages are required"
-    );
-    let generated = root.join("node_modules/.ssr-adapter-react-stream");
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
+    let generated = root.join("generated-ssr-adapter-react-stream");
     fs::create_dir_all(&generated).unwrap();
     let application = root.join("ReactStreamApp.tsx");
     let server_path = generated.join("server.tsx");
@@ -275,7 +265,7 @@ async fn suspense_failure_keeps_fallback_and_client_recovery_in_stream() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();
@@ -305,14 +295,8 @@ fn run_browser(base: &str, script: &Path) {
 
 #[tokio::test]
 async fn browser_hydrates_ssr_and_renders_csr_and_static_shells() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    assert!(
-        root.join("node_modules/react").is_dir(),
-        "install sample packages before tests"
-    );
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
     let generated = root.join(GENERATED_BROWSER_DIR);
     fs::create_dir_all(&generated).unwrap();
     let application = root.join("ReactApp.tsx");
@@ -339,7 +323,7 @@ async fn browser_hydrates_ssr_and_renders_csr_and_static_shells() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();
@@ -463,10 +447,7 @@ async fn browser_hydrates_ssr_and_renders_csr_and_static_shells() {
 
 #[tokio::test]
 async fn configured_dependencies_share_one_package_instance_for_provider_and_consumer() {
-    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
+    let fixture = fixture::Fixture::new();
     let directory = Temporary::new("ssr-react-deps");
     let root = directory.0.clone();
     let dependencies = root.join("dependencies");
@@ -475,11 +456,7 @@ async fn configured_dependencies_share_one_package_instance_for_provider_and_con
     fs::create_dir_all(&nested).unwrap();
     fs::create_dir_all(&configured).unwrap();
     for name in ["react", "react-dom", "scheduler", "web-streams-polyfill"] {
-        std::os::unix::fs::symlink(
-            fixtures.join("node_modules").join(name),
-            dependencies.join(name),
-        )
-        .unwrap();
+        std::os::unix::fs::symlink(fixture.packages.join(name), dependencies.join(name)).unwrap();
     }
     let package = "import React from 'react'; export const marker = '{marker}'; export const SharedContext = React.createContext('{default}');";
     fs::write(
@@ -520,7 +497,7 @@ async fn configured_dependencies_share_one_package_instance_for_provider_and_con
     .unwrap();
     fs::write(root.join("app.css"), "main{color:red}").unwrap();
     let root = root.canonicalize().unwrap();
-    let generated = root.join("node_modules/.ssr-adapter-react-deps");
+    let generated = root.join("generated-ssr-adapter-react-deps");
     fs::create_dir_all(&generated).unwrap();
     let server_path = generated.join("server.tsx");
     let framework_path = generated.join("framework.tsx");

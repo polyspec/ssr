@@ -55,7 +55,7 @@ rerun-failed:
 	$(FULL_RUN) rerun-failed --setup $(CHECK_SETUP) --needs $(CHECK_NEEDS)
 
 check-fixtures:
-	npm ci --prefix tools/build-probe/tests/fixtures --install-links --ignore-scripts --no-audit --no-fund
+	python3 -m tools.install_packages
 
 check-tools:
 	python3 tools/run_tests.py
@@ -121,7 +121,7 @@ verify-engine-deps:
 verify-build:
 	python3 -m tools.tool_versions check
 	status=0; \
-	npm ci --prefix tools/build-probe/tests/fixtures --install-links --ignore-scripts --no-audit --no-fund || { status=1; echo 'FAIL verify-build: npm ci'; }; \
+	assignments=$$(python3 -m tools.install_packages) && eval "$$assignments" && export SSR_PACKAGES SSR_FIXTURES || { status=1; echo 'FAIL verify-build: install packages'; }; \
 	cargo fmt --manifest-path tools/build-probe/Cargo.toml -- --check || { status=1; echo 'FAIL verify-build: cargo fmt'; }; \
 	CARGO_TARGET_DIR=$(CURDIR)/target cargo clippy --manifest-path tools/build-probe/Cargo.toml --all-targets --locked -- -D warnings || { status=1; echo 'FAIL verify-build: cargo clippy'; }; \
 	CARGO_TARGET_DIR=$(CURDIR)/target cargo nextest run --manifest-path tools/build-probe/Cargo.toml --test build_verification --locked --no-tests fail || { status=1; echo 'FAIL verify-build: cargo nextest run'; }; \

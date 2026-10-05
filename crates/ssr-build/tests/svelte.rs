@@ -1,15 +1,12 @@
+mod fixture;
 use ssr_build::{BuildConfig, build};
 use std::fs;
-use std::path::Path;
 
 #[tokio::test]
 async fn svelte_source_compiles_in_rust_and_publishes_component_css() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    assert!(root.join("node_modules/svelte/compiler/index.js").is_file());
-    let generated = root.join("node_modules/.ssr-build-svelte");
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
+    let generated = root.join("generated-ssr-build-svelte");
     fs::create_dir_all(&generated).unwrap();
     let application = root.join("SvelteApp.svelte");
     let application = ordered_json::Value::string(application.to_str().unwrap()).compact();
@@ -24,7 +21,7 @@ async fn svelte_source_compiles_in_rust_and_publishes_component_css() {
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
         react_framework_entry: None,
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     };
     let output = build(&config).await.unwrap();
     assert!(output.manifest.styles.len() >= 2);

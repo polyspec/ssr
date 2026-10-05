@@ -6,6 +6,9 @@ mod cpu;
 mod dispatch;
 mod engine;
 mod error;
+#[cfg(test)]
+#[path = "../../ssr-build/tests/fixture/mod.rs"]
+mod fixture;
 mod module;
 mod options;
 mod pool;

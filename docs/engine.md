@@ -91,8 +91,8 @@ mounts, fetches the locked dependencies and runs, with the Linux gcc toolchain o
 `development_process` and `socket_process` examples and
 `cargo nextest run --locked -p ssr-server --lib --test development --test process`, then stops
 the stack. Each step prints its command, its output and its result with the elapsed time,
-without a time limit. The other `ssr-server` test targets write generated entries into the
-build-probe fixture of the checkout and do not run on the read-only mount. x86_64 Linux is not
+without a time limit. These targets read no package installation, so the nextest setup script
+`install-packages`, which needs npm, does not run in the container. x86_64 Linux is not
 built: the host runs only AArch64 Linux containers natively.
 
 ## Renderer snapshots

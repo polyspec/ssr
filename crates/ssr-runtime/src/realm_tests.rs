@@ -3,7 +3,6 @@ use deno_core::v8;
 use sha2::{Digest, Sha256};
 use ssr_build::{BuildConfig, build};
 use ssr_core::Page;
-use std::path::Path;
 use std::time::Duration;
 
 fn execute<'s>(scope: &mut v8::PinScope<'s, '_>, source: &str) -> v8::Local<'s, v8::Value> {
@@ -14,11 +13,8 @@ fn execute<'s>(scope: &mut v8::PinScope<'s, '_>, source: &str) -> v8::Local<'s, 
 
 #[tokio::test]
 async fn react_initialization_and_hooks_share_context_without_application_timers() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    assert!(root.join("node_modules/react").is_dir());
+    let fixture = crate::fixture::Fixture::new();
+    let root = fixture.root.clone();
     let output = build(&BuildConfig {
         root: root.clone(),
         server_entry: root.join("realm-application.tsx"),
@@ -26,7 +22,7 @@ async fn react_initialization_and_hooks_share_context_without_application_timers
         client_entry: root.join("client.tsx"),
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();
@@ -82,10 +78,8 @@ async fn react_initialization_and_hooks_share_context_without_application_timers
 
 #[tokio::test]
 async fn react_stream_pool_restores_request_contexts_for_repeated_calls() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
+    let fixture = crate::fixture::Fixture::new();
+    let root = fixture.root.clone();
     let output = build(&BuildConfig {
         root: root.clone(),
         server_entry: root.join("realm-application.tsx"),
@@ -93,7 +87,7 @@ async fn react_stream_pool_restores_request_contexts_for_repeated_calls() {
         client_entry: root.join("client.tsx"),
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();

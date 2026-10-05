@@ -1,10 +1,11 @@
+#[path = "../../ssr-build/tests/fixture/mod.rs"]
+mod fixture;
 mod support;
 use ssr_adapter_react::{ReactAdapter, client_entry, framework_entry, server_entry};
 use ssr_build::{BuildConfig, build};
 use ssr_core::Page;
 use ssr_runtime::{Pool, ServerBundle};
 use std::fs;
-use std::path::Path;
 use std::time::Duration;
 
 fn row_key(document: &str, prefix: &str, suffix: &str) -> String {
@@ -27,16 +28,9 @@ fn row_key(document: &str, prefix: &str, suffix: &str) -> String {
 async fn repeated_form_rows_have_distinct_keys_across_two_server_renders() {
     // FormRowsApp.tsx renders a repeated row group with a repeated child group; each row key comes
     // from crypto.getRandomValues during the render.
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    assert!(
-        root.join("node_modules/react").is_dir(),
-        "install sample packages before tests"
-    );
-    let generated = root.join("node_modules/.ssr-adapter-react-form-rows");
-    fs::create_dir_all(&generated).unwrap();
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
+    let generated = fixture.generated("generated-ssr-adapter-react-form-rows");
     let application = root.join("FormRowsApp.tsx");
     let server_path = generated.join("server.tsx");
     let framework_path = generated.join("framework.tsx");
@@ -59,7 +53,7 @@ async fn repeated_form_rows_have_distinct_keys_across_two_server_renders() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();

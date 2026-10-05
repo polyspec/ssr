@@ -1,4 +1,6 @@
 mod browser;
+#[path = "../../ssr-build/tests/fixture/mod.rs"]
+mod fixture;
 mod support;
 use ssr_adapter_svelte::{SvelteAdapter, client_entry, server_entry};
 use ssr_build::{Build, BuildConfig, build};
@@ -142,18 +144,12 @@ async fn browser_case(empty: bool) {
         "browser test environment missing: {}",
         browser::BROWSER
     );
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    assert!(
-        root.join("node_modules/playwright-core").is_dir(),
-        "install sample packages before tests"
-    );
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
     let generated = root.join(if empty {
-        "node_modules/.ssr-adapter-svelte-empty"
+        "generated-ssr-adapter-svelte-empty"
     } else {
-        "node_modules/.ssr-adapter-svelte"
+        "generated-ssr-adapter-svelte"
     });
     fs::create_dir_all(&generated).unwrap();
     let application = root.join(if empty {
@@ -185,7 +181,7 @@ async fn browser_case(empty: bool) {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();

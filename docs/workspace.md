@@ -49,7 +49,15 @@ when every target passed. A fresh checkout has no record. Both entries install
 the build-probe fixture that the tests read, so `python3 -m tools.holder_lock run check` holds the
 checkout lock `var/locks/check.lock` for all of their steps: a second run of the same checkout is
 refused with the holder's checkout, pid and process start time. A make without a target runs
-`make check`.
+`make check`. The tests never write into the checkout's build-probe fixture: before the tests
+that read them, the nextest setup script `install-packages` (`tools/install_packages.py`) installs
+the packages of `tools/build-probe/tests/fixtures` once per lock into the immutable
+`var/packages/<SHA-256 of package.json and package-lock.json>`, published by one rename, and names
+it in `SSR_PACKAGES` and the sources in `SSR_FIXTURES`. Each test copies the sources into a new
+temporary root of its own (`crates/ssr-build/tests/fixture/mod.rs`), writes its generated entries
+there, builds with the installation as `BuildConfig::dependencies` and removes the root when it
+ends; the browser scripts import `playwright-core` from `SSR_PACKAGES`. The filter of the script
+names exactly the test binaries that read the installation, which `tools/check.py` checks.
 
 A push happens only when no item of `docs/checklist.md`, sub-items included, is `[~]`. The tracked
 pre-push hook `.githooks/pre-push` runs `python3 -m tools.push_gate hook`: it reads the checklist of

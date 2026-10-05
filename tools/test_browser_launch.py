@@ -6,7 +6,9 @@ import socket
 import tempfile
 import unittest
 
-from tools import run_tests
+import os
+
+from tools import install_packages, run_tests
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -36,6 +38,10 @@ def closed_base():
 class BrowserLaunchTests(unittest.TestCase):
     """A browser launch has no time limit; the browser scripts proceed after a slow launch."""
 
+    @classmethod
+    def setUpClass(cls):
+        cls.environment = {**os.environ, "SSR_PACKAGES": str(install_packages.install())}
+
     def run_script(self, name):
         self.assertTrue(pathlib.Path(BROWSER).is_file(), f"browser test environment missing: {BROWSER}")
         with tempfile.TemporaryDirectory() as directory:
@@ -56,7 +62,8 @@ class BrowserLaunchTests(unittest.TestCase):
             # started when the script ends or exceeds the limit.
             status, code, stdout, stderr = run_tests.run_case(
                 ["node", "--experimental-test-module-mocks", "--no-warnings", "--import", str(preload),
-                 str(FIXTURES / name), closed_base(), str(slow), *SCRIPTS[name]], 30, cwd=FIXTURES)
+                 str(FIXTURES / name), closed_base(), str(slow), *SCRIPTS[name]], 30, cwd=FIXTURES,
+                env=self.environment)
         report = f"{status} exit {code}\nstdout:\n{stdout}\nstderr:\n{stderr}"
         self.assertEqual(status, "FAIL", report)
         launched = re.match(r"RUN launch\nDONE launch (\d+\.\d+)s\nRUN /", stdout)
@@ -66,6 +73,14 @@ class BrowserLaunchTests(unittest.TestCase):
         # The script fails at its first page step, before any page passes; the browser's error
         # text differs between browser versions, so the exit status and the step lines decide.
         self.assertNotIn("PASS ", stdout, report)
+
+    def test_a_script_without_the_package_installation_names_the_variable(self):
+        environment = {key: value for key, value in self.environment.items() if key != "SSR_PACKAGES"}
+        status, code, stdout, stderr = run_tests.run_case(
+            ["node", str(FIXTURES / "browser.mjs"), closed_base(), BROWSER], 30, cwd=FIXTURES, env=environment)
+        self.assertEqual(status, "FAIL", stdout + stderr)
+        self.assertIn("SSR_PACKAGES is not set; it names the package installation of tools/install_packages.py",
+                      stderr)
 
     def test_react_script_proceeds_after_a_slow_launch(self):
         self.run_script("browser.mjs")

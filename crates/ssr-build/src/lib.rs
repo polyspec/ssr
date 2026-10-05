@@ -3,6 +3,9 @@
 mod asset_url;
 mod css;
 mod files;
+#[cfg(test)]
+#[path = "../tests/fixture/mod.rs"]
+mod fixture;
 mod js;
 mod manifest;
 mod manifest_read;

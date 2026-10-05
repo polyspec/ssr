@@ -210,16 +210,13 @@ impl Plugin for SveltePlugin {
 mod tests {
     use super::compile;
     use std::fs;
-    use std::path::Path;
 
     #[tokio::test]
     async fn compiler_returns_server_client_and_style_outputs() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../tools/build-probe/tests/fixtures")
-            .canonicalize()
-            .unwrap();
-        let compiler = fs::read_to_string(root.join("node_modules/svelte/compiler/index.js"))
-            .expect("install Svelte package before tests");
+        let fixture = crate::fixture::Fixture::new();
+        let root = fixture.root.clone();
+        let compiler =
+            fs::read_to_string(fixture.packages.join("svelte/compiler/index.js")).unwrap();
         let source =
             "<script>let { name } = $props();</script><h1>{name}</h1><style>h1{color:red}</style>";
         let path = root.join("App.svelte");

@@ -1,18 +1,16 @@
+#[path = "../../ssr-build/tests/fixture/mod.rs"]
+mod fixture;
 mod support;
 use http::{Method, Request, StatusCode, header};
 use ssr_build::{BuildConfig, build};
 use ssr_server::{Adapter, Server};
-use std::path::Path;
 use std::time::Duration;
 
 #[tokio::test]
 async fn dropping_http_body_cancels_render_and_releases_worker() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    assert!(root.join("node_modules/react").is_dir());
-    let generated = root.join("node_modules/.ssr-server-cancellation");
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
+    let generated = root.join("generated-ssr-server-cancellation");
     std::fs::create_dir_all(&generated).unwrap();
     let framework = generated.join("framework.tsx");
     let application = generated.join("application.tsx");
@@ -53,7 +51,7 @@ globalThis.render = async (_App, props, state) => ({
         client_entry: client,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();

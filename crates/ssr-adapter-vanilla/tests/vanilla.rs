@@ -1,4 +1,6 @@
 mod browser;
+#[path = "../../ssr-build/tests/fixture/mod.rs"]
+mod fixture;
 mod support;
 use ssr_adapter_vanilla::{VanillaAdapter, client_entry, server_entry};
 use ssr_build::{Build, BuildConfig, build};
@@ -120,15 +122,9 @@ async fn browser_preserves_server_dom_and_renders_csr_and_shells() {
         "browser test environment missing: {}",
         browser::BROWSER
     );
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    assert!(
-        root.join("node_modules/playwright-core").is_dir(),
-        "install sample packages before tests"
-    );
-    let generated = root.join("node_modules/.ssr-adapter-vanilla");
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
+    let generated = root.join("generated-ssr-adapter-vanilla");
     fs::create_dir_all(&generated).unwrap();
     let application = root.join("VanillaApp.js");
     let server_path = generated.join("server.js");
@@ -150,7 +146,7 @@ async fn browser_preserves_server_dom_and_renders_csr_and_shells() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();

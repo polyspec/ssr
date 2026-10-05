@@ -34,11 +34,11 @@ def test_ids():
     return list(walk(suite))
 
 
-def run_case(command, timeout, cwd=None):
+def run_case(command, timeout, cwd=None, env=None):
     """Run one command in its own process group; return ``PASS``, ``FAIL`` or ``TIMEOUT``, its
     exit status, its standard output and its standard error. The group is killed when the
     command ends or exceeds ``timeout`` seconds."""
-    process = subprocess.Popen(command, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    process = subprocess.Popen(command, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                text=True, start_new_session=True)
     try:
         stdout, stderr = process.communicate(timeout=timeout)

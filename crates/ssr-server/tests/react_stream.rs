@@ -1,10 +1,11 @@
+#[path = "../../ssr-build/tests/fixture/mod.rs"]
+mod fixture;
 mod support;
 use http::{Method, Request, StatusCode};
 use ssr_adapter_react::{client_entry, framework_entry, server_entry};
 use ssr_build::{BuildConfig, build};
 use ssr_server::{Adapter, Server};
 use std::io::Write;
-use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -24,15 +25,9 @@ impl Write for TraceOutput {
 
 #[tokio::test]
 async fn suspense_error_keeps_recovery_stream_and_records_request_error() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    assert!(
-        root.join("node_modules/react").is_dir(),
-        "sample packages are required"
-    );
-    let generated = root.join("node_modules/.ssr-server-react-stream");
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
+    let generated = root.join("generated-ssr-server-react-stream");
     std::fs::create_dir_all(&generated).unwrap();
     let application = root.join("ReactStreamApp.tsx");
     let server_path = generated.join("server.tsx");
@@ -56,7 +51,7 @@ async fn suspense_error_keeps_recovery_stream_and_records_request_error() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();

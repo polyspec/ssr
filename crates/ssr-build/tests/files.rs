@@ -1,3 +1,4 @@
+mod fixture;
 use std::collections::BTreeMap;
 use std::fs;
 use std::os::unix::fs::{MetadataExt, symlink};
@@ -284,10 +285,8 @@ fn concurrent_equal_publications_return_one_complete_directory() {
 
 #[tokio::test]
 async fn generated_bundle_files_are_read_without_rebuilding() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
     let build = ssr_build::build(&ssr_build::BuildConfig {
         server_entry: root.join("server.tsx"),
         react_framework_entry: None,
@@ -295,7 +294,7 @@ async fn generated_bundle_files_are_read_without_rebuilding() {
         css_entry: root.join("app.css"),
         root,
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();

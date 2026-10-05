@@ -1,18 +1,12 @@
+mod fixture;
 use std::fs;
 use std::os::unix::fs::{MetadataExt, symlink};
 use std::path::{Path, PathBuf};
 
 use ssr_build::{BuildConfig, PublicFiles, build};
 
-fn fixture() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap()
-}
-
-fn config() -> BuildConfig {
-    let root = fixture();
+fn config(fixture: &fixture::Fixture) -> BuildConfig {
+    let root = fixture.root.clone();
     BuildConfig {
         server_entry: root.join("server.tsx"),
         react_framework_entry: None,
@@ -20,8 +14,14 @@ fn config() -> BuildConfig {
         css_entry: root.join("app.css"),
         root,
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     }
+}
+
+/// The sample build of a fixture root of its own.
+async fn sample() -> ssr_build::Build {
+    let fixture = fixture::Fixture::new();
+    build(&config(&fixture)).await.unwrap()
 }
 
 /// A publication directory of one test, created new and removed when the test ends, also when an
@@ -61,7 +61,7 @@ fn directory() -> Directory {
 
 #[tokio::test]
 async fn publish_creates_public_files_preserves_equal_files_and_rejects_changes() {
-    let build = build(&config()).await.unwrap();
+    let build = sample().await;
     let public = PublicFiles::new(&build).unwrap();
     let dir = directory();
     public.publish(&dir).unwrap();
@@ -89,7 +89,7 @@ async fn publish_creates_public_files_preserves_equal_files_and_rejects_changes(
 
 #[tokio::test]
 async fn publication_rejects_nonregular_targets_and_invalid_directory() {
-    let build = build(&config()).await.unwrap();
+    let build = sample().await;
     let public = PublicFiles::new(&build).unwrap();
     let dir = directory();
     let client = build.manifest.client.url.as_ref().unwrap();
@@ -102,7 +102,7 @@ async fn publication_rejects_nonregular_targets_and_invalid_directory() {
 
 #[tokio::test]
 async fn publication_rejects_symbolic_link_parent_before_writing() {
-    let build = build(&config()).await.unwrap();
+    let build = sample().await;
     let public = PublicFiles::new(&build).unwrap();
     let dir = directory();
     let other = directory();
@@ -113,7 +113,7 @@ async fn publication_rejects_symbolic_link_parent_before_writing() {
 
 #[tokio::test]
 async fn changed_target_prevents_other_public_files_from_being_created() {
-    let build = build(&config()).await.unwrap();
+    let build = sample().await;
     let public = PublicFiles::new(&build).unwrap();
     let dir = directory();
     let target = dir.join(
@@ -133,7 +133,7 @@ async fn changed_target_prevents_other_public_files_from_being_created() {
 
 #[tokio::test]
 async fn serving_uses_exact_public_url_bytes_and_content_type() {
-    let build = build(&config()).await.unwrap();
+    let build = sample().await;
     let public = PublicFiles::new(&build).unwrap();
     for artifact in std::iter::once(&build.manifest.client)
         .chain(build.manifest.styles.iter())
@@ -150,19 +150,19 @@ async fn serving_uses_exact_public_url_bytes_and_content_type() {
 
 #[tokio::test]
 async fn public_files_reject_invalid_manifest_or_bytes() {
-    let mut output = build(&config()).await.unwrap();
+    let mut output = sample().await;
     output.manifest.client.sha256 = "invalid".into();
     assert!(PublicFiles::new(&output).is_err());
 
-    let mut output = build(&config()).await.unwrap();
+    let mut output = sample().await;
     output.manifest.client.url = Some("/assets/../outside.js".into());
     assert!(PublicFiles::new(&output).is_err());
 
-    let mut output = build(&config()).await.unwrap();
+    let mut output = sample().await;
     output.manifest.styles[0].url = output.manifest.client.url.clone();
     assert!(PublicFiles::new(&output).is_err());
 
-    let mut output = build(&config()).await.unwrap();
+    let mut output = sample().await;
     output.manifest.source_maps[0].url = Some("/assets/server.js.map".into());
     assert!(PublicFiles::new(&output).is_err());
 }

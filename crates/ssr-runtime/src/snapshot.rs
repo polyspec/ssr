@@ -421,20 +421,16 @@ mod tests {
     #[tokio::test]
     async fn snapshot_creation_rejects_concurrent_svelte_compiler() {
         use ssr_build::{BuildConfig, build};
-        use std::path::Path;
         use std::process::Command;
         const TEST: &str = "snapshot::tests::snapshot_creation_rejects_concurrent_svelte_compiler";
         if std::env::var_os("SSR_CONCURRENT_COMPILER").is_some() {
-            let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("../../tools/build-probe/tests/fixtures")
-                .canonicalize()
-                .unwrap();
-            let generated = root.join("node_modules/.ssr-runtime-concurrent-compiler");
+            let fixture = crate::fixture::Fixture::new();
+            let root = fixture.root.clone();
+            let generated = root.join("generated-ssr-runtime-concurrent-compiler");
             std::fs::create_dir_all(&generated).unwrap();
             let server = generated.join("server.js");
             let client = generated.join("client.js");
-            let source =
-                "import App from '../../SvelteApp.svelte'; export const render = () => App;";
+            let source = "import App from '../SvelteApp.svelte'; export const render = () => App;";
             std::fs::write(&server, source).unwrap();
             std::fs::write(&client, source).unwrap();
             let (ready_tx, ready_rx) = std::sync::mpsc::sync_channel(1);
@@ -455,7 +451,7 @@ mod tests {
                 react_framework_entry: None,
                 css_entry: root.join("app.css"),
                 asset_route: "/assets".into(),
-                dependencies: None,
+                dependencies: Some(fixture.packages.clone()),
             })
             .await;
             finish_tx.send(()).unwrap();

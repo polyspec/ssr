@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- 실행마다 build-probe package와 생성 entry를 따로 둔다. package는 lock마다 한 번
+  rename 한 번으로 게시되는 불변 directory에 설치되고, 각 test는 그 설치본을
+  dependency로 두고 자기만의 임시 root에서 build하며, 아무것도 checkout의 fixture
+  directory에 쓰지 않는다.
+
 - 설정된 dependency package의 asset을 build한다. CSS나 JavaScript asset은
   application root 아래나 package directory 아래의 파일일 수 있으므로,
   `BuildConfig::dependencies`로 설정한 package가 자기 글꼴과 이미지를 함께 제공한다.

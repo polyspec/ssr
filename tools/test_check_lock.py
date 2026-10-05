@@ -27,7 +27,7 @@ class CheckLockTest(TestCase):
                       (ROOT / "Makefile").read_text().splitlines())
         self.assertEqual(recipe("check"), ["$(FULL_RUN) check --setup $(CHECK_SETUP) --targets $(CHECK_TARGETS) --needs $(CHECK_NEEDS)"])
         self.assertEqual(recipe("rerun-failed"), ["$(FULL_RUN) rerun-failed --setup $(CHECK_SETUP) --needs $(CHECK_NEEDS)"])
-        self.assertEqual(recipe("check-fixtures"), ["npm ci --prefix tools/build-probe/tests/fixtures --install-links --ignore-scripts --no-audit --no-fund"])
+        self.assertEqual(recipe("check-fixtures"), ["python3 -m tools.install_packages"])
         self.assertEqual(recipe("check-nextest"), ["cargo nextest run --workspace --locked --no-tests fail"])
 
     def test_run_holds_the_lock_while_the_command_runs(self):

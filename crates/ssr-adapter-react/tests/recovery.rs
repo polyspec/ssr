@@ -1,4 +1,6 @@
 mod browser;
+#[path = "../../ssr-build/tests/fixture/mod.rs"]
+mod fixture;
 mod support;
 use ssr_adapter_react::{ReactAdapter, client_entry, framework_entry, server_entry};
 use ssr_build::{BuildConfig, build};
@@ -38,15 +40,9 @@ fn browser(base: &str, script: &Path) {
 
 #[tokio::test]
 async fn browser_retries_failed_suspense_content_and_uses_error_boundary() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    assert!(
-        root.join("node_modules/react").is_dir(),
-        "sample packages are required"
-    );
-    let generated = root.join("node_modules/.ssr-adapter-react-recovery");
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
+    let generated = root.join("generated-ssr-adapter-react-recovery");
     std::fs::create_dir_all(&generated).unwrap();
     let application = root.join("ReactStreamApp.tsx");
     let server_path = generated.join("server.tsx");
@@ -70,7 +66,7 @@ async fn browser_retries_failed_suspense_content_and_uses_error_boundary() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();

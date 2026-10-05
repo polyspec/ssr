@@ -1,17 +1,15 @@
+mod fixture;
 use ssr_build::{BuildConfig, Error, build};
-use std::path::Path;
 
 #[tokio::test]
 async fn compiler_stops_before_v8_after_renderer_selection() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    let generated = root.join("node_modules/.ssr-build-process");
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
+    let generated = root.join("generated-ssr-build-process");
     std::fs::create_dir_all(&generated).unwrap();
     let server = generated.join("server.js");
     let client = generated.join("client.js");
-    let source = "import App from '../../SvelteApp.svelte'; export const render = () => App;";
+    let source = "import App from '../SvelteApp.svelte'; export const render = () => App;";
     std::fs::write(&server, source).unwrap();
     std::fs::write(&client, source).unwrap();
     ssr_core::process::render(|| Ok::<_, ()>(()))
@@ -24,7 +22,7 @@ async fn compiler_stops_before_v8_after_renderer_selection() {
         react_framework_entry: None,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     };
     let result = build(&config).await;
     assert!(

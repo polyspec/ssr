@@ -84,8 +84,8 @@ lock을 해제한다. 각 단계는 command, 출력, 결과를 경과 시간과 
 fetch한 뒤, 이미지의 Linux gcc toolchain으로 `cargo clippy --locked -p ssr-server --all-targets -- -D warnings`,
 `development_process`와 `socket_process` 예제 빌드,
 `cargo nextest run --locked -p ssr-server --lib --test development --test process`를 실행하고 stack을
-멈춘다. 각 단계는 command, 출력, 결과를 경과 시간과 함께 시간 제한 없이 출력한다. 다른 `ssr-server`
-test target은 checkout의 build-probe fixture에 생성 entry를 쓰므로 읽기 전용 mount에서 실행하지 않는다.
+멈춘다. 각 단계는 command, 출력, 결과를 경과 시간과 함께 시간 제한 없이 출력한다. 이 target들은 package
+설치본을 읽지 않으므로 npm이 필요한 nextest setup script `install-packages`는 container에서 실행되지 않는다.
 x86_64 Linux는 빌드하지 않는다. host는 AArch64 Linux container만 native로 실행한다.
 
 ## 렌더 스냅샷

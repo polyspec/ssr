@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
-import { chromium } from "playwright-core";
-import { STEP_TIMEOUT, begin, step } from "./browser-steps.mjs";
+import { STEP_TIMEOUT, begin, chromium, step } from "./browser-steps.mjs";
 
 const [base, executablePath] = process.argv.slice(2);
 assert.ok(base && executablePath, "browser test requires the server URL and browser path");

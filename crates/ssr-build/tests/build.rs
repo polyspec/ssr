@@ -1,5 +1,6 @@
+mod fixture;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use ordered_json::parse_bytes;
 use sha2::{Digest, Sha256};
@@ -29,15 +30,8 @@ impl Drop for Temporary {
     }
 }
 
-fn fixture() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap()
-}
-
-fn config() -> BuildConfig {
-    let root = fixture();
+fn config(fixture: &fixture::Fixture) -> BuildConfig {
+    let root = fixture.root.clone();
     BuildConfig {
         server_entry: root.join("server.tsx"),
         react_framework_entry: None,
@@ -45,17 +39,14 @@ fn config() -> BuildConfig {
         css_entry: root.join("app.css"),
         root,
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     }
 }
 
 #[tokio::test]
 async fn sample_build_has_stable_files_and_manifest() {
-    let config = config();
-    assert!(
-        config.root.join("node_modules/react").is_dir(),
-        "install sample packages before tests"
-    );
+    let fixture = fixture::Fixture::new();
+    let config = config(&fixture);
     let first = build(&config).await.unwrap();
     let second = build(&config).await.unwrap();
     assert_eq!(
@@ -244,7 +235,8 @@ async fn package_resolution_uses_the_application_dependency_directory() {
 
 #[tokio::test]
 async fn invalid_entries_imports_and_route_fail() {
-    let mut config = config();
+    let fixture = fixture::Fixture::new();
+    let mut config = config(&fixture);
     config.react_framework_entry = Some(config.server_entry.clone());
     assert!(build(&config).await.is_err());
     config.react_framework_entry = Some(config.root.join("missing-framework.tsx"));
@@ -270,7 +262,8 @@ async fn invalid_entries_imports_and_route_fail() {
 
 #[tokio::test]
 async fn root_asset_route_has_one_leading_slash() {
-    let mut config = config();
+    let fixture = fixture::Fixture::new();
+    let mut config = config(&fixture);
     config.asset_route = "/".into();
     let output = build(&config).await.unwrap();
     let client = String::from_utf8(output.files[&output.manifest.client.path].clone()).unwrap();

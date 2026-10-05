@@ -1,27 +1,22 @@
+#[path = "../../ssr-build/tests/fixture/mod.rs"]
+mod fixture;
 mod support;
 use ssr_adapter_react::{client_entry, framework_entry, server_entry};
 use ssr_build::{BuildConfig, build};
 use ssr_core::Page;
 use ssr_runtime::{Pool, ServerBundle};
 use std::fs;
-use std::path::Path;
 use std::time::Duration;
 
-const GENERATED_ENTRY_DIR: &str = "node_modules/.ssr-adapter-react-heap";
+const GENERATED_ENTRY_DIR: &str = "generated-ssr-adapter-react-heap";
 
 // Each stream render runs in its own context of one isolate; a context that
 // stays reachable after its render keeps its heap, so repeated renders grow
 // the heap without bound.
 #[tokio::test]
 async fn repeated_stream_renders_keep_the_heap_bounded() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    assert!(
-        root.join("node_modules/react").is_dir(),
-        "install sample packages before tests"
-    );
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
     let generated = root.join(GENERATED_ENTRY_DIR);
     fs::create_dir_all(&generated).unwrap();
     let application = root.join("ReactApp.tsx");
@@ -44,7 +39,7 @@ async fn repeated_stream_renders_keep_the_heap_bounded() {
         client_entry: generated.join("client.tsx"),
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();

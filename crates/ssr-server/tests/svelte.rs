@@ -1,21 +1,20 @@
+#[path = "../../ssr-build/tests/fixture/mod.rs"]
+mod fixture;
 mod support;
 use http::{Method, Request, StatusCode};
 use ssr_adapter_svelte::{client_entry, server_entry};
 use ssr_build::{BuildConfig, build};
 use ssr_server::{Adapter, Server};
 use std::fs;
-use std::path::Path;
 use std::time::Duration;
 
 const SSR: &[u8] = br#"{"render":"ssr","title":"Svelte","language":"en","props":{"name":"Ada"},"state":{"count":4}}"#;
 
 #[tokio::test]
 async fn svelte_http_preserves_head_css_and_request_nonce() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    let generated = root.join("node_modules/.ssr-server-svelte");
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
+    let generated = root.join("generated-ssr-server-svelte");
     fs::create_dir_all(&generated).unwrap();
     let application = root.join("SvelteApp.svelte");
     let server_path = generated.join("server.js");
@@ -37,7 +36,7 @@ async fn svelte_http_preserves_head_css_and_request_nonce() {
         client_entry: client_path,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();

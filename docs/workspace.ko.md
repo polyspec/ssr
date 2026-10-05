@@ -34,7 +34,13 @@ target은 실행된다. `make verify-build`는 각 검사를 실행하고 실패
 실행하며, 현재 tree의 기록이 없거나 모든 target이 통과했으면 거부된다. 새 checkout에는 기록이
 없다. 두 진입점 모두 테스트가 읽는 build-probe fixture를 설치하므로, `python3 -m tools.holder_lock run check`가
 모든 단계 동안 checkout lock `var/locks/check.lock`을 잡는다. 같은 checkout의 두 번째 실행은 holder의 checkout,
-pid, process 시작 시각과 함께 거부된다. target 없는 make는 `make check`를 실행한다.
+pid, process 시작 시각과 함께 거부된다. target 없는 make는 `make check`를 실행한다. 테스트는 checkout의 build-probe fixture에 쓰지 않는다. 설치본을 읽는 테스트보다 먼저 nextest setup script
+`install-packages`(`tools/install_packages.py`)가 `tools/build-probe/tests/fixtures`의 package를 잠금 파일마다 한 번
+불변의 `var/packages/<package.json과 package-lock.json의 SHA-256>`에 설치해 이름 바꾸기 한 번으로 게시하고, 그것을
+`SSR_PACKAGES`로, 소스를 `SSR_FIXTURES`로 알린다. 각 테스트는 소스를 자기만의 새 임시 루트로 복사하고
+(`crates/ssr-build/tests/fixture/mod.rs`) 생성 entry를 거기에 쓰며, 설치본을 `BuildConfig::dependencies`로 build하고
+끝날 때 루트를 지운다. browser script는 `playwright-core`를 `SSR_PACKAGES`에서 가져온다. script의 filter는 설치본을
+읽는 test binary를 정확히 적고, `tools/check.py`가 이를 검사한다.
 
 push는 `docs/checklist.md`의 항목(하위 항목 포함)이 `[~]`가 아닐 때만 한다. 추적되는 pre-push hook
 `.githooks/pre-push`는 `python3 -m tools.push_gate hook`을 실행한다. 이것은 push되는 각 ref의 tip commit과 작업 트리의

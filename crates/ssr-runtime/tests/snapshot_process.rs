@@ -1,3 +1,5 @@
+#[path = "../../ssr-build/tests/fixture/mod.rs"]
+mod fixture;
 mod support;
 use ssr_core::Page;
 use ssr_runtime::{Error, Pool, ServerBundle};
@@ -78,22 +80,19 @@ fn same_snapshot_restores_parallel_workers_without_initialization_or_state_leaks
 #[tokio::test]
 async fn svelte_compilation_after_snapshot_selection_returns_an_error() {
     use ssr_build::{BuildConfig, build};
-    use std::path::Path;
     use std::process::Command;
     const TEST: &str = "svelte_compilation_after_snapshot_selection_returns_an_error";
     if std::env::var_os("SSR_COMPILER_AFTER_SNAPSHOT").is_some() {
         let _pool =
             pool(b"export function render(props, state) { return {head:'', html:'ok', state}; }")
                 .unwrap();
-        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../tools/build-probe/tests/fixtures")
-            .canonicalize()
-            .unwrap();
-        let generated = root.join("node_modules/.ssr-runtime-process");
+        let fixture = fixture::Fixture::new();
+        let root = fixture.root.clone();
+        let generated = root.join("generated-ssr-runtime-process");
         std::fs::create_dir_all(&generated).unwrap();
         let server = generated.join("server.js");
         let client = generated.join("client.js");
-        let source = "import App from '../../SvelteApp.svelte'; export const render = () => App;";
+        let source = "import App from '../SvelteApp.svelte'; export const render = () => App;";
         std::fs::write(&server, source).unwrap();
         std::fs::write(&client, source).unwrap();
         let result = build(&BuildConfig {
@@ -103,7 +102,7 @@ async fn svelte_compilation_after_snapshot_selection_returns_an_error() {
             react_framework_entry: None,
             css_entry: root.join("app.css"),
             asset_route: "/assets".into(),
-            dependencies: None,
+            dependencies: Some(fixture.packages.clone()),
         })
         .await;
         let diagnostic = result
@@ -135,21 +134,18 @@ async fn svelte_compilation_after_snapshot_selection_returns_an_error() {
 #[tokio::test]
 async fn failed_snapshot_disposes_its_creator_before_compilation_and_render_retry() {
     use ssr_build::{BuildConfig, build};
-    use std::path::Path;
     let failed =
         pool(b"throw new Error('snapshot initialization failed'); export function render() {}");
     assert!(
         matches!(failed, Err(Error::JavaScript { message, .. }) if message.contains("snapshot initialization failed"))
     );
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/build-probe/tests/fixtures")
-        .canonicalize()
-        .unwrap();
-    let generated = root.join("node_modules/.ssr-runtime-failed-snapshot");
+    let fixture = fixture::Fixture::new();
+    let root = fixture.root.clone();
+    let generated = root.join("generated-ssr-runtime-failed-snapshot");
     std::fs::create_dir_all(&generated).unwrap();
     let server = generated.join("server.js");
     let client = generated.join("client.js");
-    let source = "import App from '../../SvelteApp.svelte'; export const render = () => App;";
+    let source = "import App from '../SvelteApp.svelte'; export const render = () => App;";
     std::fs::write(&server, source).unwrap();
     std::fs::write(&client, source).unwrap();
     let compiled = build(&BuildConfig {
@@ -159,7 +155,7 @@ async fn failed_snapshot_disposes_its_creator_before_compilation_and_render_retr
         react_framework_entry: None,
         css_entry: root.join("app.css"),
         asset_route: "/assets".into(),
-        dependencies: None,
+        dependencies: Some(fixture.packages.clone()),
     })
     .await
     .unwrap();
