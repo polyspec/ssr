@@ -31,8 +31,11 @@ def render(root=ROOT):
     paths = local_paths.declared(root)
     v8 = local_paths.checkout(paths["v8"])
     ordered_json = local_paths.checkout(paths["ordered-json"])
+    lightningcss = local_paths.checkout(paths["lightningcss"])
     if not (paths["ordered-json"] / "Cargo.toml").is_file():
         raise ValueError(f"missing ordered-json source {ordered_json}")
+    if not (paths["lightningcss"] / "Cargo.toml").is_file():
+        raise ValueError(f"missing lightningcss source {lightningcss}")
     if not (v8 / "Cargo.toml").is_file():
         raise ValueError(f"missing V8 source {v8}")
     stack = names(root)
@@ -42,6 +45,7 @@ def render(root=ROOT):
         SSR_SOURCE_DIR=root,
         SSR_V8_DIR=v8,
         SSR_ORDERED_JSON_DIR=ordered_json,
+        SSR_LIGHTNINGCSS_DIR=lightningcss,
         SSR_CARGO_DIR=root / "var/engine-cargo",
         SSR_TARGET_DIR=root / "var/engine-target",
     )

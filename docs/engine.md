@@ -78,8 +78,20 @@ reported and kept until `python3 -m tools.holder_lock remove-stopped <lock file>
 removes it, and only the holder releases the lock. Each step prints its command,
 its output and its result with the elapsed time, without a time limit. The native GNU linker
 retains the Rust target's link arguments.
-The local V8 checkout is also mounted read only at its absolute Cargo patch
-path. The container cannot modify either source checkout.
+The local V8, ordered-json and lightningcss checkouts are also mounted read only at
+their absolute Cargo paths. The container cannot modify any source checkout. The image
+also holds Clippy and cargo-nextest 0.9.146.
+
+`make check-linux`, a target of `make check`, runs `tools/check_linux.py` in the same stack
+under the same lock: it verifies the AArch64 Linux V8 inputs, starts the stack, checks its
+mounts, fetches the locked dependencies and runs, with the Linux gcc toolchain of the image,
+`cargo clippy --locked -p ssr-server --all-targets -- -D warnings`, the build of the
+`development_process` and `socket_process` examples and
+`cargo nextest run --locked -p ssr-server --lib --test development --test process`, then stops
+the stack. Each step prints its command, its output and its result with the elapsed time,
+without a time limit. The other `ssr-server` test targets write generated entries into the
+build-probe fixture of the checkout and do not run on the read-only mount. x86_64 Linux is not
+built: the host runs only AArch64 Linux containers natively.
 
 ## Renderer snapshots
 

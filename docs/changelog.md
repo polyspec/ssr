@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- Build, lint and test `ssr-server` natively on AArch64 Linux in the full suite:
+  `make check-linux` runs Clippy, the example builds and the unit, `development`
+  and `process` tests of `ssr-server` with the Linux gcc toolchain of the
+  checkout's container stack, which mounts every source checkout read only.
+
 - Refuse a push while a checklist item is in progress: the tracked pre-push
   hook `.githooks/pre-push` runs `python3 -m tools.push_gate hook`, which
   reads the checklist of every pushed commit and of the working tree and

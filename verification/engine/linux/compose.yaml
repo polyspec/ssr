@@ -9,11 +9,14 @@ services:
       CARGO_TARGET_DIR: /target
       SSR_V8_DIR: ${SSR_V8_DIR}
       SSR_ORDERED_JSON_DIR: ${SSR_ORDERED_JSON_DIR}
+      SSR_LIGHTNINGCSS_DIR: ${SSR_LIGHTNINGCSS_DIR}
       RUSTY_V8_ARCHIVE: /src/var/v8/librusty_v8_simdutf_release_aarch64-unknown-linux-gnu.a.gz
+      RUSTY_V8_SRC_BINDING_PATH: /src/var/v8/src_binding_simdutf_release_aarch64-unknown-linux-gnu.rs
     volumes:
       - ${SSR_SOURCE_DIR}:/src:ro
       - ${SSR_V8_DIR}:${SSR_V8_DIR}:ro
       - ${SSR_ORDERED_JSON_DIR}:${SSR_ORDERED_JSON_DIR}:ro
+      - ${SSR_LIGHTNINGCSS_DIR}:${SSR_LIGHTNINGCSS_DIR}:ro
       - ${SSR_CARGO_DIR}:/cargo
       - ${SSR_TARGET_DIR}:/target
     cpus: "4"

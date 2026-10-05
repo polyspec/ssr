@@ -17,7 +17,7 @@ HOOKS_PATH := $(shell test "$$(git config core.hooksPath)" = .githooks || git co
 # (tools/holder_lock.py): a second run of the checkout is refused with the holder's checkout, pid
 # and process start time.
 CHECK_SETUP = verify-archive check-fixtures
-CHECK_TARGETS = check-tools check-ownership check-records check-fmt check-clippy check-deny check-engine-deps check-examples check-nextest check-features check-bench
+CHECK_TARGETS = check-tools check-ownership check-records check-fmt check-clippy check-deny check-engine-deps check-examples check-nextest check-features check-bench check-linux
 FULL_RUN = python3 -m tools.holder_lock run check -- python3 -m tools.full_run
 
 # A make without a target runs the full suite entry, so no command runs its steps without the guard.
@@ -78,6 +78,9 @@ check-nextest:
 
 check-features:
 	python3 tools/check_features.py
+
+check-linux:
+	python3 -m tools.check_linux
 
 check-bench:
 	cargo nextest run -p ssr-runtime --example bench --features bench --locked --no-tests fail

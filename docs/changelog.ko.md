@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- 전체 묶음에서 `ssr-server`를 AArch64 Linux에서 native로 빌드하고 lint하고 test한다.
+  `make check-linux`는 모든 소스 checkout을 읽기 전용으로 mount하는 checkout의
+  container stack에서 Linux gcc toolchain으로 `ssr-server`의 Clippy, 예제 빌드, 단위,
+  `development`, `process` test를 실행한다.
+
 - 체크리스트 항목이 진행 중인 동안 push를 거부한다. 추적되는 pre-push hook
   `.githooks/pre-push`는 `python3 -m tools.push_gate hook`을 실행하고, 이것은
   push되는 모든 commit과 작업 트리의 체크리스트를 읽어 진행 중인 각 항목을 ref,

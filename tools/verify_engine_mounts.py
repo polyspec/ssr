@@ -12,7 +12,7 @@ FIXED = {
     "/cargo": "rw",
     "/target": "rw",
 }
-DECLARED = ("SSR_V8_DIR", "SSR_ORDERED_JSON_DIR")
+DECLARED = ("SSR_V8_DIR", "SSR_ORDERED_JSON_DIR", "SSR_LIGHTNINGCSS_DIR")
 
 
 def expected() -> dict[str, str]:
