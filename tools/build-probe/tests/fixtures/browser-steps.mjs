@@ -1,8 +1,8 @@
-// Browser steps wait for page events and DOM markers. Their time limits only detect a hung
-// step: a step normally finishes within half a second and a browser launch within a few
-// seconds, so the limits are about one hundred times those durations.
+// Page steps wait for page events and DOM markers. Their limit only detects a hung step: a
+// step normally finishes within half a second, so the limit is about one hundred times that.
+// The browser launch and close are long operations with no limit (`timeout: 0` for launch);
+// their RUN and DONE lines report them, and their result or error decides them.
 export const STEP_TIMEOUT = 60_000;
-export const LAUNCH_TIMEOUT = 300_000;
 
 export function begin(name) {
   console.log(`RUN ${name}`);

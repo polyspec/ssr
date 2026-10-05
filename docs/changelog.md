@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Give the browser launch of the browser cases no time limit. The launch and
+  close are reported with their elapsed time and decided by their result; page
+  steps keep their 60 s limit.
+
 - Build the workspace tests once before the ownership cases and run every case
   in one nextest run on that build.
 

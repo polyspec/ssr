@@ -12,7 +12,8 @@ pub const BROWSER: &str = "/usr/bin/google-chrome";
 /// Runs a browser script until its process exits and returns its standard output.
 ///
 /// Each output line is printed with the elapsed time when it arrives. The script bounds
-/// each browser step; the nextest browser override bounds the whole case.
+/// each page step and gives the browser launch and close no limit; the nextest browser
+/// override bounds the whole case.
 pub fn run(script: &Path, base: &str, arguments: &[&str]) -> String {
     assert!(
         Path::new(BROWSER).is_file(),

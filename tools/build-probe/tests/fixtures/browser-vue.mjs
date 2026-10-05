@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright-core";
-import { LAUNCH_TIMEOUT, STEP_TIMEOUT, begin, step } from "./browser-steps.mjs";
+import { STEP_TIMEOUT, begin, step } from "./browser-steps.mjs";
 
 const [base, executablePath, scenario] = process.argv.slice(2);
 assert.ok(base && executablePath);
 assert.ok(scenario === "main" || scenario === "empty", "known browser scenario required");
-const browser = await step("launch", () => chromium.launch({ executablePath, headless: true, timeout: LAUNCH_TIMEOUT }));
+const browser = await step("launch", () => chromium.launch({ executablePath, headless: true, timeout: 0 }));
 try {
   const page = await browser.newPage();
   const errors = [];
