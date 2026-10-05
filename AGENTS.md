@@ -80,9 +80,13 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   and resume it without waiting for permission when the retry condition is met. Audit only `[!]`
   items and their causes and retry conditions; do not repeat unrelated full test suites for that
   audit.
-- A state marker, also an x or a capital X between brackets as Markdown task lists write it,
-  appears in `docs/checklist.md` and `docs/checklist.ko.md` only as the state of an item line. The checklists have no legend; their texts name states in words. `tools/check.py`
-  fails for any other marker and names its file, line and column.
+- The checklists hold only items and headings. An item is an item line, which starts with a hyphen,
+  a space, its state, a space and its ID, and the lines indented by two spaces that directly follow
+  it. Each item names its dependencies and its completion evidence. Requirements are in
+  `docs/requirements.md`; rules are in this file. A state marker, also an x or a capital X between
+  brackets as Markdown task lists write it, appears only as the state of an item line; the
+  checklists have no legend, and their texts name states in words. `tools/check.py` fails for any
+  other line or marker and names its file, line and column.
 - Work in parallel and control work in progress. Independent items A, B, C and D may run at the same
   time; starting new work is not restricted. Do not advance existing items partially while adding
   more `[~]` items so that only the number of unfinished items grows. For example, A[~] and D[~]

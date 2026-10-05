@@ -1,27 +1,11 @@
-[English](checklist.md)
-
 # 체크리스트
-
-[AGENTS.ko.md](../AGENTS.ko.md)에 업무 절차와 항목 상태를 정의한다. 각 항목은 의존 관계와 완료 증거를 적는다.
-
-## 요구 사항
-
-- 별도 Rust 프로세스에서 빌드와 렌더를 수행한다. 빌드 시점과 렌더 시점에 Node 프로세스를 실행하지 않는다. 빌드
-  전에 `npm ci`가 패키지를 설치한다.
-- 렌더 호출은 외부 함수 경계를 넘지 않는다. 호출자는 Rust이며 라이브러리를 직접 호출한다.
-- 번들은 V8 isolate마다 한 번 적재·컴파일하며, 호출마다 보내거나 비교하지 않는다.
-- props는 호출마다 한 번 V8 값으로 들어가고, 결과는 두 번째 JSON 왕복 없이 바이트로 나온다.
-- 컨텍스트 초기화는 전역 상태를 다시 만들지 않고 스냅샷에서 복원한다.
-- ssr가 제공하는 것: 클라이언트 번들 하나로 렌더마다 SSR 또는 CSR 선택, hydration을 위한 렌더 상태 입력과
-  출력, 정적 CSR 셸, 빌드 공개 파일의 디렉터리 게시, 빌드 파일 제공, 대기열을 가진 제한된 풀, 실행 중인
-  스크립트를 종료하는 렌더 타임아웃, 운영체제 난수.
 
 ## 항목
 
 - [o] S-0 작성자 `min-median-max`로 로컬 Git 저장소를 초기화하고 `AGENTS.md`, 이 체크리스트, 변경 기록,
   `.gitignore`를 둔다. 의존: 없음. 증거: 첫 커밋, `git remote -v` 출력 없음.
-- [o] S-0-1 ssr의 렌더·빌드·엔진 요구 사항과 검증 항목을 명세한다. 의존: S-0. 증거: 위 요구
-  사항과 S-3·S-4의 빌드·엔진 완료 기준이 커밋됨.
+- [o] S-0-1 ssr의 렌더·빌드·엔진 요구 사항과 검증 항목을 명세한다. 의존: S-0. 증거:
+  [요구 사항](requirements.ko.md)의 요구 사항과 S-3·S-4의 빌드·엔진 완료 기준이 커밋됨.
 - [o] S-0-2 절차와 체크리스트의 두 언어 파일에 일시 우회 상태를 정의하고 체크리스트 상태 검사에 포함한다.
   의존: S-0-1. 증거: 문서 검사가 두 언어 파일을 검증하고 이 변경이 커밋됨.
 - [o] S-1 [AGENTS.ko.md](../AGENTS.ko.md)의 크레이트로 Cargo 워크스페이스(`rust-toolchain.toml`: Rust 1.98.1,
@@ -313,4 +297,4 @@
 - [o] S-19-2 `make check` 전체 동안 checkout의 fixture 설치를 잡는다. 우선순위: 다음 전체 묶음 실행 전에 필요하다. 원인: build-probe fixture 설치는 checkout마다 directory 하나이고, 같은 checkout에서 동시에 실행되는 두 번째 `make check`가 첫 실행의 test가 읽는 동안 그것을 다시 설치했다. 수용 기준: `make check`는 `python3 -m tools.holder_lock run check -- $(MAKE) check-steps`를 실행하며, 이 command는 첫 설치부터 마지막 test까지 `var/locks/check.lock`을 잡고, SIGINT, SIGTERM, SIGHUP을 단계에 전달하며, 성공과 실패 모두에서 단계가 끝난 뒤 lock을 해제하고, 두 번째 실행은 holder의 record와 함께 거부한다. target별 export와 archive 검사는 `check-steps`에 적용된다. `make check` 밖의 test 실행은 lock을 잡지 않으며, fixture는 `make check`만 준비한다. Red: `tools/test_check_lock.py`의 사례 3개가 실패했다: `check` recipe는 단계를 직접 실행했고 `holder_lock`에는 `run`이 없었다. Green: 사례 3개가 통과하고(command 실행 중 lock이 있고, exit 0과 exit 4 뒤 lock이 없으며, 잡힌 lock은 command를 실행하지 않고 거부한다), `tools/test_verify_archive.py`는 `check-steps bench: verify-archive`를 기대하며, Makefile을 읽는 도구 test 22개가 통과한다. 의존: S-19-1.
 - [o] S-20 체크리스트에서 상태 표시는 항목의 상태로만 쓴다. 우선순위: 도구가 체크리스트 상태를 다시 읽기 전에 필요하다. 원인: 체크리스트가 네 상태 표시의 범례로 시작하고 S-18-1과 S-18-6의 문장이 inline code로 표시를 적었는데, `tools/check.py`는 영어와 한국어 체크리스트의 항목 상태만 비교했으므로 표시를 세는 도구가 존재하지 않는 진행 중 항목을 셌다. 수용 기준: `AGENTS.md`와 `AGENTS.ko.md`가 상태를 정의한다. `docs/checklist.md`와 `docs/checklist.ko.md`에는 범례가 없고 문장은 상태를 말로 적는다. `tools/check.py`는 두 file에서 항목 줄의 상태가 아닌 모든 대괄호 상태 표시에 대해 실패하며, 항목 줄은 하이픈, 공백, 표시, 공백, 항목 ID로 시작하는 줄이다. 실패는 file, 줄, 열과 이유를 적고 예외나 허용 목록을 두지 않는다. Red: `tools/test_checklist_markers.py`의 fixture는 범례, table 칸, 항목의 inline code, 이어지는 줄의 문장, 항목 줄 안에 적힌 두 번째 항목에 표시를 담는다. `tools/check.py`의 이전 `check_pairs_and_links`는 이 fixture에 오류를 내지 않았으므로 `test_marker_outside_an_item_state_names_its_location`이 기대한 오류 12개 대신 빈 목록을 받아 실패했다. Green: 3개 사례가 통과한다. fixture는 각 file의 위치 6개로 실패하고, 표시를 항목 상태로만 쓰는 체크리스트는 통과하며, 저장소 체크리스트는 통과한다. 검사를 넣고 체크리스트가 이전 것일 때 `python3 tools/check.py`는 표시 14개(영어 file의 5, 362, 371번 줄과 한국어 file의 5, 304, 313번 줄)를 적으며 종료 상태 1로 끝났고, 범례를 없애고 문장을 고친 뒤에는 통과한다. 의존: 없음.
 - [o] S-20-1 GitHub의 task list 상태도 상태 표시로 다룬다. 우선순위: 도구가 체크리스트 상태를 다시 읽기 전에 필요하다. 원인: S-20은 이 저장소의 네 상태만 검사하지만, Markdown reader는 대괄호 안의 x나 대문자 X도 task list 항목의 상태로 읽으므로, 항목 상태 밖의 그런 표시가 `tools/check.py`를 통과했다. 수용 기준: `tools/check.py`는 `docs/checklist.md`와 `docs/checklist.ko.md`에서 항목 줄의 상태가 아닌 대괄호 안의 공백, 물결표, o, 느낌표, x, 대문자 X에 대해 file, 줄, 열을 적고 실패한다. 항목 줄은 `AGENTS.md`가 정의하는 네 상태를 유지하므로, x 형식으로 시작하는 줄은 항목 줄이 아니다. Red: `tools/test_checklist_markers.py`의 fixture에 x 형식의 항목 줄과 inline code의 대문자 X를 더하자 이전 검사가 10, 11번 줄의 기대 오류 4개를 하나도 내지 않아 `test_marker_outside_an_item_state_names_its_location`이 실패했다. Green: 3개 사례가 통과하고 저장소 체크리스트에서 `python3 tools/check.py`가 통과한다. 의존: S-20.
-- [~] S-20-2 체크리스트에는 항목과 제목만 둔다. 우선순위: 도구가 체크리스트를 다시 읽기 전에 필요하다. 원인: 체크리스트가 번역 문서 link, 절차를 적은 문단, 요구 사항 section으로 시작했고 그런 문장을 항목과 구별하는 검사가 없었으므로, file을 읽는 쪽이 모든 목록 항목을 항목으로 받아들일 수 없었다. 수용 기준: 요구 사항은 S-0-1이 link하는 `docs/requirements.md`와 `docs/requirements.ko.md`에 있다. 문단이 적던 절차는 `AGENTS.md`와 `AGENTS.ko.md`에 있다. `tools/check.py`는 `docs/checklist.md`와 `docs/checklist.ko.md`에서 빈 줄, 제목, 항목 줄, 항목의 이어지는 줄이 아닌 모든 줄에 대해 실패하고 file, 줄, 열을 적는다. 이어지는 줄은 항목 줄이나 다른 이어지는 줄 바로 다음에 오는, 공백 두 칸으로 들여 쓴 줄이다. 의존: S-20-1.
+- [o] S-20-2 체크리스트에는 항목과 제목만 둔다. 우선순위: 도구가 체크리스트를 다시 읽기 전에 필요하다. 원인: 체크리스트가 번역 문서 link, 절차를 적은 문단, 요구 사항 section으로 시작했고 그런 문장을 항목과 구별하는 검사가 없었으므로, file을 읽는 쪽이 모든 목록 항목을 항목으로 받아들일 수 없었다. 수용 기준: 요구 사항은 S-0-1이 link하는 `docs/requirements.md`와 `docs/requirements.ko.md`에 있다. 문단이 적던 절차는 `AGENTS.md`와 `AGENTS.ko.md`에 있다. `tools/check.py`는 `docs/checklist.md`와 `docs/checklist.ko.md`에서 빈 줄, 제목, 항목 줄, 항목의 이어지는 줄이 아닌 모든 줄에 대해 실패하고 file, 줄, 열을 적는다. 이어지는 줄은 항목 줄이나 다른 이어지는 줄 바로 다음에 오는, 공백 두 칸으로 들여 쓴 줄이다. Red: 번역 link, 문단, 제목 아래의 목록 항목과 그 두 번째 줄, 빈 줄 다음의 들여 쓴 문단을 담은 fixture에 이전 검사가 오류를 내지 않아 `test_text_outside_an_item_names_its_location`이 실패했다. Green: 4개 사례가 통과하고 fixture는 file마다 위치 5개로 실패한다. 검사를 넣고 체크리스트가 이전 것일 때 `python3 tools/check.py`는 영어 file의 1~21번 줄과 한국어 file의 1~17번 줄에 대해 실패했고, 요구 사항을 `docs/requirements.md`로 옮기고 문단과 link를 없앤 뒤에는 통과한다. 의존: S-20-1.

@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- Keep only items and headings in the checklist: `tools/check.py` fails for a
+  checklist line that is not blank, a heading, an item line or a continuation
+  line of an item. The requirements moved to `docs/requirements.md`, and
+  `AGENTS.md` states the checklist format.
+
 - Treat the task list states of GitHub as state markers: `tools/check.py` also
   fails for an x or a capital X between brackets in the checklists that is not
   the state of an item line.

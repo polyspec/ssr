@@ -33,6 +33,25 @@ def check_markers(root, path):
     return errors
 
 
+def check_text(root, path):
+    """The checklist holds blank lines, headings, item lines and the continuation lines of items."""
+    errors = []
+    name = path.relative_to(root).as_posix()
+    in_item = False
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if STATE.match(line):
+            in_item = True
+        elif in_item and re.match(r"  \S", line):
+            pass
+        elif not line.strip() or line.startswith("#"):
+            in_item = False
+        else:
+            in_item = False
+            column = len(line) - len(line.lstrip()) + 1
+            errors.append(f"{name}:{number}:{column}: text outside an item; a checklist holds only items and headings")
+    return errors
+
+
 def check_pairs_and_links(root):
     errors = []
     for path in markdown_files(root):
@@ -50,6 +69,7 @@ def check_pairs_and_links(root):
     for path in (en, ko):
         if path.is_file():
             errors.extend(check_markers(root, path))
+            errors.extend(check_text(root, path))
     if en.is_file() and ko.is_file():
         if STATE.findall(en.read_text(encoding="utf-8")) != STATE.findall(ko.read_text(encoding="utf-8")):
             errors.append("docs/checklist.md: item IDs or states differ from Korean document")
