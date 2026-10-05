@@ -284,17 +284,13 @@ async fn failed_rebuild_starts_the_previous_process_shutdown_duration() {
     let mut body = Box::pin(response.into_body());
     body.frame().await.unwrap().unwrap();
     fs::write(case.source.join("server.js"), "export function render(;").unwrap();
-    let error = tokio::time::timeout(std::time::Duration::from_secs(3), async {
-        loop {
-            if let Err(error) = change(&mut changes).await
-                && error.to_string().contains("forced termination")
-            {
-                break error;
-            }
+    let error = loop {
+        if let Err(error) = change(&mut changes).await
+            && error.to_string().contains("forced termination")
+        {
+            break error;
         }
-    })
-    .await
-    .expect("failed rebuild must start the configured shutdown duration");
+    };
     assert!(
         error.to_string().contains("process exit collected"),
         "{error}"

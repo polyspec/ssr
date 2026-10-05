@@ -4,11 +4,14 @@ pub use config::ProcessOptions;
 use config::validate_excluded;
 mod process;
 mod socket;
+mod source;
+#[cfg(test)]
+mod start_tests;
 mod supervisor;
 
 use http::{Request, Response};
 use hyper::body::{Body as HttpBody, Bytes};
-use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+use notify::RecursiveMode;
 use ssr_core::{Page, Render};
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -27,6 +30,20 @@ impl fmt::Display for DevelopmentError {
 }
 impl std::error::Error for DevelopmentError {}
 
+/// The file watch of the source paths and the private directory of its baseline. Closing it
+/// stops the watch before the directory is removed.
+struct SourceWatcher {
+    watch: Box<dyn source::SourceWatch>,
+    baseline: source::Baseline,
+}
+
+impl SourceWatcher {
+    fn close(self) -> Result<(), DevelopmentError> {
+        drop(self.watch);
+        self.baseline.close()
+    }
+}
+
 type Current = Arc<RwLock<Result<Arc<process::Generation>, DevelopmentError>>>;
 type Worker = JoinHandle<Result<(), DevelopmentError>>;
 type Ready = tokio::sync::oneshot::Receiver<Result<(), DevelopmentError>>;
@@ -39,7 +56,7 @@ type WatchEvents = (
 
 pub struct Development {
     current: Current,
-    watcher: Mutex<Option<RecommendedWatcher>>,
+    watcher: Mutex<Option<SourceWatcher>>,
     stop: watch::Sender<bool>,
     worker: Mutex<Option<Worker>>,
     finished: Finished,
@@ -53,6 +70,30 @@ impl Development {
         render: impl Fn(&Path, &Path) -> Command + Send + Sync + 'static,
         probe: Page,
         options: ProcessOptions,
+    ) -> Result<(Self, mpsc::Receiver<Result<(), DevelopmentError>>), DevelopmentError> {
+        let watched_exclusions = excluded.clone();
+        Self::start_with(
+            roots,
+            excluded,
+            build,
+            render,
+            probe,
+            options,
+            move |handler| source::platform(handler, watched_exclusions),
+        )
+        .await
+    }
+
+    async fn start_with(
+        roots: Vec<PathBuf>,
+        excluded: Vec<PathBuf>,
+        build: Command,
+        render: impl Fn(&Path, &Path) -> Command + Send + Sync + 'static,
+        probe: Page,
+        options: ProcessOptions,
+        watch_source: impl FnOnce(
+            source::Handler,
+        ) -> Result<Box<dyn source::SourceWatch>, DevelopmentError>,
     ) -> Result<(Self, mpsc::Receiver<Result<(), DevelopmentError>>), DevelopmentError> {
         if roots.is_empty() {
             return Err(DevelopmentError("source paths are required".into()));
@@ -99,25 +140,46 @@ impl Development {
             .iter()
             .map(|root| (root.clone(), root.is_dir()))
             .collect::<Vec<_>>();
-        let mut watcher =
-            notify::recommended_watcher(move |event: notify::Result<notify::Event>| {
-                if event
-                    .as_ref()
-                    .is_ok_and(|event| !supervisor::input_event(event, &ignored, &inputs))
-                {
-                    return;
+        let baseline = source::Baseline::new()?;
+        let sentinel = baseline.sentinel();
+        let (observed, observation) = tokio::sync::oneshot::channel();
+        let observed = Mutex::new(Some(observed));
+        let mut watcher = watch_source(Box::new(move |event: notify::Result<notify::Event>| {
+            if let Ok(mut observed) = observed.lock()
+                && let Some(sender) = observed.take()
+            {
+                let result = match &event {
+                    Ok(event) if event.paths.contains(&sentinel) => Ok(()),
+                    Ok(event) => {
+                        tracing::debug!(paths = ?event.paths, "source event before the watch baseline");
+                        *observed = Some(sender);
+                        return;
+                    }
+                    Err(error) => Err(DevelopmentError(format!(
+                        "watch failed before its baseline: {error}"
+                    ))),
+                };
+                if sender.send(result).is_err() {
+                    tracing::error!("watch baseline receiver stopped");
                 }
-                if let Err(error) = events.try_send(event) {
-                    let cause = error.to_string();
-                    let rejected = error.into_inner();
-                    let error = DevelopmentError(format!(
-                        "watch event queue failed: {cause}; rejected: {rejected:?}"
-                    ));
-                    tracing::error!(%error, "development watch event rejected");
-                    failed.send_replace(Some(error));
-                }
-            })
-            .map_err(|e| DevelopmentError(format!("watch creation failed: {e}")))?;
+                return;
+            }
+            if event
+                .as_ref()
+                .is_ok_and(|event| !supervisor::input_event(event, &ignored, &inputs))
+            {
+                return;
+            }
+            if let Err(error) = events.try_send(event) {
+                let cause = error.to_string();
+                let rejected = error.into_inner();
+                let error = DevelopmentError(format!(
+                    "watch event queue failed: {cause}; rejected: {rejected:?}"
+                ));
+                tracing::error!(%error, "development watch event rejected");
+                failed.send_replace(Some(error));
+            }
+        }))?;
         let mut registrations = std::collections::BTreeMap::new();
         for root in &roots {
             let (path, recursive) = if root.is_dir() {
@@ -136,17 +198,26 @@ impl Development {
                 .or_insert(recursive);
         }
         for (path, recursive) in registrations {
-            watcher
-                .watch(
-                    &path,
-                    if recursive {
-                        RecursiveMode::Recursive
-                    } else {
-                        RecursiveMode::NonRecursive
-                    },
-                )
-                .map_err(|error| DevelopmentError(format!("watch registration failed: {error}")))?;
+            watcher.watch(
+                &path,
+                if recursive {
+                    RecursiveMode::Recursive
+                } else {
+                    RecursiveMode::NonRecursive
+                },
+            )?;
         }
+        watcher.watch(baseline.directory(), RecursiveMode::NonRecursive)?;
+        let started = std::time::Instant::now();
+        tracing::info!(sentinel = %baseline.sentinel().display(), "development watch baseline started");
+        baseline.write()?;
+        observation
+            .await
+            .map_err(|e| DevelopmentError(format!("watch baseline observation stopped: {e}")))??;
+        tracing::info!(
+            elapsed_ms = started.elapsed().as_millis(),
+            "development watch baseline observed"
+        );
         let (stop, stop_rx) = watch::channel(false);
         let current = Arc::new(RwLock::new(Err(DevelopmentError(
             "render process is preparing".into(),
@@ -166,7 +237,10 @@ impl Development {
         Ok((
             Self {
                 current,
-                watcher: Mutex::new(Some(watcher)),
+                watcher: Mutex::new(Some(SourceWatcher {
+                    watch: watcher,
+                    baseline,
+                })),
                 stop,
                 worker: Mutex::new(Some(worker)),
                 finished,
@@ -233,10 +307,12 @@ impl Development {
 
     pub async fn close(&self) -> Result<(), DevelopmentError> {
         self.stop.send_replace(true);
-        self.watcher
+        let watcher = self
+            .watcher
             .lock()
             .map_err(|e| DevelopmentError(format!("watcher lock failed: {e}")))?
             .take();
+        let watched = watcher.map_or(Ok(()), SourceWatcher::close);
         let mut finished = self.finished.clone();
         let result = loop {
             if let Some(result) = finished.borrow().clone() {
@@ -252,12 +328,17 @@ impl Development {
             .lock()
             .map_err(|e| DevelopmentError(format!("worker lock failed: {e}")))?
             .take();
-        if let Some(worker) = worker {
-            return tokio::task::spawn_blocking(move || join(worker))
+        let result = match worker {
+            Some(worker) => tokio::task::spawn_blocking(move || join(worker))
                 .await
-                .map_err(|e| DevelopmentError(format!("development join task failed: {e}")))?;
+                .map_err(|e| DevelopmentError(format!("development join task failed: {e}")))?,
+            None => result,
+        };
+        match (result, watched) {
+            (result, Ok(())) => result,
+            (Ok(()), Err(error)) => Err(error),
+            (Err(error), Err(watched)) => Err(DevelopmentError(format!("{error}; {watched}"))),
         }
-        result
     }
 }
 
@@ -266,7 +347,11 @@ impl Drop for Development {
         self.stop.send_replace(true);
         match self.watcher.get_mut() {
             Ok(watcher) => {
-                watcher.take();
+                if let Some(watcher) = watcher.take()
+                    && let Err(error) = watcher.close()
+                {
+                    tracing::error!(%error, "source watch cleanup failed");
+                }
             }
             Err(error) => tracing::error!(%error, "watcher lock failed during cleanup"),
         }

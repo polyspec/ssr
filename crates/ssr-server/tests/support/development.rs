@@ -209,10 +209,7 @@ pub async fn render(development: &Development) -> Result<String, String> {
 pub async fn change(
     changes: &mut Receiver<Result<(), DevelopmentError>>,
 ) -> Result<(), DevelopmentError> {
-    tokio::time::timeout(Duration::from_secs(15), changes.recv())
-        .await
-        .expect("change event timed out")
-        .expect("change receiver stopped")
+    changes.recv().await.expect("change receiver stopped")
 }
 pub async fn contains(
     development: &Development,

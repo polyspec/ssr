@@ -23,6 +23,10 @@ hyper-util.workspace = true
 http-body-util.workspace = true
 getrandom.workspace = true
 
+[target.'cfg(target_os = "macos")'.dependencies]
+kqueue.workspace = true
+rustix = { workspace = true, features = ["process"] }
+
 [dev-dependencies]
 sha2.workspace = true
 tracing-subscriber = { version = "=0.3.23", default-features = false, features = ["fmt"] }

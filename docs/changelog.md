@@ -4,6 +4,14 @@
 
 ## 0.0.1
 
+- Observe every source change after `Development::start` returns: on macOS the
+  source watch registers the watched directories and regular files with
+  `kqueue(2)` through a walk that skips the excluded paths, raises the file
+  descriptor limit it needs or fails naming the count, the limit and the
+  largest directories, and registers new entries before it reports them.
+  `start` builds only after the event of a sentinel file in its own watched
+  directory, so events of earlier writes no longer start a second build.
+
 - Rebuild when the source watch reports dropped events: a `Rescan` event,
   which the watch sends when the file event service dropped events, starts a
   rebuild and a warning unless all its paths are excluded.

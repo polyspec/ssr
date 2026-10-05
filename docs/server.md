@@ -64,6 +64,24 @@ Only source changes with an included input path enter the queue; an event with u
 enters it. Access events do not rebuild. New source files remain watched. An event that reports
 dropped file events (`Rescan`) starts a rebuild and a warning unless all its paths are excluded.
 
+On macOS the source watch registers every watched directory and regular file with `kqueue(2)`,
+which reports each change of a registered file in the kernel without a daemon in between. Its walk
+skips the excluded paths. A change of a directory rescans it: new entries are registered before
+their creation is reported, and removed entries are unregistered. On Linux the source watch uses
+`inotify(7)`. On macOS each watched path holds one open file descriptor. Before it registers a
+source path, `Development::start` counts the paths of the walk; when they do not fit under the soft
+descriptor limit with the descriptors already open, it raises the soft limit by that count, or to
+the hard limit, and fails when they do not fit under the hard limit, naming the count, the limit
+and the five largest directories. An entry that is neither a regular file nor a directory is not
+watched and is logged as a warning.
+
+Before the first build, `Development::start` creates a private directory, watches it after the
+source paths and writes a sentinel file into it. The first build starts only after the event of
+that file arrives, which is waited for without a time limit and logged when the wait starts and
+ends. Events that arrive before it belong to writes that the first build reads and do not start
+a rebuild; every source write after it produces an event that starts one. Closing the
+development stops the watch and removes the directory.
+
 Both commands execute Rust programs. The build command writes only the absolute immutable directory
 returned by `Build::write` and a newline to stdout; diagnostics use stderr. The render command
 serves its supplied completed directory through the supplied private Unix socket and writes that
