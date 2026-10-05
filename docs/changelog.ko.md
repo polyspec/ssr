@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- 공개되고 고정된 의존성 소스로만 build한다. v8 150.4.0은 crates.io에서 공식
+  archive와 함께, lightningcss와 ordered-json은 고정된 Git commit에서 오며, 추적되는
+  어떤 파일에서든 home directory로 가는 절대 경로가 있으면 검사가 실패한다.
+
 - 심볼릭 링크 없는 절대 의존성 디렉터리를 요구한다. `BuildConfig::dependencies`는
   루트의 규칙을 따른다.
 

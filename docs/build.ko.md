@@ -91,10 +91,11 @@ React 렌더링 코드가 있어야 하며 동적 import는 별도 청크를 출
 
 `make verify-build`는 버전이 고정된 샘플 패키지를 설치하고 검증 테스트와 검증 도구의
 의존성 검사를 실행한다. 검증 도구는 `tools/build-probe`의 별도 Cargo 워크스페이스에 있다.
-해당 CSS 라이브러리는 번들러의 소스 위치와 소스맵 생성을 분리하므로 검증 도구는 그
-라이브러리 체크아웃을 사용한다. 검증 도구 매니페스트는
-루트 매니페스트에 선언된 CSS 라이브러리 체크아웃 경로를 지정한다.
-`tools/test_local_paths.py`는 두 매니페스트가 존재하는 같은 체크아웃을 가리키는지 검사한다. 제품 워크스페이스에는 S-5 전까지 빌드 의존성이 없으며 S-5에서
+검증 도구는 `github.com/min-median-max/lightningcss`의 branch `ssr/bundler-without-sourcemap`의 `ddead301`에서
+CSS 라이브러리를 쓴다. 이것은 crates.io `1.0.0-alpha.72` 소스에서 소스맵 feature를 번들러에서 명령줄로 옮긴 것이므로
+번들러는 `parcel_sourcemap`과 `rkyv 0.7`(RUSTSEC-2026-0235)에 의존하지 않는다. 루트와 검증 도구 매니페스트는 같은
+commit을 가리키고 `deny.toml`은 그 Git 소스를 허용한다. `tools/check.py`는 추적되는 어떤 파일이든 home directory로
+가는 절대 경로에서 실패하므로 어떤 매니페스트도 한 machine의 체크아웃을 가리키지 않는다. 제품 워크스페이스에는 S-5 전까지 빌드 의존성이 없으며 S-5에서
 해당 크레이트를 제품 빌드에 연결해야 한다.
 
 ## 결과와 API

@@ -17,12 +17,12 @@ version = "0.0.1"
 license = "MIT"
 
 [workspace.dependencies]
-ordered-json = { path = "/opt/polyspec/ordered-json/rust", version = "=0.0.1" }
+ordered-json = { git = "https://github.com/polyspec/ordered-json", version = "=0.0.1" }
 rolldown = "=1.2.11"
 rolldown_common = "=1.2.11"
 rolldown_plugin_utils = "=1.2.11"
 rolldown_sourcemap = "=1.2.11"
-lightningcss = { version = "=1.0.0-alpha.72", path = "/opt/ssr/lightningcss-local", default-features = false, features = ["bundler"] }
+lightningcss = { git = "https://github.com/min-median-max/lightningcss", rev = "ddead301c67909b522ca0b996ec37c90cd68ca56", version = "=1.0.0-alpha.72", default-features = false, features = ["bundler"] }
 tokio = { version = "=1.53.1", features = ["macros", "rt-multi-thread", "time", "process", "io-util", "io-std", "sync", "net"] }
 sha2 = "=0.11.0"
 deno_core = "=0.412.0"
@@ -41,5 +41,3 @@ notify = "=8.2.0"
 kqueue = "=1.2.1"
 lol_html = "=3.0.1"
 
-[patch.crates-io]
-v8 = { path = "/opt/ssr/v8-local" }

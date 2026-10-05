@@ -10,5 +10,3 @@ ssr-runtime = { path = "../../crates/ssr-runtime", version = "=0.0.1" }
 
 [workspace]
 
-[patch.crates-io]
-v8 = { path = "/opt/ssr/v8-local" }

@@ -24,12 +24,12 @@ and feature set from offline locked Cargo metadata for the selected target. The 
 and select only verified local inputs. Direct Cargo commands require the same input verification
 and explicit archive and binding environment variables before execution.
 
-The V8 source checkout keeps version 150.4.0 and selects `pastey 0.2.3` as
-the compile-time `paste` macro dependency. The previous macro package has a
-maintenance advisory and no patched release. The replacement changes the
-dependency package, not the V8 Rust macro calls or the prebuilt archive.
-The engine verification workspace uses the absolute local V8 checkout. Engine
-verification checks all four target builds and links after the dependency change.
+The workspace and the engine verification use the `v8 150.4.0` crate of crates.io with the
+official prebuilt archive. Its compile-time macro dependency `paste 1.0.15` has the maintenance
+advisory RUSTSEC-2024-0436 and no patched release; `deny.toml` ignores that advisory with its
+reason: `paste` is a compile-time proc-macro without runtime code, and the advisory reports no
+vulnerability. It is reviewed again when an advisory reports a vulnerability in `paste` or when
+`v8` replaces it.
 
 | Target | Compressed archive SHA-256 |
 | --- | --- |
@@ -80,8 +80,8 @@ its output and its result with the elapsed time, without a time limit. The first
 ends the steps; once the stack was started, it is stopped after the steps, also after a
 failure, and the run reports the failing step and the result of the stop. The native GNU linker
 retains the Rust target's link arguments.
-The local V8, ordered-json and lightningcss checkouts are also mounted read only at
-their absolute Cargo paths. The container cannot modify any source checkout. The image
+No other checkout is mounted: every dependency comes from crates.io or a pinned Git commit,
+which `cargo fetch` reads into the Cargo cache. The container cannot modify the source checkout. The image
 also holds Clippy and cargo-nextest 0.9.146.
 
 `make check-linux`, a target of `make check`, runs `tools/check_linux.py` in the same stack

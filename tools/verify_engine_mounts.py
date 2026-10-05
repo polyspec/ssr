@@ -1,6 +1,5 @@
 """Check the engine build container's source, cache, and output mounts."""
 
-import os
 from pathlib import Path
 import sys
 import time
@@ -11,18 +10,11 @@ FIXED = {
     "/cargo": "rw",
     "/target": "rw",
 }
-DECLARED = ("SSR_V8_DIR", "SSR_ORDERED_JSON_DIR", "SSR_LIGHTNINGCSS_DIR")
 
 
 def expected() -> dict[str, str]:
-    """Return the required mounts; declared checkouts come from the environment."""
-    mounts = dict(FIXED)
-    for name in DECLARED:
-        value = os.environ.get(name, "")
-        if not value.startswith("/"):
-            raise ValueError(f"{name} must name an absolute checkout path")
-        mounts[value] = "ro"
-    return mounts
+    """Return the required mounts: the read-only checkout, the Cargo cache and the build output."""
+    return dict(FIXED)
 
 
 def check(required: dict[str, str], mountinfo: str) -> list[str]:

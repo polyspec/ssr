@@ -98,6 +98,20 @@ class WorkspaceTest(unittest.TestCase):
             self.assertEqual(len(check.check_pairs_and_links(root)), 2)
             self.assertEqual(len(check.check_words(root)), 2)
 
+    def test_an_absolute_path_into_a_home_directory_fails(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            home = "/" + "Users" + "/someone/"
+            (root / "Cargo.toml").write_text(f'[dependencies]\nlib = {{ path = "{home}lib" }}\n')
+            (root / "Makefile").write_text("build:\n\tcargo build --manifest-path $(CURDIR)/Cargo.toml\n")
+            (root / "image.png").write_bytes(bytes([0x89, 0x50, 0xff, 0xfe]))
+            commit_all(root)
+            self.assertEqual(check.check_outside_paths(root), [
+                f"Cargo.toml:2:17: absolute path into a home directory: {home}"])
+
+    def test_the_repository_names_no_home_directory(self):
+        self.assertEqual(check.check_outside_paths(ROOT), [])
+
     def test_untracked_file_is_named(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = pathlib.Path(temporary)

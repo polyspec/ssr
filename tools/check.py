@@ -154,6 +154,28 @@ def check_react_document(root):
     return errors
 
 
+# An absolute path into a home directory names a file of one machine, such as another checkout.
+HOME_PATH = re.compile(r"/(?:Users|home)/[A-Za-z0-9._-]+/")
+
+
+def check_outside_paths(root):
+    """Tracked text files name no absolute path into a home directory: such a path, such as a
+    dependency on another checkout, exists on one machine only, so the tree would not build or
+    give the same result elsewhere."""
+    errors = []
+    for path in tracked(root, "*"):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, IsADirectoryError):
+            continue
+        for number, line in enumerate(text.splitlines(), 1):
+            match = HOME_PATH.search(line)
+            if match:
+                errors.append(f"{path.relative_to(root)}:{number}:{match.start() + 1}: absolute path into a home "
+                              f"directory: {match.group()}")
+    return errors
+
+
 def check_untracked(root):
     """Files that are neither tracked nor ignored: the checks read tracked files only, so such a
     file must be added or ignored before the checks can judge it."""
@@ -173,7 +195,7 @@ def check_hooks(root):
 
 def main():
     try:
-        errors = (check_untracked(ROOT) + check_pairs_and_links(ROOT) + check_words(ROOT)
+        errors = (check_untracked(ROOT) + check_outside_paths(ROOT) + check_pairs_and_links(ROOT) + check_words(ROOT)
                   + check_react_document(ROOT) + check_hooks(ROOT))
     except OSError as error:
         print(error, file=sys.stderr)

@@ -8,6 +8,6 @@ license = "MIT"
 
 [dependencies]
 rolldown = "=1.2.11"
-lightningcss = { version = "=1.0.0-alpha.72", path = "/opt/ssr/lightningcss-local", default-features = false, features = ["bundler"] }
+lightningcss = { git = "https://github.com/min-median-max/lightningcss", rev = "ddead301c67909b522ca0b996ec37c90cd68ca56", version = "=1.0.0-alpha.72", default-features = false, features = ["bundler"] }
 tokio = { version = "=1.53.1", features = ["macros", "rt-multi-thread"] }
 sha2 = "=0.11.0"

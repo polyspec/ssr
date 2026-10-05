@@ -2,6 +2,12 @@
 all-features = true
 
 [advisories]
+# paste is a compile-time proc-macro of v8 150.4.0 with no runtime code; the advisory reports that
+# it is unmaintained, not a vulnerability. Revisit when an advisory reports a vulnerability in
+# paste or when v8 replaces it.
+ignore = [
+    { id = "RUSTSEC-2024-0436", reason = "paste: unmaintained compile-time proc-macro of v8, no runtime code" },
+]
 
 [bans]
 multiple-versions = "warn"
@@ -31,3 +37,10 @@ allow = ["CC0-1.0"]
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
+# ordered-json is the JSON library of polyspec, pinned to a commit; lightningcss is the fork branch
+# ssr/bundler-without-sourcemap, whose bundler feature does not require source maps and so does not
+# depend on rkyv 0.7 (RUSTSEC-2026-0235). Both are pinned by rev in the manifests.
+allow-git = [
+    "https://github.com/polyspec/ordered-json",
+    "https://github.com/min-median-max/lightningcss",
+]

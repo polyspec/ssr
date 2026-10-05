@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- Build from published and pinned dependency sources only: v8 150.4.0 from
+  crates.io with the official archive, lightningcss and ordered-json from pinned
+  Git commits, and a check that fails for an absolute path into a home directory
+  in any tracked file.
+
 - Require an absolute dependency directory without symbolic links:
   `BuildConfig::dependencies` follows the rule of the root.
 

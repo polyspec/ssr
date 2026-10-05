@@ -104,10 +104,12 @@ An unresolved import or asset must fail the build.
 
 Run `make verify-build` to install the pinned sample packages, run the verification tests and
 check the probe dependencies. The probe is a separate Cargo workspace under `tools/build-probe`.
-It uses a checkout of the CSS library because its bundler feature separates source locations
-from source-map generation. The probe manifest names
-the CSS library checkout path declared in the root manifest.
-`tools/test_local_paths.py` requires both manifests to name the same existing checkout. The product workspace has no
+It uses the CSS library from the branch `ssr/bundler-without-sourcemap` of
+`github.com/min-median-max/lightningcss` at `ddead301`, the crates.io `1.0.0-alpha.72` source with
+the source-map feature moved from the bundler to the command line, so the bundler does not depend
+on `parcel_sourcemap` and `rkyv 0.7` (RUSTSEC-2026-0235). The root and probe manifests name the
+same commit, and `deny.toml` allows that Git source. `tools/check.py` fails for an absolute path
+into a home directory in any tracked file, so no manifest names a checkout of one machine. The product workspace has no
 build dependency until S-5, when that crate must be connected to the product build.
 
 ## Result and API
