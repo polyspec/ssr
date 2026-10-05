@@ -1,20 +1,26 @@
-.PHONY: check bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
+.PHONY: check check-steps bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
 
 V8_TARGET := $(shell rustc -vV | sed -n 's/^host: //p')
 V8_ARCHIVE := $(CURDIR)/var/v8/librusty_v8_simdutf_release_$(V8_TARGET).a.gz
 V8_BINDING := $(CURDIR)/var/v8/src_binding_simdutf_release_$(V8_TARGET).rs
 
-check bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
-check bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
-check bench verify-build: export CARGO_INCREMENTAL := 0
-check bench verify-build: export CARGO_BUILD_JOBS := 1
-check bench verify-build: export CARGO_NET_OFFLINE := true
-check bench: verify-archive
+check-steps bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
+check-steps bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
+check-steps bench verify-build: export CARGO_INCREMENTAL := 0
+check-steps bench verify-build: export CARGO_BUILD_JOBS := 1
+check-steps bench verify-build: export CARGO_NET_OFFLINE := true
+check-steps bench: verify-archive
 
 verify-archive:
 	python3 tools/verify_archive.py
 
+# make check installs the build-probe fixture that its tests read, so its steps run under the
+# checkout lock check (tools/holder_lock.py): a second make check of the checkout is refused with
+# the holder's checkout, pid and process start time.
 check:
+	python3 -m tools.holder_lock run check -- $(MAKE) check-steps
+
+check-steps:
 	npm ci --prefix tools/build-probe/tests/fixtures --install-links --ignore-scripts --no-audit --no-fund
 	python3 tools/run_tests.py
 	python3 tools/test_ownership.py

@@ -10,6 +10,10 @@ Run `make check` to check the document pairs and links, records, terminology, Py
 Rust formatting, Clippy warnings, dependency advisories, licenses and sources, and Rust unit tests.
 Rust tests run with cargo-nextest 0.9.146. The nextest configuration terminates each test after
 30 seconds and prints its start and result with elapsed time. A missing test tool fails the command.
+`make check` installs the build-probe fixture that its tests read, so
+`python3 -m tools.holder_lock run check` holds the checkout lock `var/locks/check.lock` for all of its
+steps (`make check-steps`): a second `make check` of the same checkout is refused with the holder's
+checkout, pid and process start time. A test run outside `make check` does not take this lock.
 
 Run `make bench` to execute Cargo benchmarks. The maintained measurements and limits are specified
 in S-11.

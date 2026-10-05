@@ -9,6 +9,10 @@ Rust 1.98.1 워크스페이스는 AGENTS.md에 적힌 여덟 크레이트로 구
 `make check`는 문서 쌍과 링크, 기록, 용어, Python 도구 테스트, Rust 형식, Clippy 경고, 의존성 보안 공지와
 라이선스·출처, Rust 단위 테스트를 검사한다. Rust 테스트는 cargo-nextest 0.9.146으로 실행한다. nextest 설정은
 각 테스트를 30초 뒤 종료하고 시작 및 결과와 경과 시간을 출력한다. 테스트 도구가 없으면 명령은 실패한다.
+`make check`는 테스트가 읽는 build-probe fixture를 설치하므로,
+`python3 -m tools.holder_lock run check`가 모든 단계(`make check-steps`) 동안 checkout lock
+`var/locks/check.lock`을 잡는다. 같은 checkout의 두 번째 `make check`는 holder의 checkout, pid, process
+시작 시각과 함께 거부된다. `make check` 밖의 test 실행은 이 lock을 잡지 않는다.
 
 `make bench`는 Cargo 벤치마크를 실행한다. 유지할 측정과 한도는 S-11에 명시한다.
 

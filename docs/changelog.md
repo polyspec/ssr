@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- Run the steps of `make check` under the checkout lock `var/locks/check.lock`,
+  so a second `make check` of the same checkout no longer reinstalls the
+  build-probe fixture while the first run's tests read them; it
+  is refused with the holder's checkout, pid and process start time.
+
 - Give each checkout its own engine verification stack: the Compose project,
   container and image are named from the SHA-256 of the checkout path, so a
   verification of another checkout no longer replaces the stack of a running

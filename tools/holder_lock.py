@@ -8,6 +8,7 @@ sees a partial record. A run that finds the lock held is refused with the holder
 whose holder process no longer runs is reported and stays in place; ``remove-stopped`` removes it
 explicitly. Only the holder releases its lock: the release checks the token first.
 
+    python3 -m tools.holder_lock run <name> [--root <checkout>] -- <command> [arguments...]
     python3 -m tools.holder_lock remove-stopped <lock file>
 """
 
@@ -17,6 +18,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import signal
 import subprocess
 import sys
 
@@ -179,7 +181,40 @@ def remove_stopped(path):
     return record
 
 
+def run(name, command, root=ROOT):
+    """Run a command while holding the checkout lock ``name`` of ``root`` and return its exit
+    status. SIGINT, SIGTERM and SIGHUP go to the command, and the lock is released after the
+    command has ended."""
+    path = lock_file(name, root)
+    try:
+        lock = acquire(path, " ".join(command), root)
+    except HolderLockRefused as refused:
+        print(f"FAIL lock: {refused}", file=sys.stderr, flush=True)
+        return 1
+    print(f"PASS lock: acquired {path} (pid {os.getpid()})", flush=True)
+    try:
+        child = subprocess.Popen(command)
+        forward = lambda number, _frame: child.send_signal(number)
+        previous = {number: signal.signal(number, forward)
+                    for number in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)}
+        try:
+            status = child.wait()
+        finally:
+            for number, handler in previous.items():
+                signal.signal(number, handler)
+        return status if status >= 0 else 128 - status
+    finally:
+        lock.release()
+        print(f"PASS lock: released {path}", flush=True)
+
+
 def main(argv):
+    if len(argv) >= 3 and argv[0] == "run" and "--" in argv:
+        separator = argv.index("--")
+        options, command = argv[2:separator], argv[separator + 1:]
+        if command and options in ([], ["--root", *options[1:2]]) and len(options) in (0, 2):
+            root = Path(options[1]) if options else ROOT
+            return run(argv[1], command, root)
     if len(argv) == 2 and argv[0] == "remove-stopped":
         try:
             record = remove_stopped(Path(argv[1]))
@@ -188,7 +223,8 @@ def main(argv):
             return 1
         print(f"PASS lock: removed {argv[1]} of {describe(record)}, which is not running")
         return 0
-    print("usage: python3 -m tools.holder_lock remove-stopped <lock file>", file=sys.stderr)
+    print("usage: python3 -m tools.holder_lock run <name> [--root <checkout>] -- <command> ...\n"
+          "       python3 -m tools.holder_lock remove-stopped <lock file>", file=sys.stderr)
     return 2
 
 
