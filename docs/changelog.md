@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Compile the Linux source watch: the `inotify` watch module no longer shadows
+  the `notify` crate, so `ssr-server` compiles for Linux again.
+
 - Observe every source change after `Development::start` returns: on macOS the
   source watch registers the watched directories and regular files with
   `kqueue(2)` through a walk that skips the excluded paths, raises the file

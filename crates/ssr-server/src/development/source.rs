@@ -29,17 +29,17 @@ pub(super) fn platform(
     #[cfg(not(target_os = "macos"))]
     {
         drop(excluded);
-        notify::start(handler)
+        inotify::start(handler)
     }
 }
 
 #[cfg(not(target_os = "macos"))]
-mod notify {
+mod inotify {
     use super::{DevelopmentError, Handler, SourceWatch};
-    use notify::{RecursiveMode, Watcher};
+    use ::notify::{RecursiveMode, Watcher};
     use std::path::Path;
 
-    struct Notify(notify::RecommendedWatcher);
+    struct Notify(::notify::RecommendedWatcher);
 
     impl SourceWatch for Notify {
         fn watch(&mut self, path: &Path, mode: RecursiveMode) -> Result<(), DevelopmentError> {
@@ -50,7 +50,7 @@ mod notify {
     }
 
     pub(super) fn start(handler: Handler) -> Result<Box<dyn SourceWatch>, DevelopmentError> {
-        let watcher = notify::recommended_watcher(move |event| handler(event))
+        let watcher = ::notify::recommended_watcher(handler)
             .map_err(|e| DevelopmentError(format!("watch creation failed: {e}")))?;
         Ok(Box::new(Notify(watcher)))
     }

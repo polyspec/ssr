@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Linux 소스 감시를 컴파일한다. `inotify` 감시 module이 더 이상 `notify` crate를
+  가리지 않으므로 `ssr-server`가 다시 Linux에서 컴파일된다.
+
 - `Development::start`가 반환된 뒤의 모든 소스 변경을 관측한다. macOS에서 소스
   감시는 제외 경로를 건너뛰는 walk로 감시하는 디렉터리와 일반 file을 `kqueue(2)`에
   등록하고, 필요한 file descriptor limit을 올리거나 그 수, limit, 가장 큰 디렉터리를
