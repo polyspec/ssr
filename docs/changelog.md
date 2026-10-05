@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Export the host engine inputs to host targets only: `make check-linux` no
+  longer receives the host V8 archive and passes its Linux V8 step.
+
 - Give each run its own build-probe packages and generated entries: the
   packages are installed once per lock into an immutable directory published by
   one rename, each test builds in a temporary root of its own with that

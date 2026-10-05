@@ -68,3 +68,14 @@ class CheckLinuxTest(TestCase):
         writable = [volume for volume in volumes if not volume.endswith(":ro")]
         self.assertEqual(writable, [f"{ROOT / 'var/engine-cargo'}:/cargo", f"{ROOT / 'var/engine-target'}:/target"])
         self.assertEqual(len(volumes), 6, volumes)
+
+    def test_the_host_engine_inputs_are_exported_to_host_targets_only(self):
+        # check-linux verifies the Linux V8 inputs, which a host archive in RUSTY_V8_ARCHIVE refuses.
+        makefile = (ROOT / "Makefile").read_text()
+        exports = [line for line in makefile.splitlines() if ": export " in line]
+        self.assertTrue(exports)
+        for line in exports:
+            targets = line.split(":")[0]
+            self.assertNotIn("$(CHECK_TARGETS)", targets, line)
+            self.assertNotIn("check-linux", targets, line)
+        self.assertIn("CHECK_HOST_TARGETS = $(filter-out check-linux,$(CHECK_TARGETS))", makefile.splitlines())

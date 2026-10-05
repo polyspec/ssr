@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- host engine 입력을 host target에만 export한다. `make check-linux`는 더 이상
+  host V8 archive를 받지 않고 Linux V8 단계를 통과한다.
+
 - 실행마다 build-probe package와 생성 entry를 따로 둔다. package는 lock마다 한 번
   rename 한 번으로 게시되는 불변 directory에 설치되고, 각 test는 그 설치본을
   dependency로 두고 자기만의 임시 root에서 build하며, 아무것도 checkout의 fixture

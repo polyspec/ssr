@@ -25,17 +25,20 @@ CHECK_TARGETS = check-tools check-ownership check-records check-fmt check-clippy
 # The setup steps that each target reads: a failed setup step skips only these targets, and every
 # other target runs, so one run reports every check that does not depend on the failure.
 CHECK_NEEDS = check-tools=check-fixtures check-ownership=verify-archive,check-fixtures check-clippy=verify-archive check-examples=verify-archive check-nextest=verify-archive,check-fixtures check-features=verify-archive,check-fixtures check-bench=verify-archive
+# The host engine inputs and Cargo settings go to the targets that build on this host; check-linux
+# verifies and builds with the Linux inputs in its container, which a host archive would refuse.
+CHECK_HOST_TARGETS = $(filter-out check-linux,$(CHECK_TARGETS))
 FULL_RUN = python3 -m tools.holder_lock run check -- python3 -m tools.full_run
 
 # A make without a target runs the full suite entry, so no command runs its steps without the guard.
 .DEFAULT_GOAL := check
 .PHONY: check rerun-failed review-advisories hooks hooks-check $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
 
-$(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
-$(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
-$(CHECK_SETUP) $(CHECK_TARGETS) bench verify-build: export CARGO_INCREMENTAL := 0
-$(CHECK_SETUP) $(CHECK_TARGETS) bench verify-build: export CARGO_BUILD_JOBS := 1
-$(CHECK_SETUP) $(CHECK_TARGETS) bench verify-build: export CARGO_NET_OFFLINE := true
+$(CHECK_SETUP) $(CHECK_HOST_TARGETS) bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
+$(CHECK_SETUP) $(CHECK_HOST_TARGETS) bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
+$(CHECK_SETUP) $(CHECK_HOST_TARGETS) bench verify-build: export CARGO_INCREMENTAL := 0
+$(CHECK_SETUP) $(CHECK_HOST_TARGETS) bench verify-build: export CARGO_BUILD_JOBS := 1
+$(CHECK_SETUP) $(CHECK_HOST_TARGETS) bench verify-build: export CARGO_NET_OFFLINE := true
 bench: verify-archive
 
 verify-archive:
