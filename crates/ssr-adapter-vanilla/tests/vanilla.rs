@@ -10,7 +10,6 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpListener;
-use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
@@ -117,11 +116,8 @@ fn server_head_is_rejected() {
 
 #[tokio::test]
 async fn browser_preserves_server_dom_and_renders_csr_and_shells() {
-    assert!(
-        Path::new(browser::BROWSER).is_file(),
-        "browser test environment missing: {}",
-        browser::BROWSER
-    );
+    // The browser of the case: an absolute chromium executable, or a failure naming SSR_BROWSER.
+    browser::browser();
     let fixture = fixture::Fixture::new();
     let root = fixture.root.clone();
     let generated = root.join("generated-ssr-adapter-vanilla");

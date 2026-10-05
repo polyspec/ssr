@@ -10,7 +10,6 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpListener;
-use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
@@ -139,11 +138,8 @@ async fn browser_hydrates_empty_ssr_and_reports_missing_markers() {
 }
 
 async fn browser_case(empty: bool) {
-    assert!(
-        Path::new(browser::BROWSER).is_file(),
-        "browser test environment missing: {}",
-        browser::BROWSER
-    );
+    // The browser of the case: an absolute chromium executable, or a failure naming SSR_BROWSER.
+    browser::browser();
     let fixture = fixture::Fixture::new();
     let root = fixture.root.clone();
     let generated = root.join(if empty {
