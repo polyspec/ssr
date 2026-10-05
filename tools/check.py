@@ -12,11 +12,25 @@ RECORD_WORDS = (
 TERM_WORDS = ("site", "endpoint", "skin", "setting", "사이트", "엔드포인트", "스킨")
 LINK = re.compile(r"(?<!!)\[[^]]*\]\(([^)]+)\)")
 STATE = re.compile(r"^- \[([ ~o!])\] (S-\d+(?:-\d+)*)\b", re.MULTILINE)
+MARKER = re.compile(r"\[[ ~o!]\]")
 
 
 def markdown_files(root):
     excluded = {"var", "target", "node_modules"}
     return sorted(path for path in root.rglob("*.md") if not excluded.intersection(path.relative_to(root).parts))
+
+
+def check_markers(root, path):
+    """A state marker of the checklist is the state of an item line and nothing else."""
+    errors = []
+    name = path.relative_to(root).as_posix()
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        state = 2 if STATE.match(line) else None
+        for match in MARKER.finditer(line):
+            if match.start() != state:
+                errors.append(f"{name}:{number}:{match.start() + 1}: state marker {match.group()} outside "
+                              "an item state; a checklist marker appears only as the state of an item")
+    return errors
 
 
 def check_pairs_and_links(root):
@@ -33,6 +47,9 @@ def check_pairs_and_links(root):
                 errors.append(f"{path}: broken link {destination}")
     en = root / "docs/checklist.md"
     ko = root / "docs/checklist.ko.md"
+    for path in (en, ko):
+        if path.is_file():
+            errors.extend(check_markers(root, path))
     if en.is_file() and ko.is_file():
         if STATE.findall(en.read_text(encoding="utf-8")) != STATE.findall(ko.read_text(encoding="utf-8")):
             errors.append("docs/checklist.md: item IDs or states differ from Korean document")

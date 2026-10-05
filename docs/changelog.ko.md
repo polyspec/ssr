@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- 체크리스트에서 상태 표시는 항목의 상태로만 쓴다. `tools/check.py`는
+  `docs/checklist.md`와 `docs/checklist.ko.md`의 다른 대괄호 상태 표시에 대해 실패하고
+  그 file, 줄, 열을 적는다. 체크리스트에는 더 이상 범례가 없다. `AGENTS.ko.md`가 상태를
+  정의하고, 문장은 상태를 말로 적는다.
+
 - 실행할 수 없는 전체 묶음을 어떤 단계보다 먼저 거부한다. `make check`는
   `tools/full_run.py`를 거쳐 실행되고, 체크리스트 항목이 `[~]`인 동안(각 ID와 제목을
   나열한다), 추적하는 file에 commit하지 않은 변경이 있는 동안, `var/full-run.json`이 같은

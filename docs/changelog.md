@@ -4,6 +4,12 @@
 
 ## 0.0.1
 
+- Allow a state marker in the checklist only as the state of an item:
+  `tools/check.py` fails for any other bracketed state marker of
+  `docs/checklist.md` and `docs/checklist.ko.md` and names its file, line and
+  column. The checklists no longer have a legend; `AGENTS.md` defines the
+  states, and the texts name states in words.
+
 - Refuse the full suite before any step unless it may run: `make check` runs
   through `tools/full_run.py`, which refuses while a checklist item is `[~]`
   (listing each ID and title), while tracked files have uncommitted changes and
