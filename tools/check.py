@@ -7,7 +7,7 @@ from urllib.parse import unquote
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from tools import push_gate, tool_versions  # noqa: E402
+from tools import owning_tests, push_gate, tool_versions  # noqa: E402
 RECORD_WORDS = (
     "envelope", "gate", "orphan", "adopt", "retire", "dead", "first-class", "carries", "speaks", "answers",
 )
@@ -179,6 +179,7 @@ def main():
         print(error, file=sys.stderr)
         return 1
     errors += tool_versions.check()
+    errors += owning_tests.check(ROOT)
     for error in errors:
         print(error, file=sys.stderr)
     if errors:

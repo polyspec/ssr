@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- 바뀐 모든 파일을 owning test에 대응시킨다. 다른 crate가 의존하는 모든 crate는
+  owner test와 소비자 test를 가진 선언된 behavior를 가지고, `tools/test-owners.json`이
+  추적되는 모든 파일의 owning test를 적으며, `python3 -m tools.owning_tests select`가
+  변경에 대해 그것을 출력한다.
+
 - 한 실행의 모든 검사를 보고한다. `make check`의 setup 단계가 실패하면 그 출력을
   읽는 target만 건너뛰고, `make verify-build`는 각 검사를 실행하며, ownership
   검사는 모든 선언 오류를 보고한다.

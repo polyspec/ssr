@@ -152,5 +152,6 @@
   코드의 출처, 이식 경위, 작성자나 도구 표기(Co-Authored-By 포함), 대화나 조사 경위를 담지 않는다. ssr에 대한 그런 사실이
   없는 문장은 지운다. 그런 맥락은 Git 밖의 로컬 메모리에 둔다.
 - 영어가 원본이다. `.ko.md` 파일을 같은 변경에서 같은 정보로 갱신한다.
-- 커밋 전에 변경을 소유한 Red·Green 테스트와, 추적되는 file에 기록 검사와 용어 검사를 실행하고 추적되지도 무시되지도
-  않는 file마다 실패하는 `tools/check.py`를 실행한다.
+- 커밋 전에 `python3 -m tools.owning_tests select`가 `tools/test-owners.json`에서 고르는, 변경을 소유한 Red·Green
+  테스트와, 추적되는 file에 기록 검사와 용어 검사를 실행하고 추적되지도 무시되지도 않는 file마다, 그리고 소유 테스트가
+  없는 추적 file마다 실패하는 `tools/check.py`를 실행한다.

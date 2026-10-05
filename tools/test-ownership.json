@@ -34,6 +34,50 @@
         {"crate": "ssr-build", "target": "process", "test": "compiler_stops_before_v8_after_renderer_selection"},
         {"crate": "ssr-runtime", "target": "snapshot_process", "test": "svelte_compilation_after_snapshot_selection_returns_an_error"}
       ]
+    },
+    {
+      "id": "runtime",
+      "owner": {"crate": "ssr-runtime", "target": "runtime", "test": "render_metrics_report_wait_and_live_heap"},
+      "exports": ["Cancellation", "Error", "Pool", "PoolOptions", "RenderMetrics", "ServerBundle", "Stream", "StreamMetrics"],
+      "consumers": [
+        {"crate": "ssr-adapter-react", "target": "react", "test": "generated_react_entries_build_and_execute"},
+        {"crate": "ssr-adapter-vue", "target": "vue", "test": "entries_and_documents_follow_the_page_contract"},
+        {"crate": "ssr-adapter-svelte", "target": "svelte", "test": "entries_and_documents_follow_the_page_contract"},
+        {"crate": "ssr-adapter-vanilla", "target": "vanilla", "test": "entries_render_both_modes_and_reject_invalid_input"},
+        {"crate": "ssr-server", "target": "render", "test": "render_http_maps_status_bodies_and_metrics"}
+      ]
+    },
+    {
+      "id": "nonce",
+      "owner": {"crate": "ssr-nonce", "target": "nonce", "test": "public_rewriter_applies_the_request_nonce_to_inline_content"},
+      "exports": ["Error", "NonceRewriter"],
+      "consumers": [
+        {"crate": "ssr-server", "target": "render", "test": "each_request_applies_one_distinct_nonce_to_inline_content"}
+      ]
+    },
+    {
+      "id": "react_adapter",
+      "owner": {"crate": "ssr-adapter-react", "target": "react", "test": "generated_react_entries_build_and_execute"},
+      "exports": ["Error", "ReactAdapter", "client_entry", "framework_entry", "server_entry"],
+      "consumers": [
+        {"crate": "ssr-server", "target": "react_stream", "test": "suspense_error_keeps_recovery_stream_and_records_request_error"}
+      ]
+    },
+    {
+      "id": "svelte_adapter",
+      "owner": {"crate": "ssr-adapter-svelte", "target": "svelte", "test": "entries_and_documents_follow_the_page_contract"},
+      "exports": ["Error", "SvelteAdapter", "client_entry", "server_entry"],
+      "consumers": [
+        {"crate": "ssr-server", "target": "svelte", "test": "svelte_http_preserves_head_css_and_request_nonce"}
+      ]
+    },
+    {
+      "id": "vanilla_adapter",
+      "owner": {"crate": "ssr-adapter-vanilla", "target": "vanilla", "test": "entries_render_both_modes_and_reject_invalid_input"},
+      "exports": ["Error", "VanillaAdapter", "client_entry", "server_entry"],
+      "consumers": [
+        {"crate": "ssr-server", "target": "render", "test": "render_http_maps_status_bodies_and_metrics"}
+      ]
     }
   ]
 }

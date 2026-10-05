@@ -479,6 +479,13 @@ def validate(root, declaration):
         except OwnershipError as error:
             errors.append(str(error))
 
+    depended = sorted({target for aliases in dependencies.values() for target in aliases.values()})
+    declared_owners = {behavior["owner"]["crate"] for behavior in valid}
+    for crate_name in depended:
+        if crate_name not in declared_owners:
+            consumers = sorted(name for name, aliases in dependencies.items() if crate_name in aliases.values())
+            errors.append(f"{crate_name} is a dependency of {consumers} but owns no declared behavior")
+
     owner_exports = {}
     behavior_for_export = {}
     for behavior in valid:

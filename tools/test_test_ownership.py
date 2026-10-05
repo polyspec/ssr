@@ -67,6 +67,20 @@ class TestOwnershipTest(unittest.TestCase):
         self.assertIn("missing or repeated test ssr-runtime::use_page absent", message)
         self.assertIn("owner does not export ssr-core::Missing", message)
 
+    def test_a_dependency_without_a_declared_behavior_is_rejected(self):
+        manifest = self.root / "Cargo.toml"
+        manifest.write_text(manifest.read_text().replace(
+            '"crates/ssr-runtime"]', '"crates/ssr-runtime", "crates/ssr-server"]'))
+        folder = self.root / "crates/ssr-server"
+        (folder / "src").mkdir(parents=True)
+        (folder / "Cargo.toml").write_text(
+            '[package]\nname="ssr-server"\nversion="0.0.1"\nedition="2024"\n'
+            '[dependencies]\nssr-runtime={path="../ssr-runtime"}\n')
+        (folder / "src/lib.rs").write_text("")
+        with self.assertRaisesRegex(test_ownership.OwnershipError,
+                                    r"ssr-runtime is a dependency of \['ssr-server'\] but owns no declared behavior"):
+            test_ownership.validate(self.root, self.declaration)
+
     def test_missing_consumer_is_rejected(self):
         declaration = copy.deepcopy(self.declaration)
         declaration["behaviors"][0]["consumers"] = []

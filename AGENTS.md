@@ -181,6 +181,7 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   trailers) and no conversation or investigation history; a sentence without such a fact about ssr
   is deleted. Such context stays in local memory outside Git.
 - English is canonical. Update the `.ko.md` file in the same change with equal information.
-- Before each commit, run the Red and Green tests that own the change and `tools/check.py`,
-  which runs the record and terminology checks on tracked files and fails for each file that is
-  neither tracked nor ignored.
+- Before each commit, run the Red and Green tests that own the change, as
+  `python3 -m tools.owning_tests select` names them from `tools/test-owners.json`, and
+  `tools/check.py`, which runs the record and terminology checks on tracked files, fails for each
+  file that is neither tracked nor ignored and fails for a tracked file without owning tests.

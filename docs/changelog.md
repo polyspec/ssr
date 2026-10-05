@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- Map every changed file to its owning tests: every crate that another crate
+  depends on has a declared behavior with owner and consumer tests, and
+  `tools/test-owners.json` names the owning tests of every tracked file, which
+  `python3 -m tools.owning_tests select` prints for a change.
+
 - Report every check of one run: a failed setup step of `make check` skips
   only the targets that read its output, `make verify-build` runs each of its
   checks, and the ownership check reports every declaration error.

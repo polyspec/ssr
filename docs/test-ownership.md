@@ -2,7 +2,9 @@
 
 # Test ownership
 
-`tools/test-ownership.json` declares shared page, build and process behavior. Each behavior maps
+`tools/test-ownership.json` declares the behavior of every crate that another workspace crate
+depends on: page, build, process, runtime, nonce and the React, Svelte and vanilla adapters; a
+dependency without a declared behavior fails. Each behavior maps
 public names at its owner's crate root to one integration test in that crate and one actual use
 test in every consuming crate. All public root names of a declared owner belong to exactly one
 behavior. A declaration gives the crate, integration test target and exact test function. A file
@@ -34,3 +36,11 @@ result is a failure. The result of each case is read from the machine-readable r
 (`--message-format libtest-json` at `--message-format-version 0.1`), never from its human output,
 whose text differs between nextest versions; the feature check (`tools/check_features.py`) reads
 its cases the same way.
+
+`tools/test-owners.json` maps every tracked file to the commands of its owning tests: Git path
+patterns and test commands, which name Python test modules, workspace packages and test targets,
+make targets and tracked tools. `python3 -m tools.owning_tests check`, which `tools/check.py`
+runs, fails for a tracked file without owning tests, for a pattern that names no tracked file and
+for a command that names no existing test. `python3 -m tools.owning_tests select` prints the
+owning test commands of the files changed against `HEAD`, once each, and fails for a changed file
+without an owner; these are the Red and Green tests to run before a commit.

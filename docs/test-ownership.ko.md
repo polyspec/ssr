@@ -2,7 +2,8 @@
 
 # 테스트 소유 위치
 
-`tools/test-ownership.json`은 공유 페이지·빌드·프로세스 동작을 선언한다. 각 동작은 소유 크레이트
+`tools/test-ownership.json`은 다른 워크스페이스 크레이트가 의존하는 모든 크레이트의 동작을 선언한다:
+페이지, 빌드, 프로세스, 런타임, nonce, React·Svelte·vanilla 어댑터. 선언된 동작이 없는 의존성은 실패한다. 각 동작은 소유 크레이트
 루트의 공개 이름을 해당 크레이트의 통합 테스트 하나와 각 소비 크레이트의 실제 사용 테스트 하나에
 대응시킨다. 선언된 소유 크레이트의 모든 공개 루트 이름은 정확히 한 동작에 속한다. 선언에는 크레이트,
 통합 테스트 대상, 정확한 테스트 함수가 들어간다. 파일 이름만으로는 실행할 사례를 식별할 수 없다.
@@ -28,3 +29,10 @@ import로 계산하지 않는다. 그룹 import와 기호 이름 변경을 지�
 정확히 선언한 사례의 통과 결과가 없으면 종료 코드가 0이어도 실패다. 각 사례의 결과는 nextest의 기계용 보고
 (`--message-format-version 0.1`의 `--message-format libtest-json`)에서 읽고, nextest version마다 문구가 다른 사람용
 출력에서는 읽지 않는다. feature 검사(`tools/check_features.py`)도 같은 방식으로 사례를 읽는다.
+
+`tools/test-owners.json`은 추적되는 모든 파일을 그 소유 테스트의 명령에 대응시킨다: Git 경로 패턴과
+Python 테스트 모듈, 워크스페이스 패키지와 테스트 대상, make target, 추적되는 도구를 가리키는 테스트 명령이다.
+`tools/check.py`가 실행하는 `python3 -m tools.owning_tests check`는 소유 테스트가 없는 추적 파일, 추적 파일을
+가리키지 않는 패턴, 존재하지 않는 테스트를 가리키는 명령에서 실패한다. `python3 -m tools.owning_tests select`는
+`HEAD`와 비교해 바뀐 파일의 소유 테스트 명령을 한 번씩 출력하고, 소유자가 없는 바뀐 파일에서 실패한다. 이것이
+커밋 전에 실행할 Red·Green 테스트다.
