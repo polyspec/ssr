@@ -1,4 +1,4 @@
-.PHONY: check bench verify-archive verify-engine-linux-arm64 verify-engine-deps verify-build
+.PHONY: check bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
 
 V8_TARGET := $(shell rustc -vV | sed -n 's/^host: //p')
 V8_ARCHIVE := $(CURDIR)/var/v8/librusty_v8_simdutf_release_$(V8_TARGET).a.gz
@@ -32,18 +32,10 @@ bench:
 	python3 tools/bench.py
 
 verify-engine-linux-arm64:
-	python3 tools/verify_archive.py aarch64-unknown-linux-gnu
-	python3 -m tools.prepare_engine_compose
-	container build --platform linux/arm64 -f verification/engine/linux/Dockerfile -t localhost/ssr-engine-verify:0.0.1 verification/engine/linux
-	containerctl -f $(CURDIR)/var/engine-compose.yaml up
-	python3 tools/verify_engine_status.py
-	container exec -w /src ssr-engine-test-engine python3 /src/tools/verify_engine_mounts.py
-	container exec -w /src -e CARGO_NET_OFFLINE=false ssr-engine-test-engine cargo fetch --locked --manifest-path /src/verification/engine/Cargo.toml
-	container exec -w /src ssr-engine-test-engine python3 /src/tools/verify_engine.py aarch64-unknown-linux-gnu
-	containerctl -f $(CURDIR)/var/engine-compose.yaml down
+	python3 -m tools.verify_engine_linux verify
 
 verify-engine-down:
-	containerctl -f $(CURDIR)/var/engine-compose.yaml down
+	python3 -m tools.verify_engine_linux down
 
 verify-engine-deps:
 	cargo deny --manifest-path verification/engine/Cargo.toml --config deny.toml check --hide-inclusion-graph

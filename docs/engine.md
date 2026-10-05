@@ -65,8 +65,18 @@ checkout read only at `/src`. It bind mounts the host's ignored
 with write access, builds the program and executes it. `make` supplies absolute
 host paths in the ignored `var/engine-compose.yaml` file so that later
 `containerctl status` calls can read the same mount configuration. The host can inspect these directories, and
-replacing the container preserves their contents. The image, container and
-hostname use the permitted test installation name. The native GNU linker
+replacing the container preserves their contents. Each checkout has its own
+stack: the Compose project is `ssr-engine-<digits>`, the container
+`ssr-engine-<digits>-engine` and the image `localhost/ssr-engine-verify-<digits>:0.0.1`,
+where the digits are the first 12 hexadecimal digits of the SHA-256 of the
+checkout path. `tools/verify_engine_linux.py` runs the steps of
+`make verify-engine-linux-arm64` and `make verify-engine-down` under the checkout
+lock `var/locks/engine-verification.lock` of `tools/holder_lock.py`. The lock
+record names the checkout, pid and process start time of its holder; a second
+run is refused with that record, a lock whose holder no longer runs is
+reported and kept until `python3 -m tools.holder_lock remove-stopped <lock file>`
+removes it, and only the holder releases the lock. Each step prints its command,
+its output and its result with the elapsed time, without a time limit. The native GNU linker
 retains the Rust target's link arguments.
 The local V8 checkout is also mounted read only at its absolute Cargo patch
 path. The container cannot modify either source checkout.

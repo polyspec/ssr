@@ -21,8 +21,7 @@ class LocalPathsTest(unittest.TestCase):
             self.assertNotIn("/Users/", (local_paths.ROOT / relative).read_text(), relative)
 
     def test_engine_compose_mounts_declared_checkouts(self):
-        self.assertEqual(prepare_engine_compose.main(), 0)
-        content = prepare_engine_compose.OUTPUT.read_text()
+        content = prepare_engine_compose.render(prepare_engine_compose.ROOT)
         declared = local_paths.declared()
         for name in ("v8", "ordered-json"):
             root = local_paths.checkout(declared[name])

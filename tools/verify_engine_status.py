@@ -1,10 +1,12 @@
-"""Check that containerctl can read the generated engine Compose file."""
+"""Check that containerctl can read the generated engine Compose file of this checkout."""
 
 import json
 from pathlib import Path
 import subprocess
 import sys
 import time
+
+from tools.prepare_engine_compose import names
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,7 +25,7 @@ def main() -> int:
             check=True,
         )
         groups = json.loads(result.stdout)["groups"]
-        group = next(group for group in groups if group["name"] == "ssr-engine-test")
+        group = next(group for group in groups if group["name"] == names(ROOT)["project"])
         if group.get("error") or group["stackPath"] != str(COMPOSE):
             raise ValueError(f"invalid engine Compose status: {group.get('error')}, {group['stackPath']}")
         if not any(service["name"] == "engine" for service in group["services"]):

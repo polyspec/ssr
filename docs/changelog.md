@@ -4,6 +4,15 @@
 
 ## 0.0.1
 
+- Give each checkout its own engine verification stack: the Compose project,
+  container and image are named from the SHA-256 of the checkout path, so a
+  verification of another checkout no longer replaces the stack of a running
+  one. `make verify-engine-linux-arm64` and `make verify-engine-down` run
+  `tools/verify_engine_linux.py` under the checkout lock
+  `var/locks/engine-verification.lock`; a second run is refused with the
+  holder's checkout, pid and process start time, and each step prints its
+  result and elapsed time without a time limit.
+
 - Read the workspace metadata of the ownership check without a time limit,
   reporting it as a step with its elapsed time and judging it by its exit code.
 

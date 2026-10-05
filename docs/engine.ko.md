@@ -64,7 +64,15 @@ Rust 1.98.1 Bookworm 이미지로 ARM64 Linux 컨테이너 이미지를 빌드�
 절대 호스트 경로를 기록한 무시된 `var/engine-compose.yaml`을 만들어 이후
 `containerctl status`에서도 같은 마운트 구성을 읽게 한다. 호스트에서 두 디렉터리의 파일을 직접 확인할 수
 있고 컨테이너를 교체해도 내용이 유지된다.
-이미지, 컨테이너, 호스트 이름은 허용된 테스트 설치 이름을 사용한다.
+checkout마다 stack을 따로 둔다. Compose project는 `ssr-engine-<자리>`,
+container는 `ssr-engine-<자리>-engine`, image는 `localhost/ssr-engine-verify-<자리>:0.0.1`이며,
+자리는 checkout path SHA-256의 앞 16진수 12자리다. `tools/verify_engine_linux.py`는
+`make verify-engine-linux-arm64`와 `make verify-engine-down`의 단계를
+`tools/holder_lock.py`의 checkout lock `var/locks/engine-verification.lock` 아래에서
+실행한다. lock record는 holder의 checkout, pid, process 시작 시각을 밝힌다. 두 번째
+실행은 그 record와 함께 거부되고, holder가 더 이상 실행되지 않는 lock은 보고하고
+`python3 -m tools.holder_lock remove-stopped <lock file>`이 지울 때까지 남겨 두며, holder만
+lock을 해제한다. 각 단계는 command, 출력, 결과를 경과 시간과 함께 시간 제한 없이 출력한다.
 네이티브 GNU 링커는 Rust 대상의 링크 인자를 유지한다.
 로컬 V8 체크아웃도 Cargo patch의 절대 경로에 읽기 전용으로 마운트한다. 컨테이너는
 두 소스 체크아웃을 수정할 수 없다.

@@ -4,6 +4,14 @@
 
 ## 0.0.1
 
+- checkout마다 engine 검증 stack을 따로 둔다. Compose project, container,
+  image 이름은 checkout path의 SHA-256에서 만들므로, 다른 checkout의 검증이
+  실행 중인 stack을 더 이상 바꾸지 않는다. `make verify-engine-linux-arm64`와
+  `make verify-engine-down`은 checkout lock `var/locks/engine-verification.lock`
+  아래에서 `tools/verify_engine_linux.py`를 실행한다. 두 번째 실행은 holder의
+  checkout, pid, process 시작 시각과 함께 거부되고, 각 단계는 결과와 경과
+  시간을 시간 제한 없이 출력한다.
+
 - 소유 검사의 워크스페이스 metadata를 시간 제한 없이 읽고, 경과 시간과 함께
   한 단계로 보고하며 종료 코드로 판정한다.
 

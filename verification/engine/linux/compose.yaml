@@ -1,8 +1,8 @@
-name: ssr-engine-test
+name: ${SSR_ENGINE_PROJECT}
 
 services:
   engine:
-    image: localhost/ssr-engine-verify:0.0.1
+    image: ${SSR_ENGINE_IMAGE}
     command: ["sleep", "infinity"]
     environment:
       CARGO_HOME: /cargo
