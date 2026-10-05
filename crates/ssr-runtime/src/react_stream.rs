@@ -199,9 +199,56 @@ pub(crate) fn render(
             }
         }
     })();
-    // The scheduler holds handles to callbacks of the context: releasing them
-    // and the slot lets the context of a finished render be collected.
-    scheduler.release();
-    framework.remove_slot::<FrameworkScheduler>();
+    release(framework, &scheduler);
     result
+}
+
+/// Release the framework context of a finished stream render. The scheduler holds handles to
+/// callbacks of the context: releasing them and the slot lets the context be collected.
+/// `clear_all_slots` also drops the slot annex with its weak handle while the isolate lives;
+/// `remove_slot` keeps the annex, whose finalizer then runs at the isolate teardown and frees
+/// the data of a weak handle whose second-pass callback V8 still holds (v8 150.4.0).
+fn release(framework: v8::Local<v8::Context>, scheduler: &FrameworkScheduler) {
+    scheduler.release();
+    framework.clear_all_slots();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{FrameworkScheduler, release, v8};
+    use std::rc::Rc;
+
+    /// A released stream context drops its scheduler and leaves nothing for the isolate
+    /// teardown: a context that keeps its slot annex past its collection has the annex finalizer
+    /// run at the teardown, which frees the data of a weak handle whose second-pass callback V8
+    /// still holds (v8 150.4.0). With the system allocator of macOS the freed data stays intact
+    /// and the teardown passes; with glibc it is overwritten and the teardown aborts.
+    #[test]
+    fn isolate_teardown_after_released_stream_contexts() {
+        deno_core::JsRuntime::init_platform(None);
+        let mut isolate = v8::Isolate::new(v8::CreateParams::default().heap_limits(0, 32 << 20));
+        {
+            v8::scope!(let scope, &mut isolate);
+            for _ in 0..3000 {
+                v8::scope!(let scope, scope);
+                let framework = v8::Context::new(scope, Default::default());
+                let scheduler = FrameworkScheduler::attach(framework, "nonce");
+                let scope = &mut v8::ContextScope::new(scope, framework);
+                let source = v8::String::new(
+                    scope,
+                    "globalThis.garbage = Array.from({ length: 20000 }, (_, index) => ({ index }))",
+                )
+                .unwrap();
+                v8::Script::compile(scope, source, None)
+                    .unwrap()
+                    .run(scope)
+                    .unwrap();
+                release(framework, &scheduler);
+                assert!(framework.get_slot::<FrameworkScheduler>().is_none());
+                assert_eq!(Rc::strong_count(&scheduler), 1);
+                assert!(scheduler.next().is_none());
+            }
+        }
+        drop(isolate);
+    }
 }
