@@ -238,7 +238,12 @@ impl Supervisor {
                 },
                 event = async { match &mut events { Some(events) => events.recv().await, None => std::future::pending().await } } => {
                     let result = match event {
-                        Some(Ok(event)) if source_event(&event, &self.excluded) => self.rebuild(cancel.clone()).await,
+                        Some(Ok(event)) if source_event(&event, &self.excluded) => {
+                            if event.need_rescan() {
+                                tracing::warn!(paths = ?event.paths, "source watch dropped events; rebuilding");
+                            }
+                            self.rebuild(cancel.clone()).await
+                        },
                         Some(Ok(_)) => continue,
                         Some(Err(error)) => Err(DevelopmentError(format!("watch failed: {error}"))),
                         None => break,
@@ -360,14 +365,15 @@ pub(super) fn input_event(event: &Event, excluded: &[PathBuf], inputs: &[(PathBu
 }
 
 pub(super) fn source_event(event: &Event, excluded: &[PathBuf]) -> bool {
-    matches!(
+    (matches!(
         event.kind,
         EventKind::Any | EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
-    ) && (event.paths.is_empty()
-        || event
-            .paths
-            .iter()
-            .any(|path| !excluded.iter().any(|excluded| path.starts_with(excluded))))
+    ) || event.need_rescan())
+        && (event.paths.is_empty()
+            || event
+                .paths
+                .iter()
+                .any(|path| !excluded.iter().any(|excluded| path.starts_with(excluded))))
 }
 
 #[cfg(test)]

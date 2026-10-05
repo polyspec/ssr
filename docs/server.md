@@ -61,7 +61,8 @@ Source directories are watched recursively. A source file uses a nonrecursive wa
 with exact path filtering so replacing that file preserves observation. Excluded paths must be
 strict descendants of a source path; a missing excluded path requires a verified existing ancestor.
 Only source changes with an included input path enter the queue; an event with unknown paths also
-enters it. Access events do not rebuild. New source files remain watched.
+enters it. Access events do not rebuild. New source files remain watched. An event that reports
+dropped file events (`Rescan`) starts a rebuild and a warning unless all its paths are excluded.
 
 Both commands execute Rust programs. The build command writes only the absolute immutable directory
 returned by `Build::write` and a newline to stdout; diagnostics use stderr. The render command

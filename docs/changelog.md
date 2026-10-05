@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Rebuild when the source watch reports dropped events: a `Rescan` event,
+  which the watch sends when the file event service dropped events, starts a
+  rebuild and a warning unless all its paths are excluded.
+
 - Run the full suite once after every active checklist item is complete:
   `var/full-run.json` records its result and step times, and a failure becomes
   a new checklist item. During development only the Red and Green tests that

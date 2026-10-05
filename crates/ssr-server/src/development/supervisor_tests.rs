@@ -74,3 +74,23 @@ fn full_change_queue_reports_the_rejected_result_and_stops_supervision() {
     assert!(error.contains("render preparation failed"), "{error}");
     assert_eq!(supervisor.errors.len(), 1);
 }
+
+#[test]
+fn dropped_event_reports_rebuild_unless_only_excluded() {
+    use notify::event::Flag;
+    let excluded = vec![PathBuf::from("/app/node_modules")];
+    let inputs = vec![(PathBuf::from("/app"), true)];
+    let rescan = Event::new(EventKind::Other)
+        .set_flag(Flag::Rescan)
+        .add_path("/app".into());
+    assert!(source_event(&rescan, &excluded));
+    assert!(super::input_event(&rescan, &excluded, &inputs));
+    let overflow = Event::new(EventKind::Other).set_flag(Flag::Rescan);
+    assert!(source_event(&overflow, &excluded));
+    assert!(super::input_event(&overflow, &excluded, &inputs));
+    let excluded_rescan = Event::new(EventKind::Other)
+        .set_flag(Flag::Rescan)
+        .add_path("/app/node_modules/react".into());
+    assert!(!source_event(&excluded_rescan, &excluded));
+    assert!(!source_event(&Event::new(EventKind::Other), &excluded));
+}
