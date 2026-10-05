@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- 심볼릭 링크 없는 절대 의존성 디렉터리를 요구한다. `BuildConfig::dependencies`는
+  루트의 규칙을 따른다.
+
 - 실패한 JavaScript build에 asset plugin의 오류를 적는다. 거부되거나 읽을 수 없는
   asset은 이제 plugin의 메시지를 버리는 rolldown 오류 옆에 원인을 보고한다.
 

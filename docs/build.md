@@ -79,7 +79,8 @@ the file, and the URL hook returns a JavaScript string literal containing the pu
 Server and client code therefore reference the same public asset route. An asset of JavaScript or
 CSS is a file under the application root or under the package directory, which is
 `BuildConfig::dependencies` when it is set and `node_modules` of the root otherwise, so a
-configured package ships its own fonts and images. The build rejects an asset outside both and an
+configured package ships its own fonts and images. `BuildConfig::dependencies`, like the root, must
+be an absolute directory without symbolic links; another path is an error. The build rejects an asset outside both and an
 unsupported asset query or fragment.
 
 The tracked sample must build twice with identical files and manifest bytes. Every manifest digest

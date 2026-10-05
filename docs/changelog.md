@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Require an absolute dependency directory without symbolic links:
+  `BuildConfig::dependencies` follows the rule of the root.
+
 - Name the asset plugin's error in a failed JavaScript build: a rejected or
   unreadable asset now reports its cause next to the rolldown error, which
   drops the plugin's message.

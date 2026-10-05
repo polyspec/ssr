@@ -439,5 +439,25 @@ async fn assets_outside_the_root_and_the_package_directory_are_rejected() {
     );
 }
 
+#[tokio::test]
+async fn a_package_directory_with_a_symbolic_link_is_rejected() {
+    let temporary = Temporary::new("ssr-build-linked-dependencies");
+    let mut config = package_asset_application(&temporary);
+    let linked = temporary.0.join("linked");
+    std::os::unix::fs::symlink(temporary.0.join("dependencies"), &linked).unwrap();
+    config.dependencies = Some(linked);
+    let error = build(&config).await.unwrap_err().to_string();
+    assert!(
+        error.contains("dependencies must be an absolute directory without symbolic links"),
+        "{error}"
+    );
+    config.dependencies = Some("relative/dependencies".into());
+    let error = build(&config).await.unwrap_err().to_string();
+    assert!(
+        error.contains("dependencies must be an absolute directory without symbolic links"),
+        "{error}"
+    );
+}
+
 #[path = "exports.rs"]
 mod exports;

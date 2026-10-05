@@ -155,6 +155,16 @@ fn validate(config: &BuildConfig) -> Result<(), Error> {
             "root must be an absolute directory without symbolic links".into(),
         ));
     }
+    if let Some(dependencies) = &config.dependencies
+        && (!dependencies.is_absolute()
+            || !dependencies.is_dir()
+            || dependencies.canonicalize()? != *dependencies)
+    {
+        return Err(Error::InvalidInput(format!(
+            "dependencies must be an absolute directory without symbolic links: {}",
+            dependencies.display()
+        )));
+    }
     for path in [
         &config.server_entry,
         &config.client_entry,
