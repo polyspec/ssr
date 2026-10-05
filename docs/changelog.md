@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- Run the full suite once after every active checklist item is complete:
+  `var/full-run.json` records its result and step times, and a failure becomes
+  a new checklist item. During development only the Red and Green tests that
+  own a change run.
+
 - Use a private Unix socket for supervised renderer requests: the supervisor
   creates and owns the socket directory before it starts the render process,
   passes the socket path to the render command and removes only its own
