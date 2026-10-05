@@ -4,7 +4,13 @@
 
 ## 저장소
 
-- 이 저장소는 로컬에서 개발한다. 원격을 추가하지 않고 푸시하지 않는다.
+- 원격 `origin`은 `github.com/polyspec/ssr`이다. push는 push하는 commit과 작업 트리 어디에서도
+  체크리스트 항목(하위 항목 포함)이 `[~]`가 아닐 때만 한다. 추적되는 pre-push hook `.githooks/pre-push`는
+  `python3 -m tools.push_gate hook`을 실행하고, 이것은 그런 push를 거부하며 각 항목의 ID와 제목을 적는다.
+  모든 make 실행은 `core.hooksPath`가 `.githooks`와 다르면 그것으로 설정하고, `make hooks`가 설정하고
+  검사하며, 설정되지 않은 동안 `tools/check.py`와 `make check`의 guard가 실패한다. workflow
+  `.github/workflows/push-gate.yml`은 모든 push와 pull request에서 job `push-gate`로
+  `python3 -m tools.push_gate commit`을 실행하고 같은 방식으로 실패하며, hook을 실행하지 않은 push에도 그렇다.
 - 브랜치는 `{type}/{shortname}-{체크리스트 ID}`, 워크트리는 `{프로젝트}-{shortname}-{체크리스트 ID}`로
   이름 짓는다. 브랜치를 `main`에 통합한 뒤 커밋이나 동등한 변경이 반영됐고 워크트리가 깨끗한지 확인한다.
   삭제할 워크트리에만 있는 `.gitignore` 제외 파일 중 계속 필요한 파일은 먼저 다른 곳에 보존한다.
@@ -91,7 +97,7 @@
   경과 시간을 출력하고 자기 타임아웃을 가지며, 전체 일괄 타임아웃은 쓰지 않는다. 장기 작업은 타임아웃 대신
   상세 단계 로그로 관측한다.
 - `make check`가 이 규칙을 강제한다: 어떤 단계보다 먼저, 체크리스트 항목(하위 항목 포함)이 `[~]`인 동안, 추적하는
-  file에 commit하지 않은 변경이 있는 동안, 그리고 `var/full-run.json`이 같은 tree의 전체 실행을 기록하고 있을 때
+  file에 commit하지 않은 변경이 있는 동안, pre-push hook이 설치되지 않은 동안, 그리고 `var/full-run.json`이 같은 tree의 전체 실행을 기록하고 있을 때
   거부한다. commit하고 활성 항목을 모두 완료한 뒤 `make check`를 한 번 실행한다. `make rerun-failed`는 원인이
   tree 밖(환경이나 machine 자원)에 있는 실패에 대해, 기록된 tree에서 통과하지 못한 target만 다시 실행한다. code의
   실패는 체크리스트 항목으로 고치고, 그 commit은 새 tree를 만들며 그 전체 묶음은 활성 항목이 모두 완료되었을 때 한 번

@@ -47,7 +47,11 @@ class Checkout:
         (self.root / "docs/checklist.md").write_text(checklist)
         (self.root / "Makefile").write_text(MAKEFILE.format(log=self.log))
         (self.root / ".gitignore").write_text("/var/\npass-b\n")
+        (self.root / ".githooks").mkdir()
+        (self.root / ".githooks/pre-push").write_text((ROOT / ".githooks/pre-push").read_text())
+        (self.root / ".githooks/pre-push").chmod(0o755)
         git(self.root, "init", "-q")
+        git(self.root, "config", "core.hooksPath", ".githooks")
         git(self.root, "add", ".")
         git(self.root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-q", "-m", "init")
 
@@ -72,19 +76,27 @@ class DecisionTest(TestCase):
             ("S-2", "Run the second item."), ("S-2-2", "Keep the nested part active.")])
 
     def test_check_with_an_active_item_is_refused(self):
-        decision = full_run.decide("check", full_run.active_items(CHECKLIST), [], "t1", None, ["a"])
+        decision = full_run.decide("check", full_run.active_items(CHECKLIST), [], [], "t1", None, ["a"])
         self.assertFalse(decision.allowed)
         self.assertIn("S-2 Run the second item.", "\n".join(decision.reasons))
         self.assertIn("S-2-2 Keep the nested part active.", "\n".join(decision.reasons))
 
+    def test_check_without_the_pre_push_hook_is_refused(self):
+        hooks = ["core.hooksPath is not .githooks; run make hooks"]
+        for mode in ("check", "rerun-failed"):
+            decision = full_run.decide(mode, [], [], hooks, "t1", None, ["a"])
+            self.assertFalse(decision.allowed)
+            self.assertIn("the pre-push hook is not installed:", decision.reasons)
+            self.assertIn("  core.hooksPath is not .githooks; run make hooks", decision.reasons)
+
     def test_check_of_a_committed_tree_without_a_record_is_allowed(self):
-        decision = full_run.decide("check", [], [], "t1", None, ["a", "b"])
+        decision = full_run.decide("check", [], [], [], "t1", None, ["a", "b"])
         self.assertTrue(decision.allowed)
         self.assertEqual(decision.targets, ["a", "b"])
 
     def test_rerun_of_another_tree_is_refused(self):
         record = {"tree": "t0", "targets": [{"name": "a", "status": "failed"}]}
-        decision = full_run.decide("rerun-failed", [], [], "t1", record, None)
+        decision = full_run.decide("rerun-failed", [], [], [], "t1", record, None)
         self.assertFalse(decision.allowed)
         self.assertIn("tree t0", decision.reasons[0])
 
@@ -111,6 +123,16 @@ class GuardTest(TestCase):
             self.assertIn("S-2-2 Keep the nested part active.", result.stdout)
             self.assertEqual(checkout.ran(), [])
             self.assertFalse((checkout.root / "var/full-run.json").exists())
+
+    def test_hooks_path_that_is_not_set_refuses(self):
+        with TemporaryDirectory() as directory:
+            checkout = Checkout(directory, DONE)
+            git(checkout.root, "config", "--unset", "core.hooksPath")
+            result = checkout.run("check")
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            self.assertIn("the pre-push hook is not installed:", result.stdout)
+            self.assertIn("make hooks", result.stdout)
+            self.assertEqual(checkout.ran(), [])
 
     def test_uncommitted_tracked_change_refuses(self):
         with TemporaryDirectory() as directory:

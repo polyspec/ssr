@@ -2,6 +2,12 @@ V8_TARGET := $(shell rustc -vV | sed -n 's/^host: //p')
 V8_ARCHIVE := $(CURDIR)/var/v8/librusty_v8_simdutf_release_$(V8_TARGET).a.gz
 V8_BINDING := $(CURDIR)/var/v8/src_binding_simdutf_release_$(V8_TARGET).rs
 
+# Every make invocation sets core.hooksPath to .githooks when it differs, so the tracked pre-push hook
+# .githooks/pre-push runs in every checkout where make runs: it refuses a push while a checklist item
+# is in progress (tools/push_gate.py). make hooks sets the path and checks it; tools/check.py and the
+# guard of make check fail while it is not set.
+HOOKS_PATH := $(shell test "$$(git config core.hooksPath)" = .githooks || git config core.hooksPath .githooks; git config core.hooksPath)
+
 # make check runs the full suite: the setup steps, then every target, each as its own make target
 # through tools/full_run.py. The guard refuses the run before any step while a checklist item is in
 # progress, while tracked files have uncommitted changes, and when var/full-run.json records a full
@@ -16,7 +22,7 @@ FULL_RUN = python3 -m tools.holder_lock run check -- python3 -m tools.full_run
 
 # A make without a target runs the full suite entry, so no command runs its steps without the guard.
 .DEFAULT_GOAL := check
-.PHONY: check rerun-failed $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
+.PHONY: check rerun-failed hooks hooks-check $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
 
 $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
 $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
@@ -27,6 +33,13 @@ bench: verify-archive
 
 verify-archive:
 	python3 tools/verify_archive.py
+
+hooks:
+	git config core.hooksPath .githooks
+	python3 -m tools.push_gate hooks-check
+
+hooks-check:
+	python3 -m tools.push_gate hooks-check
 
 check:
 	$(FULL_RUN) check --setup $(CHECK_SETUP) --targets $(CHECK_TARGETS)

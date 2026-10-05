@@ -1,0 +1,6 @@
+#!/bin/sh
+# The pre-push hook of this repository: every make invocation sets core.hooksPath to .githooks.
+# tools/push_gate.py refuses the push while an item of docs/checklist.md is in progress in a
+# pushed commit or in the working tree (AGENTS.md). Git passes the pushed refs on standard input.
+cd "$(git rev-parse --show-toplevel)" || exit 1
+exec python3 -m tools.push_gate hook

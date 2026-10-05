@@ -12,7 +12,7 @@ Rust 1.98.1 워크스페이스는 AGENTS.md에 적힌 여덟 크레이트로 구
 `make check`는 `tools/full_run.py`로 전체 묶음을 실행한다: setup 단계 `CHECK_SETUP`(archive 검사와
 fixture 설치) 다음에 `CHECK_TARGETS`의 각 target을 자기 make target으로 실행한다. 어떤 단계보다 먼저, `docs/checklist.md`의
 항목(하위 항목 포함)이 `[~]`인 동안(각 항목을 ID와 제목으로 적는다), 추적하는 file에 commit하지 않은 변경이 있는
-동안, 그리고 `var/full-run.json`이 같은 tree(`git rev-parse HEAD^{tree}`)의 전체 실행을 기록하고 있을 때(그 실행을
+동안, pre-push hook이 설치되지 않은 동안(아래 참고), 그리고 `var/full-run.json`이 같은 tree(`git rev-parse HEAD^{tree}`)의 전체 실행을 기록하고 있을 때(그 실행을
 적는다) 이유와 0이 아닌 종료 상태로 실행을 거부한다. 기록은 tree, commit, 결과, 통과하지 못한 target과 각 단계의
 시각을 담는다. 첫 단계 전과 각 단계의 시작과 끝마다 쓰므로 강제 종료된 실행은 `incomplete`로 남는다. 실패한
 target이 있어도 실행은 멈추지 않는다. `make rerun-failed`는 setup 단계와 그 기록에서 통과하지 못한 target만 다시
@@ -20,6 +20,18 @@ target이 있어도 실행은 멈추지 않는다. `make rerun-failed`는 setup 
 없다. 두 진입점 모두 테스트가 읽는 build-probe fixture를 설치하므로, `python3 -m tools.holder_lock run check`가
 모든 단계 동안 checkout lock `var/locks/check.lock`을 잡는다. 같은 checkout의 두 번째 실행은 holder의 checkout,
 pid, process 시작 시각과 함께 거부된다. target 없는 make는 `make check`를 실행한다.
+
+push는 `docs/checklist.md`의 항목(하위 항목 포함)이 `[~]`가 아닐 때만 한다. 추적되는 pre-push hook
+`.githooks/pre-push`는 `python3 -m tools.push_gate hook`을 실행한다. 이것은 push되는 모든 commit과 작업 트리의
+체크리스트를 `tools/full_run.py`의 parser로 읽고, 진행 중인 각 항목을 원격 ref, commit, ID, 제목과 함께 적고
+종료 상태 1로 push를 거부한다. push되는 commit에 `docs/checklist.md`가 없거나 Git 오류가 나도 push를 거부한다.
+원격 branch를 지우는 push는 commit을 보내지 않으므로 작업 트리만 읽는다. 모든 make 실행은 `core.hooksPath`가
+`.githooks`와 다르면 그것으로 설정하므로, make를 실행한 모든 checkout에서 hook이 실행된다. `make hooks`는 그것을
+설정하고 `make hooks-check`를 실행하며, 이것은 `core.hooksPath`가 `.githooks`이고 hook이 실행 가능하지 않으면
+실패한다. `tools/check.py`와 `make check`의 guard도 같은 검사를 실행한다. workflow
+`.github/workflows/push-gate.yml`은 모든 push의 push된 commit과 모든 pull request의 head commit에서 job
+`push-gate`로 `python3 -m tools.push_gate commit HEAD`를 실행한다. 진행 중인 각 항목을 error annotation과 job
+summary에 적고 실패하며, commit이 hook을 mode 100755로 추적하지 않을 때도 실패한다.
 
 `make bench`는 Cargo 벤치마크를 실행한다. 유지할 측정과 한도는 S-11에 명시한다.
 

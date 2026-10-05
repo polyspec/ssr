@@ -1,0 +1,24 @@
+# The push check of AGENTS.md on GitHub: a push happens only when no item of docs/checklist.md is
+# in progress. The pre-push hook .githooks/pre-push refuses such a push in a checkout where make has
+# set core.hooksPath; this job checks every pushed commit and the head commit of every pull request
+# with the same tool, also when a push did not run the hook. It fails naming each item in progress
+# as an error annotation and in the job summary, and when the commit does not track the hook with
+# mode 100755.
+name: push-gate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  push-gate:
+    runs-on: ubuntu-26.04-arm
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: no checklist item in progress
+        run: python3 -m tools.push_gate commit HEAD

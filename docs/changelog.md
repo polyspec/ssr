@@ -4,6 +4,15 @@
 
 ## 0.0.1
 
+- Refuse a push while a checklist item is in progress: the tracked pre-push
+  hook `.githooks/pre-push` runs `python3 -m tools.push_gate hook`, which
+  reads the checklist of every pushed commit and of the working tree and
+  names each item in progress with its ref, commit, ID and title. Every make
+  invocation sets `core.hooksPath` to `.githooks`; `make hooks` sets and
+  checks it, and `tools/check.py` and the guard of `make check` fail while
+  it is not set. The workflow job `push-gate` checks every pushed commit and
+  pull request head on GitHub the same way.
+
 - Build once for the source events that arrive while a build runs: the
   supervisor starts one rebuild for every queued event and exactly one more for
   the events that arrive during it, so one write no longer builds the

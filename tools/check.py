@@ -6,6 +6,8 @@ from urllib.parse import unquote
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from tools import push_gate  # noqa: E402
 RECORD_WORDS = (
     "envelope", "gate", "orphan", "adopt", "retire", "dead", "first-class", "carries", "speaks", "answers",
 )
@@ -141,8 +143,13 @@ def check_react_document(root):
     return errors
 
 
+def check_hooks(root):
+    """The pre-push hook runs in this checkout (tools/push_gate.py hooks-check)."""
+    return [f"hooks-check: {error}" for error in push_gate.hooks_check(root)]
+
+
 def main():
-    errors = check_pairs_and_links(ROOT) + check_words(ROOT) + check_react_document(ROOT)
+    errors = check_pairs_and_links(ROOT) + check_words(ROOT) + check_react_document(ROOT) + check_hooks(ROOT)
     result = subprocess.run(["cargo", "nextest", "--version"], capture_output=True, text=True, check=False)
     if result.returncode or not result.stdout.startswith("cargo-nextest 0.9.146 "):
         errors.append("cargo-nextest 0.9.146 is required")

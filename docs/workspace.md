@@ -14,7 +14,8 @@ Rust tests run with cargo-nextest 0.9.146. The nextest configuration terminates 
 (the archive check and the fixture installs), then each target of `CHECK_TARGETS` as its own make
 target. Before any step it refuses the run, with the reasons and a nonzero exit status, while an
 item of `docs/checklist.md`, sub-items included, is `[~]` (each is named with its ID and title),
-while tracked files have uncommitted changes, and when `var/full-run.json` records a full run of
+while tracked files have uncommitted changes, while the pre-push hook is not installed (see below),
+and when `var/full-run.json` records a full run of
 the same tree (`git rev-parse HEAD^{tree}`), which it names. The record holds the tree, the commit,
 the result, the targets that did not pass and the times of each step; it is written before the
 first step and after each step starts and ends, so a killed run stays recorded as `incomplete`.
@@ -25,6 +26,20 @@ the build-probe fixture that the tests read, so `python3 -m tools.holder_lock ru
 checkout lock `var/locks/check.lock` for all of their steps: a second run of the same checkout is
 refused with the holder's checkout, pid and process start time. A make without a target runs
 `make check`.
+
+A push happens only when no item of `docs/checklist.md`, sub-items included, is `[~]`. The tracked
+pre-push hook `.githooks/pre-push` runs `python3 -m tools.push_gate hook`: it reads the checklist of
+every pushed commit and of the working tree with the parser of `tools/full_run.py` and refuses the
+push with exit status 1, naming each item in progress with the remote ref, the commit, the ID and
+the title. A pushed commit without `docs/checklist.md` and a Git error also refuse the push. A push
+that deletes a remote branch pushes no commit, so only the working tree is read. Every make
+invocation sets `core.hooksPath` to `.githooks` when it differs, so the hook runs in every checkout
+where make has run; `make hooks` sets it and runs `make hooks-check`, which fails unless
+`core.hooksPath` is `.githooks` and the hook is executable. `tools/check.py` and the guard of
+`make check` run the same check. The workflow `.github/workflows/push-gate.yml` runs
+`python3 -m tools.push_gate commit HEAD` in the job `push-gate` on the pushed commit of every push
+and on the head commit of every pull request: it fails with each item in progress as an error
+annotation and in the job summary, and when the commit does not track the hook with mode 100755.
 
 Run `make bench` to execute Cargo benchmarks. The maintained measurements and limits are specified
 in S-11.

@@ -3,7 +3,8 @@
 
 Before any step runs, the guard decides and prints the decision with its reasons. It refuses
 both entries while an item of ``docs/checklist.md``, sub-items included, is in progress (``[~]``),
-naming each such item, and while tracked files have uncommitted changes. ``check`` is refused when
+naming each such item, while tracked files have uncommitted changes, and while the pre-push hook
+is not installed (``tools/push_gate.py hooks-check``). ``check`` is refused when
 the record names a full run of the current tree (``git rev-parse HEAD^{tree}``): the full suite
 runs once per tree. ``rerun-failed`` is refused unless the record is of the current tree and names
 targets that did not pass; it runs only those targets.
@@ -31,6 +32,7 @@ import subprocess
 import sys
 import time
 
+from tools import push_gate
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTRIES = {"check": "make check", "rerun-failed": "make rerun-failed"}
@@ -66,8 +68,9 @@ def unfinished(record):
     return [target["name"] for target in record["targets"] if target["status"] != "passed"]
 
 
-def decide(mode, items, changes, tree, record, targets):
-    """Decide whether ``mode`` may run; ``targets`` are the targets of a full run."""
+def decide(mode, items, changes, hooks, tree, record, targets):
+    """Decide whether ``mode`` may run; ``hooks`` are the reasons why the pre-push hook does not
+    run, and ``targets`` are the targets of a full run."""
     reasons = []
     if items:
         reasons.append("checklist items are in progress (docs/checklist.md):")
@@ -75,6 +78,9 @@ def decide(mode, items, changes, tree, record, targets):
     if changes:
         reasons.append("uncommitted changes of tracked files:")
         reasons += [f"  {change}" for change in changes]
+    if hooks:
+        reasons.append("the pre-push hook is not installed:")
+        reasons += [f"  {reason}" for reason in hooks]
     if mode == "check":
         if record is not None and record["tree"] == tree:
             reasons.append(f"{describe(record)}; the full suite runs once per tree"
@@ -175,7 +181,7 @@ def run(mode, setup, targets, root=ROOT):
     changes = git(root, "status", "--porcelain", "--untracked-files=no").splitlines()
     items = active_items((root / "docs/checklist.md").read_text(encoding="utf-8"))
     record = read(path)
-    decision = decide(mode, items, changes, tree, record, targets)
+    decision = decide(mode, items, changes, push_gate.hooks_check(root), tree, record, targets)
     if not decision.allowed:
         print(f"full-run: refused {entry}:", flush=True)
         for reason in decision.reasons:

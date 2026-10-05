@@ -4,7 +4,14 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 
 ## Repository
 
-- This repository is developed locally. Do not add remotes and do not push.
+- The remote `origin` is `github.com/polyspec/ssr`. A push happens only when no checklist item,
+  sub-items included, is `[~]`, neither in a pushed commit nor in the working tree. The tracked
+  pre-push hook `.githooks/pre-push` runs `python3 -m tools.push_gate hook`, which refuses such a
+  push and names each item with its ID and title. Every make invocation sets `core.hooksPath` to
+  `.githooks` when it differs; `make hooks` sets and checks it, and `tools/check.py` and the guard
+  of `make check` fail while it is not set. The workflow `.github/workflows/push-gate.yml` runs
+  `python3 -m tools.push_gate commit` in the job `push-gate` on every push and pull request and
+  fails the same way, also for a push that did not run the hook.
 - Name branches `{type}/{shortname}-{checklist ID}` and worktrees
   `{project}-{shortname}-{checklist ID}`. After integrating a branch into `main`, verify its commits
   or equivalent changes are present and its worktree is clean. Before removal, preserve any files
@@ -110,8 +117,8 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   timeout; a whole-suite timeout is not used. A long operation gets detailed step logs instead
   of a timeout, so its process and result stay observable.
 - `make check` enforces this: before any step it refuses while a checklist item, sub-items
-  included, is `[~]`, while tracked files have uncommitted changes, and when `var/full-run.json`
-  records a full run of the same tree. Commit, complete every active item, then run `make check`
+  included, is `[~]`, while tracked files have uncommitted changes, while the pre-push hook is not
+  installed, and when `var/full-run.json` records a full run of the same tree. Commit, complete every active item, then run `make check`
   once. `make rerun-failed` reruns, on the recorded tree, only the targets that did not pass, for
   a failure whose cause lies outside the tree (an environment or a machine resource). A failure
   of the code is fixed as a checklist item; its commit makes a new tree, whose full suite runs
