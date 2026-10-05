@@ -84,6 +84,7 @@ pub(crate) async fn bundle(
         vec![
             AssetUrlPlugin::new_shared(AssetUrlPlugin::new(
                 config.root.clone(),
+                config.package_directory(),
                 config.asset_route.clone(),
             )),
             SveltePlugin::new_shared(SveltePlugin::new(

@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- 설정된 dependency package의 asset을 build한다. CSS나 JavaScript asset은
+  application root 아래나 package directory 아래의 파일일 수 있으므로,
+  `BuildConfig::dependencies`로 설정한 package가 자기 글꼴과 이미지를 함께 제공한다.
+  둘 다의 밖에 있는 asset은 여전히 거부된다.
+
 - GitHub의 push 검사를 선언된 Python으로 실행한다. Python은 minor version 3.9로
   고정하고 검사는 실행 중인 patch release를 출력하며, workflow는 commit에 고정한
   action으로 `ubuntu-24.04-arm`에 Python 3.9를 설치하고 push 검사 전에 이를 검사한다.

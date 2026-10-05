@@ -106,9 +106,9 @@ fn bundle_source(
                     .ok_or_else(|| Error::Css("CSS source has no parent".into()))?
                     .join(&url.url)
                     .canonicalize()?;
-                if !path.starts_with(&config.root) || !path.is_file() {
+                if !config.contains_input(&path) || !path.is_file() {
                     return Err(Error::Css(format!(
-                        "CSS asset outside application root: {}",
+                        "CSS asset outside application root and package directory: {}",
                         path.display()
                     )));
                 }

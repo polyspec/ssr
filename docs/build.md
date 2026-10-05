@@ -76,8 +76,11 @@ methods. Server bundles and server chunks are never public.
 
 JavaScript asset imports use Rolldown's `load` and `resolve_file_url` hooks. The load hook emits
 the file, and the URL hook returns a JavaScript string literal containing the public absolute URL.
-Server and client code therefore reference the same public asset route. The build rejects an asset
-outside the application root and an unsupported asset query or fragment.
+Server and client code therefore reference the same public asset route. An asset of JavaScript or
+CSS is a file under the application root or under the package directory, which is
+`BuildConfig::dependencies` when it is set and `node_modules` of the root otherwise, so a
+configured package ships its own fonts and images. The build rejects an asset outside both and an
+unsupported asset query or fragment.
 
 The tracked sample must build twice with identical files and manifest bytes. Every manifest digest
 must match its bytes. The client entry must contain React client code, the server entry must contain

@@ -15,12 +15,19 @@ use crate::public_url;
 #[derive(Debug)]
 pub(crate) struct AssetUrlPlugin {
     root: PathBuf,
+    packages: PathBuf,
     route: String,
 }
 
 impl AssetUrlPlugin {
-    pub(crate) fn new(root: PathBuf, route: String) -> Self {
-        Self { root, route }
+    /// Assets are files under the application root or under the package directory, whose
+    /// packages ship their own assets.
+    pub(crate) fn new(root: PathBuf, packages: PathBuf, route: String) -> Self {
+        Self {
+            root,
+            packages,
+            route,
+        }
     }
 }
 
@@ -65,10 +72,15 @@ impl Plugin for AssetUrlPlugin {
             .into());
         }
         let path = Path::new(clean);
-        if !path.is_absolute() || !path.starts_with(&self.root) || path.canonicalize()? != path {
+        if !path.is_absolute()
+            || !(path.starts_with(&self.root) || path.starts_with(&self.packages))
+            || path.canonicalize()? != path
+        {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                format!("asset must be a file inside application root: {clean}"),
+                format!(
+                    "asset must be a file inside application root or package directory: {clean}"
+                ),
             )
             .into());
         }

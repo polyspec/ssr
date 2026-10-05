@@ -41,6 +41,12 @@ impl BuildConfig {
             .clone()
             .unwrap_or_else(|| self.root.join("node_modules"))
     }
+
+    /// Whether an asset path is an input of the build: a file under the application root or under
+    /// the package directory, whose packages ship their own assets.
+    pub(crate) fn contains_input(&self, path: &Path) -> bool {
+        path.starts_with(&self.root) || path.starts_with(self.package_directory())
+    }
 }
 
 #[derive(Debug)]

@@ -340,5 +340,112 @@ async fn configured_dependencies_replace_nested_node_modules_packages() {
     );
 }
 
+/// An application whose CSS and JavaScript import a configured dependency package that ships a
+/// font and an image, with the package directory outside the application root.
+fn package_asset_application(temporary: &Temporary) -> BuildConfig {
+    let root = temporary.0.join("application");
+    let dependencies = temporary.0.join("dependencies");
+    let package = dependencies.join("asset-package");
+    fs::create_dir_all(package.join("files")).unwrap();
+    fs::create_dir(&root).unwrap();
+    fs::write(
+        package.join("package.json"),
+        r#"{"name":"asset-package","main":"index.js"}"#,
+    )
+    .unwrap();
+    fs::write(package.join("files/font.woff2"), b"font").unwrap();
+    fs::write(
+        package.join("files/mark.svg"),
+        "<svg xmlns=\"http://www.w3.org/2000/svg\"/>",
+    )
+    .unwrap();
+    fs::write(
+        package.join("style.css"),
+        "@font-face{font-family:F;src:url(\"./files/font.woff2\")}",
+    )
+    .unwrap();
+    fs::write(
+        package.join("index.js"),
+        "import mark from './files/mark.svg'; export const marker = mark;",
+    )
+    .unwrap();
+    fs::write(root.join("app.css"), "@import \"asset-package/style.css\";").unwrap();
+    fs::write(
+        root.join("entry.js"),
+        "import { marker } from 'asset-package'; export function render(props, state) { return {head:'', html: marker, state}; }",
+    )
+    .unwrap();
+    fs::write(
+        root.join("client.js"),
+        "import { marker } from 'asset-package'; console.log(marker);",
+    )
+    .unwrap();
+    BuildConfig {
+        server_entry: root.join("entry.js"),
+        react_framework_entry: None,
+        client_entry: root.join("client.js"),
+        css_entry: root.join("app.css"),
+        root,
+        asset_route: "/assets".into(),
+        dependencies: Some(dependencies),
+    }
+}
+
+#[tokio::test]
+async fn assets_of_a_configured_dependency_package_are_built() {
+    let temporary = Temporary::new("ssr-build-package-assets");
+    let output = build(&package_asset_application(&temporary)).await.unwrap();
+    let names: Vec<_> = output.files.keys().cloned().collect();
+    assert!(
+        names
+            .iter()
+            .any(|name| name.contains("font-") && name.ends_with(".woff2")),
+        "{names:?}"
+    );
+    assert!(
+        names
+            .iter()
+            .any(|name| name.contains("mark-") && name.ends_with(".svg")),
+        "{names:?}"
+    );
+}
+
+#[tokio::test]
+async fn assets_outside_the_root_and_the_package_directory_are_rejected() {
+    let temporary = Temporary::new("ssr-build-outside-assets");
+    let config = package_asset_application(&temporary);
+    let outside = temporary.0.join("outside");
+    fs::create_dir(&outside).unwrap();
+    fs::write(outside.join("font.woff2"), b"font").unwrap();
+    fs::write(
+        outside.join("mark.svg"),
+        "<svg xmlns=\"http://www.w3.org/2000/svg\"/>",
+    )
+    .unwrap();
+    let package = temporary.0.join("dependencies/asset-package");
+    fs::write(
+        package.join("style.css"),
+        "@font-face{font-family:F;src:url(\"../../outside/font.woff2\")}",
+    )
+    .unwrap();
+    let error = build(&config).await.unwrap_err().to_string();
+    assert!(
+        error.contains("CSS asset outside application root and package directory"),
+        "{error}"
+    );
+    fs::write(package.join("style.css"), "p{color:red}").unwrap();
+    fs::write(
+        package.join("index.js"),
+        "import mark from '../../outside/mark.svg'; export const marker = mark;",
+    )
+    .unwrap();
+    let error = build(&config).await.unwrap_err().to_string();
+    assert!(
+        error.contains("Could not load ../outside/mark.svg")
+            && error.contains("plugin `ssr-build-assets` threw an error"),
+        "{error}"
+    );
+}
+
 #[path = "exports.rs"]
 mod exports;

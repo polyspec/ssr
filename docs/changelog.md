@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- Build the assets of a configured dependency package: a CSS or JavaScript
+  asset may be a file under the application root or under the package
+  directory, so a package configured with `BuildConfig::dependencies` ships its
+  own fonts and images; an asset outside both is still rejected.
+
 - Run the push check on GitHub with the declared Python: Python is pinned to
   its minor version 3.9, the check prints the running patch release, and the
   workflow installs Python 3.9 on `ubuntu-24.04-arm` with actions pinned to
