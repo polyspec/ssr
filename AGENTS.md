@@ -113,8 +113,12 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   characters, capitalized, imperative, without a trailing period; a blank line; a body wrapped
   near 72 characters explaining what changed and why; an optional footer for references. The
   type is one of feat, fix, docs, style, refactor, test or chore.
-- During development run only the Red and Green tests that own the change; run the full suite
-  once, when every active checklist item is complete, never after each fix or item. Every test
+- During development run only the unit-level Red and Green tests that own the change. The full
+  and end-to-end checks (the targets of `make check`, the Linux build and tests of
+  `make check-linux`, `make verify-build` and the ownership check) run in GitHub CI after a push
+  (`.github/workflows/ci.yml`); no rule requires a local run of them before a push, and the
+  pre-push hook only refuses a push with an item in progress. A local full run happens only on
+  request, once, when every active checklist item is complete, never after each fix or item. Every test
   reports its own running, completion, success or failure with its elapsed time and has its own
   timeout; a whole-suite timeout is not used. A long operation gets detailed step logs instead
   of a timeout, so its process and result stay observable.
