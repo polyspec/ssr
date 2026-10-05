@@ -17,11 +17,11 @@
 
 - 체크리스트 항목이 진행 중인 동안 push를 거부한다. 추적되는 pre-push hook
   `.githooks/pre-push`는 `python3 -m tools.push_gate hook`을 실행하고, 이것은
-  push되는 모든 commit과 작업 트리의 체크리스트를 읽어 진행 중인 각 항목을 ref,
+  push되는 각 ref의 tip commit과 작업 트리의 체크리스트를 읽어 진행 중인 각 항목을 ref,
   commit, ID, 제목과 함께 적는다. 모든 make 실행은 `core.hooksPath`를
   `.githooks`로 설정하고, `make hooks`가 설정하고 검사하며, 설정되지 않은 동안
   `tools/check.py`와 `make check`의 guard가 실패한다. workflow job `push-gate`는
-  GitHub에서 push된 모든 commit과 pull request head를 같은 방식으로 검사한다.
+  GitHub에서 push된 tip commit과 pull request head를 같은 방식으로 검사한다.
 
 - 빌드가 실행되는 동안 도착한 소스 이벤트에 대해 한 번만 빌드한다. 감독 프로세스는
   쌓인 모든 이벤트에 다시 빌드 한 번으로 답하고 그 동안 도착한 이벤트에 정확히 한 번

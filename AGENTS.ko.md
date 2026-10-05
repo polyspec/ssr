@@ -4,8 +4,9 @@
 
 ## 저장소
 
-- 원격 `origin`은 `github.com/polyspec/ssr`이다. push는 push하는 commit과 작업 트리 어디에서도
-  체크리스트 항목(하위 항목 포함)이 `[~]`가 아닐 때만 한다. 추적되는 pre-push hook `.githooks/pre-push`는
+- 원격 `origin`은 `github.com/polyspec/ssr`이다. push는 push하는 ref의 tip commit과 작업 트리 어디에서도
+  체크리스트 항목(하위 항목 포함)이 `[~]`가 아닐 때만 한다. 항목은 한 commit에서 진행 중으로 기록되고 다음 commit에서 완료되므로 push의
+  앞선 commit에는 진행 중 항목이 있을 수 있다. 추적되는 pre-push hook `.githooks/pre-push`는
   `python3 -m tools.push_gate hook`을 실행하고, 이것은 그런 push를 거부하며 각 항목의 ID와 제목을 적는다.
   모든 make 실행은 `core.hooksPath`가 `.githooks`와 다르면 그것으로 설정하고, `make hooks`가 설정하고
   검사하며, 설정되지 않은 동안 `tools/check.py`와 `make check`의 guard가 실패한다. workflow

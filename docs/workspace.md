@@ -31,16 +31,17 @@ refused with the holder's checkout, pid and process start time. A make without a
 
 A push happens only when no item of `docs/checklist.md`, sub-items included, is `[~]`. The tracked
 pre-push hook `.githooks/pre-push` runs `python3 -m tools.push_gate hook`: it reads the checklist of
-every pushed commit and of the working tree with the parser of `tools/full_run.py` and refuses the
+the tip commit of each pushed ref and of the working tree with the parser of `tools/full_run.py` and refuses the
 push with exit status 1, naming each item in progress with the remote ref, the commit, the ID and
-the title. A pushed commit without `docs/checklist.md` and a Git error also refuse the push. A push
+the title. Earlier commits of a push are not read, because an item is recorded in progress in
+one commit and completed in a later one. A pushed tip commit without `docs/checklist.md` and a Git error also refuse the push. A push
 that deletes a remote branch pushes no commit, so only the working tree is read. Every make
 invocation sets `core.hooksPath` to `.githooks` when it differs, so the hook runs in every checkout
 where make has run; `make hooks` sets it and runs `make hooks-check`, which fails unless
 `core.hooksPath` is `.githooks` and the hook is executable. `tools/check.py` and the guard of
 `make check` run the same check. The workflow `.github/workflows/push-gate.yml` runs
-`python3 -m tools.push_gate commit HEAD` in the job `push-gate` on the pushed commit of every push
-and on the head commit of every pull request: it fails with each item in progress as an error
+`python3 -m tools.push_gate commit HEAD` in the job `push-gate` on the pushed tip commit of every push
+and on the head commit of every pull request, not on a merge commit: it fails with each item in progress as an error
 annotation and in the job summary, and when the commit does not track the hook with mode 100755.
 
 Run `make bench` to execute Cargo benchmarks. The maintained measurements and limits are specified

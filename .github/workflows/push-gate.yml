@@ -1,9 +1,10 @@
 # The push check of AGENTS.md on GitHub: a push happens only when no item of docs/checklist.md is
 # in progress. The pre-push hook .githooks/pre-push refuses such a push in a checkout where make has
-# set core.hooksPath; this job checks every pushed commit and the head commit of every pull request
-# with the same tool, also when a push did not run the hook. It fails naming each item in progress
-# as an error annotation and in the job summary, and when the commit does not track the hook with
-# mode 100755.
+# set core.hooksPath; this job checks the pushed tip commit of every push and the head commit of
+# every pull request, not a merge commit, with the same tool, also when a push did not run the hook.
+# Earlier commits of a push are not read: an item is recorded in progress in one commit and
+# completed in a later one. It fails naming each item in progress as an error annotation and in the
+# job summary, and when the commit does not track the hook with mode 100755.
 name: push-gate
 
 on:

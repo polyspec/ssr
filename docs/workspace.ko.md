@@ -22,14 +22,15 @@ target이 있어도 실행은 멈추지 않는다. `make rerun-failed`는 setup 
 pid, process 시작 시각과 함께 거부된다. target 없는 make는 `make check`를 실행한다.
 
 push는 `docs/checklist.md`의 항목(하위 항목 포함)이 `[~]`가 아닐 때만 한다. 추적되는 pre-push hook
-`.githooks/pre-push`는 `python3 -m tools.push_gate hook`을 실행한다. 이것은 push되는 모든 commit과 작업 트리의
+`.githooks/pre-push`는 `python3 -m tools.push_gate hook`을 실행한다. 이것은 push되는 각 ref의 tip commit과 작업 트리의
 체크리스트를 `tools/full_run.py`의 parser로 읽고, 진행 중인 각 항목을 원격 ref, commit, ID, 제목과 함께 적고
-종료 상태 1로 push를 거부한다. push되는 commit에 `docs/checklist.md`가 없거나 Git 오류가 나도 push를 거부한다.
+종료 상태 1로 push를 거부한다. 항목은 한 commit에서 진행 중으로 기록되고 다음 commit에서 완료되므로
+push의 앞선 commit은 읽지 않는다. push되는 tip commit에 `docs/checklist.md`가 없거나 Git 오류가 나도 push를 거부한다.
 원격 branch를 지우는 push는 commit을 보내지 않으므로 작업 트리만 읽는다. 모든 make 실행은 `core.hooksPath`가
 `.githooks`와 다르면 그것으로 설정하므로, make를 실행한 모든 checkout에서 hook이 실행된다. `make hooks`는 그것을
 설정하고 `make hooks-check`를 실행하며, 이것은 `core.hooksPath`가 `.githooks`이고 hook이 실행 가능하지 않으면
 실패한다. `tools/check.py`와 `make check`의 guard도 같은 검사를 실행한다. workflow
-`.github/workflows/push-gate.yml`은 모든 push의 push된 commit과 모든 pull request의 head commit에서 job
+`.github/workflows/push-gate.yml`은 모든 push의 push된 tip commit과 모든 pull request의 head commit(merge commit이 아님)에서 job
 `push-gate`로 `python3 -m tools.push_gate commit HEAD`를 실행한다. 진행 중인 각 항목을 error annotation과 job
 summary에 적고 실패하며, commit이 hook을 mode 100755로 추적하지 않을 때도 실패한다.
 

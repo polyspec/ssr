@@ -8,11 +8,12 @@ A push happens only when no checklist item is in progress (AGENTS.md). The items
     python3 -m tools.push_gate hooks-check   ``make hooks``, ``tools/check.py`` and ``tools/full_run.py``
 
 ``hook`` reads the lines ``<local ref> <local sha> <remote ref> <remote sha>`` that Git writes to
-the standard input of the pre-push hook. It reads the checklist of each pushed commit (a line with
-a zero local sha deletes a remote ref and pushes no commit) and the checklist of the working tree,
-and refuses the push with exit status 1, naming each item in progress with the ref, the commit, the
-ID and the title. A pushed commit without the checklist, a Git error or a parser error refuses the
-push with its cause.
+the standard input of the pre-push hook. It reads the checklist of the tip commit of each pushed
+ref (a line with a zero local sha deletes a remote ref and pushes no commit) and the checklist of
+the working tree, and refuses the push with exit status 1, naming each item in progress with the
+ref, the commit, the ID and the title. Earlier commits of a push are not read: an item is recorded
+in progress in one commit and completed in a later one. A pushed tip commit without the
+checklist, a Git error or a parser error refuses the push with its cause.
 
 ``commit`` reads the checklist of one commit and also requires that the commit tracks the hook
 with mode 100755. It prints each line of a refusal as a GitHub error annotation and appends the

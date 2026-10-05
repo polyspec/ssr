@@ -5,7 +5,9 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 ## Repository
 
 - The remote `origin` is `github.com/polyspec/ssr`. A push happens only when no checklist item,
-  sub-items included, is `[~]`, neither in a pushed commit nor in the working tree. The tracked
+  sub-items included, is `[~]`, neither in the tip commit of a pushed ref nor in the working tree.
+  Earlier commits of a push may hold items in progress, because an item is recorded in progress
+  in one commit and completed in a later one. The tracked
   pre-push hook `.githooks/pre-push` runs `python3 -m tools.push_gate hook`, which refuses such a
   push and names each item with its ID and title. Every make invocation sets `core.hooksPath` to
   `.githooks` when it differs; `make hooks` sets and checks it, and `tools/check.py` and the guard
