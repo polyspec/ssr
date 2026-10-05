@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Judge the runtime cancellation cases by events: the unread stream case
+  waits for the worker to return its capacity instead of sleeping, and normal
+  renders in these cases are no longer bounded by 300 ms.
+
 - Remove the time, the registry and unpinned tools from the results:
   `make check` checks dependency bans, licenses and sources, and
   `make review-advisories` reviews security advisories separately; the license case reads tracked locks; rustup no longer installs a

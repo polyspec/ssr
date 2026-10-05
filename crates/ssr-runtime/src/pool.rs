@@ -80,8 +80,8 @@ pub(crate) struct QueueEntry {
 }
 pub struct Pool {
     pub(crate) workers: Vec<Worker>,
-    available_tx: Sender<usize>,
-    available_rx: Receiver<usize>,
+    pub(crate) available_tx: Sender<usize>,
+    pub(crate) available_rx: Receiver<usize>,
     waiting: Mutex<Waiting>,
     pub(crate) health: Arc<Health>,
     options: PoolOptions,

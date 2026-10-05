@@ -217,11 +217,16 @@ fn dropping_stream_interrupts_javascript_and_releases_worker() {
 
 #[test]
 fn unread_stream_expires_and_releases_worker() {
-    let pool = pool();
+    let mut limits = options();
+    limits.timeout = Duration::from_millis(300);
+    let pool = pool_with(limits);
     let (_, stream) = pool
         .render_stream(&page(false), "nonce", Cancellation::new())
         .unwrap();
-    std::thread::sleep(Duration::from_millis(400));
+    // The only worker returns its capacity when the unread stream expires; the case waits for
+    // that event instead of a time and then gives the capacity back to the pool.
+    let index = pool.available_rx.recv().unwrap();
+    pool.available_tx.send(index).unwrap();
     let (_, next) = pool
         .render_stream(&page(false), "nonce", Cancellation::new())
         .unwrap();
@@ -236,8 +241,10 @@ fn options() -> PoolOptions {
     PoolOptions {
         worker_count: 1,
         queue_capacity: 1,
-        timeout: Duration::from_millis(300),
-        cleanup_timeout: Duration::from_millis(500),
+        // Normal renders and cleanups are bounded only by the nextest limit of the case; a case
+        // that tests a timeout sets its own.
+        timeout: Duration::from_secs(10),
+        cleanup_timeout: Duration::from_secs(10),
         max_input_bytes: 1048576,
         max_queue_bytes: 2097152,
         max_chunk_bytes: 65536,
@@ -254,7 +261,7 @@ fn pool_closure_notifies_health_waiter_without_polling() {
     let waiter = std::thread::spawn(move || sent.send(waiting.wait()).unwrap());
     pool.close().unwrap();
     assert!(matches!(
-        received.recv_timeout(Duration::from_secs(1)).unwrap(),
+        received.recv().unwrap(),
         Err(crate::Error::WorkerStopped)
     ));
     waiter.join().unwrap();

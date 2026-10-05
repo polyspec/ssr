@@ -17,7 +17,7 @@ const FRAMEWORK: &str = r#"
 "#;
 
 fn pool() -> Pool {
-    pool_with(support::options(1, 1, Duration::from_millis(300)))
+    pool_with(support::options(1, 1, Duration::from_secs(10)))
 }
 fn pool_with(options: PoolOptions) -> Pool {
     Pool::new_react(
@@ -57,7 +57,7 @@ fn page(looping: bool) -> Page {
 
 #[test]
 fn input_and_waiting_bytes_have_independent_limits() {
-    let mut limits = support::options(1, 1, Duration::from_millis(300));
+    let mut limits = support::options(1, 1, Duration::from_secs(10));
     limits.max_input_bytes = 64;
     limits.max_queue_bytes = 4;
     let pool = pool_with(limits);
@@ -79,7 +79,7 @@ fn input_and_waiting_bytes_have_independent_limits() {
 
 #[test]
 fn stream_chunk_limit_splits_output_without_truncation() {
-    let mut limits = support::options(1, 1, Duration::from_millis(300));
+    let mut limits = support::options(1, 1, Duration::from_secs(10));
     limits.max_chunk_bytes = 1;
     let pool = pool_with(limits);
     let (_, stream) = pool
@@ -93,7 +93,7 @@ fn stream_chunk_limit_splits_output_without_truncation() {
 
 #[test]
 fn stream_output_limit_counts_state_and_all_chunks() {
-    let mut limits = support::options(1, 1, Duration::from_millis(300));
+    let mut limits = support::options(1, 1, Duration::from_secs(10));
     limits.max_output_bytes = 7;
     let pool = pool_with(limits);
     let (_, mut stream) = pool

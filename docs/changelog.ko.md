@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- runtime 취소 사례를 event로 판정한다. 읽지 않은 stream 사례는 잠드는 대신
+  worker가 capacity를 돌려주기를 기다리고, 이 사례들의 정상 render는 더 이상
+  300 ms로 묶이지 않는다.
+
 - 결과에서 시간, registry, 고정되지 않은 도구를 없앤다. `make check`는 의존성
   금지 목록, 라이선스, 출처를 검사하고 `make review-advisories`가 보안 공지를
   따로 검토한다. license 사례는 추적되는 잠금 파일을 읽는다.
