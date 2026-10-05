@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Remove the symbolic links of the React dependency case: it copies the
+  packages it needs into its own root.
+
 - Export the host engine inputs to host targets only: `make check-linux` no
   longer receives the host V8 archive and passes its Linux V8 step.
 

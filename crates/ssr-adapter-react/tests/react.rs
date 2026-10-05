@@ -456,8 +456,13 @@ async fn configured_dependencies_share_one_package_instance_for_provider_and_con
     fs::create_dir_all(&nested).unwrap();
     fs::create_dir_all(&configured).unwrap();
     for name in ["react", "react-dom", "scheduler", "web-streams-polyfill"] {
-        std::os::unix::fs::symlink(fixture.packages.join(name), dependencies.join(name)).unwrap();
+        copy_tree(&fixture.packages.join(name), &dependencies.join(name));
     }
+    assert_eq!(
+        symbolic_links(&root),
+        Vec::<std::path::PathBuf>::new(),
+        "the case builds from copies, never through symbolic links"
+    );
     let package = "import React from 'react'; export const marker = '{marker}'; export const SharedContext = React.createContext('{default}');";
     fs::write(
         nested.join("package.json"),
@@ -540,4 +545,39 @@ async fn configured_dependencies_share_one_package_instance_for_provider_and_con
     );
     assert!(!html.contains("nested-copy"), "{html}");
     assert!(!html.contains(">missing<"), "{html}");
+}
+
+/// The symbolic links under `directory`.
+fn symbolic_links(directory: &Path) -> Vec<std::path::PathBuf> {
+    let mut found = Vec::new();
+    for entry in fs::read_dir(directory).unwrap() {
+        let path = entry.unwrap().path();
+        let metadata = fs::symlink_metadata(&path).unwrap();
+        if metadata.file_type().is_symlink() {
+            found.push(path);
+        } else if metadata.is_dir() {
+            found.extend(symbolic_links(&path));
+        }
+    }
+    found
+}
+
+/// Copy the regular files of `source` into the new directory `destination`.
+fn copy_tree(source: &Path, destination: &Path) {
+    fs::create_dir(destination).unwrap();
+    for entry in fs::read_dir(source).unwrap() {
+        let entry = entry.unwrap();
+        let kind = entry.file_type().unwrap();
+        let target = destination.join(entry.file_name());
+        if kind.is_dir() {
+            copy_tree(&entry.path(), &target);
+        } else {
+            assert!(
+                kind.is_file(),
+                "not a regular file: {}",
+                entry.path().display()
+            );
+            fs::copy(entry.path(), target).unwrap();
+        }
+    }
 }

@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- React 의존성 사례의 symbolic link를 없앤다. 사례는 필요한 package를 자기 root로
+  복사한다.
+
 - host engine 입력을 host target에만 export한다. `make check-linux`는 더 이상
   host V8 archive를 받지 않고 Linux V8 단계를 통과한다.
 
