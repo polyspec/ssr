@@ -243,23 +243,43 @@ def check_hooks(root):
     return [f"hooks-check: {error}" for error in push_gate.hooks_check(root)]
 
 
-def main():
+def check_records(root):
+    """The checks that read only tracked files: the records, the checklist markers and texts, the
+    words, the document pairs and links, the React document, the paths and the timed assertions.
+    The job push-gate runs them, so a commit whose records fail never reaches main."""
+    return (check_outside_paths(root) + check_pairs_and_links(root) + check_words(root) + check_react_document(root)
+            + check_timed_assertions(root))
+
+
+# The modes: ``records`` runs only the checks of the tracked files; ``ci`` runs every check and checks
+# the versions of the tools that a CI runner installs at their declared versions (python3, rustc);
+# no mode runs every check with every declared tool.
+MODES = {"records": None, "ci": ["python3", "rustc"], None: []}
+
+
+def main(argv=()):
+    mode = argv[0] if argv else None
+    if len(argv) > 1 or mode not in MODES:
+        print("usage: python3 tools/check.py [records|ci]", file=sys.stderr)
+        return 2
     try:
-        errors = (check_untracked(ROOT) + check_outside_paths(ROOT) + check_pairs_and_links(ROOT) + check_words(ROOT)
-                  + check_react_document(ROOT) + check_hooks(ROOT) + check_timed_assertions(ROOT))
+        errors = check_records(ROOT)
+        if mode != "records":
+            errors = check_untracked(ROOT) + errors + check_hooks(ROOT)
     except OSError as error:
         print(error, file=sys.stderr)
         return 1
-    errors += tool_versions.check()
-    errors += owning_tests.check(ROOT)
-    errors += install_packages.filter_errors(ROOT)
+    if mode != "records":
+        errors += tool_versions.check(MODES[mode] or None)
+        errors += owning_tests.check(ROOT)
+        errors += install_packages.filter_errors(ROOT)
     for error in errors:
         print(error, file=sys.stderr)
     if errors:
         return 1
-    print("records, terminology and documents: pass")
+    print(f"{'records' if mode == 'records' else 'records, terminology and documents'}: pass")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

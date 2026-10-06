@@ -76,7 +76,13 @@ where make has run; `make hooks` sets it and runs `make hooks-check`, which fail
 and on the head commit of every pull request, not on a merge commit: it fails with each item in progress as an error
 annotation and in the job summary, and when the commit does not track the hook with mode 100755.
 The job runs on `ubuntu-24.04-arm` with Python 3.9 from `actions/setup-python`, the actions pinned
-to commits, and checks the declared Python before the push check.
+to commits, and checks the declared Python before the push check. It also runs `make push-records`
+(`python3 tools/check.py records`), the checks of `tools/check.py` that read only tracked files: the
+document pairs and links, the checklist markers, texts and IDs, the record words, the React document,
+the paths into a home directory and the timed assertions. The ruleset requires this job on `main`, so a
+commit whose records fail never reaches `main`. CI runs `make ci-records` (`python3 tools/check.py ci`):
+every check of `tools/check.py`, with the versions of the tools that a runner installs at their declared
+versions, Python and rustc.
 
 Run `make bench` to execute Cargo benchmarks. The maintained measurements and limits are specified
 in S-11.

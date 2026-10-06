@@ -12,6 +12,14 @@
   검사하며, 설정되지 않은 동안 `tools/check.py`와 `make check`의 guard가 실패한다. workflow
   `.github/workflows/push-gate.yml`은 모든 push와 pull request에서 job `push-gate`로
   `python3 -m tools.push_gate commit`을 실행하고 같은 방식으로 실패하며, hook을 실행하지 않은 push에도 그렇다.
+  같은 job이 `tools/check.py`의 기록 검사(`python3 tools/check.py records`: 기록, checklist 표시와 문장, 단어,
+  문서 쌍과 link)를 실행하므로 기록 검사가 실패하는 commit은 `main`에 오르지 않는다. CI는 `tools/check.py`의 모든
+  검사를 실행한다(`make ci-records`).
+- `.github/ruleset.json`에 선언된 GitHub ruleset `main`은 `main`이 받는 모든 commit에 GitHub Actions의 check
+  `push-gate`를 요구하고, `main`의 force-push와 삭제를 거부하며 bypass actor가 없으므로, GitHub는 check가 통과하지 않은 commit의 직접
+  push를 관리자에게서도 거부한다. 거부된 push, 실패한 check, 거부된 `main` push는 원인과 함께 멈추고 `main`을 바꾸지 않는다. `make
+  github-ruleset`은 선언된 이름의 ruleset을 만들거나 갱신하고, `make github-ruleset-check`는 live ruleset이 선언과 다르면 실패한다
+  ([워크스페이스](docs/workspace.ko.md)).
 - 브랜치는 `{type}/{shortname}-{체크리스트 ID}`, 워크트리는 `{프로젝트}-{shortname}-{체크리스트 ID}`로
   이름 짓는다. 브랜치를 `main`에 통합한 뒤 커밋이나 동등한 변경이 반영됐고 워크트리가 깨끗한지 확인한다.
   삭제할 워크트리에만 있는 `.gitignore` 제외 파일 중 계속 필요한 파일은 먼저 다른 곳에 보존한다.

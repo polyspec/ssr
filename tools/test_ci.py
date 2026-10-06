@@ -52,6 +52,35 @@ class WorkflowRuleTest(TestCase):
         self.assertIn("\nconcurrency:\n  group: ${{ github.workflow }}-${{ github.ref }}\n  cancel-in-progress: true\n",
                       text)
 
+    def test_the_push_check_runs_the_record_checks_and_ci_runs_every_check(self):
+        makefile = (ROOT / "Makefile").read_text()
+        push = re.search(r"^CI_PUSH_TARGETS = (.*)$", makefile, re.MULTILINE).group(1).split()
+        ci = re.search(r"^CI_TARGETS = (.*)$", makefile, re.MULTILINE).group(1).split()
+        self.assertIn("push-records", push)
+        self.assertIn("ci-records", ci)
+        self.assertRegex(makefile, r"(?m)^push-records:\n\tpython3 tools/check.py records$")
+        self.assertRegex(makefile, r"(?m)^ci-records:\n\tpython3 tools/check.py ci$")
+        self.assertIn("run: make ci-push", (ROOT / ".github/workflows/push-gate.yml").read_text())
+
+    def test_the_record_mode_fails_a_tree_whose_records_fail(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "docs").mkdir()
+            marker = "[" + "~" + "]"
+            for name in ("checklist.md", "checklist.ko.md"):
+                (root / "docs" / name).write_text(f"- [o] S-1 Item, once marked `{marker}`.\n")
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+            from tools import check
+            errors = check.check_records(root)
+        detail = "outside an item state; a checklist marker appears only as the state of an item"
+        for name in ("checklist.md", "checklist.ko.md"):
+            self.assertIn(f"docs/{name}:1:30: state marker {marker} {detail}", errors)
+        result = subprocess.run([sys.executable, "tools/check.py", "records"], cwd=ROOT, capture_output=True, text=True)
+        self.assertEqual((result.returncode, result.stdout), (0, "records: pass\n"), result.stderr)
+        usage = subprocess.run([sys.executable, "tools/check.py", "other"], cwd=ROOT, capture_output=True, text=True)
+        self.assertEqual(usage.returncode, 2)
+
     def test_the_linux_jobs_build_both_architectures(self):
         text = (ROOT / ".github/workflows/ci.yml").read_text()
         self.assertIn("runner: [ubuntu-24.04-arm, ubuntu-24.04]", text)

@@ -56,7 +56,11 @@ push의 앞선 commit은 읽지 않는다. push되는 tip commit에 `docs/checkl
 `push-gate`로 `python3 -m tools.push_gate commit HEAD`를 실행한다. 진행 중인 각 항목을 error annotation과 job
 summary에 적고 실패하며, commit이 hook을 mode 100755로 추적하지 않을 때도 실패한다.
 job은 `actions/setup-python`의 Python 3.9로 `ubuntu-24.04-arm`에서 실행되고, action은 commit에 고정되며, push 검사 전에
-선언된 Python을 검사한다.
+선언된 Python을 검사한다. 이것은 `make push-records`(`python3 tools/check.py records`)도 실행한다. 이는 추적되는 파일만
+읽는 `tools/check.py`의 검사로, 문서 쌍과 link, checklist 표시와 문장과 ID, 기록 단어, React 문서, home directory로의
+경로, 시간 assertion이다. ruleset이 `main`에 이 job을 요구하므로 기록 검사가 실패하는 commit은 `main`에 오르지 않는다.
+CI는 `make ci-records`(`python3 tools/check.py ci`)를 실행한다. 이는 runner가 선언된 version으로 설치하는 도구인
+Python과 rustc의 version으로 `tools/check.py`의 모든 검사를 실행한다.
 
 `make bench`는 Cargo 벤치마크를 실행한다. 유지할 측정과 한도는 S-11에 명시한다.
 

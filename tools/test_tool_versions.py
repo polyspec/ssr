@@ -49,7 +49,7 @@ class ToolVersionsTest(TestCase):
         workflow = (ROOT / ".github/workflows/push-gate.yml").read_text()
         self.assertIn('python-version: "3.9"', workflow)
         self.assertIn("run: make ci-push", workflow)
-        self.assertIn("CI_PUSH_TARGETS = ci-python push-check", (ROOT / "Makefile").read_text().splitlines())
+        self.assertIn("CI_PUSH_TARGETS = ci-python push-check push-records", (ROOT / "Makefile").read_text().splitlines())
         self.assertEqual(recipe("ci-python"), ["python3 -m tools.tool_versions check python3"])
         self.assertEqual(recipe("push-check"), ["python3 -m tools.push_gate commit HEAD"])
         for line in workflow.splitlines():

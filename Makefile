@@ -32,7 +32,7 @@ FULL_RUN = python3 -m tools.holder_lock run check -- python3 -m tools.full_run
 
 # A make without a target runs the full suite entry, so no command runs its steps without the guard.
 .DEFAULT_GOAL := check
-.PHONY: check rerun-failed review-advisories ci-setup ci ci-nextest ci-push ci-python push-check hooks hooks-check $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
+.PHONY: check rerun-failed review-advisories ci-setup ci ci-nextest ci-push ci-python push-check push-records ci-records hooks hooks-check github-ruleset github-ruleset-check $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
 
 $(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
 $(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
@@ -135,8 +135,8 @@ verify-build:
 # fresh Linux runner: the pinned toolchain and test tools, the verified official V8 inputs of the
 # host target and the locked dependencies. ci runs the CI targets through tools/ci_run.py, which
 # runs every target past failures and writes var/ci/<target>.log and var/ci/summary.md.
-CI_TARGETS = check-fmt check-clippy check-deny check-examples ci-nextest
-CI_PUSH_TARGETS = ci-python push-check
+CI_TARGETS = ci-records check-fmt check-clippy check-deny check-examples ci-nextest
+CI_PUSH_TARGETS = ci-python push-check push-records
 
 ci-setup:
 	rustup toolchain install 1.98.1 --profile minimal --component clippy --component rustfmt --no-self-update
@@ -160,4 +160,21 @@ ci-python:
 
 push-check:
 	python3 -m tools.push_gate commit HEAD
+
+# The record checks of tools/check.py, which read only tracked files, in the job push-gate: the ruleset requires that
+# job on main, so a commit whose records fail never reaches main. ci-records runs every check of tools/check.py in CI.
+push-records:
+	python3 tools/check.py records
+
+ci-records:
+	python3 tools/check.py ci
+
+# The GitHub ruleset of main, declared in .github/ruleset.json (tools/github_ruleset.py, docs/workspace.md): it requires
+# the check push-gate, refuses a force-push and a deletion and has no bypass actor. github-ruleset creates or updates
+# the ruleset of the declared name; github-ruleset-check fails when the live ruleset differs from the declaration.
+github-ruleset:
+	python3 -m tools.github_ruleset apply
+
+github-ruleset-check:
+	python3 -m tools.github_ruleset check
 

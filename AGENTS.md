@@ -13,7 +13,16 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   `.githooks` when it differs; `make hooks` sets and checks it, and `tools/check.py` and the guard
   of `make check` fail while it is not set. The workflow `.github/workflows/push-gate.yml` runs
   `python3 -m tools.push_gate commit` in the job `push-gate` on every push and pull request and
-  fails the same way, also for a push that did not run the hook.
+  fails the same way, also for a push that did not run the hook. The same job runs the record
+  checks of `tools/check.py` (`python3 tools/check.py records`: the records, the checklist markers
+  and texts, the words, the document pairs and links), so a commit whose records fail never
+  reaches `main`; CI runs every check of `tools/check.py` (`make ci-records`).
+- The GitHub ruleset `main`, declared in `.github/ruleset.json`, requires the check `push-gate` of
+  GitHub Actions on every commit that `main` receives, refuses a force-push and a deletion of `main`
+  and has no bypass actor, so GitHub refuses a direct push of a commit whose check has not passed,
+  from an administrator too. `make github-ruleset` creates or updates the ruleset of the declared
+  name, and `make github-ruleset-check` fails when the live ruleset differs from the declaration
+  ([workspace](docs/workspace.md)).
 - Name branches `{type}/{shortname}-{checklist ID}` and worktrees
   `{project}-{shortname}-{checklist ID}`. After integrating a branch into `main`, verify its commits
   or equivalent changes are present and its worktree is clean. Before removal, preserve any files
@@ -216,7 +225,7 @@ is a class: check every tool, test and recipe of this repository for it and fix 
   (+ `.ko.md`). They describe the current product and its changes with explicit subjects, actions
   and objects, in plain wording without metaphors, personification or colloquial words. Operation
   names are used directly (create, publish, receive, register, remove, return, fail). A cause is
-  stated in one sentence. Words such as envelope, gate, orphan, adopt, retire, dead, first-class,
+  stated in one sentence. Words such as envelope, publish, orphan, adopt, retire, dead, first-class,
   carries, speaks and answers are not used for product behavior.
 - A record states a defect as a fact about ssr itself: the input, the behaviour and the expected
   behaviour. It names no reporter, no source and nothing outside ssr, and holds no origin of the
