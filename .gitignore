@@ -2,3 +2,4 @@
 /verification/engine/target/
 /var/
 node_modules/
+__pycache__/

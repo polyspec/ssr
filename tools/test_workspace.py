@@ -136,6 +136,18 @@ class WorkspaceTest(unittest.TestCase):
     def test_no_assertion_judges_a_measured_time(self):
         self.assertEqual(check.check_timed_assertions(ROOT), [])
 
+    def test_python_bytecode_is_ignored(self):
+        # A Python without a cache prefix writes __pycache__ next to the sources, as on a CI runner.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            (root / ".gitignore").write_bytes((ROOT / ".gitignore").read_bytes())
+            (root / "tools").mkdir()
+            (root / "tools/check.py").write_text("")
+            commit_all(root)
+            (root / "tools/__pycache__").mkdir()
+            (root / "tools/__pycache__/check.cpython-39.pyc").write_bytes(b"bytecode")
+            self.assertEqual(check.check_untracked(root), [])
+
     def test_untracked_file_is_named(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = pathlib.Path(temporary)
