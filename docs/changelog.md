@@ -4,6 +4,10 @@
 
 ## 0.0.1
 
+- Check the tools of a full run against `tools/tool-versions.json` of the
+  checkout that runs, so the guard cases of a temporary checkout no longer
+  depend on the executables of the host.
+
 - Run the browser cases with the chromium build that playwright-core pins,
   installed with the test packages, instead of the host's browser.
 

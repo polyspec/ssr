@@ -6,7 +6,7 @@ both entries while an item of ``docs/checklist.md``, sub-items included, is in p
 naming each such item, while tracked files have uncommitted changes, while files that are neither
 tracked nor ignored exist, which a step would read although the tree does not hold them, and while
 the pre-push hook is not installed (``tools/push_gate.py hooks-check``), and while a tool differs from
-``tools/tool-versions.json`` (``tools/tool_versions.py``). ``check`` is refused when
+``tools/tool-versions.json`` of the checkout (``tools/tool_versions.py``). ``check`` is refused when
 the record names a full run of the current tree (``git rev-parse HEAD^{tree}``): the full suite
 runs once per tree. ``rerun-failed`` is refused unless the record is of the current tree and names
 targets that did not pass; it runs only those targets.
@@ -201,7 +201,8 @@ def run(mode, setup, targets, root=ROOT, needs=None):
     untracked = [path for path in git(root, "ls-files", "-z", "--others", "--exclude-standard").split("\0") if path]
     items = active_items((root / "docs/checklist.md").read_text(encoding="utf-8"))
     record = read(path)
-    decision = decide(mode, items, changes, untracked, push_gate.hooks_check(root), tool_versions.check(),
+    decision = decide(mode, items, changes, untracked, push_gate.hooks_check(root),
+                      tool_versions.check(tools=tool_versions.declared(root / "tools/tool-versions.json")),
                       tree, record, targets)
     if not decision.allowed:
         print(f"full-run: refused {entry}:", flush=True)

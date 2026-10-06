@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -51,12 +52,24 @@ def git(root, *arguments):
 
 
 class Checkout:
-    """A Git checkout in a temporary directory with a checklist and a Makefile of stub targets."""
+    """A Git checkout in a temporary directory with a checklist, a Makefile of stub targets and a
+    tool declaration that names one stub program by the SHA-256 of its executable. The program lies
+    outside the checkout, in a directory that ``env`` puts first on PATH, so a test can change it
+    without changing the tree."""
 
     def __init__(self, directory, checklist):
         self.root = Path(directory).resolve() / "checkout"
         self.log = Path(directory).resolve() / "ran.log"
+        self.tool = Path(directory).resolve() / "bin/stubtool"
+        self.tool.parent.mkdir()
+        self.tool.write_text("#!/bin/sh\necho stub\n")
+        self.tool.chmod(0o755)
+        self.env = {**os.environ, "PATH": f"{self.tool.parent}{os.pathsep}{os.environ['PATH']}"}
         (self.root / "docs").mkdir(parents=True)
+        (self.root / "tools").mkdir()
+        (self.root / "tools/tool-versions.json").write_text(json.dumps({"tools": [
+            {"name": "stubtool", "program": "stubtool",
+             "sha256": hashlib.sha256(self.tool.read_bytes()).hexdigest()}]}))
         (self.root / "docs/checklist.md").write_text(checklist)
         (self.root / "Makefile").write_text(MAKEFILE.format(log=self.log))
         (self.root / ".gitignore").write_text("/var/\npass-b\n")
@@ -72,7 +85,7 @@ class Checkout:
         arguments = [sys.executable, "-m", "tools.full_run", mode, "--root", str(self.root), "--setup", "setup"]
         if mode == "check":
             arguments += ["--targets", "a", "b", "c"]
-        return subprocess.run(arguments, cwd=ROOT, capture_output=True, text=True, check=False)
+        return subprocess.run(arguments, cwd=ROOT, capture_output=True, text=True, check=False, env=self.env)
 
     def ran(self):
         names = self.log.read_text().split() if self.log.exists() else []
@@ -176,6 +189,20 @@ class GuardTest(TestCase):
             self.assertIn("  docs/module.rs", result.stdout)
             self.assertEqual(checkout.ran(), [])
 
+    def test_a_tool_that_differs_from_the_declaration_of_the_checkout_refuses(self):
+        with TemporaryDirectory() as directory:
+            checkout = Checkout(directory, DONE)
+            declared = hashlib.sha256(checkout.tool.read_bytes()).hexdigest()
+            checkout.tool.write_text("#!/bin/sh\necho other\n")
+            found = hashlib.sha256(checkout.tool.read_bytes()).hexdigest()
+            for mode in ("check", "rerun-failed"):
+                result = checkout.run(mode)
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                self.assertIn("full-run: tools differ from tools/tool-versions.json:", result.stdout)
+                self.assertIn(f"full-run:   stubtool: expected {declared!r} from SHA-256 of stubtool, "
+                              f"actual {found!r}", result.stdout)
+                self.assertEqual(checkout.ran(), [])
+
     def test_a_failed_setup_step_skips_only_the_targets_that_read_it(self):
         with TemporaryDirectory() as directory:
             checkout = Checkout(directory, DONE)
@@ -183,7 +210,7 @@ class GuardTest(TestCase):
             result = subprocess.run(
                 [sys.executable, "-m", "tools.full_run", "check", "--root", str(checkout.root),
                  "--setup", "broken", "setup", "--targets", "a", "b", "c", "--needs", "a=broken", "c=setup"],
-                cwd=ROOT, capture_output=True, text=True, check=False)
+                cwd=ROOT, capture_output=True, text=True, check=False, env=checkout.env)
             self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
             self.assertEqual(checkout.ran(), ["broken", "setup", "b", "c"])
             self.assertIn("SKIP a: it reads the output of the failed setup step broken", result.stdout)
@@ -259,7 +286,8 @@ class GuardTest(TestCase):
                 "commit", "-q", "-am", "hold")
             arguments = [sys.executable, "-m", "tools.full_run", "check", "--root", str(checkout.root),
                          "--setup", "setup", "--targets", "a", "b", "c"]
-            run = subprocess.Popen(arguments, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            run = subprocess.Popen(arguments, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                   env=checkout.env)
             while not started.exists() or not started.read_text().strip():
                 if run.poll() is not None:
                     self.fail(f"the run ended before its step started: {run.communicate()}")

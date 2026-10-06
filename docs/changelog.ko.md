@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- full run의 도구를 실행하는 checkout의 `tools/tool-versions.json`으로 검사하므로,
+  임시 checkout의 guard 사례는 더 이상 host의 실행 파일에 의존하지 않는다.
+
 - browser 사례를 host의 browser 대신 test package와 함께 설치되는, playwright-core가
   고정한 chromium build로 실행한다.
 
