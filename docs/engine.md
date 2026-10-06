@@ -87,9 +87,9 @@ also holds Clippy and cargo-nextest 0.9.146.
 `make check-linux`, a target of `make check`, runs `tools/check_linux.py` in the same stack
 under the same lock: it verifies the AArch64 Linux V8 inputs, starts the stack, checks its
 mounts, fetches the locked dependencies and runs, with the Linux gcc toolchain of the image,
-`cargo clippy --locked -p ssr-server --all-targets -- -D warnings`, the build of the
+`cargo clippy --locked -p polyspec-ssr-server --all-targets -- -D warnings`, the build of the
 `development_process` and `socket_process` examples and
-`cargo nextest run --locked -p ssr-server --lib --test development --test process`, then stops
+`cargo nextest run --locked -p polyspec-ssr-server --lib --test development --test process`, then stops
 the stack. Each step prints its command, its output and its result with the elapsed time,
 without a time limit. These targets read no package installation, so the nextest setup script
 `install-packages`, which needs npm, does not run in the container. x86_64 Linux is not
@@ -103,7 +103,7 @@ same blob. A different key is rejected even after all pools close. Different bun
 processes. Request contexts remain independent and do not evaluate either bundle again.
 
 The compiler uses the default V8 snapshot, so its isolate creation and disposal are coordinated
-with renderer snapshot creation through `ssr_core::process`. A compiler cannot enter during
+with renderer snapshot creation through `polyspec_ssr_core::process`. A compiler cannot enter during
 snapshot initialization or after its success. The snapshot creator is consumed on initialization
 failure as well as success. The pinned V8 implementation removes shared read-only artifacts when
 its last isolate is disposed; an executable test verifies failed initialization, subsequent Svelte

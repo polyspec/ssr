@@ -1,4 +1,4 @@
-#[path = "../../../crates/ssr-build/tests/fixture/mod.rs"]
+#[path = "../../../crates/polyspec-ssr-build/tests/fixture/mod.rs"]
 mod fixture;
 use std::collections::BTreeMap;
 use std::fs;

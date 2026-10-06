@@ -22,7 +22,7 @@ Rust tests run with cargo-nextest 0.9.146. The nextest configuration terminates 
 The Python tool tests run through `tools/run_tests.py`, each in its own process group with a limit
 of 30 seconds; a case that exceeds it is reported with its output, and its whole process group is
 killed, so no process that the case started keeps running. Rust tests remove their temporary
-directories through a guard, also when an assertion fails. Before any test of `ssr-server`, the
+directories through a guard, also when an assertion fails. Before any test of `polyspec-ssr-server`, the
 nextest setup script `build-programs` (`tools/build_programs.py`, an experimental feature of the
 pinned nextest) builds the `development_process` and `socket_process` examples that the
 development and socket tests run and names them in `SSR_DEVELOPMENT_PROCESS` and
@@ -54,7 +54,7 @@ that read them, the nextest setup script `install-packages` (`tools/install_pack
 the packages of `tools/build-probe/tests/fixtures` once per lock into the immutable
 `var/packages/<SHA-256 of package.json and package-lock.json>`, published by one rename, and names
 it in `SSR_PACKAGES` and the sources in `SSR_FIXTURES`. Each test copies the sources into a new
-temporary root of its own (`crates/ssr-build/tests/fixture/mod.rs`), writes its generated entries
+temporary root of its own (`crates/polyspec-ssr-build/tests/fixture/mod.rs`), writes its generated entries
 there, builds with the installation as `BuildConfig::dependencies` and removes the root when it
 ends; the browser scripts import `playwright-core` from `SSR_PACKAGES`, and the browser cases run the
 chromium build that this `playwright-core` pins, installed into the same directory and named in

@@ -2,8 +2,8 @@
 
 # Vue adapter
 
-`ssr-adapter-vue` generates server and client entries for one Vue component exported as the default
-value from an absolute JavaScript module path. `ssr-build` takes the entries as files under
+`polyspec-ssr-adapter-vue` generates server and client entries for one Vue component exported as the default
+value from an absolute JavaScript module path. `polyspec-ssr-build` takes the entries as files under
 the build root (`BuildConfig::root`). The server bundle bytes create a `Pool`; the
 public client and style URLs from the build manifest create `VueAdapter`. The fixture pins Vue
 3.5.43. The generated server entry uses `createSSRApp` and awaits `renderToString` from

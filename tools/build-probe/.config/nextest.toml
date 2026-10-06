@@ -1,5 +1,5 @@
 # The build verification workspace has its own configuration: the setup script of the
-# repository configuration selects ssr-server, which this workspace does not have.
+# repository configuration selects polyspec-ssr-server, which this workspace does not have.
 [profile.default]
 slow-timeout = { period = "30s", terminate-after = 1 }
 status-level = "all"

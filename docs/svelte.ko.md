@@ -2,7 +2,7 @@
 
 # Svelte 어댑터
 
-`ssr-build`는 고정된 Svelte 5.57.1 컴파일러를 사용해 각 `.svelte` 소스를 Rust 프로세스 안에서
+`polyspec-ssr-build`는 고정된 Svelte 5.57.1 컴파일러를 사용해 각 `.svelte` 소스를 Rust 프로세스 안에서
 서버·클라이언트용으로 컴파일한다. 패키지는 빌드 전에 `npm ci`로 설치하며, 빌드는 build root(`BuildConfig::root`)
 아래의 서버·클라이언트·CSS 진입점 절대 경로를 받는다. 컴파일에 Node 프로세스는 필요하지 않다.
 컴파일러 경고와 오류는 빌드 실패다. 컴파일러 소스맵을 JavaScript 번들러에 전달하고, 생성한 컴포넌트
@@ -11,7 +11,7 @@ CSS를 Lightning CSS로 처리해 내용 해시가 있는 공개 URL로 빌드 �
 Svelte의 AST와 metadata는 컴파일 도구 자료다. 원래 CSS 소스맵은 변환한 CSS의 위치를 표시하지
 않으므로 게시하지 않으며 JavaScript 소스맵은 번들러에 전달한다.
 
-`ssr-adapter-svelte`는 절대 경로의 `.svelte` 컴포넌트 하나에 대한 진입점을 만든다. 서버 진입점은
+`polyspec-ssr-adapter-svelte`는 절대 경로의 `.svelte` 컴포넌트 하나에 대한 진입점을 만든다. 서버 진입점은
 `render` 함수를 export하고 페이지 props와 `renderState`를 전달해 `svelte/server`의 `render`를 호출한다.
 호출자는 빌드 매니페스트의 서버 진입점 경로·바이트와 모든 비공개 서버 청크 경로·바이트로
 `ServerBundle`을 구성한 뒤 풀을 만든다. 렌더 함수는 본문, head와 출력 상태를 반환한다.

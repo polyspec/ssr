@@ -45,7 +45,7 @@ def load(path):
         if not isinstance(case, dict) or set(case) != {"package", "binary", "case"}:
             raise ValueError(f"exact package, binary and case required: {name}")
         for field, pattern in (
-            ("package", r"ssr-[a-z-]+"),
+            ("package", r"polyspec-ssr-[a-z-]+"),
             ("binary", r"[a-z][a-z0-9_]*"),
             ("case", r"[a-z][a-z0-9_]*"),
         ):

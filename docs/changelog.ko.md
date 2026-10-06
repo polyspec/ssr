@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- crate는 `polyspec-ssr-core`, `polyspec-ssr-build`, `polyspec-ssr-runtime`,
+  `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`, `polyspec-ssr-adapter-svelte`,
+  `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-nonce`, `polyspec-ssr-server`이고 library 이름은
+  `polyspec_ssr_core` 등이다.
+
 - ordered-json을 그 Git 저장소의 package `polyspec-ordered-json`으로 commit 없이
   적는다. `Cargo.lock`이 정해진 commit을 기록한다.
 
@@ -86,7 +91,7 @@
   모든 도구를 선언하고 각 진입점이 첫 단계 전에 이를 검사한다.
 
 - test build가 컴파일한 예제 프로그램을 실행한다. nextest setup script가
-  `ssr-server`의 어떤 test보다 먼저 `development_process`와 `socket_process`
+  `polyspec-ssr-server`의 어떤 test보다 먼저 `development_process`와 `socket_process`
   예제를 build하고 `SSR_DEVELOPMENT_PROCESS`와 `SSR_SOCKET_PROCESS`로 알리므로,
   test target 하나의 실행이 더 이상 이전 소스로 build된 프로그램을 실행하지 않는다.
 
@@ -104,9 +109,9 @@
   있기 때문이다. `tools/check.py`는 추적되는 file만 읽고, 무시되지 않는
   추적되지 않는 file마다 실패한다.
 
-- 전체 묶음에서 `ssr-server`를 AArch64 Linux에서 native로 빌드하고 lint하고 test한다.
+- 전체 묶음에서 `polyspec-ssr-server`를 AArch64 Linux에서 native로 빌드하고 lint하고 test한다.
   `make check-linux`는 모든 소스 checkout을 읽기 전용으로 mount하는 checkout의
-  container stack에서 Linux gcc toolchain으로 `ssr-server`의 Clippy, 예제 빌드, 단위,
+  container stack에서 Linux gcc toolchain으로 `polyspec-ssr-server`의 Clippy, 예제 빌드, 단위,
   `development`, `process` test를 실행한다.
 
 - 체크리스트 항목이 진행 중인 동안 push를 거부한다. 추적되는 pre-push hook
@@ -123,7 +128,7 @@
   이벤트도 없다.
 
 - Linux 소스 감시를 컴파일한다. `inotify` 감시 module이 더 이상 `notify` crate를
-  가리지 않으므로 `ssr-server`가 다시 Linux에서 컴파일된다.
+  가리지 않으므로 `polyspec-ssr-server`가 다시 Linux에서 컴파일된다.
 
 - `Development::start`가 반환된 뒤의 모든 소스 변경을 관측한다. macOS에서 소스
   감시는 제외 경로를 건너뛰는 walk로 감시하는 디렉터리와 일반 file을 `kqueue(2)`에
@@ -323,16 +328,16 @@
   dragonbox_ecma 0.1.12의 LLVM 예외가 적용된 Apache-2.0을 허용한다.
 - Rust API로 React TSX 서버·클라이언트 번들, CSS import와 해시 자산 출력을 검증한다.
   패키지 CSS 해석과 URL 치환에는 명시적인 소스·자산 처리가 필요하다.
-- `ssr-core`에 페이지 JSON 계약과 렌더 결과를 정의한다. ordered-json이 객체 순서와 숫자 토큰을
+- `polyspec-ssr-core`에 페이지 JSON 계약과 렌더 결과를 정의한다. ordered-json이 객체 순서와 숫자 토큰을
   유지하고, 잘못된 필드와 입력은 오류를 반환한다.
 - JSON 패키지를 로컬 소스 체크아웃에서 사용하므로 게시하지 않는 로컬 패키지를 라이선스
   검사에서 제외한다. 레지스트리 의존성에는 라이선스 정책을 계속 적용한다.
 - 마지막 값만 유지하면 요청 입력이 제거되므로 페이지 JSON의 모든 깊이에서 해석된 객체 키의
   반복을 거부한다.
-- `ssr-build`에서 React TSX 서버·클라이언트 번들, CSS, 해시 자산을 빌드한다. 빌드는 전체 파일과
+- `polyspec-ssr-build`에서 React TSX 서버·클라이언트 번들, CSS, 해시 자산을 빌드한다. 빌드는 전체 파일과
   ordered-json 매니페스트를 반환한다. 청크 기준 상대 URL은 페이지 문서에서 파일을 식별하지 못하므로
   자산 URL 훅이 두 번들에 공개 절대 URL을 제공한다.
-- 제한된 `ssr-runtime` 워커 풀에서 서버 번들을 실행한다. 워커마다 isolate를 소유하고,
+- 제한된 `polyspec-ssr-runtime` 워커 풀에서 서버 번들을 실행한다. 워커마다 isolate를 소유하고,
   요청마다 전역 상태를 초기화하며, 제한 시간에 스크립트를 종료하고, console 출력과
   운영체제 난수를 제공한다. 출력을 조용히 누락하거나 변경하지 않기 위해 잘못된 결과와 사용할 수 없는
   Web API는 명시적 오류를 반환한다.

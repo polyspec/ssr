@@ -1,12 +1,12 @@
 [package]
-name = "ssr-engine-verification"
+name = "polyspec-ssr-engine-verification"
 version = "0.0.1"
 edition = "2024"
 publish = false
 
 [dependencies]
-ssr-core = { path = "../../crates/ssr-core", version = "=0.0.1" }
-ssr-runtime = { path = "../../crates/ssr-runtime", version = "=0.0.1" }
+polyspec-ssr-core = { path = "../../crates/polyspec-ssr-core", version = "=0.0.1" }
+polyspec-ssr-runtime = { path = "../../crates/polyspec-ssr-runtime", version = "=0.0.1" }
 
 [workspace]
 

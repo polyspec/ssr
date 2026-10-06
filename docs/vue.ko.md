@@ -2,8 +2,8 @@
 
 # Vue 어댑터
 
-`ssr-adapter-vue`는 절대 경로의 JavaScript 모듈에서 기본값으로 export한 Vue 컴포넌트 하나에 대한 서버·
-클라이언트 진입점을 만든다. `ssr-build`는 생성한 진입점을 build root(`BuildConfig::root`) 아래의 파일로
+`polyspec-ssr-adapter-vue`는 절대 경로의 JavaScript 모듈에서 기본값으로 export한 Vue 컴포넌트 하나에 대한 서버·
+클라이언트 진입점을 만든다. `polyspec-ssr-build`는 생성한 진입점을 build root(`BuildConfig::root`) 아래의 파일로
 받는다. 서버 번들 바이트로 `Pool`을 만들고, 빌드 매니페스트의 공개 클라이언트·스타일 URL로
 `VueAdapter`를 만든다. Fixture는 Vue 3.5.43을 고정한다. 생성한 서버 진입점은 `createSSRApp`을
 사용하고 `vue/server-renderer`의 `renderToString`을 기다린다. 런타임은 V8 microtask를 완료하고

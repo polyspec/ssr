@@ -1,5 +1,5 @@
-use ssr_core::Page;
-use ssr_runtime::{Pool, PoolOptions, ServerBundle};
+use polyspec_ssr_core::Page;
+use polyspec_ssr_runtime::{Pool, PoolOptions, ServerBundle};
 use std::sync::{Arc, Barrier};
 use std::time::Duration;
 

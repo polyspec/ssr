@@ -1,4 +1,4 @@
-"""Build, lint and test ``ssr-server`` natively on AArch64 Linux in this checkout's container stack.
+"""Build, lint and test ``polyspec-ssr-server`` natively on AArch64 Linux in this checkout's container stack.
 
 The stack is the per-checkout engine stack (``tools/prepare_engine_compose.py``): a container
 built from ``verification/engine/linux/Dockerfile`` with its Linux gcc toolchain, Rust and
@@ -9,7 +9,7 @@ the stack at the same time. Every step prints its command, its output as it arri
 result with the elapsed time; no step has a time limit. The first failing step ends the steps, and
 once the stack was started it is stopped after the steps, also after a failure.
 
-The test targets of ``ssr-server`` that write generated entries into the checkout's build-probe
+The test targets of ``polyspec-ssr-server`` that write generated entries into the checkout's build-probe
 fixture cannot write to the read-only mount; the target runs the unit tests and the
 ``development`` and ``process`` targets, which cover the Linux source watch and process code.
 
@@ -41,10 +41,10 @@ def steps(root=ROOT):
         ["container", "exec", "-w", "/src", container, "python3", "/src/tools/verify_engine_mounts.py"],
         ["container", "exec", "-w", "/src", "-e", "CARGO_NET_OFFLINE=false", container, "cargo", "fetch",
          "--locked"],
-        [*offline, "cargo", "clippy", "--locked", "-p", "ssr-server", "--all-targets", "--", "-D", "warnings"],
-        [*offline, "cargo", "build", "--locked", "-p", "ssr-server", "--example", "development_process",
+        [*offline, "cargo", "clippy", "--locked", "-p", "polyspec-ssr-server", "--all-targets", "--", "-D", "warnings"],
+        [*offline, "cargo", "build", "--locked", "-p", "polyspec-ssr-server", "--example", "development_process",
          "--example", "socket_process"],
-        [*offline, "cargo", "nextest", "run", "--locked", "-p", "ssr-server", "--lib", "--test", "development",
+        [*offline, "cargo", "nextest", "run", "--locked", "-p", "polyspec-ssr-server", "--lib", "--test", "development",
          "--test", "process", "--no-tests", "fail"],
     ]
 

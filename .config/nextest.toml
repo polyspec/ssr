@@ -18,8 +18,8 @@ slow-timeout = { period = "60s", terminate-after = 30 }
 success-output = "final"
 failure-output = "immediate-final"
 
-# The ssr-server tests run the development_process and socket_process examples. Cargo builds
-# examples only when no target is selected, so before any test of ssr-server this script builds
+# The polyspec-ssr-server tests run the development_process and socket_process examples. Cargo builds
+# examples only when no target is selected, so before any test of polyspec-ssr-server this script builds
 # both and names them in SSR_DEVELOPMENT_PROCESS and SSR_SOCKET_PROCESS (tools/build_programs.py).
 # The build reports itself every 60 s and has no time limit.
 [scripts.setup.build-programs]
@@ -27,7 +27,7 @@ command = ["python3", "-m", "tools.build_programs"]
 slow-timeout = { period = "60s" }
 
 [[profile.default.scripts]]
-filter = 'package(ssr-server)'
+filter = 'package(polyspec-ssr-server)'
 setup = "build-programs"
 
 # Every test builds with the packages of tools/build-probe/tests/fixtures. Before the tests, this
@@ -36,11 +36,11 @@ setup = "build-programs"
 # test copies the sources into a temporary root of its own. The install has no time limit. The
 # filter names exactly the test binaries that read the installation, which tools/check.py checks
 # (filter_errors of tools/install_packages.py), so tests that need no packages, such as the
-# ssr-server targets of make check-linux, run without npm.
+# polyspec-ssr-server targets of make check-linux, run without npm.
 [scripts.setup.install-packages]
 command = ["python3", "-m", "tools.install_packages"]
 slow-timeout = { period = "60s" }
 
 [[profile.default.scripts]]
-filter = 'binary_id(=ssr-adapter-react::form_rows) | binary_id(=ssr-adapter-react::heap) | binary_id(=ssr-adapter-react::react) | binary_id(=ssr-adapter-react::recovery) | binary_id(=ssr-adapter-svelte::svelte) | binary_id(=ssr-adapter-vanilla::vanilla) | binary_id(=ssr-adapter-vue::vue) | binary_id(=ssr-build) | binary_id(=ssr-build::build) | binary_id(=ssr-build::files) | binary_id(=ssr-build::process) | binary_id(=ssr-build::public) | binary_id(=ssr-build::svelte) | binary_id(=ssr-runtime) | binary_id(=ssr-runtime::runtime) | binary_id(=ssr-runtime::snapshot_process) | binary_id(=ssr-server::cancellation) | binary_id(=ssr-server::react_late_reader) | binary_id(=ssr-server::react_stream) | binary_id(=ssr-server::render) | binary_id(=ssr-server::svelte)'
+filter = 'binary_id(=polyspec-ssr-adapter-react::form_rows) | binary_id(=polyspec-ssr-adapter-react::heap) | binary_id(=polyspec-ssr-adapter-react::react) | binary_id(=polyspec-ssr-adapter-react::recovery) | binary_id(=polyspec-ssr-adapter-svelte::svelte) | binary_id(=polyspec-ssr-adapter-vanilla::vanilla) | binary_id(=polyspec-ssr-adapter-vue::vue) | binary_id(=polyspec-ssr-build) | binary_id(=polyspec-ssr-build::build) | binary_id(=polyspec-ssr-build::files) | binary_id(=polyspec-ssr-build::process) | binary_id(=polyspec-ssr-build::public) | binary_id(=polyspec-ssr-build::svelte) | binary_id(=polyspec-ssr-runtime) | binary_id(=polyspec-ssr-runtime::runtime) | binary_id(=polyspec-ssr-runtime::snapshot_process) | binary_id(=polyspec-ssr-server::cancellation) | binary_id(=polyspec-ssr-server::react_late_reader) | binary_id(=polyspec-ssr-server::react_stream) | binary_id(=polyspec-ssr-server::render) | binary_id(=polyspec-ssr-server::svelte)'
 setup = "install-packages"

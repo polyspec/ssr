@@ -26,7 +26,7 @@ def executable(messages):
 def main():
     started = time.monotonic()
     print("RUN build render benchmark", flush=True)
-    command = ["cargo", "build", "--offline", "--locked", "-p", "ssr-runtime", "--example", "bench", "--features",
+    command = ["cargo", "build", "--offline", "--locked", "-p", "polyspec-ssr-runtime", "--example", "bench", "--features",
                "bench", "--verbose", "--message-format", "json-render-diagnostics"]
     print(f"COMMAND {' '.join(command)}", flush=True)
     build = subprocess.run(command, stdout=subprocess.PIPE, text=True, check=False)

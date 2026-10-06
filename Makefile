@@ -73,7 +73,7 @@ check-fmt:
 	cargo fmt --all -- --check
 
 check-clippy:
-	cargo clippy --workspace --all-targets --features ssr-runtime/bench --locked -- -D warnings
+	cargo clippy --workspace --all-targets --features polyspec-ssr-runtime/bench --locked -- -D warnings
 
 # The checks of make check judge the tree only: bans, licenses and sources. Security advisories
 # come from a database that changes over time, so make review-advisories reviews them separately.
@@ -91,7 +91,7 @@ review-advisories:
 check-engine-deps: verify-engine-deps
 
 check-examples:
-	cargo build -p ssr-server --example development_process --example socket_process --locked
+	cargo build -p polyspec-ssr-server --example development_process --example socket_process --locked
 
 check-nextest:
 	cargo nextest run --workspace --locked --no-tests fail
@@ -103,7 +103,7 @@ check-linux:
 	python3 -m tools.check_linux
 
 check-bench:
-	cargo nextest run -p ssr-runtime --example bench --features bench --locked --no-tests fail
+	cargo nextest run -p polyspec-ssr-runtime --example bench --features bench --locked --no-tests fail
 
 bench:
 	python3 -m tools.tool_versions check

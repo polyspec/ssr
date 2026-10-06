@@ -4,6 +4,11 @@
 
 ## 0.0.1
 
+- The crates are `polyspec-ssr-core`, `polyspec-ssr-build`, `polyspec-ssr-runtime`,
+  `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`, `polyspec-ssr-adapter-svelte`,
+  `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-nonce` and `polyspec-ssr-server`, with the
+  libraries `polyspec_ssr_core` and so on.
+
 - Depend on ordered-json as the package `polyspec-ordered-json` of its Git
   repository, named without a commit; `Cargo.lock` records the resolved commit.
 
@@ -93,7 +98,7 @@
 
 - Run the example programs that the test build compiled: a nextest setup
   script builds the `development_process` and `socket_process` examples before
-  any test of `ssr-server` and names them in `SSR_DEVELOPMENT_PROCESS` and
+  any test of `polyspec-ssr-server` and names them in `SSR_DEVELOPMENT_PROCESS` and
   `SSR_SOCKET_PROCESS`, so a run of one test target no longer runs a program
   built from older sources.
 
@@ -112,9 +117,9 @@
   recorded tree does not hold it. `tools/check.py` reads only tracked files
   and fails for each untracked file that is not ignored.
 
-- Build, lint and test `ssr-server` natively on AArch64 Linux in the full suite:
+- Build, lint and test `polyspec-ssr-server` natively on AArch64 Linux in the full suite:
   `make check-linux` runs Clippy, the example builds and the unit, `development`
-  and `process` tests of `ssr-server` with the Linux gcc toolchain of the
+  and `process` tests of `polyspec-ssr-server` with the Linux gcc toolchain of the
   checkout's container stack, which mounts every source checkout read only.
 
 - Refuse a push while a checklist item is in progress: the tracked pre-push
@@ -132,7 +137,7 @@
   application once per event, and no event is dropped.
 
 - Compile the Linux source watch: the `inotify` watch module no longer shadows
-  the `notify` crate, so `ssr-server` compiles for Linux again.
+  the `notify` crate, so `polyspec-ssr-server` compiles for Linux again.
 
 - Observe every source change after `Development::start` returns: on macOS the
   source watch registers the watched directories and regular files with
@@ -358,16 +363,16 @@
   dragonbox_ecma 0.1.12 because the build depends on these exact crate versions.
 - Verify React TSX server and client bundles, CSS imports and hashed asset output with Rust APIs.
   Package CSS resolution and URL replacement require explicit source and asset handling.
-- Define the page JSON contract and render result in `ssr-core`. Ordered JSON preserves object
+- Define the page JSON contract and render result in `polyspec-ssr-core`. Ordered JSON preserves object
   order and number tokens; invalid fields and input return errors.
 - Exclude unpublished local packages from the license check because the JSON package is consumed
   from a local source checkout. Registry dependencies remain subject to the license policy.
 - Reject repeated decoded object keys in page JSON at every depth because retaining only the
   last value discards request input.
-- Build React TSX server and client bundles, CSS and hashed assets in `ssr-build`. The build
+- Build React TSX server and client bundles, CSS and hashed assets in `polyspec-ssr-build`. The build
   returns all files and an ordered-json manifest; the asset URL hook gives both bundles the public
   absolute URL because a chunk-relative URL does not identify the file from a page document.
-- Execute server bundles in a bounded `ssr-runtime` worker pool. Each worker owns an isolate,
+- Execute server bundles in a bounded `polyspec-ssr-runtime` worker pool. Each worker owns an isolate,
   resets global state for each request, terminates scripts at the timeout,
   and provides console output and operating system random values. Invalid results and unavailable
   Web APIs return explicit errors because output must not be omitted or changed silently.

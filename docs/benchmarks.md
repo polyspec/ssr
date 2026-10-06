@@ -7,7 +7,7 @@ a measurement beyond its recorded limit prints a `WARNING` line, and in GitHub A
 `::warning::` annotation. The build reports its Cargo command and compiler progress, and the run its elapsed time; both are
 long operations without a time limit.
 
-The benchmark builds `ssr-runtime` with its `bench` feature. With that feature,
+The benchmark builds `polyspec-ssr-runtime` with its `bench` feature. With that feature,
 `RenderMetrics::render_cpu` is the CPU time of the worker thread for one render
 (`CLOCK_THREAD_CPUTIME_ID`), from the start of the context reset to the serialized result.
 It does not contain the CPU time of other calls that run at the same time. The feature is

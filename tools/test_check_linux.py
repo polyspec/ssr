@@ -32,9 +32,9 @@ class CheckLinuxTest(TestCase):
             index("tools.verify_engine_status"),
             index("verify_engine_mounts.py"),
             index("cargo fetch --locked"),
-            index("cargo clippy --locked -p ssr-server --all-targets -- -D warnings"),
-            index("cargo build --locked -p ssr-server --example development_process --example socket_process"),
-            index("cargo nextest run --locked -p ssr-server --lib --test development --test process --no-tests fail"),
+            index("cargo clippy --locked -p polyspec-ssr-server --all-targets -- -D warnings"),
+            index("cargo build --locked -p polyspec-ssr-server --example development_process --example socket_process"),
+            index("cargo nextest run --locked -p polyspec-ssr-server --lib --test development --test process --no-tests fail"),
         ]
         self.assertEqual(order, sorted(order))
         for step in steps:

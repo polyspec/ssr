@@ -17,9 +17,9 @@ class OwningTestsTest(TestCase):
     def checkout(self, directory, owners):
         root = Path(directory)
         (root / "tools").mkdir()
-        (root / "crates/ssr-core/tests").mkdir(parents=True)
-        (root / "crates/ssr-core/Cargo.toml").write_text("")
-        (root / "crates/ssr-core/tests/page.rs").write_text("")
+        (root / "crates/polyspec-ssr-core/tests").mkdir(parents=True)
+        (root / "crates/polyspec-ssr-core/Cargo.toml").write_text("")
+        (root / "crates/polyspec-ssr-core/tests/page.rs").write_text("")
         (root / "tools/run.py").write_text("")
         (root / "tools/test_run.py").write_text("")
         (root / "Makefile").write_text("check-deny:\n\tcargo deny check\n")
@@ -33,13 +33,13 @@ class OwningTestsTest(TestCase):
         with TemporaryDirectory() as directory:
             root, declaration = self.checkout(directory, owners)
             self.assertEqual(owning_tests.check(root, declaration), [
-                "crates/ssr-core/Cargo.toml: no owning tests in tools/test-owners.json",
-                "crates/ssr-core/tests/page.rs: no owning tests in tools/test-owners.json"])
+                "crates/polyspec-ssr-core/Cargo.toml: no owning tests in tools/test-owners.json",
+                "crates/polyspec-ssr-core/tests/page.rs: no owning tests in tools/test-owners.json"])
 
     def test_commands_must_name_existing_tests_and_patterns_tracked_files(self):
         owners = [{"paths": ["*", "absent/*"], "tests": [
             "python3 -m unittest tools.test_run", "python3 -m unittest tools.test_absent",
-            "cargo nextest run -p ssr-core --test page", "cargo nextest run -p ssr-core --test absent",
+            "cargo nextest run -p polyspec-ssr-core --test page", "cargo nextest run -p polyspec-ssr-core --test absent",
             "cargo nextest run -p ssr-absent", "make check-deny", "make absent", "python3 tools/run.py",
             "sh -c true"]}]
         with TemporaryDirectory() as directory:
@@ -47,7 +47,7 @@ class OwningTestsTest(TestCase):
             self.assertEqual(owning_tests.check(root, declaration), [
                 "tools/test-owners.json: absent/* names no tracked file",
                 "tools/test-owners.json: python3 -m unittest tools.test_absent: no tracked test module tools.test_absent",
-                "tools/test-owners.json: cargo nextest run -p ssr-core --test absent: no test target absent in ssr-core",
+                "tools/test-owners.json: cargo nextest run -p polyspec-ssr-core --test absent: no test target absent in polyspec-ssr-core",
                 "tools/test-owners.json: cargo nextest run -p ssr-absent: no workspace package ssr-absent",
                 "tools/test-owners.json: make absent: no make target absent",
                 "tools/test-owners.json: sh -c true: unsupported test command sh -c true"])
@@ -66,7 +66,7 @@ class OwningTestsTest(TestCase):
         with TemporaryDirectory() as directory:
             root, _ = self.checkout(directory, owners)
             subprocess.run(["git", "rm", "-q", "tools/run.py"], cwd=root, check=True)
-            (root / "crates/ssr-core/tests/page.rs").unlink()
+            (root / "crates/polyspec-ssr-core/tests/page.rs").unlink()
             (root / "tools/test_run.py").write_text("changed\n")
             self.assertEqual(owning_tests.changed(root), ["tools/test_run.py"])
 

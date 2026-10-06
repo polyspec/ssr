@@ -42,7 +42,7 @@ class EngineArchiveTest(TestCase):
         with TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
             archive, binding = root / "archive.a.gz", root / "binding.rs"
-            hung = subprocess.TimeoutExpired(["ssr-engine-verification"], 30)
+            hung = subprocess.TimeoutExpired(["polyspec-ssr-engine-verification"], 30)
             error = io.StringIO()
             with patch.dict(os.environ, {"CARGO_TARGET_DIR": str(root / "target")}, clear=True), \
                     patch.object(verify_engine, "ROOT", root), \
@@ -54,7 +54,7 @@ class EngineArchiveTest(TestCase):
                                  side_effect=[SimpleNamespace(returncode=0), hung]) as run, \
                     redirect_stderr(error):
                 self.assertEqual(verify_engine.verify(TARGET), 1)
-            executable = root / "target" / TARGET / "debug/ssr-engine-verification"
+            executable = root / "target" / TARGET / "debug/polyspec-ssr-engine-verification"
             self.assertEqual(run.call_args.args[0], [str(executable)])
             self.assertIn(f"HUNG engine execution {TARGET}: {executable} did not exit within its 30 s limit",
                           error.getvalue())

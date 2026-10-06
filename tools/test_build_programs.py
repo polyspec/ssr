@@ -13,9 +13,9 @@ def artifact(name, kind, executable):
 
 
 class BuildProgramsTest(TestCase):
-    def test_the_command_builds_both_examples_of_ssr_server(self):
+    def test_the_command_builds_both_examples_of_polyspec_ssr_server(self):
         self.assertEqual(build_programs.command(), [
-            "cargo", "build", "--locked", "-p", "ssr-server", "--message-format", "json-render-diagnostics",
+            "cargo", "build", "--locked", "-p", "polyspec-ssr-server", "--message-format", "json-render-diagnostics",
             "--example", "development_process", "--example", "socket_process"])
 
     def test_executables_come_from_the_example_artifacts(self):

@@ -2,10 +2,10 @@
 
 # Vanilla 어댑터
 
-`ssr-adapter-vanilla`는 절대 경로의 서버 애플리케이션 모듈 하나에서 서버 진입점을 만들고 절대 경로의
+`polyspec-ssr-adapter-vanilla`는 절대 경로의 서버 애플리케이션 모듈 하나에서 서버 진입점을 만들고 절대 경로의
 클라이언트 애플리케이션 모듈 하나에서 클라이언트 진입점을 만든다. 서버 모듈은 HTML 문자열을 반환하고
 `renderState.output`을 설정하는 `render(props, renderState)`를 export한다. 클라이언트 모듈은
-`hydrate(root, props, renderState)`와 `mount(root, props, renderState)`를 export한다. `ssr-build`는
+`hydrate(root, props, renderState)`와 `mount(root, props, renderState)`를 export한다. `polyspec-ssr-build`는
 생성한 진입점을 build root(`BuildConfig::root`) 아래의 파일로 받는다. 서버 번들 바이트로 `Pool`을
 만들고 빌드 매니페스트의 공개 클라이언트·스타일 URL로 `VanillaAdapter`를 만든다.
 

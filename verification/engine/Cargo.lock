@@ -1053,6 +1053,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "polyspec-ssr-core"
+version = "0.0.1"
+dependencies = [
+ "polyspec-ordered-json",
+]
+
+[[package]]
+name = "polyspec-ssr-engine-verification"
+version = "0.0.1"
+dependencies = [
+ "polyspec-ssr-core",
+ "polyspec-ssr-runtime",
+]
+
+[[package]]
+name = "polyspec-ssr-runtime"
+version = "0.0.1"
+dependencies = [
+ "crossbeam-channel",
+ "deno_core",
+ "getrandom",
+ "polyspec-ordered-json",
+ "polyspec-ssr-core",
+ "sha2",
+ "tokio",
+ "tracing",
+ "v8",
+]
+
+[[package]]
 name = "potential_utf"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1327,36 +1357,6 @@ dependencies = [
  "serde_json",
  "unicode-id-start",
  "url",
-]
-
-[[package]]
-name = "ssr-core"
-version = "0.0.1"
-dependencies = [
- "polyspec-ordered-json",
-]
-
-[[package]]
-name = "ssr-engine-verification"
-version = "0.0.1"
-dependencies = [
- "ssr-core",
- "ssr-runtime",
-]
-
-[[package]]
-name = "ssr-runtime"
-version = "0.0.1"
-dependencies = [
- "crossbeam-channel",
- "deno_core",
- "getrandom",
- "polyspec-ordered-json",
- "sha2",
- "ssr-core",
- "tokio",
- "tracing",
- "v8",
 ]
 
 [[package]]

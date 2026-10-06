@@ -2,11 +2,11 @@
 
 # Vanilla adapter
 
-`ssr-adapter-vanilla` generates a server entry from one absolute application module path and a
+`polyspec-ssr-adapter-vanilla` generates a server entry from one absolute application module path and a
 client entry from one absolute application module path. The server module exports
 `render(props, renderState)`, which returns an HTML string and sets `renderState.output`. The
 client module exports `hydrate(root, props, renderState)` and `mount(root, props, renderState)`.
-`ssr-build` takes the generated entries as files under the build root (`BuildConfig::root`). The server bundle bytes create a `Pool`; the public client and style URLs from the
+`polyspec-ssr-build` takes the generated entries as files under the build root (`BuildConfig::root`). The server bundle bytes create a `Pool`; the public client and style URLs from the
 build manifest create `VanillaAdapter`.
 
 The server result contains a required empty `head` string. A nonempty `head` fails because this

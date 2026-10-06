@@ -3,97 +3,97 @@
     {
       "name": "react-ssr",
       "supported": true,
-      "test": { "package": "ssr-adapter-react", "binary": "react", "case": "generated_react_entries_build_and_execute" }
+      "test": { "package": "polyspec-ssr-adapter-react", "binary": "react", "case": "generated_react_entries_build_and_execute" }
     },
     {
       "name": "react-stream",
       "supported": true,
-      "test": { "package": "ssr-adapter-react", "binary": "react", "case": "suspense_failure_keeps_fallback_and_client_recovery_in_stream" }
+      "test": { "package": "polyspec-ssr-adapter-react", "binary": "react", "case": "suspense_failure_keeps_fallback_and_client_recovery_in_stream" }
     },
     {
       "name": "react-csr-hydration",
       "supported": true,
-      "test": { "package": "ssr-adapter-react", "binary": "react", "case": "browser_hydrates_ssr_and_renders_csr_and_static_shells" }
+      "test": { "package": "polyspec-ssr-adapter-react", "binary": "react", "case": "browser_hydrates_ssr_and_renders_csr_and_static_shells" }
     },
     {
       "name": "vue-ssr",
       "supported": true,
-      "test": { "package": "ssr-adapter-vue", "binary": "vue", "case": "browser_preserves_server_dom_and_renders_csr_and_shells" }
+      "test": { "package": "polyspec-ssr-adapter-vue", "binary": "vue", "case": "browser_preserves_server_dom_and_renders_csr_and_shells" }
     },
     {
       "name": "vue-csr-hydration",
       "supported": true,
-      "test": { "package": "ssr-adapter-vue", "binary": "vue", "case": "browser_preserves_server_dom_and_renders_csr_and_shells" }
+      "test": { "package": "polyspec-ssr-adapter-vue", "binary": "vue", "case": "browser_preserves_server_dom_and_renders_csr_and_shells" }
     },
     {
       "name": "svelte-ssr-head-css-nonce",
       "supported": true,
-      "test": { "package": "ssr-server", "binary": "svelte", "case": "svelte_http_preserves_head_css_and_request_nonce" }
+      "test": { "package": "polyspec-ssr-server", "binary": "svelte", "case": "svelte_http_preserves_head_css_and_request_nonce" }
     },
     {
       "name": "svelte-csr-hydration",
       "supported": true,
-      "test": { "package": "ssr-adapter-svelte", "binary": "svelte", "case": "browser_preserves_server_dom_and_renders_csr_and_shells" }
+      "test": { "package": "polyspec-ssr-adapter-svelte", "binary": "svelte", "case": "browser_preserves_server_dom_and_renders_csr_and_shells" }
     },
     {
       "name": "vanilla-ssr",
       "supported": true,
-      "test": { "package": "ssr-adapter-vanilla", "binary": "vanilla", "case": "browser_preserves_server_dom_and_renders_csr_and_shells" }
+      "test": { "package": "polyspec-ssr-adapter-vanilla", "binary": "vanilla", "case": "browser_preserves_server_dom_and_renders_csr_and_shells" }
     },
     {
       "name": "vanilla-csr-hydration",
       "supported": true,
-      "test": { "package": "ssr-adapter-vanilla", "binary": "vanilla", "case": "browser_preserves_server_dom_and_renders_csr_and_shells" }
+      "test": { "package": "polyspec-ssr-adapter-vanilla", "binary": "vanilla", "case": "browser_preserves_server_dom_and_renders_csr_and_shells" }
     },
     {
       "name": "public-assets",
       "supported": true,
-      "test": { "package": "ssr-build", "binary": "public", "case": "serving_uses_exact_public_url_bytes_and_content_type" }
+      "test": { "package": "polyspec-ssr-build", "binary": "public", "case": "serving_uses_exact_public_url_bytes_and_content_type" }
     },
     {
       "name": "source-maps",
       "supported": true,
-      "test": { "package": "ssr-server", "binary": "render", "case": "generated_source_map_maps_a_live_render_failure" }
+      "test": { "package": "polyspec-ssr-server", "binary": "render", "case": "generated_source_map_maps_a_live_render_failure" }
     },
     {
       "name": "react-form-rows",
       "supported": true,
-      "test": { "package": "ssr-adapter-react", "binary": "form_rows", "case": "repeated_form_rows_have_distinct_keys_across_two_server_renders" }
+      "test": { "package": "polyspec-ssr-adapter-react", "binary": "form_rows", "case": "repeated_form_rows_have_distinct_keys_across_two_server_renders" }
     },
     {
       "name": "stream-cancellation",
       "supported": true,
-      "test": { "package": "ssr-runtime", "binary": "cancellation", "case": "dropping_stream_cancels_running_script_and_preserves_next_request" }
+      "test": { "package": "polyspec-ssr-runtime", "binary": "cancellation", "case": "dropping_stream_cancels_running_script_and_preserves_next_request" }
     },
     {
       "name": "http-body-cancellation",
       "supported": true,
-      "test": { "package": "ssr-server", "binary": "cancellation", "case": "dropping_http_body_cancels_render_and_releases_worker" }
+      "test": { "package": "polyspec-ssr-server", "binary": "cancellation", "case": "dropping_http_body_cancels_render_and_releases_worker" }
     },
     {
       "name": "runtime-input-limits",
       "supported": true,
-      "test": { "package": "ssr-runtime", "binary": "cancellation", "case": "input_and_waiting_bytes_have_independent_limits" }
+      "test": { "package": "polyspec-ssr-runtime", "binary": "cancellation", "case": "input_and_waiting_bytes_have_independent_limits" }
     },
     {
       "name": "runtime-chunk-limits",
       "supported": true,
-      "test": { "package": "ssr-runtime", "binary": "cancellation", "case": "stream_chunk_limit_splits_output_without_truncation" }
+      "test": { "package": "polyspec-ssr-runtime", "binary": "cancellation", "case": "stream_chunk_limit_splits_output_without_truncation" }
     },
     {
       "name": "runtime-output-limits",
       "supported": true,
-      "test": { "package": "ssr-runtime", "binary": "cancellation", "case": "stream_output_limit_counts_state_and_all_chunks" }
+      "test": { "package": "polyspec-ssr-runtime", "binary": "cancellation", "case": "stream_output_limit_counts_state_and_all_chunks" }
     },
     {
       "name": "http-input-limits",
       "supported": true,
-      "test": { "package": "ssr-server", "binary": "render", "case": "request_size_is_checked_before_json_parsing_and_csr_rendering" }
+      "test": { "package": "polyspec-ssr-server", "binary": "render", "case": "request_size_is_checked_before_json_parsing_and_csr_rendering" }
     },
     {
       "name": "http-runtime-lifecycle",
       "supported": true,
-      "test": { "package": "ssr-server", "binary": "render", "case": "server_close_notifies_health_waiters_and_stops_ssr_admission" }
+      "test": { "package": "polyspec-ssr-server", "binary": "render", "case": "server_close_notifies_health_waiters_and_stops_ssr_admission" }
     }
   ]
 }

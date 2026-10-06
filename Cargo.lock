@@ -2594,6 +2594,126 @@ dependencies = [
 ]
 
 [[package]]
+name = "polyspec-ssr-adapter-react"
+version = "0.0.1"
+dependencies = [
+ "polyspec-ssr-build",
+ "polyspec-ssr-core",
+ "polyspec-ssr-runtime",
+ "tokio",
+ "wait-timeout",
+]
+
+[[package]]
+name = "polyspec-ssr-adapter-svelte"
+version = "0.0.1"
+dependencies = [
+ "polyspec-ssr-build",
+ "polyspec-ssr-core",
+ "polyspec-ssr-runtime",
+ "tokio",
+ "wait-timeout",
+]
+
+[[package]]
+name = "polyspec-ssr-adapter-vanilla"
+version = "0.0.1"
+dependencies = [
+ "polyspec-ssr-build",
+ "polyspec-ssr-core",
+ "polyspec-ssr-runtime",
+ "tokio",
+ "wait-timeout",
+]
+
+[[package]]
+name = "polyspec-ssr-adapter-vue"
+version = "0.0.1"
+dependencies = [
+ "polyspec-ssr-build",
+ "polyspec-ssr-core",
+ "polyspec-ssr-runtime",
+ "tokio",
+ "wait-timeout",
+]
+
+[[package]]
+name = "polyspec-ssr-build"
+version = "0.0.1"
+dependencies = [
+ "deno_core",
+ "getrandom 0.4.3",
+ "lightningcss",
+ "polyspec-ordered-json",
+ "polyspec-ssr-core",
+ "rolldown",
+ "rolldown_common",
+ "rolldown_plugin_utils",
+ "rolldown_sourcemap",
+ "sha2",
+ "sourcemap",
+ "tokio",
+]
+
+[[package]]
+name = "polyspec-ssr-core"
+version = "0.0.1"
+dependencies = [
+ "polyspec-ordered-json",
+]
+
+[[package]]
+name = "polyspec-ssr-nonce"
+version = "0.0.1"
+dependencies = [
+ "lol_html",
+]
+
+[[package]]
+name = "polyspec-ssr-runtime"
+version = "0.0.1"
+dependencies = [
+ "crossbeam-channel",
+ "deno_core",
+ "getrandom 0.4.3",
+ "polyspec-ordered-json",
+ "polyspec-ssr-build",
+ "polyspec-ssr-core",
+ "rustix 1.1.5",
+ "sha2",
+ "tokio",
+ "tracing",
+ "v8",
+ "wait-timeout",
+]
+
+[[package]]
+name = "polyspec-ssr-server"
+version = "0.0.1"
+dependencies = [
+ "getrandom 0.4.3",
+ "http",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "kqueue",
+ "notify",
+ "polyspec-ssr-adapter-react",
+ "polyspec-ssr-adapter-svelte",
+ "polyspec-ssr-adapter-vanilla",
+ "polyspec-ssr-build",
+ "polyspec-ssr-core",
+ "polyspec-ssr-nonce",
+ "polyspec-ssr-runtime",
+ "rustix 1.1.5",
+ "sha2",
+ "sourcemap",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "postcard"
 version = "1.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3529,126 +3649,6 @@ dependencies = [
  "serde_json",
  "unicode-id-start",
  "url",
-]
-
-[[package]]
-name = "ssr-adapter-react"
-version = "0.0.1"
-dependencies = [
- "ssr-build",
- "ssr-core",
- "ssr-runtime",
- "tokio",
- "wait-timeout",
-]
-
-[[package]]
-name = "ssr-adapter-svelte"
-version = "0.0.1"
-dependencies = [
- "ssr-build",
- "ssr-core",
- "ssr-runtime",
- "tokio",
- "wait-timeout",
-]
-
-[[package]]
-name = "ssr-adapter-vanilla"
-version = "0.0.1"
-dependencies = [
- "ssr-build",
- "ssr-core",
- "ssr-runtime",
- "tokio",
- "wait-timeout",
-]
-
-[[package]]
-name = "ssr-adapter-vue"
-version = "0.0.1"
-dependencies = [
- "ssr-build",
- "ssr-core",
- "ssr-runtime",
- "tokio",
- "wait-timeout",
-]
-
-[[package]]
-name = "ssr-build"
-version = "0.0.1"
-dependencies = [
- "deno_core",
- "getrandom 0.4.3",
- "lightningcss",
- "polyspec-ordered-json",
- "rolldown",
- "rolldown_common",
- "rolldown_plugin_utils",
- "rolldown_sourcemap",
- "sha2",
- "sourcemap",
- "ssr-core",
- "tokio",
-]
-
-[[package]]
-name = "ssr-core"
-version = "0.0.1"
-dependencies = [
- "polyspec-ordered-json",
-]
-
-[[package]]
-name = "ssr-nonce"
-version = "0.0.1"
-dependencies = [
- "lol_html",
-]
-
-[[package]]
-name = "ssr-runtime"
-version = "0.0.1"
-dependencies = [
- "crossbeam-channel",
- "deno_core",
- "getrandom 0.4.3",
- "polyspec-ordered-json",
- "rustix 1.1.5",
- "sha2",
- "ssr-build",
- "ssr-core",
- "tokio",
- "tracing",
- "v8",
- "wait-timeout",
-]
-
-[[package]]
-name = "ssr-server"
-version = "0.0.1"
-dependencies = [
- "getrandom 0.4.3",
- "http",
- "http-body-util",
- "hyper",
- "hyper-util",
- "kqueue",
- "notify",
- "rustix 1.1.5",
- "sha2",
- "sourcemap",
- "ssr-adapter-react",
- "ssr-adapter-svelte",
- "ssr-adapter-vanilla",
- "ssr-build",
- "ssr-core",
- "ssr-nonce",
- "ssr-runtime",
- "tokio",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]

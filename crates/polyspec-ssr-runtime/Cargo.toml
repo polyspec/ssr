@@ -1,0 +1,28 @@
+[package]
+name = "polyspec-ssr-runtime"
+version.workspace = true
+edition = "2024"
+license.workspace = true
+
+[dependencies]
+polyspec-ssr-core = { path = "../polyspec-ssr-core", version = "=0.0.1" }
+deno_core.workspace = true
+v8.workspace = true
+crossbeam-channel.workspace = true
+getrandom.workspace = true
+ordered-json.workspace = true
+tokio.workspace = true
+sha2.workspace = true
+tracing.workspace = true
+rustix = { workspace = true, optional = true }
+
+[features]
+bench = ["dep:rustix"]
+
+[dev-dependencies]
+wait-timeout.workspace = true
+polyspec-ssr-build = { path = "../polyspec-ssr-build", version = "=0.0.1" }
+
+[[example]]
+name = "bench"
+required-features = ["bench"]

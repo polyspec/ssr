@@ -32,8 +32,8 @@ retains that snapshot until process exit. Equal keys reuse the same bytes; anoth
 an explicit error even after all pools close. Production build commands and render servers use separate Rust processes.
 A new application version starts in a new renderer process.
 
-`ssr_core::process::build` protects the Svelte compiler from V8 creation through runtime disposal.
-`ssr_core::process::render` protects snapshot creation through creator disposal. Concurrent compiler
+`polyspec_ssr_core::process::build` protects the Svelte compiler from V8 creation through runtime disposal.
+`polyspec_ssr_core::process::render` protects snapshot creation through creator disposal. Concurrent compiler
 operations are allowed; a snapshot operation rejects concurrent engine entry. Once a snapshot
 succeeds, compiler entry fails before V8 construction. Ordinary Rust bundling remains available.
 A completed Svelte build may precede rendering in the same process. Failed snapshot initialization

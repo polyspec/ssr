@@ -48,8 +48,10 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   and branch. If removal is impossible, first add a numbered sub-item to the owning checklist with
   the cause and exact removal condition.
 - JSON documents of the public contract use ordered-json.
-- Develop one `0.0.1` library. The crates are `ssr-core`, `ssr-build`, `ssr-runtime`,
-  `ssr-adapter-react`, `ssr-adapter-vue`, `ssr-adapter-svelte`, `ssr-adapter-vanilla` and `ssr-server`.
+- Develop one `0.0.1` library. The crates are `polyspec-ssr-core`, `polyspec-ssr-build`,
+  `polyspec-ssr-runtime`, `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`,
+  `polyspec-ssr-adapter-svelte`, `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-nonce` and
+  `polyspec-ssr-server`, each in `crates/<crate>`, with the libraries `polyspec_ssr_core` and so on.
 - The library runs no Node process. Production build commands and render servers run in separate Rust processes.
   A renderer process selects one immutable bundle and snapshot key for its lifetime. New bundles
   use new renderer processes; request concurrency and services share the selected full application bundle.
@@ -171,8 +173,8 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 3. Choose the simplest complete implementation. No compatibility layers, fallbacks, data
    conversion or abstractions for unspecified requirements. Invalid input is an error, never a
    plausible default.
-4. `ssr-core` depends on no other crate of this repository; adapters depend only on `ssr-core` and
-   `ssr-runtime`.
+4. `polyspec-ssr-core` depends on no other crate of this repository; adapters depend only on
+   `polyspec-ssr-core` and `polyspec-ssr-runtime`.
 5. Dependencies are pinned to exact versions in the workspace manifest and verified against
    official release information. `Cargo.lock` is committed.
 6. A missing test environment is a failure, never a skip. Each test has its own timeout and reports

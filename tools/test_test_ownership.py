@@ -25,36 +25,36 @@ class TestOwnershipTest(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         (self.root / "Cargo.toml").write_text(
-            '[workspace]\nmembers = ["crates/ssr-core", "crates/ssr-runtime"]\n'
+            '[workspace]\nmembers = ["crates/polyspec-ssr-core", "crates/polyspec-ssr-runtime"]\n'
         )
-        for crate in ("ssr-core", "ssr-runtime"):
+        for crate in ("polyspec-ssr-core", "polyspec-ssr-runtime"):
             folder = self.root / "crates" / crate
             (folder / "tests").mkdir(parents=True)
             (folder / "src").mkdir()
             (folder / "src/lib.rs").write_text(
-                "pub struct Page;\n" if crate == "ssr-core" else "use ssr_core::Page;\n"
+                "pub struct Page;\n" if crate == "polyspec-ssr-core" else "use polyspec_ssr_core::Page;\n"
             )
             manifest = f'[package]\nname = "{crate}"\nversion = "0.0.1"\nedition = "2024"\n'
-            if crate == "ssr-runtime":
-                manifest += '[dependencies]\nssr-core = { path = "../ssr-core" }\n'
+            if crate == "polyspec-ssr-runtime":
+                manifest += '[dependencies]\npolyspec-ssr-core = { path = "../polyspec-ssr-core" }\n'
             (folder / "Cargo.toml").write_text(manifest)
-        (self.root / "crates/ssr-core/tests/page.rs").write_text(
+        (self.root / "crates/polyspec-ssr-core/tests/page.rs").write_text(
             '#[test]\nfn base() { assert_eq!(1, 1); }\n'
         )
-        (self.root / "crates/ssr-runtime/tests/use_page.rs").write_text(
+        (self.root / "crates/polyspec-ssr-runtime/tests/use_page.rs").write_text(
             '#[test]\nfn uses_page() { assert_eq!(1, 1); }\n'
         )
         self.declaration = {"behaviors": [{
             "id": "page",
-            "owner": {"crate": "ssr-core", "target": "page", "test": "base"},
+            "owner": {"crate": "polyspec-ssr-core", "target": "page", "test": "base"},
             "exports": ["Page"],
-            "consumers": [{"crate": "ssr-runtime", "target": "use_page", "test": "uses_page"}],
+            "consumers": [{"crate": "polyspec-ssr-runtime", "target": "use_page", "test": "uses_page"}],
         }]}
 
     def test_valid_declaration_names_executable_cases(self):
         cases = test_ownership.validate(self.root, self.declaration)
         self.assertEqual([(case.crate, case.test) for case in cases],
-                         [("ssr-core", "base"), ("ssr-runtime", "uses_page")])
+                         [("polyspec-ssr-core", "base"), ("polyspec-ssr-runtime", "uses_page")])
 
     def test_every_declaration_error_is_reported(self):
         declaration = copy.deepcopy(self.declaration)
@@ -63,21 +63,21 @@ class TestOwnershipTest(unittest.TestCase):
         with self.assertRaises(test_ownership.OwnershipError) as raised:
             test_ownership.validate(self.root, declaration)
         message = str(raised.exception)
-        self.assertIn("missing or repeated test ssr-runtime::use_page absent", message)
-        self.assertIn("owner does not export ssr-core::Missing", message)
+        self.assertIn("missing or repeated test polyspec-ssr-runtime::use_page absent", message)
+        self.assertIn("owner does not export polyspec-ssr-core::Missing", message)
 
     def test_a_dependency_without_a_declared_behavior_is_rejected(self):
         manifest = self.root / "Cargo.toml"
         manifest.write_text(manifest.read_text().replace(
-            '"crates/ssr-runtime"]', '"crates/ssr-runtime", "crates/ssr-server"]'))
-        folder = self.root / "crates/ssr-server"
+            '"crates/polyspec-ssr-runtime"]', '"crates/polyspec-ssr-runtime", "crates/polyspec-ssr-server"]'))
+        folder = self.root / "crates/polyspec-ssr-server"
         (folder / "src").mkdir(parents=True)
         (folder / "Cargo.toml").write_text(
-            '[package]\nname="ssr-server"\nversion="0.0.1"\nedition="2024"\n'
-            '[dependencies]\nssr-runtime={path="../ssr-runtime"}\n')
+            '[package]\nname="polyspec-ssr-server"\nversion="0.0.1"\nedition="2024"\n'
+            '[dependencies]\npolyspec-ssr-runtime={path="../polyspec-ssr-runtime"}\n')
         (folder / "src/lib.rs").write_text("")
         with self.assertRaisesRegex(test_ownership.OwnershipError,
-                                    r"ssr-runtime is a dependency of \['ssr-server'\] but owns no declared behavior"):
+                                    r"polyspec-ssr-runtime is a dependency of \['polyspec-ssr-server'\] but owns no declared behavior"):
             test_ownership.validate(self.root, self.declaration)
 
     def test_missing_consumer_is_rejected(self):
@@ -89,36 +89,36 @@ class TestOwnershipTest(unittest.TestCase):
     def test_different_behavior_does_not_require_unrelated_consumer_test(self):
         manifest = self.root / "Cargo.toml"
         manifest.write_text(manifest.read_text().replace(
-            '"crates/ssr-runtime"]', '"crates/ssr-runtime", "crates/ssr-build"]'
+            '"crates/polyspec-ssr-runtime"]', '"crates/polyspec-ssr-runtime", "crates/polyspec-ssr-build"]'
         ))
-        folder = self.root / "crates/ssr-build"
+        folder = self.root / "crates/polyspec-ssr-build"
         (folder / "src").mkdir(parents=True)
         (folder / "tests").mkdir()
         (folder / "Cargo.toml").write_text(
-            '[package]\nname="ssr-build"\nversion="0.0.1"\nedition="2024"\n'
-            '[dependencies]\nssr-core={path="../ssr-core"}\n'
+            '[package]\nname="polyspec-ssr-build"\nversion="0.0.1"\nedition="2024"\n'
+            '[dependencies]\npolyspec-ssr-core={path="../polyspec-ssr-core"}\n'
         )
-        (folder / "src/lib.rs").write_text("use ssr_core::process;\n")
+        (folder / "src/lib.rs").write_text("use polyspec_ssr_core::process;\n")
         (folder / "tests/process.rs").write_text(
             '#[test]\nfn uses_process() { assert_eq!(1, 1); }\n'
         )
-        (self.root / "crates/ssr-core/src/lib.rs").write_text("pub struct Page;\npub mod process {}\n")
-        (self.root / "crates/ssr-runtime/src/lib.rs").write_text("use ssr_core::Page;\n")
-        (self.root / "crates/ssr-core/tests/process.rs").write_text(
+        (self.root / "crates/polyspec-ssr-core/src/lib.rs").write_text("pub struct Page;\npub mod process {}\n")
+        (self.root / "crates/polyspec-ssr-runtime/src/lib.rs").write_text("use polyspec_ssr_core::Page;\n")
+        (self.root / "crates/polyspec-ssr-core/tests/process.rs").write_text(
             '#[test]\nfn process_base() { assert_eq!(1, 1); }\n'
         )
         declaration = copy.deepcopy(self.declaration)
         declaration["behaviors"].append({
             "id": "process",
-            "owner": {"crate": "ssr-core", "target": "process", "test": "process_base"},
+            "owner": {"crate": "polyspec-ssr-core", "target": "process", "test": "process_base"},
             "exports": ["process"],
-            "consumers": [{"crate": "ssr-build", "target": "process", "test": "uses_process"}],
+            "consumers": [{"crate": "polyspec-ssr-build", "target": "process", "test": "uses_process"}],
         })
         cases = test_ownership.validate(self.root, declaration)
         self.assertEqual(len(cases), 4)
 
     def test_declared_consumer_without_source_use_is_rejected(self):
-        (self.root / "crates/ssr-runtime/src/lib.rs").write_text("")
+        (self.root / "crates/polyspec-ssr-runtime/src/lib.rs").write_text("")
         with self.assertRaisesRegex(test_ownership.OwnershipError, "source consumers"):
             test_ownership.validate(self.root, self.declaration)
 
@@ -129,71 +129,71 @@ class TestOwnershipTest(unittest.TestCase):
             test_ownership.validate(self.root, declaration)
 
     def test_all_public_root_exports_must_be_mapped_once(self):
-        (self.root / "crates/ssr-core/src/lib.rs").write_text("pub struct Page;\npub const OTHER: u8 = 1;\n")
+        (self.root / "crates/polyspec-ssr-core/src/lib.rs").write_text("pub struct Page;\npub const OTHER: u8 = 1;\n")
         with self.assertRaisesRegex(test_ownership.OwnershipError, "differ from root exports"):
             test_ownership.validate(self.root, self.declaration)
 
     def test_grouped_and_renamed_imports_identify_behavior_consumer(self):
-        manifest = self.root / "crates/ssr-runtime/Cargo.toml"
+        manifest = self.root / "crates/polyspec-ssr-runtime/Cargo.toml"
         manifest.write_text(manifest.read_text().replace(
-            'ssr-core = { path = "../ssr-core" }', 'core_alias = { package = "ssr-core", path = "../ssr-core" }'
+            'polyspec-ssr-core = { path = "../polyspec-ssr-core" }', 'core_alias = { package = "polyspec-ssr-core", path = "../polyspec-ssr-core" }'
         ))
-        (self.root / "crates/ssr-runtime/src/lib.rs").write_text(
+        (self.root / "crates/polyspec-ssr-runtime/src/lib.rs").write_text(
             "use core_alias::{Page as AppPage};\nfn consume(_: AppPage) {}\n"
         )
         self.assertEqual(len(test_ownership.validate(self.root, self.declaration)), 2)
 
     def test_qualified_reference_identifies_consumer_but_literal_does_not(self):
-        (self.root / "crates/ssr-runtime/src/lib.rs").write_text(
-            'const PATH: &str = "ssr_core::Other";\nfn consume() { let _ = ssr_core::Page; }\n'
+        (self.root / "crates/polyspec-ssr-runtime/src/lib.rs").write_text(
+            'const PATH: &str = "polyspec_ssr_core::Other";\nfn consume() { let _ = polyspec_ssr_core::Page; }\n'
         )
         self.assertEqual(len(test_ownership.validate(self.root, self.declaration)), 2)
 
     def test_precise_capture_is_not_an_import_statement(self):
-        (self.root / "crates/ssr-runtime/src/lib.rs").write_text(
-            "fn consume() -> impl Iterator<Item = ssr_core::Page> + use<> { std::iter::empty() }\n"
+        (self.root / "crates/polyspec-ssr-runtime/src/lib.rs").write_text(
+            "fn consume() -> impl Iterator<Item = polyspec_ssr_core::Page> + use<> { std::iter::empty() }\n"
         )
         self.assertEqual(len(test_ownership.validate(self.root, self.declaration)), 2)
 
     def test_escaped_and_raw_strings_do_not_create_consumers(self):
-        (self.root / "crates/ssr-runtime/src/lib.rs").write_text(
-            'const ESCAPED: &str = "quote: \\\" use ssr_core::Page";\n'
-            'const RAW: &str = r##"use ssr_core::Page; ssr_core::Page"##;\n'
-            'const BYTE_RAW: &[u8] = br#"ssr_core::Page"#;\n'
+        (self.root / "crates/polyspec-ssr-runtime/src/lib.rs").write_text(
+            'const ESCAPED: &str = "quote: \\\" use polyspec_ssr_core::Page";\n'
+            'const RAW: &str = r##"use polyspec_ssr_core::Page; polyspec_ssr_core::Page"##;\n'
+            'const BYTE_RAW: &[u8] = br#"polyspec_ssr_core::Page"#;\n'
         )
         with self.assertRaisesRegex(test_ownership.OwnershipError, "source consumers"):
             test_ownership.validate(self.root, self.declaration)
 
     def test_nested_grouped_self_import_resolves_to_root_module(self):
         paths = list(test_ownership.import_paths([
-            "ssr_core", "::", "process", "::", "{", "self", ",", "build", "}"
+            "polyspec_ssr_core", "::", "process", "::", "{", "self", ",", "build", "}"
         ]))
-        self.assertEqual(paths, [("ssr_core", "process"), ("ssr_core", "process", "build")])
+        self.assertEqual(paths, [("polyspec_ssr_core", "process"), ("polyspec_ssr_core", "process", "build")])
 
     def test_public_use_alias_is_the_exported_root_name(self):
-        (self.root / "crates/ssr-core/src/lib.rs").write_text(
+        (self.root / "crates/polyspec-ssr-core/src/lib.rs").write_text(
             "mod internal { pub struct Original; }\npub use internal::Original as Page;\n"
         )
-        self.assertEqual(test_ownership.public_root_exports(self.root / "crates/ssr-core"), {"Page"})
+        self.assertEqual(test_ownership.public_root_exports(self.root / "crates/polyspec-ssr-core"), {"Page"})
 
     def test_comment_reference_does_not_create_consumer(self):
-        (self.root / "crates/ssr-runtime/src/lib.rs").write_text("// use ssr_core::Page;\n")
+        (self.root / "crates/polyspec-ssr-runtime/src/lib.rs").write_text("// use polyspec_ssr_core::Page;\n")
         with self.assertRaisesRegex(test_ownership.OwnershipError, "source consumers"):
             test_ownership.validate(self.root, self.declaration)
 
     def test_owner_wildcard_import_is_an_error(self):
-        (self.root / "crates/ssr-runtime/src/lib.rs").write_text("use ssr_core::*;\n")
+        (self.root / "crates/polyspec-ssr-runtime/src/lib.rs").write_text("use polyspec_ssr_core::*;\n")
         with self.assertRaisesRegex(test_ownership.OwnershipError, "wildcard"):
             test_ownership.validate(self.root, self.declaration)
 
     def test_owner_crate_root_alias_is_an_error(self):
-        (self.root / "crates/ssr-runtime/src/lib.rs").write_text("use ssr_core as core_api;\n")
+        (self.root / "crates/polyspec-ssr-runtime/src/lib.rs").write_text("use polyspec_ssr_core as core_api;\n")
         with self.assertRaisesRegex(test_ownership.OwnershipError, "alias"):
             test_ownership.validate(self.root, self.declaration)
 
     def test_misplaced_test_is_rejected(self):
         declaration = copy.deepcopy(self.declaration)
-        declaration["behaviors"][0]["owner"]["crate"] = "ssr-runtime"
+        declaration["behaviors"][0]["owner"]["crate"] = "polyspec-ssr-runtime"
         with self.assertRaises(test_ownership.OwnershipError):
             test_ownership.validate(self.root, declaration)
 
@@ -210,7 +210,7 @@ class TestOwnershipTest(unittest.TestCase):
             test_ownership.validate(self.root, declaration)
 
     def test_empty_and_comment_only_tests_are_rejected(self):
-        target = self.root / "crates/ssr-core/tests/page.rs"
+        target = self.root / "crates/polyspec-ssr-core/tests/page.rs"
         for body in ("", "// no assertion\n", "/* no assertion */"):
             target.write_text(f'#[test]\nfn base() {{ {body} }}\n')
             with self.assertRaisesRegex(test_ownership.OwnershipError, "empty"):

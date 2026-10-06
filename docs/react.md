@@ -2,9 +2,9 @@
 
 # React adapter
 
-`ssr-adapter-react` provides `framework_entry`, `server_entry` and `client_entry` source for one
-application component at an absolute path. `ssr-build` takes these sources as TSX files under the
-build root (`BuildConfig::root`) by absolute path, with `react_framework_entry: Some(...)`. The adapter depends on `ssr-core` and `ssr-runtime`. The
+`polyspec-ssr-adapter-react` provides `framework_entry`, `server_entry` and `client_entry` source for one
+application component at an absolute path. `polyspec-ssr-build` takes these sources as TSX files under the
+build root (`BuildConfig::root`) by absolute path, with `react_framework_entry: Some(...)`. The adapter depends on `polyspec-ssr-core` and `polyspec-ssr-runtime`. The
 private framework bundle and application server bundle execute in one V8 context and share one
 React instance. The application server bundle has no server chunks. The caller passes the
 framework path and bytes plus a `ServerBundle` containing the application path and bytes to

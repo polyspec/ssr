@@ -6,7 +6,7 @@
 GitHub Actions에서는 `::warning::` annotation도 출력한다. 빌드는 Cargo 명령과 컴파일러 진행을, 측정 실행은 경과 시간을 기록하며
 둘 다 시간 제한이 없는 긴 작업이다.
 
-벤치마크는 `ssr-runtime`을 `bench` feature로 빌드한다. 이 feature에서 `RenderMetrics::render_cpu`는
+벤치마크는 `polyspec-ssr-runtime`을 `bench` feature로 빌드한다. 이 feature에서 `RenderMetrics::render_cpu`는
 렌더 하나에 쓴 워커 thread의 CPU time(`CLOCK_THREAD_CPUTIME_ID`)이며, 컨텍스트 초기화 시작부터
 직렬화한 결과까지다. 같은 시간에 실행되는 다른 호출의 CPU time은 포함하지 않는다. 이 feature는
 벤치마크 전용이며 공개 API가 아니다.

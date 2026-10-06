@@ -40,8 +40,10 @@
   나머지 테스트 전용 변경은 폐기한 뒤 워크트리와 브랜치를 제거한다. 제거할 수 없다면 먼저 소유
   체크리스트에 번호가 붙은 하위 항목을 추가하고 원인과 정확한 제거 조건을 기록한다.
 - 공개 계약의 JSON 문서는 ordered-json을 사용한다.
-- `0.0.1` 라이브러리 하나를 개발한다. 크레이트는 `ssr-core`, `ssr-build`, `ssr-runtime`, `ssr-adapter-react`,
-  `ssr-adapter-vue`, `ssr-adapter-svelte`, `ssr-adapter-vanilla`, `ssr-server`다.
+- `0.0.1` 라이브러리 하나를 개발한다. 크레이트는 `polyspec-ssr-core`, `polyspec-ssr-build`,
+  `polyspec-ssr-runtime`, `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`,
+  `polyspec-ssr-adapter-svelte`, `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-nonce`,
+  `polyspec-ssr-server`이며 각각 `crates/<crate>`에 있고 라이브러리 이름은 `polyspec_ssr_core` 등이다.
 - 라이브러리는 Node 프로세스를 실행하지 않는다. 운영 빌드 명령과 렌더 서버는 별도 Rust 프로세스에서 실행한다.
   렌더 프로세스는 생존 기간 동안 불변 번들·스냅샷 키 하나를 선택한다. 새 번들은 새 렌더 프로세스를
   사용하며 동시 요청과 여러 서비스는 선택한 전체 앱 번들을 공유한다.
@@ -140,7 +142,8 @@
    존재만으로 완료 증거가 되지 않으며 두 테스트가 실제 실행되어야 한다.
 3. 가장 단순한 완전 구현을 선택한다. 호환 계층, 대체 경로, 데이터 변환, 명시되지 않은 요구를 위한 추상화를 만들지
    않는다. 잘못된 입력은 오류이며 그럴듯한 기본값으로 바꾸지 않는다.
-4. `ssr-core`는 이 저장소의 다른 크레이트에 의존하지 않는다. 어댑터는 `ssr-core`와 `ssr-runtime`에만 의존한다.
+4. `polyspec-ssr-core`는 이 저장소의 다른 크레이트에 의존하지 않는다. 어댑터는 `polyspec-ssr-core`와
+   `polyspec-ssr-runtime`에만 의존한다.
 5. 의존성은 워크스페이스 매니페스트에 정확한 버전으로 고정하고 공식 릴리스 정보로 확인한다. `Cargo.lock`을
    커밋한다.
 6. 테스트 환경이 없으면 실패이며 건너뛰지 않는다. 각 테스트는 자체 타임아웃을 가지고 시작, 통과, 실패, 건너뜀,

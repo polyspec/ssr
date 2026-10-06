@@ -1,14 +1,14 @@
 [workspace]
 members = [
-    "crates/ssr-core",
-    "crates/ssr-build",
-    "crates/ssr-runtime",
-    "crates/ssr-adapter-react",
-    "crates/ssr-adapter-vue",
-    "crates/ssr-adapter-svelte",
-    "crates/ssr-adapter-vanilla",
-    "crates/ssr-nonce",
-    "crates/ssr-server",
+    "crates/polyspec-ssr-core",
+    "crates/polyspec-ssr-build",
+    "crates/polyspec-ssr-runtime",
+    "crates/polyspec-ssr-adapter-react",
+    "crates/polyspec-ssr-adapter-vue",
+    "crates/polyspec-ssr-adapter-svelte",
+    "crates/polyspec-ssr-adapter-vanilla",
+    "crates/polyspec-ssr-nonce",
+    "crates/polyspec-ssr-server",
 ]
 resolver = "3"
 

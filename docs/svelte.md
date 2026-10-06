@@ -2,7 +2,7 @@
 
 # Svelte adapter
 
-`ssr-build` compiles each `.svelte` source for server and client inside the Rust process with the
+`polyspec-ssr-build` compiles each `.svelte` source for server and client inside the Rust process with the
 pinned Svelte 5.57.1 compiler. Packages are installed with `npm ci` before the build, which takes
 absolute server, client and CSS entry paths under the build root (`BuildConfig::root`). Compilation needs
 no Node process. Compiler warnings and errors fail the build. The compiler source map is passed to
@@ -12,7 +12,7 @@ equal component CSS. The build rejects missing compiler output and a mismatched 
 Svelte's AST and metadata are compiler tooling data. Its original CSS source map does not describe
 the transformed CSS and is not published; the JavaScript source map is consumed by the bundler.
 
-`ssr-adapter-svelte` generates entries for one component at an absolute `.svelte` source path. The
+`polyspec-ssr-adapter-svelte` generates entries for one component at an absolute `.svelte` source path. The
 server entry exports a `render` function that calls `svelte/server` with page props and
 `renderState`. The caller constructs `ServerBundle` with the build manifest's server entry path
 and bytes and every private server chunk path and bytes, then creates the pool. The render function

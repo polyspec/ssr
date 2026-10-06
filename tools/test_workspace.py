@@ -16,15 +16,15 @@ def commit_all(root):
                       ["-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-q", "-m", "init"]):
         subprocess.run(["git", *arguments], cwd=root, capture_output=True, text=True, check=True)
 CRATES = (
-    "ssr-core",
-    "ssr-build",
-    "ssr-runtime",
-    "ssr-adapter-react",
-    "ssr-adapter-vue",
-    "ssr-adapter-svelte",
-    "ssr-adapter-vanilla",
-    "ssr-nonce",
-    "ssr-server",
+    "polyspec-ssr-core",
+    "polyspec-ssr-build",
+    "polyspec-ssr-runtime",
+    "polyspec-ssr-adapter-react",
+    "polyspec-ssr-adapter-vue",
+    "polyspec-ssr-adapter-svelte",
+    "polyspec-ssr-adapter-vanilla",
+    "polyspec-ssr-nonce",
+    "polyspec-ssr-server",
 )
 
 
@@ -35,7 +35,7 @@ class WorkspaceTest(unittest.TestCase):
             self.assertTrue((ROOT / "crates" / crate / "Cargo.toml").is_file())
             self.assertIn(f'"crates/{crate}"', manifest)
             self.assertIn('edition = "2024"', (ROOT / "crates" / crate / "Cargo.toml").read_text())
-        self.assertEqual(manifest.count('"crates/ssr-'), len(CRATES))
+        self.assertEqual(manifest.count('"crates/polyspec-ssr-'), len(CRATES))
 
     def test_toolchain_and_targets(self):
         self.assertIn('channel = "1.98.1"', (ROOT / "rust-toolchain.toml").read_text())

@@ -21,7 +21,7 @@ def feature(name, case):
     return {
         "name": name,
         "supported": True,
-        "test": {"package": "ssr-adapter-react", "binary": "react", "case": case},
+        "test": {"package": "polyspec-ssr-adapter-react", "binary": "react", "case": case},
     }
 
 
@@ -29,7 +29,7 @@ class FeatureCheckTest(TestCase):
     def test_cargo_compilation_has_no_total_timeout(self):
         def runner(command, **kwargs):
             self.assertNotIn("timeout", kwargs)
-            return subprocess.CompletedProcess(command, 0, report("ssr-adapter-react::react$case"), "")
+            return subprocess.CompletedProcess(command, 0, report("polyspec-ssr-adapter-react::react$case"), "")
         self.run_manifest(manifest([feature("react-ssr", "case")]), runner)
 
     def test_make_check_runs_feature_cases(self):
@@ -49,7 +49,7 @@ class FeatureCheckTest(TestCase):
 
         def runner(command, *, cwd):
             commands.append((command, cwd))
-            return subprocess.CompletedProcess(command, 0, report(f"ssr-adapter-react::react${command[-1]}"), "")
+            return subprocess.CompletedProcess(command, 0, report(f"polyspec-ssr-adapter-react::react${command[-1]}"), "")
 
         self.run_manifest(manifest([feature("react-ssr", "first"), feature("react-csr", "second")]), runner)
         self.assertEqual(len(commands), 2)
@@ -58,7 +58,7 @@ class FeatureCheckTest(TestCase):
                 command,
                 ["cargo", "nextest", "run", "--locked", "--no-tests", "fail", "--color", "never",
                  "--message-format", "libtest-json", "--message-format-version", "0.1", "-p",
-                 "ssr-adapter-react", "--test", "react", "--", "--exact", case],
+                 "polyspec-ssr-adapter-react", "--test", "react", "--", "--exact", case],
             )
             self.assertEqual(cwd, check_features.ROOT)
         config = (check_features.ROOT / ".config/nextest.toml").read_text()
@@ -69,7 +69,7 @@ class FeatureCheckTest(TestCase):
             manifest([]),
             manifest([{"name": "react-ssr", "supported": True}]),
             manifest([{"name": "react-ssr", "supported": True,
-                       "test": {"package": "ssr-adapter-react", "binary": "react", "case": ""}}]),
+                       "test": {"package": "polyspec-ssr-adapter-react", "binary": "react", "case": ""}}]),
             manifest([feature("react-ssr", "same"), feature("react-ssr", "same")]),
             manifest([dict(feature("react-ssr", "case"), ignored="output")]),
         ]
@@ -106,9 +106,9 @@ class FeatureCheckTest(TestCase):
         self.assertEqual(executed, ["first", "second"])
 
     def test_zero_exit_without_the_declared_case_pass_is_rejected(self):
-        for output in ("0 passed, 1 skipped", "PASS [ 0.001s] ssr-adapter-react::react case",
-                       report("ssr-adapter-react::react$another"),
-                       report("ssr-adapter-react::react$case", "ignored")):
+        for output in ("0 passed, 1 skipped", "PASS [ 0.001s] polyspec-ssr-adapter-react::react case",
+                       report("polyspec-ssr-adapter-react::react$another"),
+                       report("polyspec-ssr-adapter-react::react$case", "ignored")):
             def runner(command, *, cwd):
                 return subprocess.CompletedProcess(command, 0, output, "")
             with self.subTest(output=output), self.assertRaises(RuntimeError):

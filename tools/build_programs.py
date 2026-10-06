@@ -1,10 +1,10 @@
-"""Build the programs that the ``ssr-server`` tests run and name them to the tests.
+"""Build the programs that the ``polyspec-ssr-server`` tests run and name them to the tests.
 
-The development and socket tests of ``ssr-server`` run the ``development_process`` and
+The development and socket tests of ``polyspec-ssr-server`` run the ``development_process`` and
 ``socket_process`` examples as child processes. Cargo builds examples only when no target is
 selected, so a run of one test target would run a program built from older sources. nextest runs
 this tool as the setup script ``build-programs`` (``.config/nextest.toml``) before any test of
-``ssr-server``: it builds both examples with Cargo, which rebuilds them when their sources or
+``polyspec-ssr-server``: it builds both examples with Cargo, which rebuilds them when their sources or
 dependencies changed, and writes ``SSR_DEVELOPMENT_PROCESS`` and ``SSR_SOCKET_PROCESS``, the
 executables that Cargo reports, to the file that ``NEXTEST_ENV`` names. The tests read the
 programs only from these variables. The build is a long operation: it has no time limit, and its
@@ -26,7 +26,7 @@ PROGRAMS = {"development_process": "SSR_DEVELOPMENT_PROCESS", "socket_process": 
 
 
 def command():
-    arguments = ["cargo", "build", "--locked", "-p", "ssr-server",
+    arguments = ["cargo", "build", "--locked", "-p", "polyspec-ssr-server",
                  "--message-format", "json-render-diagnostics"]
     for name in PROGRAMS:
         arguments += ["--example", name]

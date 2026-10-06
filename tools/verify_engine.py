@@ -37,7 +37,7 @@ def verify(target):
             raise ValueError(f"Cargo build exit={result.returncode}")
         print(f"PASS engine build {target} {time.monotonic() - started:.3f}s", flush=True)
         if native:
-            executable = target_dir / target / "debug/ssr-engine-verification"
+            executable = target_dir / target / "debug/polyspec-ssr-engine-verification"
             print(f"START engine execution {target} executable={executable}", flush=True)
             execution_start = time.monotonic()
             # The execution normally ends within a second; its limit only ends a hung execution.

@@ -2,10 +2,10 @@
 
 # React 어댑터
 
-`ssr-adapter-react`는 절대 경로의 애플리케이션 컴포넌트 하나를 위해 `framework_entry`,
-`server_entry`, `client_entry` 소스를 제공한다. `ssr-build`는 이를 build root(`BuildConfig::root`) 아래의
+`polyspec-ssr-adapter-react`는 절대 경로의 애플리케이션 컴포넌트 하나를 위해 `framework_entry`,
+`server_entry`, `client_entry` 소스를 제공한다. `polyspec-ssr-build`는 이를 build root(`BuildConfig::root`) 아래의
 TSX 파일로 `react_framework_entry: Some(...)`과 함께 절대 경로로
-받는다. 어댑터는 `ssr-core`와 `ssr-runtime`에만 의존한다. 비공개 프레임워크 번들과
+받는다. 어댑터는 `polyspec-ssr-core`와 `polyspec-ssr-runtime`에만 의존한다. 비공개 프레임워크 번들과
 애플리케이션 서버 번들은 한 V8 context에서 실행하며 같은 React 인스턴스를 사용한다.
 애플리케이션 서버 번들에는 서버 청크가 없다. 호출자는 프레임워크 경로·바이트와
 애플리케이션 경로·바이트를 담은 `ServerBundle`을 `Pool::new_react`에 전달한다.

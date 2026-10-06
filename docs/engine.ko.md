@@ -79,9 +79,9 @@ Cargo cache로 읽는다. 컨테이너는 소스 체크아웃을 수정할 수 �
 
 `make check`의 target인 `make check-linux`는 같은 stack에서 같은 lock 아래 `tools/check_linux.py`를
 실행한다. AArch64 Linux V8 입력을 검증하고, stack을 시작하고, mount를 확인하고, 잠긴 의존성을
-fetch한 뒤, 이미지의 Linux gcc toolchain으로 `cargo clippy --locked -p ssr-server --all-targets -- -D warnings`,
+fetch한 뒤, 이미지의 Linux gcc toolchain으로 `cargo clippy --locked -p polyspec-ssr-server --all-targets -- -D warnings`,
 `development_process`와 `socket_process` 예제 빌드,
-`cargo nextest run --locked -p ssr-server --lib --test development --test process`를 실행하고 stack을
+`cargo nextest run --locked -p polyspec-ssr-server --lib --test development --test process`를 실행하고 stack을
 멈춘다. 각 단계는 command, 출력, 결과를 경과 시간과 함께 시간 제한 없이 출력한다. 이 target들은 package
 설치본을 읽지 않으므로 npm이 필요한 nextest setup script `install-packages`는 container에서 실행되지 않는다.
 x86_64 Linux는 빌드하지 않는다. host는 AArch64 Linux container만 native로 실행한다.
@@ -94,7 +94,7 @@ x86_64 Linux는 빌드하지 않는다. host는 AArch64 Linux container만 nativ
 어느 번들도 다시 평가하지 않는다.
 
 컴파일러는 기본 V8 스냅샷을 사용하므로 isolate 생성·정리와 렌더 스냅샷 생성을
-`ssr_core::process`로 조율한다. 스냅샷 초기화 중이나 성공 뒤에는 컴파일러가 진입할 수 없다.
+`polyspec_ssr_core::process`로 조율한다. 스냅샷 초기화 중이나 성공 뒤에는 컴파일러가 진입할 수 없다.
 스냅샷 생성기는 초기화 성공과 실패 모두에서 소비한다. 고정된 V8 구현은 마지막 isolate를
 정리할 때 공유 읽기 전용 데이터를 제거한다. 실행 테스트는 초기화 실패, 후속 Svelte 컴파일,
 성공한 렌더 순서를 검증한다. 릴리스 빌드가 호환되지 않는 진입을 허용해도 공유 힙의 안전성을

@@ -21,7 +21,7 @@ continues to exclude every private file. A failed read never selects another dir
 
 ## Product build contract
 
-`ssr-build` accepts absolute paths to the application root, server JavaScript entry, client JavaScript entry
+`polyspec-ssr-build` accepts absolute paths to the application root, server JavaScript entry, client JavaScript entry
 and CSS entry, plus a local absolute URL path for public assets. The route may be `/` or contain
 segments of ASCII letters, digits, hyphens, underscores and periods; empty, `.` and `..` segments
 are invalid. The entries and CSS must remain
@@ -69,7 +69,7 @@ each URL, output byte sequence, SHA-256 digest and content type before publicati
 each public file under its URL path. Before writing, it rejects a different existing file or a
 nonregular target; equal files retain their existing file identity. A new file is written and
 synced under a temporary name in its destination directory, then linked to its final name without
-replacing an existing file. Unrelated files remain. The HTTP serving function in `ssr-server`
+replacing an existing file. Unrelated files remain. The HTTP serving function in `polyspec-ssr-server`
 accepts GET and HEAD for exact public URLs and returns the build bytes, content type, content
 length, digest ETag and immutable cache header. It returns 404 for other paths and 405 for other
 methods. Server bundles and server chunks are never public.

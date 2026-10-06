@@ -17,7 +17,7 @@ minor version 3.9로 고정하고, 검사는 실행 중인 patch release를 출�
 각 테스트를 30초 뒤 종료하고 시작 및 결과와 경과 시간을 출력한다. 테스트 도구가 없으면 명령은 실패한다.
 Python 도구 테스트는 `tools/run_tests.py`로 각자 자기 process group에서 30초 제한으로 실행한다. 제한을 넘은
 사례는 출력과 함께 보고하고 그 process group 전체를 죽이므로 사례가 시작한 process가 계속 실행되지 않는다.
-Rust 테스트는 assertion이 실패해도 guard로 임시 디렉터리를 지운다. `ssr-server`의 어떤 테스트보다 먼저
+Rust 테스트는 assertion이 실패해도 guard로 임시 디렉터리를 지운다. `polyspec-ssr-server`의 어떤 테스트보다 먼저
 nextest setup script `build-programs`(`tools/build_programs.py`, 고정된 nextest의 실험 기능)가 development와
 socket 테스트가 실행하는 `development_process`와 `socket_process` 예제를 빌드하고 `SSR_DEVELOPMENT_PROCESS`와
 `SSR_SOCKET_PROCESS`로 알린다. 테스트는 이 변수에서만 프로그램을 실행하므로 test target 하나의 실행이 이전
@@ -38,7 +38,7 @@ pid, process 시작 시각과 함께 거부된다. target 없는 make는 `make c
 `install-packages`(`tools/install_packages.py`)가 `tools/build-probe/tests/fixtures`의 package를 잠금 파일마다 한 번
 불변의 `var/packages/<package.json과 package-lock.json의 SHA-256>`에 설치해 이름 바꾸기 한 번으로 게시하고, 그것을
 `SSR_PACKAGES`로, 소스를 `SSR_FIXTURES`로 알린다. 각 테스트는 소스를 자기만의 새 임시 루트로 복사하고
-(`crates/ssr-build/tests/fixture/mod.rs`) 생성 entry를 거기에 쓰며, 설치본을 `BuildConfig::dependencies`로 build하고
+(`crates/polyspec-ssr-build/tests/fixture/mod.rs`) 생성 entry를 거기에 쓰며, 설치본을 `BuildConfig::dependencies`로 build하고
 끝날 때 루트를 지운다. browser script는 `playwright-core`를 `SSR_PACKAGES`에서 가져오고, browser 사례는 host의 browser가 아니라 이
 `playwright-core`가 고정한 chromium build를 같은 directory에 설치해 `SSR_BROWSER`로 알린 것으로 실행한다. script의 filter는 설치본을
 읽는 test binary를 정확히 적고, `tools/check.py`가 이를 검사한다.
