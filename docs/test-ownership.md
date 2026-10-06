@@ -43,4 +43,4 @@ make targets and tracked tools. `python3 -m tools.owning_tests check`, which `to
 runs, fails for a tracked file without owning tests, for a pattern that names no tracked file and
 for a command that names no existing test. `python3 -m tools.owning_tests select` prints the
 owning test commands of the files changed against `HEAD`, once each, and fails for a changed file
-without an owner; these are the Red and Green tests to run before a commit.
+without an owner; a removed file is not a changed file; these are the Red and Green tests to run before a commit.

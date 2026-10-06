@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- `python3 -m tools.owning_tests select`는 존재하는 바뀐 파일만 읽는다. 지운 파일은
+  바뀐 파일이 아니다.
+
 - full run의 도구를 실행하는 checkout의 `tools/tool-versions.json`으로 검사하므로,
   임시 checkout의 guard 사례는 더 이상 host의 실행 파일에 의존하지 않는다.
 

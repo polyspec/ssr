@@ -6,7 +6,8 @@ rule names Git path patterns (``fnmatch``, where ``*`` also matches ``/``) and t
 for a command that names a test that does not exist: a Python test module, a workspace package or
 test target, a make target or a tracked tool. ``select`` prints the owning test commands of the
 given paths, or of the files changed against ``HEAD``, staged, unstaged and untracked, once each in
-the order of the map; a changed file without an owner fails. ``tools/check.py`` runs ``check``
+the order of the map; a removed file is not a changed file, and a changed file without an owner
+fails. ``tools/check.py`` runs ``check``
 before each commit.
 
     python3 -m tools.owning_tests check
@@ -100,7 +101,7 @@ def check(root=ROOT, path=DECLARATION):
 
 
 def changed(root=ROOT):
-    files = git(root, "diff", "-z", "--name-only", "HEAD")
+    files = git(root, "diff", "-z", "--name-only", "--diff-filter=d", "HEAD")
     files += git(root, "ls-files", "-z", "--others", "--exclude-standard")
     return sorted(set(files))
 

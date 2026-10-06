@@ -61,5 +61,14 @@ class OwningTestsTest(TestCase):
             self.assertEqual(owning_tests.select(["tools/run.py", "tools/other.py", "docs/x.md"], path),
                              (["a", "b", "c"], ["docs/x.md"]))
 
+    def test_a_removed_file_is_not_a_changed_file(self):
+        owners = [{"paths": ["*"], "tests": ["python3 -m unittest tools.test_run"]}]
+        with TemporaryDirectory() as directory:
+            root, _ = self.checkout(directory, owners)
+            subprocess.run(["git", "rm", "-q", "tools/run.py"], cwd=root, check=True)
+            (root / "crates/ssr-core/tests/page.rs").unlink()
+            (root / "tools/test_run.py").write_text("changed\n")
+            self.assertEqual(owning_tests.changed(root), ["tools/test_run.py"])
+
     def test_every_tracked_file_of_the_repository_has_owning_tests(self):
         self.assertEqual(owning_tests.check(), [])

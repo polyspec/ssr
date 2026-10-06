@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- `python3 -m tools.owning_tests select` reads only the changed files that
+  exist; a removed file is not a changed file.
+
 - Check the tools of a full run against `tools/tool-versions.json` of the
   checkout that runs, so the guard cases of a temporary checkout no longer
   depend on the executables of the host.
