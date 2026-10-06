@@ -27,6 +27,8 @@ Acceptance: both [SSR fixture](../crates/ssr-core/tests/fixtures/ssr.json) and
 again without changing values or object order. Invalid cases return errors. A
 render result retains its HTML, head and output state.
 
-The ordered-json dependency is a local unpublished Cargo package. The dependency
+The ordered-json dependency is the package `polyspec-ordered-json` of the Git repository
+`github.com/polyspec/ordered-json`, which is not published to the Cargo registry. The workspace
+manifest names the repository alone, and `Cargo.lock` records the resolved commit. The dependency
 check excludes unpublished local packages from license decisions; registry
 dependencies remain subject to the allowed license list.

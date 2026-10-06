@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- ordered-json을 그 Git 저장소의 package `polyspec-ordered-json`으로 commit 없이
+  적는다. `Cargo.lock`이 정해진 commit을 기록한다.
+
 - `python3 -m tools.owning_tests select`는 존재하는 바뀐 파일만 읽는다. 지운 파일은
   바뀐 파일이 아니다.
 
@@ -21,7 +24,8 @@
   시작한 cargo도 멈춘다.
 
 - 공개되고 고정된 의존성 소스로만 build한다. v8 150.4.0은 crates.io에서 공식
-  archive와 함께, lightningcss와 ordered-json은 고정된 Git commit에서 오며, 추적되는
+  archive와 함께, lightningcss는 fork의 고정된 Git commit에서, ordered-json은 그 Git
+  저장소에서 오며, 추적되는
   어떤 파일에서든 home directory로 가는 절대 경로가 있으면 검사가 실패한다.
 
 - 심볼릭 링크 없는 절대 의존성 디렉터리를 요구한다. `BuildConfig::dependencies`는

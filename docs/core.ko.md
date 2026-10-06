@@ -24,6 +24,7 @@ core 의존성을 통해 페이지 계약을 사용할 수 있다.
 값과 객체 순서를 유지한다. 잘못된 사례는 오류를 반환한다. 렌더 결과는 HTML, head, 출력 상태를
 유지한다.
 
-ordered-json 의존성은 로컬에서 사용하며 Cargo 레지스트리에 게시하지 않는 패키지다.
+ordered-json 의존성은 Git 저장소 `github.com/polyspec/ordered-json`의 package `polyspec-ordered-json`이며
+Cargo 레지스트리에 게시하지 않는다. workspace manifest는 저장소만 적고, `Cargo.lock`이 정해진 commit을 기록한다.
 의존성 검사는 게시하지 않는 로컬 패키지를 라이선스 판정에서 제외한다. 레지스트리
 의존성에는 허용 라이선스 목록을 계속 적용한다.

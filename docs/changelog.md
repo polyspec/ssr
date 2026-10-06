@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Depend on ordered-json as the package `polyspec-ordered-json` of its Git
+  repository, named without a commit; `Cargo.lock` records the resolved commit.
+
 - `python3 -m tools.owning_tests select` reads only the changed files that
   exist; a removed file is not a changed file.
 
@@ -23,8 +26,8 @@
   `make check` also stops the cargo that a step's tool started.
 
 - Build from published and pinned dependency sources only: v8 150.4.0 from
-  crates.io with the official archive, lightningcss and ordered-json from pinned
-  Git commits, and a check that fails for an absolute path into a home directory
+  crates.io with the official archive, lightningcss from a pinned Git commit of
+  its fork, ordered-json from its Git repository, and a check that fails for an absolute path into a home directory
   in any tracked file.
 
 - Require an absolute dependency directory without symbolic links:

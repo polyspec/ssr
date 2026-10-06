@@ -497,7 +497,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 3.0.6",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -1836,16 +1836,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
-name = "ordered-json"
-version = "0.0.1"
-source = "git+https://github.com/polyspec/ordered-json?rev=cfe889bef5a261ab23a1acf2a04ed474ff0e20ea#cfe889bef5a261ab23a1acf2a04ed474ff0e20ea"
-dependencies = [
- "serde",
- "serde_ignored",
- "serde_json",
-]
-
-[[package]]
 name = "outref"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2591,6 +2581,16 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "polyspec-ordered-json"
+version = "0.0.1"
+source = "git+https://github.com/polyspec/ordered-json#544310bb474263982acdffb2525f2cf1c1205262"
+dependencies = [
+ "serde",
+ "serde_ignored",
+ "serde_json",
 ]
 
 [[package]]
@@ -3582,7 +3582,7 @@ dependencies = [
  "deno_core",
  "getrandom 0.4.3",
  "lightningcss",
- "ordered-json",
+ "polyspec-ordered-json",
  "rolldown",
  "rolldown_common",
  "rolldown_plugin_utils",
@@ -3597,7 +3597,7 @@ dependencies = [
 name = "ssr-core"
 version = "0.0.1"
 dependencies = [
- "ordered-json",
+ "polyspec-ordered-json",
 ]
 
 [[package]]
@@ -3614,7 +3614,7 @@ dependencies = [
  "crossbeam-channel",
  "deno_core",
  "getrandom 0.4.3",
- "ordered-json",
+ "polyspec-ordered-json",
  "rustix 1.1.5",
  "sha2",
  "ssr-build",
