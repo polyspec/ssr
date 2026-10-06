@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Lock ordered-json at the current commit of the `main` branch of its
+  repository in `Cargo.lock` and `verification/engine/Cargo.lock`.
+
 - The crates are `polyspec-ssr-core`, `polyspec-ssr-build`, `polyspec-ssr-runtime`,
   `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`, `polyspec-ssr-adapter-svelte`,
   `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-nonce` and `polyspec-ssr-server`, with the

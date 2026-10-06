@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- `Cargo.lock`과 `verification/engine/Cargo.lock`에서 ordered-json을 그 저장소
+  `main` branch의 현재 commit으로 잠근다.
+
 - crate는 `polyspec-ssr-core`, `polyspec-ssr-build`, `polyspec-ssr-runtime`,
   `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`, `polyspec-ssr-adapter-svelte`,
   `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-nonce`, `polyspec-ssr-server`이고 library 이름은
