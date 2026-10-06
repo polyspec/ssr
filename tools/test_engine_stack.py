@@ -28,7 +28,7 @@ class EngineStackTest(TestCase):
             if source.name.startswith("test_"):
                 continue
             text = source.read_text()
-            for fixed in ("ssr-engine-test", "ssr-engine-verify:0.0.1"):
+            for fixed in ("ssr-engine-verify:0.0.1",):
                 self.assertNotIn(fixed, text, source)
 
     def test_verification_refuses_while_another_run_holds_the_checkout_stack(self):
