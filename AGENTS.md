@@ -12,16 +12,30 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   push and names each item with its ID and title. Every make invocation sets `core.hooksPath` to
   `.githooks` when it differs; `make hooks` sets and checks it, and `tools/check.py` and the guard
   of `make check` fail while it is not set. The workflow `.github/workflows/push-gate.yml` runs
-  `python3 -m tools.push_gate commit` in the job `push-gate` on every push and pull request and
-  fails the same way, also for a push that did not run the hook. The same job runs the record
+  `python3 -m tools.push_gate commit` in the job `push-gate` on every push, pull request and merge
+  group and fails the same way, also for a push that did not run the hook. The same job runs the record
   checks of `tools/check.py` (`python3 tools/check.py records`: the records, the checklist markers
   and texts, the words, the document pairs and links), so a commit whose records fail never
   reaches `main`; CI runs every check of `tools/check.py` (`make ci-records`).
-- The GitHub ruleset `main`, declared in `.github/ruleset.json`, requires the check `push-gate` of
-  GitHub Actions on every commit that `main` receives, refuses a force-push and a deletion of `main`
-  and has no bypass actor, so GitHub refuses a direct push of a commit whose check has not passed,
-  from an administrator too. `make github-ruleset` creates or updates the ruleset of the declared
-  name, and `make github-ruleset-check` fails when the live ruleset differs from the declaration
+- Every change reaches `main` through a pull request and the merge queue; no command of this
+  repository pushes `main`. Publish a branch with the standard commands of GitHub, or with the
+  GitHub UI:
+
+  ```sh
+  git push origin HEAD:refs/heads/<branch>
+  gh pr create --base main --head <branch> --fill
+  gh pr merge <branch> --auto --rebase
+  ```
+
+  The GitHub ruleset `main`, declared in `.github/ruleset.json`, requires a pull request (no
+  approval), the merge queue with the merge method `REBASE`, a linear history and the checks
+  `push-gate`, `linux (ubuntu-24.04-arm)` and `linux (ubuntu-24.04)` of GitHub Actions, refuses a
+  force-push and a deletion of `main`, and has no bypass actor, so GitHub refuses a direct push to
+  `main`, from an administrator too. The merge queue rebases each queued pull request onto `main` as
+  a merge group, runs the required checks on that commit and moves `main` to it when they pass. The
+  rebase gives the merged commits new hashes, so `git pull --rebase` drops the local commits that the
+  queue merged. `make github-ruleset` creates or updates the ruleset and the declared repository
+  settings, and `make github-ruleset-check` fails when they differ from the declaration
   ([workspace](docs/workspace.md)).
 - Name branches `{type}/{shortname}-{checklist ID}` and worktrees
   `{project}-{shortname}-{checklist ID}`. After integrating a branch into `main`, verify its commits
@@ -124,8 +138,8 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   type is one of feat, fix, docs, style, refactor, test or chore.
 - During development run only the unit-level Red and Green tests that own the change. The full
   and end-to-end checks (the targets of `make check`, the Linux build and tests of
-  `make check-linux`, `make verify-build` and the ownership check) run in GitHub CI after a push
-  (`.github/workflows/ci.yml`); no rule requires a local run of them before a push, and the
+  `make check-linux`, `make verify-build` and the ownership check) run in GitHub CI on every pull request
+  and merge group (`.github/workflows/ci.yml`); no rule requires a local run of them before a push, and the
   pre-push hook only refuses a push with an item in progress. A local full run happens only on
   request, once, when every active checklist item is complete, never after each fix or item. Every test
   reports its own running, completion, success or failure with its elapsed time and has its own

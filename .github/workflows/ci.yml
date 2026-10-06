@@ -3,17 +3,21 @@
 # the first failure lines are uploaded, and the summary is the job summary, also after a failure.
 name: ci
 
+# Every pull request and every merge group of the merge queue: the ruleset of main requires the jobs of this
+# workflow, and the merge queue moves main to the merge group commit only after they passed on it, so the run of the
+# merge group is the evidence of the commit that main receives.
 on:
-  push:
   pull_request:
+  merge_group:
 
 permissions:
   contents: read
 
-# Runners are limited, so a new push to a ref cancels the run of the previous one.
+# Runners are limited, so a new push to a pull request cancels the run of its previous push. Each merge group has a
+# ref of its own (gh-readonly-queue/main/pr-<number>-<sha>), and its run is never cancelled.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   linux:

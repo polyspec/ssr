@@ -10,16 +10,27 @@
   `python3 -m tools.push_gate hook`을 실행하고, 이것은 그런 push를 거부하며 각 항목의 ID와 제목을 적는다.
   모든 make 실행은 `core.hooksPath`가 `.githooks`와 다르면 그것으로 설정하고, `make hooks`가 설정하고
   검사하며, 설정되지 않은 동안 `tools/check.py`와 `make check`의 guard가 실패한다. workflow
-  `.github/workflows/push-gate.yml`은 모든 push와 pull request에서 job `push-gate`로
+  `.github/workflows/push-gate.yml`은 모든 push, pull request, merge group에서 job `push-gate`로
   `python3 -m tools.push_gate commit`을 실행하고 같은 방식으로 실패하며, hook을 실행하지 않은 push에도 그렇다.
   같은 job이 `tools/check.py`의 기록 검사(`python3 tools/check.py records`: 기록, checklist 표시와 문장, 단어,
   문서 쌍과 link)를 실행하므로 기록 검사가 실패하는 commit은 `main`에 오르지 않는다. CI는 `tools/check.py`의 모든
   검사를 실행한다(`make ci-records`).
-- `.github/ruleset.json`에 선언된 GitHub ruleset `main`은 `main`이 받는 모든 commit에 GitHub Actions의 check
-  `push-gate`를 요구하고, `main`의 force-push와 삭제를 거부하며 bypass actor가 없으므로, GitHub는 check가 통과하지 않은 commit의 직접
-  push를 관리자에게서도 거부한다. 거부된 push, 실패한 check, 거부된 `main` push는 원인과 함께 멈추고 `main`을 바꾸지 않는다. `make
-  github-ruleset`은 선언된 이름의 ruleset을 만들거나 갱신하고, `make github-ruleset-check`는 live ruleset이 선언과 다르면 실패한다
-  ([워크스페이스](docs/workspace.ko.md)).
+- 모든 변경은 pull request와 merge queue를 거쳐 `main`에 들어간다. 이 저장소의 어떤 명령도 `main`을 push하지 않는다.
+  branch는 GitHub의 표준 명령이나 GitHub UI로 게시한다.
+
+  ```sh
+  git push origin HEAD:refs/heads/<branch>
+  gh pr create --base main --head <branch> --fill
+  gh pr merge <branch> --auto --rebase
+  ```
+
+  `.github/ruleset.json`에 선언된 GitHub ruleset `main`은 pull request(승인 불필요), merge method `REBASE`의 merge queue,
+  선형 history, GitHub Actions의 check `push-gate`, `linux (ubuntu-24.04-arm)`, `linux (ubuntu-24.04)`를 요구하고
+  `main`의 force-push와 삭제를 거부하며 bypass actor가 없으므로, GitHub는 관리자에게서도 `main`으로의 직접 push를
+  거부한다. merge queue는 대기열의 각 pull request를 `main` 위로 rebase한 merge group으로 만들고, 그 commit에서 필수
+  check를 실행해 통과하면 `main`을 그 commit으로 옮긴다. rebase는 merge된 commit에 새 hash를 주므로 `git pull --rebase`가
+  queue가 merge한 로컬 commit을 버린다. `make github-ruleset`은 ruleset과 선언된 저장소 설정을 만들거나 갱신하고,
+  `make github-ruleset-check`는 그것들이 선언과 다르면 실패한다([워크스페이스](docs/workspace.ko.md)).
 - 브랜치는 `{type}/{shortname}-{체크리스트 ID}`, 워크트리는 `{프로젝트}-{shortname}-{체크리스트 ID}`로
   이름 짓는다. 브랜치를 `main`에 통합한 뒤 커밋이나 동등한 변경이 반영됐고 워크트리가 깨끗한지 확인한다.
   삭제할 워크트리에만 있는 `.gitignore` 제외 파일 중 계속 필요한 파일은 먼저 다른 곳에 보존한다.
@@ -102,8 +113,8 @@
   제목(끝 마침표 없음), 빈 줄, 72자 부근 개행한 본문(무엇을·왜 변경했는지), 선택적 꼬리말. 타입은
   feat, fix, docs, style, refactor, test, chore 중 하나다.
 - 개발 중에는 변경을 소유한 unit 수준의 Red·Green 테스트만 실행한다. 전체 검사와 end-to-end 검사(`make check`의
-  target, `make check-linux`의 Linux build와 test, `make verify-build`, ownership 검사)는 push 뒤 GitHub CI
-  (`.github/workflows/ci.yml`)에서 실행한다. 어떤 규칙도 push 전에 이것들을 로컬에서 실행하기를 요구하지 않으며,
+  target, `make check-linux`의 Linux build와 test, `make verify-build`, ownership 검사)는 모든 pull request와
+  merge group의 GitHub CI(`.github/workflows/ci.yml`)에서 실행한다. 어떤 규칙도 push 전에 이것들을 로컬에서 실행하기를 요구하지 않으며,
   pre-push hook은 진행 중 항목이 있는 push만 거부한다. 로컬 전체 실행은 요청이 있을 때만, 활성 체크리스트 항목이 모두
   끝났을 때 한 번 하며, 수정마다, 항목마다 다시 실행하지 않는다. 모든 테스트는 자신의 실행·완료·성공·실패와
   경과 시간을 출력하고 자기 타임아웃을 가지며, 전체 일괄 타임아웃은 쓰지 않는다. 장기 작업은 타임아웃 대신

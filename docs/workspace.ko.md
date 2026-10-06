@@ -62,6 +62,35 @@ job은 `actions/setup-python`의 Python 3.9로 `ubuntu-24.04-arm`에서 실행�
 CI는 `make ci-records`(`python3 tools/check.py ci`)를 실행한다. 이는 runner가 선언된 version으로 설치하는 도구인
 Python과 rustc의 version으로 `tools/check.py`의 모든 검사를 실행한다.
 
+모든 변경은 pull request와 merge queue를 거쳐 `main`에 들어간다. 이 저장소의 어떤 명령도 `main`을 push하지 않는다.
+branch는 GitHub의 표준 명령이나 GitHub UI로 게시한다.
+
+```sh
+git push origin HEAD:refs/heads/<branch>
+gh pr create --base main --head <branch> --fill
+gh pr merge <branch> --auto --rebase
+```
+
+`.github/ruleset.json`의 GitHub ruleset `main`은 enforcement `active`로 `refs/heads/main`에 적용되고 bypass actor가
+없으므로 관리자에게도 적용된다. 그 rule은 다음과 같다. `pull_request`: 변경은 승인이 필요 없는 pull request로 들어오고,
+`gh pr merge --auto`가 스스로 고른 method로 auto-merge를 요청하므로 모든 merge method를 허용한다. `merge_queue`: queue는
+method `REBASE`와 grouping strategy `ALLGREEN`으로 merge하고, 한 번에 최대 5개 항목을 build하고 merge하며 더 기다리지
+않고, `check_response_timeout_minutes`는 GitHub의 최댓값인 360이다. `required_linear_history`, `non_fast_forward`,
+`deletion`: `main`의 merge commit, force-push, 삭제가 없다. `required_status_checks`: GitHub Actions app(integration
+15368)의 check `push-gate`, `linux (ubuntu-24.04-arm)`, `linux (ubuntu-24.04)`, 즉 `.github/workflows/push-gate.yml`의
+job과 각 runner의 `.github/workflows/ci.yml` job이다. `git push origin <commit>:main`의 직접 push는 `GH013: Repository
+rule violations found`로 거부된다. `gh pr merge --auto`는 pull request의 필수 check가 통과하면 pull request를 merge
+queue에 넣는다. queue는 이를 branch `gh-readonly-queue/main/pr-<번호>-<sha>`의 merge group으로 `main` 위에 rebase하고,
+두 workflow가 그 commit에서 실행되며(`merge_group`), check가 통과하면 queue가 `main`을 정확히 그 commit으로 옮긴다.
+check가 실패하면 pull request는 queue에서 빠지고 `main`은 움직이지 않는다. `ci.yml`은 pull request와 merge group에서만
+실행되고 pull request에 새 push가 있을 때만 실행을 취소한다. `push-gate.yml`은 queue의 branch를 뺀 모든 push에서도
+실행된다. merge된 pull request의 branch는 지워진다(`delete_branch_on_merge`). rebase는 merge된 commit에 새 hash를 주므로
+`git pull --rebase`가 queue가 merge한 로컬 commit을 버린다. `make github-ruleset`은 선언된 저장소 설정(`allow_rebase_merge`,
+`allow_auto_merge`, `delete_branch_on_merge`)을 바꾸고 선언된 이름의 ruleset을 다르면 만들거나 갱신하며 다시 비교한다.
+`make github-ruleset-check`는 아무것도 바꾸지 않고, 설정이 다르거나 live ruleset이 없거나 다르면 각 field를 live 값과
+선언 값으로 적고 실패한다. 둘 다 저장소 administration 권한이 있는 인증된 `gh`가 필요하다. `tools/test_github_ruleset.py`는
+가짜 `gh`로 도구를 실행한다.
+
 `make bench`는 Cargo 벤치마크를 실행한다. 유지할 측정과 한도는 S-11에 명시한다.
 
 Rust 1.98.1은 고정한 [Rust 배포](https://github.com/rust-lang/rust/releases/tag/1.98.1)이다.

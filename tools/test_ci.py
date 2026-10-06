@@ -47,10 +47,22 @@ class WorkflowRuleTest(TestCase):
                 if "uses: " in line:
                     self.assertRegex(line, r"uses: [a-z-]+/[a-z-]+@[0-9a-f]{40} # v\d+$", workflow.name)
 
-    def test_a_new_push_cancels_the_previous_run(self):
+    def test_a_new_push_cancels_the_previous_pull_request_run(self):
         text = (ROOT / ".github/workflows/ci.yml").read_text()
-        self.assertIn("\nconcurrency:\n  group: ${{ github.workflow }}-${{ github.ref }}\n  cancel-in-progress: true\n",
-                      text)
+        self.assertIn("\nconcurrency:\n  group: ${{ github.workflow }}-${{ github.ref }}\n"
+                      "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}\n", text)
+        self.assertNotIn("concurrency", (ROOT / ".github/workflows/push-gate.yml").read_text())
+
+    def test_the_workflows_run_on_pull_requests_and_merge_groups(self):
+        for name in ("ci.yml", "push-gate.yml"):
+            trigger = re.search(r"(?ms)^on:\n(.*?)^\S", (ROOT / ".github/workflows" / name).read_text()).group(1)
+            events = re.findall(r"(?m)^  ([\w-]+):", trigger)
+            self.assertIn("pull_request", events, name)
+            self.assertIn("merge_group", events, name)
+            if name == "ci.yml":
+                self.assertNotIn("push", events, "the merge group runs CI on the commit that main receives")
+            else:
+                self.assertIn("    branches-ignore: ['gh-readonly-queue/**']\n", trigger)
 
     def test_the_push_check_runs_the_record_checks_and_ci_runs_every_check(self):
         makefile = (ROOT / "Makefile").read_text()

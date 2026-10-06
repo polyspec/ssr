@@ -84,6 +84,37 @@ commit whose records fail never reaches `main`. CI runs `make ci-records` (`pyth
 every check of `tools/check.py`, with the versions of the tools that a runner installs at their declared
 versions, Python and rustc.
 
+Every change reaches `main` through a pull request and the merge queue; no command of this repository pushes `main`.
+Publish a branch with the standard commands of GitHub, or with the GitHub UI:
+
+```sh
+git push origin HEAD:refs/heads/<branch>
+gh pr create --base main --head <branch> --fill
+gh pr merge <branch> --auto --rebase
+```
+
+The GitHub ruleset `main` of `.github/ruleset.json` applies to `refs/heads/main` with enforcement `active` and no bypass
+actor, so it binds administrators too. Its rules: `pull_request`, a change arrives through a pull request with no
+approval required, and every merge method is allowed, because `gh pr merge --auto` asks for auto-merge with a method of
+its own choice; `merge_queue`, the queue merges with the method `REBASE` and the grouping strategy `ALLGREEN`, builds
+and merges at most 5 entries at once without waiting for more, and `check_response_timeout_minutes` is 360, the maximum
+of GitHub; `required_linear_history`, `non_fast_forward` and `deletion`, no merge commit, no force-push and no deletion
+of `main`; `required_status_checks`, the checks `push-gate`, `linux (ubuntu-24.04-arm)` and `linux (ubuntu-24.04)` of
+the GitHub Actions app (integration 15368), the job of `.github/workflows/push-gate.yml` and the jobs of
+`.github/workflows/ci.yml` on each runner. A direct `git push origin <commit>:main` is refused with `GH013: Repository
+rule violations found`. `gh pr merge --auto` adds the pull request to the merge queue once its required checks pass on
+the pull request; the queue rebases it onto `main` as a merge group on the branch
+`gh-readonly-queue/main/pr-<number>-<sha>`, both workflows run on that commit (`merge_group`), and the queue moves `main`
+to exactly that commit when the checks pass; a failed check removes the pull request from the queue, and `main` does not
+move. `ci.yml` runs on pull requests and merge groups only, and cancels a run only for a new push to a pull request;
+`push-gate.yml` also runs on every push except the branches of the queue. The branch of a merged pull request is deleted
+(`delete_branch_on_merge`). The rebase gives the merged commits new hashes; `git pull --rebase` drops the local commits
+that the queue merged. `make github-ruleset` changes the declared repository settings (`allow_rebase_merge`,
+`allow_auto_merge`, `delete_branch_on_merge`) and creates or updates the ruleset of the declared name where they differ,
+and compares again; `make github-ruleset-check` changes nothing and fails, naming each field with its live and its
+declared value, when a declared repository field differs or the live ruleset is missing or differs. Both need an authenticated `gh` with
+administration access to the repository. `tools/test_github_ruleset.py` runs the tool against a fake `gh`.
+
 Run `make bench` to execute Cargo benchmarks. The maintained measurements and limits are specified
 in S-11.
 

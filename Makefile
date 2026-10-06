@@ -169,9 +169,10 @@ push-records:
 ci-records:
 	python3 tools/check.py ci
 
-# The GitHub ruleset of main, declared in .github/ruleset.json (tools/github_ruleset.py, docs/workspace.md): it requires
-# the check push-gate, refuses a force-push and a deletion and has no bypass actor. github-ruleset creates or updates
-# the ruleset of the declared name; github-ruleset-check fails when the live ruleset differs from the declaration.
+# The GitHub ruleset of main and the merge settings, declared in .github/ruleset.json (tools/github_ruleset.py,
+# docs/workspace.md): every change reaches main through a pull request and the merge queue, which requires the checks
+# push-gate and the CI jobs of arm and x64. github-ruleset creates or updates the ruleset of the declared name and the
+# settings; github-ruleset-check fails when the live ruleset or a setting differs from the declaration.
 github-ruleset:
 	python3 -m tools.github_ruleset apply
 
