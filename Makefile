@@ -32,7 +32,7 @@ FULL_RUN = python3 -m tools.holder_lock run check -- python3 -m tools.full_run
 
 # A make without a target runs the full suite entry, so no command runs its steps without the guard.
 .DEFAULT_GOAL := check
-.PHONY: check rerun-failed review-advisories ci-setup ci ci-nextest ci-push ci-python push-check push-records ci-records hooks hooks-check github-ruleset github-ruleset-check $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
+.PHONY: check rerun-failed review-advisories ci-setup ci ci-nextest ci-push ci-passed ci-python push-check push-records ci-records hooks hooks-check github-ruleset github-ruleset-check $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
 
 $(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
 $(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
@@ -161,6 +161,12 @@ ci-python:
 push-check:
 	python3 -m tools.push_gate commit HEAD
 
+# ci-passed is the step of the job ci-passed, the last job of ci.yml and its check that the ruleset of main requires:
+# it fails unless every job of RESULTS, the JSON of needs, has the result success. make passes a variable of its command
+# line to the environment of the recipe, so the tool reads RESULTS there and the JSON never becomes shell text.
+ci-passed:
+	python3 -m tools.ci_run --passed
+
 # The record checks of tools/check.py, which read only tracked files, in the job push-gate: the ruleset requires that
 # job on main, so a commit whose records fail never reaches main. ci-records runs every check of tools/check.py in CI.
 push-records:
@@ -171,7 +177,7 @@ ci-records:
 
 # The GitHub ruleset of main and the merge settings, declared in .github/ruleset.json (tools/github_ruleset.py,
 # docs/workspace.md): every change reaches main through a pull request and the merge queue, which requires the checks
-# push-gate and the CI jobs of arm and x64. github-ruleset creates or updates the ruleset of the declared name and the
+# push-gate and ci-passed. github-ruleset creates or updates the ruleset of the declared name and the
 # settings; github-ruleset-check fails when the live ruleset or a setting differs from the declaration.
 github-ruleset:
 	python3 -m tools.github_ruleset apply

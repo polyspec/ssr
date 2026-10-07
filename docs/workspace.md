@@ -99,9 +99,14 @@ approval required, and every merge method is allowed, because `gh pr merge --aut
 its own choice; `merge_queue`, the queue merges with the method `REBASE` and the grouping strategy `ALLGREEN`, builds
 and merges at most 5 entries at once without waiting for more, and `check_response_timeout_minutes` is 360, the maximum
 of GitHub; `required_linear_history`, `non_fast_forward` and `deletion`, no merge commit, no force-push and no deletion
-of `main`; `required_status_checks`, the checks `push-gate`, `linux (ubuntu-24.04-arm)` and `linux (ubuntu-24.04)` of
-the GitHub Actions app (integration 15368), the job of `.github/workflows/push-gate.yml` and the jobs of
-`.github/workflows/ci.yml` on each runner. A direct `git push origin <commit>:main` is refused with `GH013: Repository
+of `main`; `required_status_checks`, exactly the checks `push-gate` and `ci-passed` of the GitHub Actions app
+(integration 15368), the job of `.github/workflows/push-gate.yml` and the last job of `.github/workflows/ci.yml`. The
+job `ci-passed` needs every other job of `ci.yml`, runs after each of them also when one failed, was skipped or was
+cancelled (`if: ${{ always() }}`), and runs `make ci-passed RESULTS='${{ toJSON(needs) }}'`: `python3 -m tools.ci_run
+--passed` prints the result of every needed job and fails unless each one is `success`. A job added to `ci.yml` is
+listed in `needs`, so the required check covers it; `tools/test_ci.py` fails when `ci-passed` is not the last job,
+lacks `if: ${{ always() }}`, does not need every other job, runs on another runner than `push-gate` or runs another
+step. A direct `git push origin <commit>:main` is refused with `GH013: Repository
 rule violations found`. `gh pr merge --auto` adds the pull request to the merge queue once its required checks pass on
 the pull request; the queue rebases it onto `main` as a merge group on the branch
 `gh-readonly-queue/main/pr-<number>-<sha>`, both workflows run on that commit (`merge_group`), and the queue moves `main`

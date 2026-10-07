@@ -1,4 +1,6 @@
 import hashlib
+import io
+import json
 import os
 from pathlib import Path
 import re
@@ -15,6 +17,25 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = sorted((ROOT / ".github/workflows").glob("*.yml"))
 
 
+# The step of the job ci-passed: the JSON of `needs` reaches make as a variable of its command line.
+CI_PASSED_RUN = "make ci-passed RESULTS='${{ toJSON(needs) }}'"
+# The jobs that run their checks through tools/ci_run.py and upload its logs and summary. ci-passed prints the result
+# of each job it needs in its log; release.yml prints the result of each release step in its log.
+REPORTING_JOBS = {"ci.yml": ["linux"], "push-gate.yml": ["push-gate"]}
+
+
+def workflow_jobs(text):
+    """{job: body} of a workflow, in the order of the file."""
+    parts = re.split(r"^  ([a-z-]+):\n", text.split("\njobs:\n", 1)[1], flags=re.MULTILINE)[1:]
+    return dict(zip(parts[::2], parts[1::2]))
+
+
+def job_key(body, key):
+    """The value of a key at the level of a job (`if`, `needs`, `runs-on`), as written, or None."""
+    found = re.search(rf"(?m)^    {re.escape(key)}: (.*)$", body)
+    return found.group(1) if found else None
+
+
 def makefile_targets():
     return set(re.findall(r"^([A-Za-z0-9_.-]+):", (ROOT / "Makefile").read_text(), re.MULTILINE))
 
@@ -26,15 +47,18 @@ class WorkflowRuleTest(TestCase):
             commands = re.findall(r"^\s+run: (.+)$", workflow.read_text(), re.MULTILINE)
             self.assertTrue(commands, workflow)
             for command in commands:
-                found = re.fullmatch(r"make ([a-z0-9-]+)", command)
+                found = re.fullmatch(r"make ([a-z0-9-]+)(?: [A-Z_]+='\$\{\{ [^}]+ \}\}')*", command)
                 self.assertIsNotNone(found, f"{workflow.name}: {command} is not a make target")
                 self.assertIn(found.group(1), targets, f"{workflow.name}: {command}")
 
     def test_every_job_uploads_its_logs_and_summary_also_after_a_failure(self):
         for workflow in WORKFLOWS:
-            text = workflow.read_text()
-            jobs = re.split(r"^  ([a-z-]+):\n", text.split("\njobs:\n", 1)[1], flags=re.MULTILINE)[1:]
-            for name, body in zip(jobs[::2], jobs[1::2]):
+            jobs = workflow_jobs(workflow.read_text())
+            reporting = REPORTING_JOBS.get(workflow.name, [])
+            self.assertEqual(sorted(set(jobs) - set(reporting)),
+                             {"ci.yml": ["ci-passed"], "release.yml": ["release"]}.get(workflow.name, []), workflow.name)
+            for name in reporting:
+                body = jobs[name]
                 self.assertRegex(body, r"if: \$\{\{ !cancelled\(\) \}\}\n\s+uses: actions/upload-artifact@",
                                  f"{workflow.name}: {name}")
                 self.assertIn("path: var/ci/", body, f"{workflow.name}: {name}")
@@ -106,11 +130,75 @@ class WorkflowRuleTest(TestCase):
         usage = subprocess.run([sys.executable, "tools/check.py", "other"], cwd=ROOT, capture_output=True, text=True)
         self.assertEqual(usage.returncode, 2)
 
+    def test_ci_passed_is_the_last_job_and_needs_every_other_job(self):
+        jobs = workflow_jobs((ROOT / ".github/workflows/ci.yml").read_text())
+        self.assertEqual(list(jobs)[-1], "ci-passed")
+        body = jobs["ci-passed"]
+        self.assertEqual(job_key(body, "if"), "${{ always() }}")
+        needs = [job.strip() for job in job_key(body, "needs").strip("[]").split(",")]
+        self.assertEqual(sorted(needs), sorted(job for job in jobs if job != "ci-passed"))
+        # The runner of the job push-gate, which also needs only Python.
+        gate = workflow_jobs((ROOT / ".github/workflows/push-gate.yml").read_text())["push-gate"]
+        self.assertEqual(job_key(body, "runs-on"), job_key(gate, "runs-on"))
+        self.assertEqual(re.findall(r"(?m)^\s+run: (.+)$", body), [CI_PASSED_RUN])
+        self.assertTrue(body.rstrip().endswith(f"run: {CI_PASSED_RUN}"))
+        self.assertNotRegex(body, r"(?m)^    name:")
+
     def test_the_linux_jobs_build_both_architectures(self):
         text = (ROOT / ".github/workflows/ci.yml").read_text()
         self.assertIn("runner: [ubuntu-24.04-arm, ubuntu-24.04]", text)
         self.assertIn("run: make ci-setup", text)
         self.assertIn("run: make ci", text)
+
+
+NEEDS = """{
+  "linux": {
+    "result": "%s",
+    "outputs": {}
+  }
+}"""
+
+
+class CiPassedTest(TestCase):
+    """make ci-passed passes only when every job of `needs` has the result success."""
+
+    def passed(self, text):
+        printed = io.StringIO()
+        return ci_run.passed(text, printed), printed.getvalue()
+
+    def test_every_needed_job_with_the_result_success_passes(self):
+        status, printed = self.passed(NEEDS % "success")
+        self.assertEqual(status, 0, printed)
+        self.assertIn("[ci-passed] linux: success", printed)
+        self.assertIn("[ci-passed] every needed job passed: linux", printed)
+
+    def test_a_failed_skipped_or_cancelled_job_fails_with_its_name_and_result(self):
+        for result in ("failure", "skipped", "cancelled"):
+            with self.subTest(result=result):
+                text = json.dumps({"linux": {"result": "success", "outputs": {}}, "other": {"result": result, "outputs": {}}})
+                status, printed = self.passed(text)
+                self.assertEqual(status, 1, printed)
+                self.assertIn(f"[ci-passed] failed: other ({result}); every needed job must have the result success",
+                              printed)
+
+    def test_results_that_name_no_job_or_are_not_json_fail_with_the_cause(self):
+        for text, cause in ((None, "RESULTS is not set"), ("", "RESULTS is not JSON"), ("{", "RESULTS is not JSON"),
+                            ("{}", "RESULTS names no job"), ("[]", "RESULTS names no job"),
+                            ('{"linux": "success"}', "linux: no result")):
+            with self.subTest(text=text):
+                status, printed = self.passed(text)
+                self.assertEqual(status, 1, printed)
+                self.assertIn(cause, printed)
+
+    def test_make_ci_passed_reads_the_multi_line_json_of_needs(self):
+        environment = {name: value for name, value in os.environ.items()
+                       if name not in ("MAKEFLAGS", "MFLAGS", "MAKELEVEL", "GNUMAKEFLAGS", "MAKEFILES", "RESULTS")}
+        for result, status in (("success", 0), ("failure", 2)):
+            with self.subTest(result=result):
+                ran = subprocess.run(["make", "--no-print-directory", "ci-passed", f"RESULTS={NEEDS % result}"],
+                                     cwd=ROOT, env=environment, capture_output=True, text=True)
+                self.assertEqual(ran.returncode, status, ran.stdout + ran.stderr)
+                self.assertIn(f"[ci-passed] linux: {result}", ran.stdout)
 
 
 STUB = """good:

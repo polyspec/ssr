@@ -127,20 +127,18 @@ class Declaration(unittest.TestCase):
         self.assertEqual(DECLARATION['settings'], {'allow_rebase_merge': True, 'allow_auto_merge': True,
                                                    'delete_branch_on_merge': True})
 
-    def test_the_required_checks_are_the_jobs_of_the_push_gate_and_the_full_suite(self):
+    def test_the_required_checks_are_the_push_gate_and_the_job_ci_passed(self):
         checks = next(rule for rule in DECLARATION['ruleset']['rules']
                       if rule['type'] == 'required_status_checks')['parameters']['required_status_checks']
-        # The check of a job without a name is the job ID, and of a matrix job the ID with its matrix values in parentheses:
-        # the job linux of ci.yml runs on each runner of its matrix, the full CI of arm and x64.
+        # The check of a job without a name is the job ID. ci-passed, the last job of ci.yml, passes only when every
+        # other job of ci.yml passed (tools/test_ci.py), the job linux on each runner of its matrix included.
         gate = (WORKFLOWS / 'push-gate.yml').read_text()
         self.assertEqual(re.findall(r'(?m)^  ([\w-]+):\s*$', gate.split('\njobs:\n', 1)[1]), ['push-gate'])
         self.assertNotRegex(gate, r'(?m)^    name:')
         ci = (WORKFLOWS / 'ci.yml').read_text()
-        self.assertEqual(re.findall(r'(?m)^  ([\w-]+):\s*$', ci.split('\njobs:\n', 1)[1]), ['linux'])
+        self.assertEqual(re.findall(r'(?m)^  ([\w-]+):\s*$', ci.split('\njobs:\n', 1)[1]), ['linux', 'ci-passed'])
         self.assertNotRegex(ci, r'(?m)^    name:')
-        runners = re.search(r'(?m)^        runner: \[(.*)\]$', ci).group(1).split(', ')
-        self.assertEqual(runners, ['ubuntu-24.04-arm', 'ubuntu-24.04'])
-        jobs = ['push-gate'] + [f'linux ({runner})' for runner in runners]
+        jobs = ['push-gate', 'ci-passed']
         # 15368 is the GitHub Actions app, so a status of the same name from another app does not satisfy the rule.
         self.assertEqual(checks, [{'context': job, 'integration_id': 15368} for job in jobs])
 

@@ -25,7 +25,8 @@
   ```
 
   `.github/ruleset.json`에 선언된 GitHub ruleset `main`은 pull request(승인 불필요), merge method `REBASE`의 merge queue,
-  선형 history, GitHub Actions의 check `push-gate`, `linux (ubuntu-24.04-arm)`, `linux (ubuntu-24.04)`를 요구하고
+  선형 history, 정확히 GitHub Actions의 check `push-gate`와 `ci-passed`(`.github/workflows/ci.yml`의 마지막 job으로,
+  그 workflow의 다른 모든 job이 통과했을 때만 통과)를 요구하고
   `main`의 force-push와 삭제를 거부하며 bypass actor가 없으므로, GitHub는 관리자에게서도 `main`으로의 직접 push를
   거부한다. merge queue는 대기열의 각 pull request를 `main` 위로 rebase한 merge group으로 만들고, 그 commit에서 필수
   check를 실행해 통과하면 `main`을 그 commit으로 옮긴다. rebase는 merge된 commit에 새 hash를 주므로 `git pull --rebase`가

@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+- ruleset `main`에서 정확히 check `push-gate`와 `ci-passed`를 요구한다.
+  `.github/workflows/ci.yml`의 마지막 job `ci-passed`는 다른 모든 job을 need로
+  가지고, `if: ${{ always() }}`로 그 모든 job 뒤에 실행되며, need로 가진 job의
+  결과가 모두 `success`가 아니면 실패하는 `make ci-passed`를 실행한다.
+  `ci.yml`에 추가한 job은 `needs`에 들어가면 요구된다.
+
 - changelog의 맨 위에 section `## Unreleased`를 둔다. 릴리스된 ssr 버전이
   없으므로 모든 항목이 그 아래에 있다. 모든 변경은 항목을 그곳에 추가하고,
   릴리스는 그 section을 `## X.Y.Z`로 바꾸고 그 위에 비어 있는 새

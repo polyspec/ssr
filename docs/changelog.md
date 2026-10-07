@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+- Require exactly the checks `push-gate` and `ci-passed` in the ruleset
+  `main`. `ci-passed`, the last job of `.github/workflows/ci.yml`, needs
+  every other job, runs after each of them under `if: ${{ always() }}` and
+  runs `make ci-passed`, which fails unless every needed job has the result
+  `success`; a job added to `ci.yml` is required once it is in `needs`.
+
 - Keep the section `## Unreleased` at the top of the changelog. No version
   of ssr is released, so every entry is under it; every change adds its
   entry there, and a release renames it to `## X.Y.Z` below a new empty

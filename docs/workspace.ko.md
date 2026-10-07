@@ -76,9 +76,14 @@ gh pr merge <branch> --auto --rebase
 `gh pr merge --auto`가 스스로 고른 method로 auto-merge를 요청하므로 모든 merge method를 허용한다. `merge_queue`: queue는
 method `REBASE`와 grouping strategy `ALLGREEN`으로 merge하고, 한 번에 최대 5개 항목을 build하고 merge하며 더 기다리지
 않고, `check_response_timeout_minutes`는 GitHub의 최댓값인 360이다. `required_linear_history`, `non_fast_forward`,
-`deletion`: `main`의 merge commit, force-push, 삭제가 없다. `required_status_checks`: GitHub Actions app(integration
-15368)의 check `push-gate`, `linux (ubuntu-24.04-arm)`, `linux (ubuntu-24.04)`, 즉 `.github/workflows/push-gate.yml`의
-job과 각 runner의 `.github/workflows/ci.yml` job이다. `git push origin <commit>:main`의 직접 push는 `GH013: Repository
+`deletion`: `main`의 merge commit, force-push, 삭제가 없다. `required_status_checks`: 정확히 GitHub Actions
+app(integration 15368)의 check `push-gate`와 `ci-passed`, 즉 `.github/workflows/push-gate.yml`의 job과
+`.github/workflows/ci.yml`의 마지막 job이다. job `ci-passed`는 `ci.yml`의 다른 모든 job을 need로 가지고, 그중 하나가
+실패하거나 skip되거나 취소되어도 그 모든 job 뒤에 실행되며(`if: ${{ always() }}`), `make ci-passed
+RESULTS='${{ toJSON(needs) }}'`를 실행한다. `python3 -m tools.ci_run --passed`는 need로 가진 모든 job의 결과를 출력하고,
+하나라도 `success`가 아니면 실패한다. `ci.yml`에 추가한 job은 `needs`에 넣으므로 필수 check가 그 job을 포함한다.
+`tools/test_ci.py`는 `ci-passed`가 마지막 job이 아니거나, `if: ${{ always() }}`가 없거나, 다른 모든 job을 need로 가지지
+않거나, `push-gate`와 다른 runner에서 실행되거나, 다른 step을 실행하면 실패한다. `git push origin <commit>:main`의 직접 push는 `GH013: Repository
 rule violations found`로 거부된다. `gh pr merge --auto`는 pull request의 필수 check가 통과하면 pull request를 merge
 queue에 넣는다. queue는 이를 branch `gh-readonly-queue/main/pr-<번호>-<sha>`의 merge group으로 `main` 위에 rebase하고,
 두 workflow가 그 commit에서 실행되며(`merge_group`), check가 통과하면 queue가 `main`을 정확히 그 commit으로 옮긴다.

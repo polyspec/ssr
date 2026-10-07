@@ -4,8 +4,9 @@
 name: ci
 
 # Every pull request, every merge group of the merge queue and every manual run (workflow_dispatch): the ruleset of
-# main requires the jobs of this workflow, and the merge queue moves main to the merge group commit only after they
-# passed on it, so the run of the merge group is the evidence of the commit that main receives.
+# main requires the job ci-passed, the last job, which passes only when every other job of this workflow passed, and
+# the merge queue moves main to the merge group commit only after it passed on it, so the run of the merge group is the
+# evidence of the commit that main receives.
 on:
   pull_request:
   merge_group:
@@ -48,3 +49,20 @@ jobs:
           name: ci-${{ matrix.runner }}
           path: var/ci/
           if-no-files-found: error
+  # The check of this workflow that the ruleset of main requires. It runs after every other job, also after a failed,
+  # skipped or cancelled one (if: always()), and make ci-passed fails unless every job of needs has the result success,
+  # so a new job of this workflow is required once it is listed in needs. It needs only Python and runs on the runner
+  # of the job push-gate.
+  ci-passed:
+    if: ${{ always() }}
+    needs: [linux]
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.9"
+      - name: make ci-passed
+        run: make ci-passed RESULTS='${{ toJSON(needs) }}'

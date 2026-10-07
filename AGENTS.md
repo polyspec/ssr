@@ -28,8 +28,9 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   ```
 
   The GitHub ruleset `main`, declared in `.github/ruleset.json`, requires a pull request (no
-  approval), the merge queue with the merge method `REBASE`, a linear history and the checks
-  `push-gate`, `linux (ubuntu-24.04-arm)` and `linux (ubuntu-24.04)` of GitHub Actions, refuses a
+  approval), the merge queue with the merge method `REBASE`, a linear history and exactly the checks
+  `push-gate` and `ci-passed` of GitHub Actions (`ci-passed`, the last job of
+  `.github/workflows/ci.yml`, passes only when every other job of that workflow passed), refuses a
   force-push and a deletion of `main`, and has no bypass actor, so GitHub refuses a direct push to
   `main`, from an administrator too. The merge queue rebases each queued pull request onto `main` as
   a merge group, runs the required checks on that commit and moves `main` to it when they pass. The
