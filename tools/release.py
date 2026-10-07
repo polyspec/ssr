@@ -2,12 +2,12 @@
 
     python3 -m tools.release verify TAG     the tagged commit is on main and passed the checks push-gate and ci-passed
     python3 -m tools.release versions TAG   every manifest of the tag has its version and docs/changelog.md its section
-    python3 -m tools.release assets TAG     build the archive of every crate of the tag into var/release/assets
+    python3 -m tools.release assets TAG     build the archives of the tag into var/release/assets: none
     python3 -m tools.release publish TAG    create the GitHub Release of the tag with its notes and archives
 
 Every change reaches main through the merge queue with the required checks, so every commit of main passed the full
 checks; the maintainer releases by tagging a commit of main after a version-bump pull request, and a tag push runs
-these steps in order. A tag ``vX.Y.Z`` releases the crates of PACKAGES at version X.Y.Z. A tag
+these steps in order. A tag ``vX.Y.Z`` releases the crates of CRATES at version X.Y.Z. A tag
 ``<directory>/vX.Y.Z`` releases the Go module of that directory; the repository has no Go module (GO_MODULES), so
 such a tag fails. No step reruns the tests.
 
@@ -17,12 +17,12 @@ repos/<repository>/commits/<sha>/check-runs``, the repository of GITHUB_REPOSITO
 push-gate and ci-passed must be completed with the conclusion success. ``versions`` compares X.Y.Z with the version of
 the workspace manifest (``[workspace.package]``), with the version of every crate manifest that declares its own (a
 crate with ``version.workspace = true`` takes the workspace version) and with the requirement ``=X.Y.Z`` of every
-dependency on a crate of PACKAGES, and requires the section ``## X.Y.Z`` in docs/changelog.md. ``assets`` runs
-``cargo package --no-verify --locked --exclude-lockfile`` for the crates of PACKAGES and copies each
-``<crate>-<version>.crate``. The archives hold no Cargo.lock: packaging writes the Git dependency
-polyspec-ordered-json as a registry dependency, and its lock cannot be resolved against crates.io, which does not
-list it. ``publish`` runs ``gh release create TAG --verify-tag --title TAG --notes-file <the section X.Y.Z>`` with the
-archives of ``assets``. Each failure names the tag, the file or check and both values, and exits with status 1.
+dependency on a crate of CRATES, and requires the section ``## X.Y.Z`` in docs/changelog.md. The release assets are
+npm tarballs and Composer zips only, and the repository has neither, so ``assets`` builds no archive. A crate is not
+released as an archive; it is consumed by git tag, because ``cargo package`` rewrites git dependencies, such as
+polyspec-ordered-json, into crates.io requirements that do not resolve. ``publish`` runs ``gh release create TAG
+--verify-tag --title TAG --notes-file <the section X.Y.Z>`` without archives. Each failure names the tag, the file or
+check and both values, and exits with status 1.
 """
 
 import json
@@ -41,13 +41,16 @@ CHECKS = ("push-gate", "ci-passed")
 CHANGELOG = "docs/changelog.md"
 ASSETS = "var/release/assets"
 WORKSPACE = "Cargo.toml"
-# The crates that a tag vX.Y.Z releases, one archive each: (kind, directory, package name).
-PACKAGES = tuple(("cargo", f"crates/{name}", name) for name in (
-    "polyspec-ssr-core", "polyspec-ssr-build", "polyspec-ssr-runtime", "polyspec-ssr-adapter-react",
-    "polyspec-ssr-adapter-vue", "polyspec-ssr-adapter-svelte", "polyspec-ssr-adapter-vanilla", "polyspec-ssr-nonce",
-    "polyspec-ssr-server"))
-# The manifests whose version a tag vX.Y.Z sets: the workspace manifest and the manifest of every crate.
-MANIFESTS = (WORKSPACE,) + tuple(f"{path}/Cargo.toml" for _, path, _ in PACKAGES)
+# The crates of the workspace that a tag vX.Y.Z releases.
+CRATES = ("polyspec-ssr-core", "polyspec-ssr-build", "polyspec-ssr-runtime", "polyspec-ssr-adapter-react",
+          "polyspec-ssr-adapter-vue", "polyspec-ssr-adapter-svelte", "polyspec-ssr-adapter-vanilla",
+          "polyspec-ssr-nonce", "polyspec-ssr-server")
+WORKSPACE_VERSION = "the workspace version of every crate"
+GIT_TAG = "not released as an archive; consumed by git tag"
+# The manifests whose version a tag vX.Y.Z sets, each with how the tag releases it: the workspace manifest, which sets
+# the version of the crates, and the manifest of every crate, which is consumed by git tag because `cargo package`
+# rewrites git dependencies into crates.io requirements that do not resolve.
+MANIFESTS = {WORKSPACE: WORKSPACE_VERSION, **{f"crates/{name}/Cargo.toml": GIT_TAG for name in CRATES}}
 # The tracked manifests that no tag releases, with the reason.
 NOT_RELEASED = {
     "tools/build-probe/Cargo.toml": "the build verification program of make verify-build",
@@ -166,7 +169,7 @@ def versions(root, tag):
     root = Path(root)
     _, version = parse_tag(tag)
     problems = []
-    crates = {name for _, _, name in PACKAGES}
+    crates = set(CRATES)
     for name in MANIFESTS:
         path = root / name
         declared = manifest_version(path)
@@ -185,43 +188,21 @@ def versions(root, tag):
     return version
 
 
-def asset_name(name, version, extension):
-    """<package name>-<version>.<ext>: ``@scope/name`` is written ``scope-name`` and ``vendor/name`` ``vendor-name``."""
-    return f"{name.lstrip('@').replace('/', '-')}-{version}.{extension}"
-
-
 def asset_names(tag):
-    directory, version = parse_tag(tag)
-    if directory is not None:
-        return []
-    return [asset_name(name, version, "crate") for _, _, name in PACKAGES]
+    """The archives of the tag. The release assets are npm tarballs and Composer zips only, and the repository has
+    neither, so a tag has none."""
+    parse_tag(tag)
+    return []
 
 
 def assets(root, tag):
-    """Build the archive of every crate of the tag into ASSETS; the names of the archives."""
+    """Build the archives of the tag into an empty ASSETS; the names of the archives, none for this repository."""
     root = Path(root)
-    directory, _ = parse_tag(tag)
+    names = asset_names(tag)
     target = root / ASSETS
     if target.exists():
         shutil.rmtree(target)
     target.mkdir(parents=True)
-    if directory is not None:
-        return []
-    names = asset_names(tag)
-    with tempfile.TemporaryDirectory(prefix="release-cargo-") as build:
-        selection = [argument for _, _, name in PACKAGES for argument in ("-p", name)]
-        run(["cargo", "package", "--no-verify", "--locked", "--exclude-lockfile", *selection], root,
-            {**os.environ, "CARGO_TARGET_DIR": build})
-        package = Path(build) / "package"
-        built = sorted(item.name for item in package.glob("*.crate")) if package.is_dir() else []
-        missing = [name for name in names if name not in built]
-        if missing:
-            raise Stop(f"cargo package wrote {built}, not {missing}")
-        for name in names:
-            shutil.copy2(package / name, target / name)
-    present = sorted(item.name for item in target.iterdir())
-    if present != sorted(names):
-        raise Stop(f"{ASSETS} holds {present}, not the archives {sorted(names)}")
     return names
 
 
@@ -257,7 +238,7 @@ def main(argv, root=ROOT, environ=os.environ):
             print(f"[release] {tag}: every manifest of the tag declares {version} and {CHANGELOG} has ## {version}")
         elif mode == "assets":
             names = assets(root, tag)
-            print(f"[release] {tag}: built {', '.join(names) if names else 'no archive (a Go module)'} in {ASSETS}")
+            print(f"[release] {tag}: built {', '.join(names) if names else 'no archive'} in {ASSETS}")
         else:
             names = publish(root, tag)
             print(f"[release] {tag}: created the GitHub Release with {', '.join(names) if names else 'no archive'}")

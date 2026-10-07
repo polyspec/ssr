@@ -4,15 +4,24 @@
 
 ## Unreleased
 
+- Release the tags `<directory>/vX.Y.Z` at any depth and only npm and Composer
+  archives. The trigger of `.github/workflows/release.yml` is
+  `tags: ['v*', '**/v*']`: in a tag filter `*` does not match `/`. A crate is
+  not released as an archive; it is consumed by git tag, because
+  `cargo package` rewrites git dependencies into crates.io requirements that
+  do not resolve. `tools/release.py` lists every crate manifest so, and
+  `make release-setup` checks Python only.
+
 - Release a tag of a commit of `main` through `.github/workflows/release.yml`,
-  which runs on the push of a tag `v*` or `*/v*` with the permission
+  which runs on the push of a tag `v*` or `**/v*` with the permission
   `contents: write`. `make release-verify` requires the tagged commit on
   `origin/main` with the check runs `push-gate` and `ci-passed` concluded
   `success`, `make release-versions` the version of the tag in every manifest
   and the section `## X.Y.Z` in `docs/changelog.md`, `make release-assets`
-  packages every crate, and `make release-publish` creates the GitHub Release
-  with the section as notes (`tools/release.py`, `tools/test_release.py`).
-  AGENTS states the release procedure.
+  builds the npm and Composer archives, of which the repository has none, and
+  `make release-publish` creates the GitHub Release with the section as notes
+  (`tools/release.py`, `tools/test_release.py`). AGENTS states the release
+  procedure.
 
 - Require exactly the checks `push-gate` and `ci-passed` in the ruleset
   `main`. `ci-passed`, the last job of `.github/workflows/ci.yml`, needs

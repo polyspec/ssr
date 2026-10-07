@@ -1,9 +1,8 @@
 """The release of a tag (tools/release.py, .github/workflows/release.yml).
 
 Each case builds a Git repository in a temporary directory with the manifests of the release, a changelog, a branch
-origin/main and the tag, and puts fakes of gh and cargo first on PATH. The fake gh answers the check runs of the GitHub
-API from a JSON state file and records each call; the fake cargo writes the archive that cargo package writes. No case
-reaches GitHub or a registry.
+origin/main and the tag, and puts a fake of gh first on PATH. The fake gh answers the check runs of the GitHub API from a
+JSON state file and records each call. No case reaches GitHub or a registry.
 """
 
 import json
@@ -37,18 +36,6 @@ else:
     sys.exit(f"fake gh: unexpected arguments {args}")
 json.dump(state, open(state_path, "w"))
 '''
-FAKE_CARGO = r'''
-import json, os, re, sys
-args = sys.argv[1:]
-assert args[:4] == ["package", "--no-verify", "--locked", "--exclude-lockfile"], args
-version = re.search(r'(?m)^version = "([^"]+)"', open("Cargo.toml").read()).group(1)
-folder = os.path.join(os.environ["CARGO_TARGET_DIR"], "package")
-os.makedirs(folder, exist_ok=True)
-names = [args[index + 1] for index, value in enumerate(args) if value == "-p"]
-open(os.environ["FAKE_CARGO_ARGS"], "w").write(json.dumps(args))
-for name in names:
-    open(os.path.join(folder, f"{name}-{version}.crate"), "w").write("crate")
-'''
 CHANGELOG = """[Korean](changelog.ko.md)
 
 # Changelog
@@ -79,15 +66,14 @@ class Sandbox:
         self.root = Path(folder.name) / "repository"
         self.bin = Path(folder.name) / "bin"
         self.state = Path(folder.name) / "state.json"
-        self.cargo_args = Path(folder.name) / "cargo-args.json"
         self.root.mkdir()
         self.bin.mkdir()
-        for name, source in (("gh", FAKE_GH), ("cargo", FAKE_CARGO)):
-            (self.bin / name).write_text(f"#!{sys.executable}\n{source}")
-            (self.bin / name).chmod(0o755)
+        (self.bin / "gh").write_text(f"#!{sys.executable}\n{FAKE_GH}")
+        (self.bin / "gh").chmod(0o755)
         (self.root / "Cargo.toml").write_text(
             '[workspace]\nmembers = []\n\n[workspace.package]\nversion = "%s"\nlicense = "MIT"\n' % version)
-        for _, path, name in release.PACKAGES:
+        for name in release.CRATES:
+            path = f"crates/{name}"
             (self.root / path).mkdir(parents=True)
             dependency = ("" if name == "polyspec-ssr-core" else
                           f'polyspec-ssr-core = {{ path = "../polyspec-ssr-core", version = "={version}" }}\n')
@@ -102,7 +88,7 @@ class Sandbox:
         git(self.root, "update-ref", "refs/remotes/origin/main", self.commit)
         self.check_runs([("push-gate", "success"), ("ci-passed", "success")])
         environment = patch.dict(os.environ, {"PATH": f"{self.bin}{os.pathsep}{os.environ['PATH']}",
-                                              "FAKE_STATE": str(self.state), "FAKE_CARGO_ARGS": str(self.cargo_args)})
+                                              "FAKE_STATE": str(self.state)})
         environment.start()
         test.addCleanup(environment.stop)
 
@@ -223,24 +209,21 @@ class VerifyTest(TestCase):
 
 
 class AssetsTest(TestCase):
-    def test_an_asset_is_named_after_its_package_and_version(self):
-        self.assertEqual(release.asset_name("polyspec-ssr-core", "0.0.1", "crate"), "polyspec-ssr-core-0.0.1.crate")
-        self.assertEqual(release.asset_name("@polyspec/ssr", "1.2.3", "tgz"), "polyspec-ssr-1.2.3.tgz")
-        self.assertEqual(release.asset_name("polyspec/ssr", "1.2.3", "zip"), "polyspec-ssr-1.2.3.zip")
-        self.assertEqual(release.asset_names("v0.0.1"), [f"{name}-0.0.1.crate" for _, _, name in release.PACKAGES])
-
-    def test_assets_packages_every_crate_without_a_lock_file(self):
+    def test_a_tag_builds_no_archive_because_every_crate_is_consumed_by_git_tag(self):
         sandbox = Sandbox(self)
-        names = release.assets(sandbox.root, sandbox.tag("v0.0.1"))
-        self.assertEqual(sorted(path.name for path in (sandbox.root / release.ASSETS).iterdir()), sorted(names))
-        self.assertEqual(names, release.asset_names("v0.0.1"))
-        arguments = json.loads(sandbox.cargo_args.read_text())
-        self.assertEqual(arguments[:4], ["package", "--no-verify", "--locked", "--exclude-lockfile"])
-        self.assertEqual(arguments[4:], [value for _, _, name in release.PACKAGES for value in ("-p", name)])
+        stale = sandbox.root / release.ASSETS / "polyspec-ssr-core-0.0.1.crate"
+        stale.parent.mkdir(parents=True)
+        stale.write_text("crate")
+        self.assertEqual(release.asset_names("v0.0.1"), [])
+        self.assertEqual(release.assets(sandbox.root, sandbox.tag("v0.0.1")), [])
+        self.assertEqual(list((sandbox.root / release.ASSETS).iterdir()), [])
+        source = (ROOT / "tools/release.py").read_text()
+        self.assertNotIn('"cargo", "package"', source)
+        self.assertNotIn("--exclude-lockfile", source)
 
 
 class PublishTest(TestCase):
-    def test_publish_creates_the_release_with_the_notes_and_the_archives(self):
+    def test_publish_creates_the_release_with_the_notes_and_no_archive(self):
         sandbox = Sandbox(self)
         tag = sandbox.tag("v0.0.1")
         release.assets(sandbox.root, tag)
@@ -248,14 +231,13 @@ class PublishTest(TestCase):
         recorded = sandbox.recorded()
         call = recorded["calls"][-1]
         notes = call[call.index("--notes-file") + 1]
-        self.assertEqual(call, ["release", "create", "v0.0.1", "--verify-tag", "--title", "v0.0.1", "--notes-file", notes,
-                                *[str(sandbox.root / release.ASSETS / name) for name in release.asset_names(tag)]])
+        self.assertEqual(call, ["release", "create", "v0.0.1", "--verify-tag", "--title", "v0.0.1", "--notes-file", notes])
         self.assertEqual(recorded["notes"], "- The first entry of 0.0.1.\n\n- The second entry of 0.0.1.\n")
 
-    def test_publish_without_the_archives_fails_before_any_request(self):
-        sandbox = Sandbox(self)
-        with self.assertRaisesRegex(release.Stop, r"var/release/assets lacks \[.*\]; make release-assets builds them"):
-            release.publish(sandbox.root, sandbox.tag("v0.0.1"))
+    def test_publish_without_the_changelog_section_fails_before_any_request(self):
+        sandbox = Sandbox(self, version="0.0.2")
+        with self.assertRaisesRegex(release.Stop, r"^docs/changelog.md: no section ## 0.0.2$"):
+            release.publish(sandbox.root, sandbox.tag("v0.0.2"))
         self.assertEqual(sandbox.recorded()["calls"], [])
 
 
@@ -264,12 +246,19 @@ class RepositoryTest(TestCase):
         tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, check=True, capture_output=True, text=True).stdout.split()
         manifests = sorted(path for path in tracked if Path(path).name in (
             "package.json", "composer.json", "Cargo.toml", "VERSION", "pyproject.toml", "go.mod"))
-        self.assertEqual(manifests, sorted(release.MANIFESTS + tuple(release.NOT_RELEASED)))
+        self.assertEqual(manifests, sorted([*release.MANIFESTS, *release.NOT_RELEASED]))
         self.assertEqual(release.GO_MODULES, {})
         members = re.findall(r'"crates/([^"]+)"', release.section((ROOT / "Cargo.toml").read_text(), "workspace"))
-        self.assertEqual(sorted(members), sorted(name for _, _, name in release.PACKAGES))
-        for _, path, name in release.PACKAGES:
-            self.assertRegex((ROOT / path / "Cargo.toml").read_text(), rf'(?m)^name = "{re.escape(name)}"$')
+        self.assertEqual(sorted(members), sorted(release.CRATES))
+        for name in release.CRATES:
+            self.assertRegex((ROOT / "crates" / name / "Cargo.toml").read_text(), rf'(?m)^name = "{re.escape(name)}"$')
+
+    def test_every_crate_is_not_released_as_an_archive_and_consumed_by_git_tag(self):
+        for name, how in release.MANIFESTS.items():
+            with self.subTest(manifest=name):
+                expected = (release.WORKSPACE_VERSION if name == release.WORKSPACE
+                            else "not released as an archive; consumed by git tag")
+                self.assertEqual(how, expected)
 
     def test_the_manifests_of_the_tree_pass_the_version_check_of_their_version(self):
         # No version is released, so the changelog has no section of the workspace version and that is the only failure.

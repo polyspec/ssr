@@ -1,17 +1,19 @@
 # Release: a tag push creates the GitHub Release of the tag. Every change reaches main through the merge queue with the
 # required checks, so every commit of main passed the full checks; the maintainer releases by tagging a commit of main
-# vX.Y.Z after a version-bump pull request. The steps run in order and stop at the first failure: make release-verify
-# requires the tagged commit on origin/main with the check runs push-gate and ci-passed concluded success, without
-# running the tests again; make release-versions requires the version of the tag in every manifest and its section in
-# docs/changelog.md; make release-assets packages every crate (cargo package); make release-publish creates the GitHub
-# Release with the section as notes and the archives attached (tools/release.py). TAG reaches the make targets through
-# the environment, never as shell text. Each step runs a make target; make release-setup installs the pinned Rust
-# toolchain and fetches the locked dependencies. The runner and each action are pinned, as in ci.yml.
+# vX.Y.Z after a version-bump pull request. In a tag filter * does not match /, so '**/v*' covers a tag
+# <directory>/vX.Y.Z at any depth. The steps run in order and stop at the first failure: make release-verify requires
+# the tagged commit on origin/main with the check runs push-gate and ci-passed concluded success, without running the
+# tests again; make release-versions requires the version of the tag in every manifest and its section in
+# docs/changelog.md; make release-assets builds the release assets, npm tarballs and Composer zips only, which the
+# repository has none of, since every crate is not released as an archive and is consumed by git tag; make
+# release-publish creates the GitHub Release with the section as notes (tools/release.py). TAG reaches the make targets
+# through the environment, never as shell text. Each step runs a make target; make release-setup checks Python against
+# tools/tool-versions.json. The runner and each action are pinned, as in ci.yml.
 name: release
 
 on:
   push:
-    tags: ['v*', '*/v*']
+    tags: ['v*', '**/v*']
 
 permissions:
   contents: write

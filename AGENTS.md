@@ -215,8 +215,8 @@ creates, moves or pushes a tag; a tag is never raised through a pull request.
 2. The maintainer tags the merged commit of `main` `vX.Y.Z` and pushes the tag.
 3. The tag push runs `.github/workflows/release.yml`: it requires the tagged commit on `main` with the
    checks `push-gate` and `ci-passed` passed, the version of the tag in every manifest and the section
-   `## X.Y.Z` in `docs/changelog.md`, packages every crate and creates the GitHub Release
-   ([workspace](docs/workspace.md)).
+   `## X.Y.Z` in `docs/changelog.md` and creates the GitHub Release; a crate is not released as an
+   archive and is consumed by git tag ([workspace](docs/workspace.md)).
 
 ## Idempotency
 

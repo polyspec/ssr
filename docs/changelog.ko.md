@@ -4,12 +4,19 @@
 
 ## Unreleased
 
+- 어느 깊이의 tag `<directory>/vX.Y.Z`와 npm, Composer archive만 릴리스한다.
+  `.github/workflows/release.yml`의 trigger는 `tags: ['v*', '**/v*']`이다.
+  tag filter에서 `*`는 `/`와 맞지 않는다. crate는 archive로 릴리스하지 않고
+  git tag로 사용한다. `cargo package`는 git 의존성을 해석되지 않는 crates.io
+  요구로 바꾸기 때문이다. `tools/release.py`는 모든 crate manifest를 그렇게
+  적고, `make release-setup`은 Python만 확인한다.
+
 - `main`의 commit에 붙인 tag를 `.github/workflows/release.yml`로 릴리스한다.
-  이 workflow는 권한 `contents: write`로 tag `v*` 또는 `*/v*`의 push에서
+  이 workflow는 권한 `contents: write`로 tag `v*` 또는 `**/v*`의 push에서
   실행된다. `make release-verify`는 tag된 commit이 `origin/main`에 있고 check
   run `push-gate`와 `ci-passed`가 `success`로 끝났는지, `make release-versions`는
   모든 manifest에 tag의 버전이 있고 `docs/changelog.md`에 section `## X.Y.Z`가
-  있는지 확인하고, `make release-assets`는 모든 crate를 package하며,
+  있는지 확인하고, `make release-assets`는 npm, Composer archive를 만들고(저장소에는 없다),
   `make release-publish`는 section을 notes로 GitHub Release를 만든다
   (`tools/release.py`, `tools/test_release.py`). AGENTS가 릴리스 절차를 적는다.
 

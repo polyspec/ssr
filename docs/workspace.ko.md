@@ -97,18 +97,20 @@ check가 실패하면 pull request는 queue에서 빠지고 `main`은 움직이�
 가짜 `gh`로 도구를 실행한다.
 
 릴리스는 `main`의 commit에 붙인 tag `vX.Y.Z`이고([릴리스 절차](../AGENTS.ko.md)), `crates/`의 crate를 버전 X.Y.Z로
-릴리스한다. tag의 push는 `.github/workflows/release.yml`(`on: push: tags: ['v*', '*/v*']`, 권한 `contents: write`,
-환경 변수 `TAG`의 tag)을 실행한다. 그 step은 고정된 Rust toolchain을 설치하고 잠긴 의존성을 받는 `make release-setup`을
+릴리스한다. crate는 archive로 릴리스하지 않고 git tag로 사용한다. `cargo package`는 `polyspec-ordered-json` 같은 git
+의존성을 해석되지 않는 crates.io 요구로 바꾸기 때문이다. tag의 push는 `.github/workflows/release.yml`(`on: push: tags:
+['v*', '**/v*']`, 권한 `contents: write`, 환경 변수 `TAG`의 tag. tag filter에서 `*`는 `/`와 맞지 않으므로 `**/v*`가
+어느 깊이의 tag `<directory>/vX.Y.Z`든 포함한다)을 실행한다. 그 step은 Python을 `tools/tool-versions.json`과 비교하는
+`make release-setup`을
 실행한 뒤, 다음 순서로 `tools/release.py`를 실행하고 첫 실패에서 멈춘다. `make release-verify`는 tag된 commit이
 `origin/main`의 조상이고 그 commit의 최신 check run `push-gate`와 `ci-passed`(`gh api
 repos/<repository>/commits/<sha>/check-runs`)가 결론 `success`로 완료되었는지 확인하며 테스트를 다시 실행하지 않는다.
 `make release-versions`는 `Cargo.toml`의 `[workspace.package]`, 자기 버전을 선언한 모든 crate manifest, workspace
 crate에 대한 모든 요구에 X.Y.Z가 있고 `docs/changelog.md`에 section `## X.Y.Z`가 있는지 확인하며, 파일마다 두 값을
-적는다. `make release-assets`는 아홉 crate에 대해 offline으로 `cargo package --no-verify --locked --exclude-lockfile`을
-실행하고 `var/release/assets/<crate>-X.Y.Z.crate`를 쓴다. `make release-publish`는 archive와 함께 `gh release create
-<tag> --verify-tag --title <tag> --notes-file <section X.Y.Z>`를 실행한다. archive에는 `Cargo.lock`이 없다. package는
-Git 의존성 `polyspec-ordered-json`을 registry 의존성으로 쓰고 crates.io에는 그 crate가 없으므로 lock을 풀 수 없다.
-저장소에는 Go 모듈이 없으므로 tag `<directory>/vX.Y.Z`는 실패한다. `tools/test_release.py`는 `gh`와 `cargo`의 fake로
+적는다. `make release-assets`는 릴리스 asset인 npm tarball과 Composer zip만 비어 있는 `var/release/assets`에 만들며,
+저장소에는 그런 패키지가 없다. `make release-publish`는 archive 없이 `gh release create <tag> --verify-tag --title <tag>
+--notes-file <section X.Y.Z>`를 실행한다. 저장소에는 Go 모듈이 없으므로 tag `<directory>/vX.Y.Z`는 실패한다.
+`tools/test_release.py`는 `gh`의 fake로
 각 step을 실행하고, `tools/test_ci.py`는 trigger, 권한, step의 순서를 요구한다.
 
 `make bench`는 Cargo 벤치마크를 실행한다. 유지할 측정과 한도는 S-11에 명시한다.

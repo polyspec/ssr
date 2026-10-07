@@ -182,8 +182,8 @@ tag는 pull request로 올리지 않는다.
 2. 메인테이너는 merge된 `main`의 commit에 `vX.Y.Z` tag를 붙이고 tag를 push한다.
 3. tag push는 `.github/workflows/release.yml`을 실행한다. 이 workflow는 tag된 commit이 `main`에 있고
    check `push-gate`와 `ci-passed`를 통과했는지, 모든 manifest에 tag의 버전이 있고 `docs/changelog.md`에
-   section `## X.Y.Z`가 있는지 확인하고, 모든 crate를 package해 GitHub Release를 만든다
-   ([워크스페이스](docs/workspace.ko.md)).
+   section `## X.Y.Z`가 있는지 확인하고 GitHub Release를 만든다. crate는 archive로 릴리스하지 않고
+   git tag로 사용한다([워크스페이스](docs/workspace.ko.md)).
 
 ## 멱등성
 

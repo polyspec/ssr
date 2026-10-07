@@ -121,20 +121,21 @@ declared value, when a declared repository field differs or the live ruleset is 
 administration access to the repository. `tools/test_github_ruleset.py` runs the tool against a fake `gh`.
 
 A release is a tag `vX.Y.Z` of a commit of `main` ([release procedure](../AGENTS.md)); it releases the crates of
-`crates/` at version X.Y.Z. The push of the tag runs `.github/workflows/release.yml` (`on: push: tags: ['v*', '*/v*']`,
-permission `contents: write`, the tag in the environment variable `TAG`). Its steps run `make release-setup`, which
-installs the pinned Rust toolchain and fetches the locked dependencies, and then `tools/release.py` in this order,
+`crates/` at version X.Y.Z. A crate is not released as an archive; it is consumed by git tag, because `cargo package`
+rewrites git dependencies, such as `polyspec-ordered-json`, into crates.io requirements that do not resolve. The push of
+the tag runs `.github/workflows/release.yml` (`on: push: tags: ['v*', '**/v*']`, permission `contents: write`, the tag
+in the environment variable `TAG`; in a tag filter `*` does not match `/`, so `**/v*` covers a tag `<directory>/vX.Y.Z`
+at any depth). Its steps run `make release-setup`, which checks Python against `tools/tool-versions.json`, and then
+`tools/release.py` in this order,
 stopping at the first failure: `make release-verify` requires the tagged commit to be an ancestor of `origin/main` and
 the latest check runs `push-gate` and `ci-passed` of that commit (`gh api repos/<repository>/commits/<sha>/check-runs`)
 to be completed with the conclusion `success`, without running the tests again; `make release-versions` requires X.Y.Z
 in `[workspace.package]` of `Cargo.toml`, in every crate manifest that declares its own version and in every
 requirement on a crate of the workspace, and the section `## X.Y.Z` in `docs/changelog.md`, naming each file with both
-values; `make release-assets` runs `cargo package --no-verify --locked --exclude-lockfile` for the nine crates offline
-and writes `var/release/assets/<crate>-X.Y.Z.crate`; `make release-publish` runs `gh release create <tag> --verify-tag
---title <tag> --notes-file <the section X.Y.Z>` with the archives. The archives hold no `Cargo.lock`: packaging writes
-the Git dependency `polyspec-ordered-json` as a registry dependency, and crates.io does not list it, so its lock cannot
-be resolved. The repository has no Go module, so a tag `<directory>/vX.Y.Z` fails. `tools/test_release.py` runs each
-step against fakes of `gh` and `cargo`, and `tools/test_ci.py` requires the trigger, the permission and the order of the
+values; `make release-assets` builds the release assets, npm tarballs and Composer zips only, into an empty
+`var/release/assets`, and the repository has none; `make release-publish` runs `gh release create <tag> --verify-tag
+--title <tag> --notes-file <the section X.Y.Z>` without archives. The repository has no Go module, so a tag
+`<directory>/vX.Y.Z` fails. `tools/test_release.py` runs each step against a fake of `gh`, and `tools/test_ci.py` requires the trigger, the permission and the order of the
 steps.
 
 Run `make bench` to execute Cargo benchmarks. The maintained measurements and limits are specified

@@ -79,11 +79,13 @@ class WorkflowRuleTest(TestCase):
 
     def test_each_workflow_declares_exactly_its_triggers(self):
         # ci.yml runs the checks on every pull request, merge group and manual run; push-gate.yml also runs on every
-        # push outside the branches of the merge queue. No other workflow exists.
+        # push outside the branches of the merge queue; release.yml runs on the push of a tag vX.Y.Z or <directory>/vX.Y.Z
+        # at any depth (in a tag filter * does not match /, so **/v* covers a tag with any number of /). No other
+        # workflow exists.
         triggers = {
             "ci.yml": "on:\n  pull_request:\n  merge_group:\n  workflow_dispatch:\n",
             "push-gate.yml": "on:\n  push:\n    branches-ignore: ['gh-readonly-queue/**']\n  pull_request:\n  merge_group:\n",
-            "release.yml": "on:\n  push:\n    tags: ['v*', '*/v*']\n",
+            "release.yml": "on:\n  push:\n    tags: ['v*', '**/v*']\n",
         }
         workflows = ROOT / ".github/workflows"
         self.assertEqual(sorted(path.name for path in workflows.glob("*.y*ml")), sorted(triggers))
@@ -158,6 +160,17 @@ class WorkflowRuleTest(TestCase):
         runs = re.findall(r"(?m)^\s+run: (.+)$", body)
         self.assertEqual(runs, ["make release-setup", "make release-verify", "make release-versions",
                                 "make release-assets", "make release-publish"])
+
+    def test_release_runs_on_the_tags_at_any_depth(self):
+        text = (ROOT / ".github/workflows/release.yml").read_text()
+        expected = "on:\n  push:\n    tags: ['v*', '**/v*']\n"
+        for case, broken in (("one level", text.replace("'**/v*'", "'*/v*'")),
+                             ("no directory", text.replace(", '**/v*'", ""))):
+            with self.subTest(case=case):
+                self.assertNotEqual(broken, text)
+                declared = re.search(r"(?m)^on:\n(?:  .*\n)+", broken)
+                self.assertNotEqual(declared.group(0) if declared else "", expected)
+        self.assertEqual(re.search(r"(?m)^on:\n(?:  .*\n)+", text).group(0), expected)
 
     def test_the_linux_jobs_build_both_architectures(self):
         text = (ROOT / ".github/workflows/ci.yml").read_text()
