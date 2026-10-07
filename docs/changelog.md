@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Run `.github/workflows/ci.yml` on every pull request, merge group and manual
+  run (`workflow_dispatch`), and declare the triggers of each workflow exactly.
+
 - Depend on the tag `v0.0.1` of ordered-json in the workspace manifest,
   `Cargo.lock` and `verification/engine/Cargo.lock`.
 

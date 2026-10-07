@@ -106,7 +106,7 @@ rule violations found`. `gh pr merge --auto` adds the pull request to the merge 
 the pull request; the queue rebases it onto `main` as a merge group on the branch
 `gh-readonly-queue/main/pr-<number>-<sha>`, both workflows run on that commit (`merge_group`), and the queue moves `main`
 to exactly that commit when the checks pass; a failed check removes the pull request from the queue, and `main` does not
-move. `ci.yml` runs on pull requests and merge groups only, and cancels a run only for a new push to a pull request;
+move. `ci.yml` runs on pull requests, merge groups and manual runs (`workflow_dispatch`), and cancels a run only for a new push to a pull request;
 `push-gate.yml` also runs on every push except the branches of the queue. The branch of a merged pull request is deleted
 (`delete_branch_on_merge`). The rebase gives the merged commits new hashes; `git pull --rebase` drops the local commits
 that the queue merged. `make github-ruleset` changes the declared repository settings (`allow_rebase_merge`,

@@ -53,6 +53,19 @@ class WorkflowRuleTest(TestCase):
                       "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}\n", text)
         self.assertNotIn("concurrency", (ROOT / ".github/workflows/push-gate.yml").read_text())
 
+    def test_each_workflow_declares_exactly_its_triggers(self):
+        # ci.yml runs the checks on every pull request, merge group and manual run; push-gate.yml also runs on every
+        # push outside the branches of the merge queue. No other workflow exists.
+        triggers = {
+            "ci.yml": "on:\n  pull_request:\n  merge_group:\n  workflow_dispatch:\n",
+            "push-gate.yml": "on:\n  push:\n    branches-ignore: ['gh-readonly-queue/**']\n  pull_request:\n  merge_group:\n",
+        }
+        workflows = ROOT / ".github/workflows"
+        self.assertEqual(sorted(path.name for path in workflows.glob("*.y*ml")), sorted(triggers))
+        for name, block in triggers.items():
+            declared = re.search(r"(?m)^on:\n(?:  .*\n)+", (workflows / name).read_text())
+            self.assertEqual(declared.group(0) if declared else "", block, name)
+
     def test_the_workflows_run_on_pull_requests_and_merge_groups(self):
         for name in ("ci.yml", "push-gate.yml"):
             trigger = re.search(r"(?ms)^on:\n(.*?)^\S", (ROOT / ".github/workflows" / name).read_text()).group(1)

@@ -3,12 +3,13 @@
 # the first failure lines are uploaded, and the summary is the job summary, also after a failure.
 name: ci
 
-# Every pull request and every merge group of the merge queue: the ruleset of main requires the jobs of this
-# workflow, and the merge queue moves main to the merge group commit only after they passed on it, so the run of the
-# merge group is the evidence of the commit that main receives.
+# Every pull request, every merge group of the merge queue and every manual run (workflow_dispatch): the ruleset of
+# main requires the jobs of this workflow, and the merge queue moves main to the merge group commit only after they
+# passed on it, so the run of the merge group is the evidence of the commit that main receives.
 on:
   pull_request:
   merge_group:
+  workflow_dispatch:
 
 permissions:
   contents: read

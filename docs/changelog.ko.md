@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- `.github/workflows/ci.yml`을 모든 pull request, merge group, 수동 실행
+  (`workflow_dispatch`)에서 실행하고, 각 workflow의 trigger를 정확히 선언한다.
+
 - workspace manifest, `Cargo.lock`, `verification/engine/Cargo.lock`에서 ordered-json의
   tag `v0.0.1`에 의존한다.
 

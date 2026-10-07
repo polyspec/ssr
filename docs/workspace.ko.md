@@ -82,7 +82,7 @@ job과 각 runner의 `.github/workflows/ci.yml` job이다. `git push origin <com
 rule violations found`로 거부된다. `gh pr merge --auto`는 pull request의 필수 check가 통과하면 pull request를 merge
 queue에 넣는다. queue는 이를 branch `gh-readonly-queue/main/pr-<번호>-<sha>`의 merge group으로 `main` 위에 rebase하고,
 두 workflow가 그 commit에서 실행되며(`merge_group`), check가 통과하면 queue가 `main`을 정확히 그 commit으로 옮긴다.
-check가 실패하면 pull request는 queue에서 빠지고 `main`은 움직이지 않는다. `ci.yml`은 pull request와 merge group에서만
+check가 실패하면 pull request는 queue에서 빠지고 `main`은 움직이지 않는다. `ci.yml`은 pull request, merge group, 수동 실행(`workflow_dispatch`)에서
 실행되고 pull request에 새 push가 있을 때만 실행을 취소한다. `push-gate.yml`은 queue의 branch를 뺀 모든 push에서도
 실행된다. merge된 pull request의 branch는 지워진다(`delete_branch_on_merge`). rebase는 merge된 commit에 새 hash를 주므로
 `git pull --rebase`가 queue가 merge한 로컬 commit을 버린다. `make github-ruleset`은 선언된 저장소 설정(`allow_rebase_merge`,

@@ -115,8 +115,8 @@
   제목(끝 마침표 없음), 빈 줄, 72자 부근 개행한 본문(무엇을·왜 변경했는지), 선택적 꼬리말. 타입은
   feat, fix, docs, style, refactor, test, chore 중 하나다.
 - 개발 중에는 변경을 소유한 unit 수준의 Red·Green 테스트만 실행한다. 전체 검사와 end-to-end 검사(`make check`의
-  target, `make check-linux`의 Linux build와 test, `make verify-build`, ownership 검사)는 모든 pull request와
-  merge group의 GitHub CI(`.github/workflows/ci.yml`)에서 실행한다. 어떤 규칙도 push 전에 이것들을 로컬에서 실행하기를 요구하지 않으며,
+  target, `make check-linux`의 Linux build와 test, `make verify-build`, ownership 검사)는 모든 pull request,
+  merge group, 수동 실행의 GitHub CI(`.github/workflows/ci.yml`)에서 실행한다. 어떤 규칙도 push 전에 이것들을 로컬에서 실행하기를 요구하지 않으며,
   pre-push hook은 진행 중 항목이 있는 push만 거부한다. 로컬 전체 실행은 요청이 있을 때만, 활성 체크리스트 항목이 모두
   끝났을 때 한 번 하며, 수정마다, 항목마다 다시 실행하지 않는다. 모든 테스트는 자신의 실행·완료·성공·실패와
   경과 시간을 출력하고 자기 타임아웃을 가지며, 전체 일괄 타임아웃은 쓰지 않는다. 장기 작업은 타임아웃 대신
