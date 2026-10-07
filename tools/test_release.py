@@ -261,10 +261,8 @@ class RepositoryTest(TestCase):
                 self.assertEqual(how, expected)
 
     def test_the_manifests_of_the_tree_pass_the_version_check_of_their_version(self):
-        # No version is released, so the changelog has no section of the workspace version and that is the only failure.
         version = release.manifest_version(ROOT / "Cargo.toml")
-        with self.assertRaisesRegex(release.Stop, rf"^docs/changelog.md: no section ## {re.escape(version)} for the tag v{version}$"):
-            release.versions(ROOT, f"v{version}")
+        self.assertEqual(release.versions(ROOT, f"v{version}"), version)
 
     def test_make_runs_each_step_with_the_tag_of_the_environment(self):
         makefile = (ROOT / "Makefile").read_text()

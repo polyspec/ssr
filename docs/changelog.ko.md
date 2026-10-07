@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+## 0.0.1
+
 - Linux는 CI의 Linux runner에서만 검증한다. `make check`는 Linux container를
   실행하지 않는다. `.github/workflows/ci.yml`의 job `lint`와 `test`가
   `ubuntu-24.04-arm`과 `ubuntu-24.04`에서 `check-clippy`, `check-examples`,

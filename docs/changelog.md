@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+## 0.0.1
+
 - Verify Linux on the Linux runners of CI only. `make check` runs no Linux
   container: the jobs `lint` and `test` of `.github/workflows/ci.yml` lint,
   build and test the workspace on `ubuntu-24.04-arm` and `ubuntu-24.04` with
