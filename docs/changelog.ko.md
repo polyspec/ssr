@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- workspace manifest, `Cargo.lock`, `verification/engine/Cargo.lock`에서 ordered-json의
+  tag `v0.0.1`에 의존한다.
+
 - `Cargo.lock`과 `verification/engine/Cargo.lock`에서 ordered-json을 그 저장소
   `main` branch의 현재 commit으로 잠근다.
 

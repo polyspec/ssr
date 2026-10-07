@@ -4,6 +4,9 @@
 
 ## 0.0.1
 
+- Depend on the tag `v0.0.1` of ordered-json in the workspace manifest,
+  `Cargo.lock` and `verification/engine/Cargo.lock`.
+
 - Lock ordered-json at the current commit of the `main` branch of its
   repository in `Cargo.lock` and `verification/engine/Cargo.lock`.
 
