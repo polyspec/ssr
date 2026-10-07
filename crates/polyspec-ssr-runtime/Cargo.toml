@@ -5,7 +5,7 @@ edition = "2024"
 license.workspace = true
 
 [dependencies]
-polyspec-ssr-core = { path = "../polyspec-ssr-core", version = "=0.0.1" }
+polyspec-ssr-core = { path = "../polyspec-ssr-core", version = "=0.0.2" }
 deno_core.workspace = true
 v8.workspace = true
 crossbeam-channel.workspace = true
@@ -21,7 +21,7 @@ bench = ["dep:rustix"]
 
 [dev-dependencies]
 wait-timeout.workspace = true
-polyspec-ssr-build = { path = "../polyspec-ssr-build", version = "=0.0.1" }
+polyspec-ssr-build = { path = "../polyspec-ssr-build", version = "=0.0.2" }
 
 [[example]]
 name = "bench"

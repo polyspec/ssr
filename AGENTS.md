@@ -49,7 +49,7 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   and branch. If removal is impossible, first add a numbered sub-item to the owning checklist with
   the cause and exact removal condition.
 - JSON documents of the public contract use ordered-json.
-- Develop one `0.0.1` library. The crates are `polyspec-ssr-core`, `polyspec-ssr-build`,
+- Develop one `0.0.2` library. The crates are `polyspec-ssr-core`, `polyspec-ssr-build`,
   `polyspec-ssr-runtime`, `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`,
   `polyspec-ssr-adapter-svelte`, `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-nonce` and
   `polyspec-ssr-server`, each in `crates/<crate>`, with the libraries `polyspec_ssr_core` and so on.

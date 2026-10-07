@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+## 0.0.2
+
 - workspace manifest, `Cargo.lock`, `verification/engine/Cargo.lock`에서 ordered-json의
   release된 tag `v0.0.2`, version `=0.0.2`에 의존한다. ordered-json의 tag `v0.0.1`에는
   GitHub Release가 없다.

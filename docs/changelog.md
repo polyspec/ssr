@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+## 0.0.2
+
 - Depend on the released tag `v0.0.2` of ordered-json, version `=0.0.2`, in the
   workspace manifest, `Cargo.lock` and `verification/engine/Cargo.lock`. The tag
   `v0.0.1` of ordered-json has no GitHub Release.

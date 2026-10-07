@@ -5,8 +5,8 @@ edition = "2024"
 publish = false
 
 [dependencies]
-polyspec-ssr-core = { path = "../../crates/polyspec-ssr-core", version = "=0.0.1" }
-polyspec-ssr-runtime = { path = "../../crates/polyspec-ssr-runtime", version = "=0.0.1" }
+polyspec-ssr-core = { path = "../../crates/polyspec-ssr-core", version = "=0.0.2" }
+polyspec-ssr-runtime = { path = "../../crates/polyspec-ssr-runtime", version = "=0.0.2" }
 
 [workspace]
 

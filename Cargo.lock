@@ -2595,7 +2595,7 @@ dependencies = [
 
 [[package]]
 name = "polyspec-ssr-adapter-react"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "polyspec-ssr-build",
  "polyspec-ssr-core",
@@ -2606,7 +2606,7 @@ dependencies = [
 
 [[package]]
 name = "polyspec-ssr-adapter-svelte"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "polyspec-ssr-build",
  "polyspec-ssr-core",
@@ -2617,7 +2617,7 @@ dependencies = [
 
 [[package]]
 name = "polyspec-ssr-adapter-vanilla"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "polyspec-ssr-build",
  "polyspec-ssr-core",
@@ -2628,7 +2628,7 @@ dependencies = [
 
 [[package]]
 name = "polyspec-ssr-adapter-vue"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "polyspec-ssr-build",
  "polyspec-ssr-core",
@@ -2639,7 +2639,7 @@ dependencies = [
 
 [[package]]
 name = "polyspec-ssr-build"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "deno_core",
  "getrandom 0.4.3",
@@ -2657,21 +2657,21 @@ dependencies = [
 
 [[package]]
 name = "polyspec-ssr-core"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "polyspec-ordered-json",
 ]
 
 [[package]]
 name = "polyspec-ssr-nonce"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "lol_html",
 ]
 
 [[package]]
 name = "polyspec-ssr-runtime"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "crossbeam-channel",
  "deno_core",
@@ -2689,7 +2689,7 @@ dependencies = [
 
 [[package]]
 name = "polyspec-ssr-server"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "getrandom 0.4.3",
  "http",

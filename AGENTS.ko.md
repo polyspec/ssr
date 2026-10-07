@@ -41,7 +41,7 @@
   나머지 테스트 전용 변경은 폐기한 뒤 워크트리와 브랜치를 제거한다. 제거할 수 없다면 먼저 소유
   체크리스트에 번호가 붙은 하위 항목을 추가하고 원인과 정확한 제거 조건을 기록한다.
 - 공개 계약의 JSON 문서는 ordered-json을 사용한다.
-- `0.0.1` 라이브러리 하나를 개발한다. 크레이트는 `polyspec-ssr-core`, `polyspec-ssr-build`,
+- `0.0.2` 라이브러리 하나를 개발한다. 크레이트는 `polyspec-ssr-core`, `polyspec-ssr-build`,
   `polyspec-ssr-runtime`, `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`,
   `polyspec-ssr-adapter-svelte`, `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-nonce`,
   `polyspec-ssr-server`이며 각각 `crates/<crate>`에 있고 라이브러리 이름은 `polyspec_ssr_core` 등이다.

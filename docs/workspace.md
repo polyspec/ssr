@@ -3,7 +3,7 @@
 # Workspace
 
 The Rust 1.98.1 workspace contains the eight crates named in AGENTS.md. All crates use edition
-2024 and version 0.0.1. The workspace lockfile records dependency resolution. Each direct
+2024 and version 0.0.2. The workspace lockfile records dependency resolution. Each direct
 dependency must use an exact version after its official release is checked.
 
 Run `make check` to check the document pairs and links, records, terminology, Python tool tests,

@@ -5,10 +5,10 @@ edition = "2024"
 license.workspace = true
 
 [dependencies]
-polyspec-ssr-core = { path = "../polyspec-ssr-core", version = "=0.0.1" }
-polyspec-ssr-runtime = { path = "../polyspec-ssr-runtime", version = "=0.0.1" }
+polyspec-ssr-core = { path = "../polyspec-ssr-core", version = "=0.0.2" }
+polyspec-ssr-runtime = { path = "../polyspec-ssr-runtime", version = "=0.0.2" }
 
 [dev-dependencies]
-polyspec-ssr-build = { path = "../polyspec-ssr-build", version = "=0.0.1" }
+polyspec-ssr-build = { path = "../polyspec-ssr-build", version = "=0.0.2" }
 tokio.workspace = true
 wait-timeout.workspace = true

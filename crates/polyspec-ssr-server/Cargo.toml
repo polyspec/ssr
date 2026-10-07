@@ -6,13 +6,13 @@ license.workspace = true
 
 [dependencies]
 http.workspace = true
-polyspec-ssr-build = { path = "../polyspec-ssr-build", version = "=0.0.1" }
-polyspec-ssr-core = { path = "../polyspec-ssr-core", version = "=0.0.1" }
-polyspec-ssr-runtime = { path = "../polyspec-ssr-runtime", version = "=0.0.1" }
-polyspec-ssr-adapter-react = { path = "../polyspec-ssr-adapter-react", version = "=0.0.1" }
-polyspec-ssr-adapter-svelte = { path = "../polyspec-ssr-adapter-svelte", version = "=0.0.1" }
-polyspec-ssr-adapter-vanilla = { path = "../polyspec-ssr-adapter-vanilla", version = "=0.0.1" }
-polyspec-ssr-nonce = { path = "../polyspec-ssr-nonce", version = "=0.0.1" }
+polyspec-ssr-build = { path = "../polyspec-ssr-build", version = "=0.0.2" }
+polyspec-ssr-core = { path = "../polyspec-ssr-core", version = "=0.0.2" }
+polyspec-ssr-runtime = { path = "../polyspec-ssr-runtime", version = "=0.0.2" }
+polyspec-ssr-adapter-react = { path = "../polyspec-ssr-adapter-react", version = "=0.0.2" }
+polyspec-ssr-adapter-svelte = { path = "../polyspec-ssr-adapter-svelte", version = "=0.0.2" }
+polyspec-ssr-adapter-vanilla = { path = "../polyspec-ssr-adapter-vanilla", version = "=0.0.2" }
+polyspec-ssr-nonce = { path = "../polyspec-ssr-nonce", version = "=0.0.2" }
 sourcemap.workspace = true
 tracing.workspace = true
 sha2.workspace = true
