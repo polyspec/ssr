@@ -28,6 +28,10 @@ CHECK_NEEDS = check-tools=check-fixtures check-ownership=verify-archive,check-fi
 # The host engine inputs and Cargo settings go to the targets that build on this host; check-linux
 # verifies and builds with the Linux inputs in its container, which a host archive would refuse.
 CHECK_HOST_TARGETS = $(filter-out check-linux,$(CHECK_TARGETS))
+# The number of Cargo build jobs of the host targets: 1 by default, so a local build leaves the
+# other processors of the host to the other work; the CI targets set it to the processor count of
+# the runner (nproc).
+BUILD_JOBS ?= 1
 FULL_RUN = python3 -m tools.holder_lock run check -- python3 -m tools.full_run
 
 # A make without a target runs the full suite entry, so no command runs its steps without the guard.
@@ -37,7 +41,7 @@ FULL_RUN = python3 -m tools.holder_lock run check -- python3 -m tools.full_run
 $(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
 $(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
 $(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-build: export CARGO_INCREMENTAL := 0
-$(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-build: export CARGO_BUILD_JOBS := 1
+$(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-build: export CARGO_BUILD_JOBS := $(BUILD_JOBS)
 $(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-build: export CARGO_NET_OFFLINE := true
 bench: verify-archive
 
@@ -134,7 +138,8 @@ verify-build:
 # GitHub CI (.github/workflows/ci.yml and push-gate.yml) runs only make targets. ci-setup prepares a
 # fresh Linux runner: the pinned toolchain and test tools, the verified official V8 inputs of the
 # host target and the locked dependencies. ci runs the CI targets through tools/ci_run.py, which
-# runs every target past failures and writes var/ci/<target>.log and var/ci/summary.md.
+# runs every target past failures and writes var/ci/<target>.log and var/ci/summary.md; Cargo
+# builds with one job per processor of the runner (BUILD_JOBS).
 CI_TARGETS = ci-records check-fmt check-clippy check-deny check-examples ci-nextest
 CI_PUSH_TARGETS = ci-python push-check push-records
 
@@ -147,7 +152,7 @@ ci-setup:
 
 ci:
 	python3 -m tools.tool_versions check python3 rustc
-	python3 -m tools.ci_run $(CI_TARGETS)
+	BUILD_JOBS=$$(nproc) python3 -m tools.ci_run $(CI_TARGETS)
 
 ci-nextest:
 	cargo nextest run --workspace --locked --no-tests fail

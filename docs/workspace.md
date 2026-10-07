@@ -84,6 +84,10 @@ commit whose records fail never reaches `main`. CI runs `make ci-records` (`pyth
 every check of `tools/check.py`, with the versions of the tools that a runner installs at their declared
 versions, Python and rustc.
 
+`.github/workflows/ci.yml` runs `make ci-setup` and `make ci` on `ubuntu-24.04-arm` and `ubuntu-24.04`. Cargo builds
+the host targets with `BUILD_JOBS` jobs: 1 by default, so a local build leaves the other processors of the host to
+other work, and `make ci` sets `BUILD_JOBS` to the processor count of the runner (`nproc`).
+
 Every change reaches `main` through a pull request and the merge queue; no command of this repository pushes `main`.
 Publish a branch with the standard commands of GitHub, or with the GitHub UI:
 

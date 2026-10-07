@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- Build the CI targets with one Cargo job per processor of the runner.
+  `BUILD_JOBS ?= 1` sets `CARGO_BUILD_JOBS` of the host targets, so a local
+  build runs one job, and `make ci` sets `BUILD_JOBS` to the output of `nproc`.
+
 - Release the tags `<directory>/vX.Y.Z` at any depth and only npm and Composer
   archives. The trigger of `.github/workflows/release.yml` is
   `tags: ['v*', '**/v*']`: in a tag filter `*` does not match `/`. A crate is

@@ -179,6 +179,44 @@ class WorkflowRuleTest(TestCase):
         self.assertIn("run: make ci", text)
 
 
+def recipe(target):
+    """The commands of a target of the Makefile, as written."""
+    lines = (ROOT / "Makefile").read_text().splitlines()
+    start = lines.index(f"{target}:") + 1
+    commands = []
+    for line in lines[start:]:
+        if not line.startswith("\t"):
+            break
+        commands.append(line.strip())
+    return commands
+
+
+class BuildJobsTest(TestCase):
+    """Cargo builds with one job by default and with one job per processor of the runner in CI."""
+
+    def build_jobs(self, environment):
+        with TemporaryDirectory() as directory:
+            cargo = Path(directory) / "cargo"
+            cargo.write_text('#!/bin/sh\necho "CARGO_BUILD_JOBS=$CARGO_BUILD_JOBS"\n')
+            cargo.chmod(0o755)
+            inherited = {name: value for name, value in os.environ.items()
+                         if name not in ("MAKEFLAGS", "MFLAGS", "MAKELEVEL", "GNUMAKEFLAGS", "MAKEFILES", "BUILD_JOBS",
+                                         "CARGO_BUILD_JOBS")}
+            inherited["PATH"] = f"{directory}{os.pathsep}{inherited['PATH']}"
+            ran = subprocess.run(["make", "--no-print-directory", "ci-nextest"], cwd=ROOT,
+                                 env={**inherited, **environment}, capture_output=True, text=True)
+        self.assertEqual(ran.returncode, 0, ran.stdout + ran.stderr)
+        return re.findall(r"(?m)^CARGO_BUILD_JOBS=(.*)$", ran.stdout)
+
+    def test_a_local_build_runs_one_job_and_build_jobs_sets_the_count(self):
+        self.assertEqual(self.build_jobs({}), ["1"])
+        self.assertEqual(self.build_jobs({"BUILD_JOBS": "4"}), ["4"])
+
+    def test_the_ci_targets_build_with_the_processor_count_of_the_runner(self):
+        self.assertEqual(recipe("ci"), ["python3 -m tools.tool_versions check python3 rustc",
+                                        "BUILD_JOBS=$$(nproc) python3 -m tools.ci_run $(CI_TARGETS)"])
+
+
 NEEDS = """{
   "linux": {
     "result": "%s",

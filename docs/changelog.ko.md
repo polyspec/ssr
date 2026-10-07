@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- CI target을 runner의 processor마다 Cargo job 하나로 빌드한다.
+  `BUILD_JOBS ?= 1`이 host target의 `CARGO_BUILD_JOBS`를 정하므로 로컬 빌드는
+  job 하나로 실행되고, `make ci`는 `BUILD_JOBS`를 `nproc`의 출력으로 설정한다.
+
 - 어느 깊이의 tag `<directory>/vX.Y.Z`와 npm, Composer archive만 릴리스한다.
   `.github/workflows/release.yml`의 trigger는 `tags: ['v*', '**/v*']`이다.
   tag filter에서 `*`는 `/`와 맞지 않는다. crate는 archive로 릴리스하지 않고
