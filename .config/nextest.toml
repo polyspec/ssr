@@ -35,8 +35,7 @@ setup = "build-programs"
 # SSR_PACKAGES, and names the fixture sources in SSR_FIXTURES (tools/install_packages.py); each
 # test copies the sources into a temporary root of its own. The install has no time limit. The
 # filter names exactly the test binaries that read the installation, which tools/check.py checks
-# (filter_errors of tools/install_packages.py), so tests that need no packages, such as the
-# polyspec-ssr-server targets of make check-linux, run without npm.
+# (filter_errors of tools/install_packages.py), so tests that need no packages run without npm.
 [scripts.setup.install-packages]
 command = ["python3", "-m", "tools.install_packages"]
 slow-timeout = { period = "60s" }

@@ -72,7 +72,7 @@ class HolderLockTest(TestCase):
     def test_lock_of_a_stopped_holder_is_reported_and_kept_until_removed(self):
         pid = self.stopped_pid()
         record = {"checkout": "/elsewhere/ssr", "pid": pid, "processStart": "Mon Oct  5 10:00:00 2026",
-                  "acquired": "2026-10-05T01:00:00.000Z", "command": "make verify-engine-linux-arm64",
+                  "acquired": "2026-10-05T01:00:00.000Z", "command": "make check",
                   "token": "stopped"}
         self.path.write_text(json.dumps(record) + "\n")
         with self.assertRaisesRegex(holder_lock.HolderLockRefused,

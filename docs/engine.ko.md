@@ -52,39 +52,12 @@ V8 버전과 feature 구성을 검사한다. `make check`, `make bench`와 엔�
 접근 없이 빌드한다. 전체 빌드 경과 시간 제한을 적용하지 않고 Cargo 명령과 컴파일러 진행을
 기록한다. 네이티브 대상 실행에는 개별 테스트 제한 시간을 적용한다.
 
-`make verify-engine-linux-arm64`는 SHA-256이
-`sha256:5b993f23fb69746405496e76f91e511d96c82b5b23304fd5d20b4a80a8b223ea`인
-Rust 1.98.1 Bookworm 이미지로 ARM64 Linux 컨테이너 이미지를 빌드한다.
-검증한 로컬 archive와 일치하는 binding을 요구하고 저장소를 읽기 전용으로
-`/src`에 마운트한다. 호스트의 무시된 `var/engine-cargo`와
-`var/engine-target` 디렉터리를 `/cargo`와 `/target`에 쓰기 가능한
-바인드 마운트로 연결하고 프로그램을 빌드·실행한다. `make`는 Compose 파일에
-절대 호스트 경로를 기록한 무시된 `var/engine-compose.yaml`을 만들어 이후
-`containerctl status`에서도 같은 마운트 구성을 읽게 한다. 호스트에서 두 디렉터리의 파일을 직접 확인할 수
-있고 컨테이너를 교체해도 내용이 유지된다.
-checkout마다 stack을 따로 둔다. Compose project는 `ssr-engine-<자리>`,
-container는 `ssr-engine-<자리>-engine`, image는 `localhost/ssr-engine-verify-<자리>:0.0.1`이며,
-자리는 checkout path SHA-256의 앞 16진수 12자리다. `tools/verify_engine_linux.py`는
-`make verify-engine-linux-arm64`와 `make verify-engine-down`의 단계를
-`tools/holder_lock.py`의 checkout lock `var/locks/engine-verification.lock` 아래에서
-실행한다. lock record는 holder의 checkout, pid, process 시작 시각을 밝힌다. 두 번째
-실행은 그 record와 함께 거부되고, holder가 더 이상 실행되지 않는 lock은 보고하고
-`python3 -m tools.holder_lock remove-stopped <lock file>`이 지울 때까지 남겨 두며, holder만
-lock을 해제한다. 각 단계는 command, 출력, 결과를 경과 시간과 함께 시간 제한 없이 출력한다.
-첫 실패 단계가 단계를 끝내고, stack이 시작된 뒤에는 실패한 뒤에도 단계가 끝나면 stack을 멈추며,
-실행은 실패한 단계와 멈춤의 결과를 보고한다.
-네이티브 GNU 링커는 Rust 대상의 링크 인자를 유지한다.
-다른 체크아웃은 마운트하지 않는다. 모든 의존성은 crates.io나 고정된 Git commit에서 오며 `cargo fetch`가
-Cargo cache로 읽는다. 컨테이너는 소스 체크아웃을 수정할 수 없다. 이미지에는 Clippy와 cargo-nextest 0.9.146도 있다.
-
-`make check`의 target인 `make check-linux`는 같은 stack에서 같은 lock 아래 `tools/check_linux.py`를
-실행한다. AArch64 Linux V8 입력을 검증하고, stack을 시작하고, mount를 확인하고, 잠긴 의존성을
-fetch한 뒤, 이미지의 Linux gcc toolchain으로 `cargo clippy --locked -p polyspec-ssr-server --all-targets -- -D warnings`,
-`development_process`와 `socket_process` 예제 빌드,
-`cargo nextest run --locked -p polyspec-ssr-server --lib --test development --test process`를 실행하고 stack을
-멈춘다. 각 단계는 command, 출력, 결과를 경과 시간과 함께 시간 제한 없이 출력한다. 이 target들은 package
-설치본을 읽지 않으므로 npm이 필요한 nextest setup script `install-packages`는 container에서 실행되지 않는다.
-x86_64 Linux는 빌드하지 않는다. host는 AArch64 Linux container만 native로 실행한다.
+Linux는 GitHub CI의 Linux runner에서 검증한다([workspace](workspace.ko.md)).
+`ubuntu-24.04-arm`과 `ubuntu-24.04`에서 `make ci-setup`이 runner 대상의 공식 archive와 binding을
+가져와 SHA-256을 검증하고(`tools/fetch_v8.py`), `.github/workflows/ci.yml`의 job `lint`와 `test`가
+workspace의 모든 target에 Clippy를 실행하고(`check-clippy`), `development_process`와
+`socket_process` 예제를 빌드하며(`check-examples`), workspace의 모든 테스트를 실행한다(`ci-nextest`).
+이 테스트는 `v8 150.4.0`을 링크하고 AArch64와 x86_64 Linux에서 엔진을 실행한다.
 
 ## 렌더 스냅샷
 
@@ -121,12 +94,7 @@ Linux 컨테이너에서 실행했다. 다음 결과는 대상별 전체 빌드�
 | `aarch64-unknown-linux-gnu` | ARM64 Linux 컨테이너에서 통과 | 같은 컨테이너에서 통과 | ELF AArch64, SHA-256 `c4687edd8619e2e9cb04cf639d86e1b8532485f9c29e08bdfc3ec10866282258` |
 
 네 빌드는 관리 중인 매크로 패키지를 선택하는 V8 150.4.0을 사용했다. 네이티브
-AArch64 Linux 빌드는 Rust 1.98.1과 위 아카이브 해시로 완료됐다. 마운트 검사에서
-`/src`와 V8 체크아웃은 읽기 전용, `/cargo`와 `/target`은 쓰기 가능한 호스트
-마운트로 확인됐다. `containerctl status`는 절대 Compose 경로를 프로젝트 오류 없이
-읽었다. 엔진 컨테이너만 교체한 뒤에도 캐시된 소스와 링크된 프로그램이 호스트에
-남았다. 반복한 Cargo 빌드는 크레이트 컴파일 없이 0.50초에 완료됐고, 실행 파일은
-SHA-256 해시를 유지하며 교체한 컨테이너에서 실행됐다. `make verify-engine-deps`는
-권고, 라이선스, 소스 및 금지 의존성 오류를 보고하지 않는다. 이름 있는 볼륨은
-필요하지 않다. Linux x86_64는 macOS에서 교차 링커로 전체 링크했다. Linux
+AArch64 Linux 빌드는 Rust 1.98.1과 위 아카이브 해시로 완료됐다.
+`make verify-engine-deps`는
+권고, 라이선스, 소스 및 금지 의존성 오류를 보고하지 않는다. Linux x86_64는 macOS에서 교차 링커로 전체 링크했다. Linux
 x86_64에서의 실행은 이 빌드 기준에 포함되지 않는다.

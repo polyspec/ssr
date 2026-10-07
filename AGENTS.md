@@ -140,8 +140,8 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   near 72 characters explaining what changed and why; an optional footer for references. The
   type is one of feat, fix, docs, style, refactor, test or chore.
 - During development run only the unit-level Red and Green tests that own the change. The full
-  and end-to-end checks (the targets of `make check`, the Linux build and tests of
-  `make check-linux`, `make verify-build` and the ownership check) run in GitHub CI on every pull request,
+  and end-to-end checks (the targets of `make check`, `make verify-build` and the ownership check) and the
+  Linux build and tests run in GitHub CI on every pull request,
   merge group and manual run (`.github/workflows/ci.yml`, whose jobs `lint` and `test` run on each architecture
   the lint targets and the test targets, each CI target in exactly one job); no rule requires a local run of them before a push, and the
   pre-push hook only refuses a push with an item in progress. A local full run happens only on
@@ -196,9 +196,9 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
    measured time.
 8. No polling where an event exists, no symbolic links, no relative paths in configuration and no
    temporary scripts for repeatable work: repeatable commands are make targets or tools in Git.
-9. Containerctl verification mounts source checkouts read only. When a build needs host inspection
-   and cache persistence across container replacement, mount writable caches and build output from
-   absolute host paths under ignored `var/`; verify mount access and cache reuse after replacement.
+9. Linux is verified on the Linux runners of GitHub CI: the jobs `lint` and `test` of
+   `.github/workflows/ci.yml` lint, build and test the workspace on `ubuntu-24.04-arm` and
+   `ubuntu-24.04`. No check runs a container tool of a development machine.
 10. A client entry selects hydration or a new render from the explicit page render mode in the
     document, including when SSR HTML is empty. Missing or invalid modes fail. A hydration
     acceptance test runs in a browser and verifies that the server DOM node remains the same node

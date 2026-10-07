@@ -56,44 +56,13 @@ verifies the resulting dependency graph.
 Cargo network access disabled. It records the full Cargo command and compiler activity without
 imposing a total build duration limit. Execution on the native target has its own test time limit.
 
-`make verify-engine-linux-arm64` builds an ARM64 Linux container image from the
-Rust 1.98.1 Bookworm image digest
-`sha256:5b993f23fb69746405496e76f91e511d96c82b5b23304fd5d20b4a80a8b223ea`.
-It requires the verified local archive and matching binding before mounting this
-checkout read only at `/src`. It bind mounts the host's ignored
-`var/engine-cargo` and `var/engine-target` directories at `/cargo` and `/target`
-with write access, builds the program and executes it. `make` supplies absolute
-host paths in the ignored `var/engine-compose.yaml` file so that later
-`containerctl status` calls can read the same mount configuration. The host can inspect these directories, and
-replacing the container preserves their contents. Each checkout has its own
-stack: the Compose project is `ssr-engine-<digits>`, the container
-`ssr-engine-<digits>-engine` and the image `localhost/ssr-engine-verify-<digits>:0.0.1`,
-where the digits are the first 12 hexadecimal digits of the SHA-256 of the
-checkout path. `tools/verify_engine_linux.py` runs the steps of
-`make verify-engine-linux-arm64` and `make verify-engine-down` under the checkout
-lock `var/locks/engine-verification.lock` of `tools/holder_lock.py`. The lock
-record names the checkout, pid and process start time of its holder; a second
-run is refused with that record, a lock whose holder no longer runs is
-reported and kept until `python3 -m tools.holder_lock remove-stopped <lock file>`
-removes it, and only the holder releases the lock. Each step prints its command,
-its output and its result with the elapsed time, without a time limit. The first failing step
-ends the steps; once the stack was started, it is stopped after the steps, also after a
-failure, and the run reports the failing step and the result of the stop. The native GNU linker
-retains the Rust target's link arguments.
-No other checkout is mounted: every dependency comes from crates.io or a pinned Git commit,
-which `cargo fetch` reads into the Cargo cache. The container cannot modify the source checkout. The image
-also holds Clippy and cargo-nextest 0.9.146.
-
-`make check-linux`, a target of `make check`, runs `tools/check_linux.py` in the same stack
-under the same lock: it verifies the AArch64 Linux V8 inputs, starts the stack, checks its
-mounts, fetches the locked dependencies and runs, with the Linux gcc toolchain of the image,
-`cargo clippy --locked -p polyspec-ssr-server --all-targets -- -D warnings`, the build of the
-`development_process` and `socket_process` examples and
-`cargo nextest run --locked -p polyspec-ssr-server --lib --test development --test process`, then stops
-the stack. Each step prints its command, its output and its result with the elapsed time,
-without a time limit. These targets read no package installation, so the nextest setup script
-`install-packages`, which needs npm, does not run in the container. x86_64 Linux is not
-built: the host runs only AArch64 Linux containers natively.
+Linux is verified on the Linux runners of GitHub CI ([workspace](workspace.md)). On
+`ubuntu-24.04-arm` and `ubuntu-24.04`, `make ci-setup` fetches the official archive and binding of
+the runner's target and verifies their SHA-256 (`tools/fetch_v8.py`); the jobs `lint` and `test`
+of `.github/workflows/ci.yml` then run Clippy on every target of the workspace (`check-clippy`),
+build the `development_process` and `socket_process` examples (`check-examples`) and run every
+test of the workspace (`ci-nextest`), which links `v8 150.4.0` and executes the engine on AArch64
+and x86_64 Linux.
 
 ## Renderer snapshots
 
@@ -132,12 +101,7 @@ on the target operating system.
 
 The four builds used V8 150.4.0 with the maintained macro package. The native
 AArch64 Linux build completed with Rust 1.98.1 and the archive digest listed
-above. Mount inspection confirmed `/src` and the V8 checkout as read only and
-`/cargo` and `/target` as writable host mounts. `containerctl status` read the
-absolute Compose path without a project error. After replacing only the engine
-container, the cached source and linked program remained visible on the host.
-The repeated Cargo build compiled no crates and finished in 0.50 seconds; the
-executable retained its SHA-256 digest and ran in the replacement container.
+above.
 `make verify-engine-deps` reports no advisory, license, source or ban error.
-No named volume is required. Linux x86_64 was fully linked through a cross
+Linux x86_64 was fully linked through a cross
 linker on macOS; execution on Linux x86_64 was outside this build criterion.

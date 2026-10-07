@@ -88,14 +88,21 @@ class ToolVersionsTest(TestCase):
 
     def test_the_repository_declares_every_tool_it_runs(self):
         self.assertEqual(set(tool_versions.declared()), {
-            "python3", "make", "rustc", "cargo-nextest", "cargo-deny", "node", "npm", "zig",
-            "container", "containerctl"})
+            "python3", "make", "rustc", "cargo-nextest", "cargo-deny", "node", "npm", "zig"})
 
 
 class EntryTest(TestCase):
     def test_every_make_entry_outside_the_guard_checks_the_tools_first(self):
-        for target in ("bench", "verify-build", "verify-engine-linux-arm64", "review-advisories"):
+        for target in ("bench", "verify-build", "review-advisories"):
             self.assertEqual(recipe(target)[0], "python3 -m tools.tool_versions check", target)
+
+    def test_no_target_or_tool_runs_a_container_tool_of_the_host(self):
+        # Linux builds and tests run on the Linux runners of ci.yml, so no target needs one.
+        for line in (ROOT / "Makefile").read_text().splitlines():
+            self.assertNotRegex(line, r"\bcontainer(ctl)?\b", line)
+        for source in (ROOT / "tools").glob("*.py"):
+            if not source.name.startswith("test_"):
+                self.assertNotRegex(source.read_text(), r"[\"']container(ctl)?[\"']", source)
 
     def test_rustup_never_installs_a_toolchain(self):
         makefile = (ROOT / "Makefile").read_text()

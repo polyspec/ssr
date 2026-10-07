@@ -57,7 +57,7 @@ NOT_RELEASED = {
     "tools/build-probe/tests/fixtures/package.json": "the npm packages of the build cases",
     "tools/license-fixtures/xxhash-0.8.17/Cargo.toml": "a license fixture of tools/test_workspace.py",
     "tools/license-fixtures/xxhash-0.8.18/Cargo.toml": "a license fixture of tools/test_workspace.py",
-    "verification/engine/Cargo.toml": "the engine verification program of make verify-engine-linux-arm64",
+    "verification/engine/Cargo.toml": "the engine verification program of tools/verify_engine.py",
 }
 # The Go modules: a tag <directory>/vX.Y.Z releases the module of that directory.
 GO_MODULES = {}

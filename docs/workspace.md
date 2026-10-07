@@ -95,8 +95,11 @@ of cargo-nextest 0.9.146 and cargo-deny 0.20.2 for the host target: `tools/tool-
 `tools/fetch_tools.py` downloads each archive, fails for another SHA-256 without installing anything and installs the
 executable into `$CARGO_HOME/bin` by one rename. `make ci-lint` and `make ci-test` first check the version report of Python, rustc,
 cargo-nextest and cargo-deny against `tools/tool-versions.json`. Cargo builds
-the host targets with `BUILD_JOBS` jobs: 1 by default, so a local build leaves the other processors of the host to
+the check targets with `BUILD_JOBS` jobs: 1 by default, so a local build leaves the other processors of the host to
 other work, and `make ci-lint` and `make ci-test` set `BUILD_JOBS` to the processor count of the runner (`nproc`).
+These jobs are the Linux verification of the repository on AArch64 and x86_64: `check-clippy` lints every target of the
+workspace, `check-examples` builds the examples and `ci-nextest` runs every test of the workspace. No make target runs a
+container tool of a development machine.
 
 Every change reaches `main` through a pull request and the merge queue; no command of this repository pushes `main`.
 Publish a branch with the standard commands of GitHub, or with the GitHub UI:

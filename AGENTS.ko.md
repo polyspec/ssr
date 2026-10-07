@@ -116,7 +116,7 @@
   제목(끝 마침표 없음), 빈 줄, 72자 부근 개행한 본문(무엇을·왜 변경했는지), 선택적 꼬리말. 타입은
   feat, fix, docs, style, refactor, test, chore 중 하나다.
 - 개발 중에는 변경을 소유한 unit 수준의 Red·Green 테스트만 실행한다. 전체 검사와 end-to-end 검사(`make check`의
-  target, `make check-linux`의 Linux build와 test, `make verify-build`, ownership 검사)는 모든 pull request,
+  target, `make verify-build`, ownership 검사)와 Linux build와 test는 모든 pull request,
   merge group, 수동 실행의 GitHub CI(`.github/workflows/ci.yml`)에서 실행한다. 그 job `lint`와 `test`는 각
   architecture에서 lint target과 test target을 실행하고, 각 CI target은 정확히 한 job에서 실행된다. 어떤 규칙도 push 전에 이것들을 로컬에서 실행하기를 요구하지 않으며,
   pre-push hook은 진행 중 항목이 있는 push만 거부한다. 로컬 전체 실행은 요청이 있을 때만, 활성 체크리스트 항목이 모두
@@ -162,9 +162,9 @@
    걸린 시간을 출력한다. `tools/check.py`는 측정한 시간에 대한 assertion을 거부한다.
 8. 이벤트가 있으면 폴링하지 않고, 심볼릭 링크와 설정의 상대 경로를 쓰지 않으며, 반복 작업에 임시 스크립트를 쓰지
    않는다. 반복 명령은 Git에 있는 make 목표나 도구다.
-9. Containerctl 검증에서는 소스 저장소를 읽기 전용으로 마운트한다. 빌드 결과를 호스트에서 확인하고 컨테이너
-   교체 후에도 캐시를 유지해야 하면 무시된 `var/` 아래의 절대 호스트 경로에서 쓰기 가능한 캐시와 빌드 결과를
-   마운트하고, 마운트 권한과 교체 후 캐시 재사용을 검증한다.
+9. Linux는 GitHub CI의 Linux runner에서 검증한다. `.github/workflows/ci.yml`의 job `lint`와 `test`가
+   `ubuntu-24.04-arm`과 `ubuntu-24.04`에서 workspace를 lint, build, test한다. 어떤 검사도 개발 machine의
+   container 도구를 실행하지 않는다.
 10. 클라이언트 진입점은 SSR HTML이 비어 있어도 문서의 명시적인 페이지 렌더 모드로 hydration 또는 새
     렌더를 선택한다. 모드 누락이나 잘못된 모드는 실패한다. Hydration 완료 검사는 브라우저에서 실행하고
     클라이언트 hydration 뒤에도 서버 DOM 노드가 같은 노드인지 확인한다. 번들 텍스트 검사만으로는

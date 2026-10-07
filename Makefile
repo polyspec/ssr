@@ -21,14 +21,11 @@ HOOKS_PATH := $(shell test "$$(git config core.hooksPath)" = .githooks || git co
 # (tools/holder_lock.py): a second run of the checkout is refused with the holder's checkout, pid
 # and process start time.
 CHECK_SETUP = verify-archive check-fixtures
-CHECK_TARGETS = check-tools check-ownership check-records check-fmt check-clippy check-deny check-engine-deps check-examples check-nextest check-features check-bench check-linux
+CHECK_TARGETS = check-tools check-ownership check-records check-fmt check-clippy check-deny check-engine-deps check-examples check-nextest check-features check-bench
 # The setup steps that each target reads: a failed setup step skips only these targets, and every
 # other target runs, so one run reports every check that does not depend on the failure.
 CHECK_NEEDS = check-tools=check-fixtures check-ownership=verify-archive,check-fixtures check-clippy=verify-archive check-examples=verify-archive check-nextest=verify-archive,check-fixtures check-features=verify-archive,check-fixtures check-bench=verify-archive
-# The host engine inputs and Cargo settings go to the targets that build on this host; check-linux
-# verifies and builds with the Linux inputs in its container, which a host archive would refuse.
-CHECK_HOST_TARGETS = $(filter-out check-linux,$(CHECK_TARGETS))
-# The number of Cargo build jobs of the host targets: 1 by default, so a local build leaves the
+# The number of Cargo build jobs of the check targets: 1 by default, so a local build leaves the
 # other processors of the host to the other work; the CI targets set it to the processor count of
 # the runner (nproc).
 BUILD_JOBS ?= 1
@@ -36,13 +33,13 @@ FULL_RUN = python3 -m tools.holder_lock run check -- python3 -m tools.full_run
 
 # A make without a target runs the full suite entry, so no command runs its steps without the guard.
 .DEFAULT_GOAL := check
-.PHONY: check rerun-failed review-advisories ci-setup ci-lint ci-test ci-nextest ci-push ci-passed ci-python release-setup release-verify release-versions release-assets release-publish push-check push-records ci-records hooks hooks-check github-ruleset github-ruleset-check $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
+.PHONY: check rerun-failed review-advisories ci-setup ci-lint ci-test ci-nextest ci-push ci-passed ci-python release-setup release-verify release-versions release-assets release-publish push-check push-records ci-records hooks hooks-check github-ruleset github-ruleset-check $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive verify-engine-deps verify-build
 
-$(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
-$(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
-$(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-build: export CARGO_INCREMENTAL := 0
-$(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-build: export CARGO_BUILD_JOBS := $(BUILD_JOBS)
-$(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-build: export CARGO_NET_OFFLINE := true
+$(CHECK_SETUP) $(CHECK_TARGETS) ci-nextest bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
+$(CHECK_SETUP) $(CHECK_TARGETS) ci-nextest bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
+$(CHECK_SETUP) $(CHECK_TARGETS) ci-nextest bench verify-build: export CARGO_INCREMENTAL := 0
+$(CHECK_SETUP) $(CHECK_TARGETS) ci-nextest bench verify-build: export CARGO_BUILD_JOBS := $(BUILD_JOBS)
+$(CHECK_SETUP) $(CHECK_TARGETS) ci-nextest bench verify-build: export CARGO_NET_OFFLINE := true
 bench: verify-archive
 
 verify-archive:
@@ -103,22 +100,12 @@ check-nextest:
 check-features:
 	python3 tools/check_features.py
 
-check-linux:
-	python3 -m tools.check_linux
-
 check-bench:
 	cargo nextest run -p polyspec-ssr-runtime --example bench --features bench --locked --no-tests fail
 
 bench:
 	python3 -m tools.tool_versions check
 	python3 tools/bench.py
-
-verify-engine-linux-arm64:
-	python3 -m tools.tool_versions check
-	python3 -m tools.verify_engine_linux verify
-
-verify-engine-down:
-	python3 -m tools.verify_engine_linux down
 
 verify-engine-deps:
 	cargo deny --manifest-path verification/engine/Cargo.toml --config deny.toml check --hide-inclusion-graph $(DENY_CHECKS)

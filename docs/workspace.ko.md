@@ -72,8 +72,11 @@ cargo-deny 0.20.2의 release binary를 설치한다. `tools/tool-versions.json`�
 SHA-256, 그 안의 실행 파일 경로를 선언하고, `tools/fetch_tools.py`는 각 archive를 내려받아 SHA-256이 다르면 아무것도
 설치하지 않고 실패하며, 실행 파일을 한 번의 rename으로 `$CARGO_HOME/bin`에 설치한다. `make ci-lint`와 `make ci-test`는 먼저 Python, rustc,
 cargo-nextest, cargo-deny의 version 보고를 `tools/tool-versions.json`과 비교한다. Cargo는
-host target을 `BUILD_JOBS`개의 job으로 빌드한다. 기본값은 1이므로 로컬 빌드는 host의 다른 processor를 다른 작업에
+check target을 `BUILD_JOBS`개의 job으로 빌드한다. 기본값은 1이므로 로컬 빌드는 host의 다른 processor를 다른 작업에
 남기고, `make ci-lint`와 `make ci-test`는 `BUILD_JOBS`를 runner의 processor 수(`nproc`)로 설정한다.
+이 job들이 AArch64와 x86_64에서 저장소의 Linux 검증이다. `check-clippy`는 workspace의 모든 target을 lint하고,
+`check-examples`는 example을 build하며, `ci-nextest`는 workspace의 모든 test를 실행한다. 어떤 make target도 개발
+machine의 container 도구를 실행하지 않는다.
 
 모든 변경은 pull request와 merge queue를 거쳐 `main`에 들어간다. 이 저장소의 어떤 명령도 `main`을 push하지 않는다.
 branch는 GitHub의 표준 명령이나 GitHub UI로 게시한다.

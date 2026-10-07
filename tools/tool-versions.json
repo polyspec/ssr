@@ -7,9 +7,7 @@
     {"name": "cargo-deny", "command": ["cargo", "deny", "--version"], "version": "cargo-deny 0.20.2"},
     {"name": "node", "command": ["node", "--version"], "version": "v26.8.1"},
     {"name": "npm", "command": ["npm", "--version"], "version": "11.19.0"},
-    {"name": "zig", "command": ["zig", "version"], "version": "0.16.0"},
-    {"name": "container", "command": ["container", "--version"], "version": "container CLI version 1.3.1 (build: release, commit: unspeci)"},
-    {"name": "containerctl", "program": "containerctl", "sha256": "e8483816ebc63273797a4252dce78c9ac2cb0bbfa930bb45551b77d8c34bdb97"}
+    {"name": "zig", "command": ["zig", "version"], "version": "0.16.0"}
   ],
   "releases": [
     {"name": "cargo-nextest", "target": "aarch64-unknown-linux-gnu", "url": "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.146/cargo-nextest-0.9.146-aarch64-unknown-linux-gnu.tar.gz", "sha256": "b2e33d7c72de7ade0ff7b3a948ac37516b24f8a836b7a8870c1f634a94be9de9", "executable": "cargo-nextest"},

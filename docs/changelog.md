@@ -4,6 +4,14 @@
 
 ## Unreleased
 
+- Verify Linux on the Linux runners of CI only. `make check` runs no Linux
+  container: the jobs `lint` and `test` of `.github/workflows/ci.yml` lint,
+  build and test the workspace on `ubuntu-24.04-arm` and `ubuntu-24.04` with
+  `check-clippy`, `check-examples` and `ci-nextest`. The targets `check-linux`,
+  `verify-engine-linux-arm64` and `verify-engine-down`, their tools and tests,
+  the engine Compose stack and the declarations of the host tools `container`
+  and `containerctl` are removed.
+
 - Run the CI targets in two jobs on each architecture: the job `lint` of
   `.github/workflows/ci.yml` runs `make ci-lint` (`ci-records`, `check-fmt`,
   `check-clippy`, `check-deny`) and the job `test` runs `make ci-test`
