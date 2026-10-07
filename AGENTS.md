@@ -142,7 +142,8 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 - During development run only the unit-level Red and Green tests that own the change. The full
   and end-to-end checks (the targets of `make check`, the Linux build and tests of
   `make check-linux`, `make verify-build` and the ownership check) run in GitHub CI on every pull request,
-  merge group and manual run (`.github/workflows/ci.yml`); no rule requires a local run of them before a push, and the
+  merge group and manual run (`.github/workflows/ci.yml`, whose jobs `lint` and `test` run on each architecture
+  the lint targets and the test targets, each CI target in exactly one job); no rule requires a local run of them before a push, and the
   pre-push hook only refuses a push with an item in progress. A local full run happens only on
   request, once, when every active checklist item is complete, never after each fix or item. Every test
   reports its own running, completion, success or failure with its elapsed time and has its own

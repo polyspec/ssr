@@ -62,14 +62,18 @@ job은 `actions/setup-python`의 Python 3.9로 `ubuntu-24.04-arm`에서 실행�
 CI는 `make ci-records`(`python3 tools/check.py ci`)를 실행한다. 이는 runner가 선언된 version으로 설치하는 도구인
 Python과 rustc의 version으로 `tools/check.py`의 모든 검사를 실행한다.
 
-`.github/workflows/ci.yml`은 `ubuntu-24.04-arm`과 `ubuntu-24.04`에서 `make ci-setup`과 `make ci`를 실행한다.
+`.github/workflows/ci.yml`은 `ubuntu-24.04-arm`과 `ubuntu-24.04` 각각에서 job 두 개를 실행한다. job `lint`는
+`make ci-setup`과 `make ci-lint`, 즉 target `CI_LINT_TARGETS`(`ci-records`, `check-fmt`, `check-clippy`, `check-deny`)를
+실행하고, job `test`는 `make ci-setup`과 `make ci-test`, 즉 target `CI_TEST_TARGETS`(`check-examples`, `ci-nextest`)를
+실행한다. 따라서 모든 CI target은 각 architecture에서 정확히 한 job에서 실행되고 두 job은 동시에 실행된다. 각 job은
+log와 요약을 `ci-<job>-<runner>`로 올린다.
 `make ci-setup`은 고정된 toolchain, host target의 공식 V8 입력(`tools/fetch_v8.py`), host target용 cargo-nextest 0.9.146과
 cargo-deny 0.20.2의 release binary를 설치한다. `tools/tool-versions.json`은 `releases`에 각 release archive의 URL, 그
 SHA-256, 그 안의 실행 파일 경로를 선언하고, `tools/fetch_tools.py`는 각 archive를 내려받아 SHA-256이 다르면 아무것도
-설치하지 않고 실패하며, 실행 파일을 한 번의 rename으로 `$CARGO_HOME/bin`에 설치한다. `make ci`는 먼저 Python, rustc,
+설치하지 않고 실패하며, 실행 파일을 한 번의 rename으로 `$CARGO_HOME/bin`에 설치한다. `make ci-lint`와 `make ci-test`는 먼저 Python, rustc,
 cargo-nextest, cargo-deny의 version 보고를 `tools/tool-versions.json`과 비교한다. Cargo는
 host target을 `BUILD_JOBS`개의 job으로 빌드한다. 기본값은 1이므로 로컬 빌드는 host의 다른 processor를 다른 작업에
-남기고, `make ci`는 `BUILD_JOBS`를 runner의 processor 수(`nproc`)로 설정한다.
+남기고, `make ci-lint`와 `make ci-test`는 `BUILD_JOBS`를 runner의 processor 수(`nproc`)로 설정한다.
 
 모든 변경은 pull request와 merge queue를 거쳐 `main`에 들어간다. 이 저장소의 어떤 명령도 `main`을 push하지 않는다.
 branch는 GitHub의 표준 명령이나 GitHub UI로 게시한다.

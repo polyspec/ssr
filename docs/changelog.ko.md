@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+- 각 architecture에서 CI target을 두 job으로 실행한다.
+  `.github/workflows/ci.yml`의 job `lint`는 `make ci-lint`(`ci-records`,
+  `check-fmt`, `check-clippy`, `check-deny`)를, job `test`는 `make ci-test`
+  (`check-examples`, `ci-nextest`)를 실행하고, 각 CI target은 정확히 한 job에서
+  실행되며, `ci-passed`는 두 job을 need로 가진다.
+
 - CI에서 cargo-nextest 0.9.146과 cargo-deny 0.20.2를 컴파일하지 않고 공식
   release archive에서 설치한다. `tools/tool-versions.json`은 `releases`에 각
   archive의 URL, SHA-256, 실행 파일 경로를 선언하고, `tools/fetch_tools.py`는

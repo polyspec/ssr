@@ -6,7 +6,8 @@ Rust target, the URL of the archive, its SHA-256 and the path of the executable 
 Each archive is downloaded to a temporary name and verified against its SHA-256; an archive of
 another digest fails and nothing of it is installed. The executable is written to a temporary name
 in the directory of Cargo's binaries (``$CARGO_HOME/bin``, else ``~/.cargo/bin``) and installed by
-one rename. ``make ci`` then checks the version report of each tool against its declaration.
+one rename. ``make ci-lint`` and ``make ci-test`` then check the version report of each tool against its
+declaration.
 
     python3 -m tools.fetch_tools <target>
 """

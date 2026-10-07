@@ -1,6 +1,8 @@
-# Build and test ssr on Linux. Each job runs only make targets: ci-setup prepares the runner and
-# ci runs every CI target past failures (tools/ci_run.py). The per-target logs and the summary with
-# the first failure lines are uploaded, and the summary is the job summary, also after a failure.
+# Build and test ssr on Linux. Each job runs only make targets: ci-setup prepares the runner, and
+# on each architecture ci-lint runs the lint targets and ci-test the test targets, every target past
+# failures (tools/ci_run.py), so every CI target runs in exactly one job of each architecture. The
+# per-target logs and the summary with the first failure lines are uploaded, and the summary is the
+# job summary, also after a failure.
 name: ci
 
 # Every pull request, every merge group of the merge queue and every manual run (workflow_dispatch): the ruleset of
@@ -22,7 +24,33 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  linux:
+  # The records, the formatting, Clippy and the dependency check (CI_LINT_TARGETS).
+  lint:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04-arm, ubuntu-24.04]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.9"
+      - name: prepare the runner
+        run: make ci-setup
+      - name: lint
+        run: make ci-lint
+      - name: upload the logs and the summary
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ci-lint-${{ matrix.runner }}
+          path: var/ci/
+          if-no-files-found: error
+  # The example builds and the workspace tests (CI_TEST_TARGETS); the tests install the build-probe fixture with npm.
+  test:
     strategy:
       fail-fast: false
       matrix:
@@ -41,12 +69,12 @@ jobs:
       - name: prepare the runner
         run: make ci-setup
       - name: build and test
-        run: make ci
+        run: make ci-test
       - name: upload the logs and the summary
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: ci-${{ matrix.runner }}
+          name: ci-test-${{ matrix.runner }}
           path: var/ci/
           if-no-files-found: error
   # The check of this workflow that the ruleset of main requires. It runs after every other job, also after a failed,
@@ -55,7 +83,7 @@ jobs:
   # of the job push-gate.
   ci-passed:
     if: ${{ always() }}
-    needs: [linux]
+    needs: [lint, test]
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5

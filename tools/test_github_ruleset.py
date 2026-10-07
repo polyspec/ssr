@@ -131,12 +131,12 @@ class Declaration(unittest.TestCase):
         checks = next(rule for rule in DECLARATION['ruleset']['rules']
                       if rule['type'] == 'required_status_checks')['parameters']['required_status_checks']
         # The check of a job without a name is the job ID. ci-passed, the last job of ci.yml, passes only when every
-        # other job of ci.yml passed (tools/test_ci.py), the job linux on each runner of its matrix included.
+        # other job of ci.yml passed (tools/test_ci.py), the jobs lint and test on each runner of their matrix included.
         gate = (WORKFLOWS / 'push-gate.yml').read_text()
         self.assertEqual(re.findall(r'(?m)^  ([\w-]+):\s*$', gate.split('\njobs:\n', 1)[1]), ['push-gate'])
         self.assertNotRegex(gate, r'(?m)^    name:')
         ci = (WORKFLOWS / 'ci.yml').read_text()
-        self.assertEqual(re.findall(r'(?m)^  ([\w-]+):\s*$', ci.split('\njobs:\n', 1)[1]), ['linux', 'ci-passed'])
+        self.assertEqual(re.findall(r'(?m)^  ([\w-]+):\s*$', ci.split('\njobs:\n', 1)[1]), ['lint', 'test', 'ci-passed'])
         self.assertNotRegex(ci, r'(?m)^    name:')
         jobs = ['push-gate', 'ci-passed']
         # 15368 is the GitHub Actions app, so a status of the same name from another app does not satisfy the rule.

@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+- Run the CI targets in two jobs on each architecture: the job `lint` of
+  `.github/workflows/ci.yml` runs `make ci-lint` (`ci-records`, `check-fmt`,
+  `check-clippy`, `check-deny`) and the job `test` runs `make ci-test`
+  (`check-examples`, `ci-nextest`), each CI target in exactly one job, and
+  `ci-passed` needs both.
+
 - Install cargo-nextest 0.9.146 and cargo-deny 0.20.2 in CI from their
   official release archives instead of compiling them. `tools/tool-versions.json`
   declares the URL, SHA-256 and executable path of each archive under

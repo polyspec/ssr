@@ -22,7 +22,10 @@ WORKFLOWS = sorted((ROOT / ".github/workflows").glob("*.yml"))
 CI_PASSED_RUN = "make ci-passed RESULTS='${{ toJSON(needs) }}'"
 # The jobs that run their checks through tools/ci_run.py and upload its logs and summary. ci-passed prints the result
 # of each job it needs in its log; release.yml prints the result of each release step in its log.
-REPORTING_JOBS = {"ci.yml": ["linux"], "push-gate.yml": ["push-gate"]}
+REPORTING_JOBS = {"ci.yml": ["lint", "test"], "push-gate.yml": ["push-gate"]}
+# The make target and the targets of each check job of ci.yml; each CI target runs in exactly one job of each architecture.
+CI_JOBS = {"lint": ("ci-lint", "CI_LINT_TARGETS"), "test": ("ci-test", "CI_TEST_TARGETS")}
+CI_TARGETS = ["ci-records", "check-fmt", "check-clippy", "check-deny", "check-examples", "ci-nextest"]
 
 
 def workflow_jobs(text):
@@ -108,7 +111,7 @@ class WorkflowRuleTest(TestCase):
     def test_the_push_check_runs_the_record_checks_and_ci_runs_every_check(self):
         makefile = (ROOT / "Makefile").read_text()
         push = re.search(r"^CI_PUSH_TARGETS = (.*)$", makefile, re.MULTILINE).group(1).split()
-        ci = re.search(r"^CI_TARGETS = (.*)$", makefile, re.MULTILINE).group(1).split()
+        ci = re.search(r"^CI_LINT_TARGETS = (.*)$", makefile, re.MULTILINE).group(1).split()
         self.assertIn("push-records", push)
         self.assertIn("ci-records", ci)
         self.assertRegex(makefile, r"(?m)^push-records:\n\tpython3 tools/check.py records$")
@@ -173,11 +176,21 @@ class WorkflowRuleTest(TestCase):
                 self.assertNotEqual(declared.group(0) if declared else "", expected)
         self.assertEqual(re.search(r"(?m)^on:\n(?:  .*\n)+", text).group(0), expected)
 
-    def test_the_linux_jobs_build_both_architectures(self):
-        text = (ROOT / ".github/workflows/ci.yml").read_text()
-        self.assertIn("runner: [ubuntu-24.04-arm, ubuntu-24.04]", text)
-        self.assertIn("run: make ci-setup", text)
-        self.assertIn("run: make ci", text)
+    def test_each_architecture_runs_every_ci_target_in_exactly_one_job(self):
+        jobs = workflow_jobs((ROOT / ".github/workflows/ci.yml").read_text())
+        makefile = (ROOT / "Makefile").read_text()
+        self.assertEqual(sorted(jobs), sorted([*CI_JOBS, "ci-passed"]))
+        targets = []
+        for job, (target, variable) in CI_JOBS.items():
+            body = jobs[job]
+            self.assertIn("\n        runner: [ubuntu-24.04-arm, ubuntu-24.04]\n", body, job)
+            self.assertEqual(job_key(body, "runs-on"), "${{ matrix.runner }}", job)
+            self.assertEqual(re.findall(r"(?m)^\s+run: (.+)$", body), ["make ci-setup", f"make {target}"], job)
+            self.assertIn(f"name: ci-{job}-${{{{ matrix.runner }}}}\n", body, job)
+            self.assertEqual(recipe(target)[-1], f"BUILD_JOBS=$$(nproc) python3 -m tools.ci_run $({variable})", job)
+            targets += re.search(rf"(?m)^{variable} = (.*)$", makefile).group(1).split()
+        self.assertEqual(sorted(targets), sorted(CI_TARGETS))
+        self.assertNotRegex(makefile, r"(?m)^ci:")
 
 
 def recipe(target):
@@ -214,7 +227,8 @@ class BuildJobsTest(TestCase):
         self.assertEqual(self.build_jobs({"BUILD_JOBS": "4"}), ["4"])
 
     def test_the_ci_targets_build_with_the_processor_count_of_the_runner(self):
-        self.assertEqual(recipe("ci")[-1], "BUILD_JOBS=$$(nproc) python3 -m tools.ci_run $(CI_TARGETS)")
+        for target, variable in CI_JOBS.values():
+            self.assertEqual(recipe(target)[-1], f"BUILD_JOBS=$$(nproc) python3 -m tools.ci_run $({variable})")
 
 
 NEEDS = """{
@@ -393,4 +407,5 @@ class FetchToolsTest(TestCase):
         setup = recipe("ci-setup")
         self.assertFalse([command for command in setup if "cargo install" in command], setup)
         self.assertIn("python3 -m tools.fetch_tools \"$$(RUSTUP_AUTO_INSTALL=0 rustc -vV | sed -n 's/^host: //p')\"", setup)
-        self.assertEqual(recipe("ci")[0], "python3 -m tools.tool_versions check python3 rustc cargo-nextest cargo-deny")
+        for target, _ in CI_JOBS.values():
+            self.assertEqual(recipe(target)[0], "python3 -m tools.tool_versions check python3 rustc cargo-nextest cargo-deny")
