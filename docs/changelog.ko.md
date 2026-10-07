@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- workspace manifest, `Cargo.lock`, `verification/engine/Cargo.lock`에서 ordered-json의
+  release된 tag `v0.0.2`, version `=0.0.2`에 의존한다. ordered-json의 tag `v0.0.1`에는
+  GitHub Release가 없다.
+
 - section `## X.Y.Z`가 GitHub release body의 한도인 125000자를 넘으면 release
   notes에서 changelog를 link한다. 이때 `make release-publish`는 tag의
   `docs/changelog.md` section `## X.Y.Z`를 link하는 한 줄을 넘긴다.

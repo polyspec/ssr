@@ -17,7 +17,7 @@ version = "0.0.1"
 license = "MIT"
 
 [workspace.dependencies]
-ordered-json = { package = "polyspec-ordered-json", git = "https://github.com/polyspec/ordered-json", tag = "v0.0.1", version = "=0.0.1" }
+ordered-json = { package = "polyspec-ordered-json", git = "https://github.com/polyspec/ordered-json", tag = "v0.0.2", version = "=0.0.2" }
 rolldown = "=1.2.11"
 rolldown_common = "=1.2.11"
 rolldown_plugin_utils = "=1.2.11"

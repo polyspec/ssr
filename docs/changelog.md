@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- Depend on the released tag `v0.0.2` of ordered-json, version `=0.0.2`, in the
+  workspace manifest, `Cargo.lock` and `verification/engine/Cargo.lock`. The tag
+  `v0.0.1` of ordered-json has no GitHub Release.
+
 - Link the changelog from the release notes when the section `## X.Y.Z`
   exceeds 125000 characters, the limit of a GitHub release body:
   `make release-publish` then passes one line that links the section
