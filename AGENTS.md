@@ -202,6 +202,22 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
     after client hydration. Bundle text inspection does not prove hydration.
 11. Concurrent tests that generate application entry files use separate directories for each test.
 
+## Release
+
+Every change reaches `main` through the merge queue with the required checks, so every commit of
+`main` passed the full checks. A release is a tag of a commit of `main`, and only the maintainer
+creates, moves or pushes a tag; a tag is never raised through a pull request.
+
+1. The version-bump pull request `chore(release): Release X.Y.Z (#<checklist ID>)` sets the version
+   X.Y.Z in `[workspace.package]` of `Cargo.toml` and in every requirement `=X.Y.Z` on a crate of the
+   workspace, and renames `## Unreleased` of `docs/changelog.md` and `docs/changelog.ko.md` to
+   `## X.Y.Z`, with a new empty `## Unreleased` above it.
+2. The maintainer tags the merged commit of `main` `vX.Y.Z` and pushes the tag.
+3. The tag push runs `.github/workflows/release.yml`: it requires the tagged commit on `main` with the
+   checks `push-gate` and `ci-passed` passed, the version of the tag in every manifest and the section
+   `## X.Y.Z` in `docs/changelog.md`, packages every crate and creates the GitHub Release
+   ([workspace](docs/workspace.md)).
+
 ## Idempotency
 
 The same tree gives the same result at any time and on any machine. A defect found in one place

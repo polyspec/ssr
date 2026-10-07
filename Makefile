@@ -32,7 +32,7 @@ FULL_RUN = python3 -m tools.holder_lock run check -- python3 -m tools.full_run
 
 # A make without a target runs the full suite entry, so no command runs its steps without the guard.
 .DEFAULT_GOAL := check
-.PHONY: check rerun-failed review-advisories ci-setup ci ci-nextest ci-push ci-passed ci-python push-check push-records ci-records hooks hooks-check github-ruleset github-ruleset-check $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
+.PHONY: check rerun-failed review-advisories ci-setup ci ci-nextest ci-push ci-passed ci-python release-setup release-verify release-versions release-assets release-publish push-check push-records ci-records hooks hooks-check github-ruleset github-ruleset-check $(CHECK_SETUP) $(CHECK_TARGETS) bench verify-archive verify-engine-linux-arm64 verify-engine-down verify-engine-deps verify-build
 
 $(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
 $(CHECK_SETUP) $(CHECK_HOST_TARGETS) ci-nextest bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
@@ -185,3 +185,30 @@ github-ruleset:
 github-ruleset-check:
 	python3 -m tools.github_ruleset check
 
+# The steps of .github/workflows/release.yml for the tag TAG (tools/release.py). release-setup installs the pinned Rust
+# toolchain, checks Python and rustc against tools/tool-versions.json and fetches the locked dependencies; then, in this
+# order, release-verify requires the tagged commit on origin/main with the checks push-gate and ci-passed passed,
+# release-versions the version of the tag in every manifest and its section in docs/changelog.md, release-assets
+# packages every crate into var/release/assets offline, and release-publish creates the GitHub Release. The workflow
+# sets TAG in the environment, and each recipe passes it as "$$TAG", so the name of a tag never becomes shell text.
+release-setup:
+	rustup toolchain install 1.98.1 --profile minimal --no-self-update
+	python3 -m tools.tool_versions check python3 rustc
+	cargo fetch --locked
+
+release-verify:
+	$(if $(TAG),,$(error make $@ needs TAG=<tag>, a tag vX.Y.Z))
+	python3 -m tools.release verify "$$TAG"
+
+release-versions:
+	$(if $(TAG),,$(error make $@ needs TAG=<tag>, a tag vX.Y.Z))
+	python3 -m tools.release versions "$$TAG"
+
+release-assets: export CARGO_NET_OFFLINE := true
+release-assets:
+	$(if $(TAG),,$(error make $@ needs TAG=<tag>, a tag vX.Y.Z))
+	python3 -m tools.release assets "$$TAG"
+
+release-publish:
+	$(if $(TAG),,$(error make $@ needs TAG=<tag>, a tag vX.Y.Z))
+	python3 -m tools.release publish "$$TAG"

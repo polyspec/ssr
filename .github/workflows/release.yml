@@ -1,0 +1,42 @@
+# Release: a tag push creates the GitHub Release of the tag. Every change reaches main through the merge queue with the
+# required checks, so every commit of main passed the full checks; the maintainer releases by tagging a commit of main
+# vX.Y.Z after a version-bump pull request. The steps run in order and stop at the first failure: make release-verify
+# requires the tagged commit on origin/main with the check runs push-gate and ci-passed concluded success, without
+# running the tests again; make release-versions requires the version of the tag in every manifest and its section in
+# docs/changelog.md; make release-assets packages every crate (cargo package); make release-publish creates the GitHub
+# Release with the section as notes and the archives attached (tools/release.py). TAG reaches the make targets through
+# the environment, never as shell text. Each step runs a make target; make release-setup installs the pinned Rust
+# toolchain and fetches the locked dependencies. The runner and each action are pinned, as in ci.yml.
+name: release
+
+on:
+  push:
+    tags: ['v*', '*/v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04-arm
+    env:
+      TAG: ${{ github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      # The whole history and every branch, so origin/main is there for the ancestry check.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.9"
+      - name: prepare the runner
+        run: make release-setup
+      - name: verify the tagged commit
+        run: make release-verify
+      - name: check the versions
+        run: make release-versions
+      - name: build the assets
+        run: make release-assets
+      - name: create the release
+        run: make release-publish

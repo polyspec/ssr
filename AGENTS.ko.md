@@ -169,6 +169,22 @@
     hydration을 증명할 수 없다.
 11. 동시에 실행하는 테스트가 애플리케이션 진입점 파일을 생성하면 테스트마다 별도 디렉터리를 사용한다.
 
+## 릴리스
+
+모든 변경은 필수 check와 함께 merge queue로 `main`에 도달하므로, `main`의 모든 commit은 전체 검사를
+통과했다. 릴리스는 `main`의 commit에 붙인 tag이고, tag를 만들고 옮기고 push하는 것은 메인테이너뿐이다.
+tag는 pull request로 올리지 않는다.
+
+1. 버전 올림 pull request `chore(release): Release X.Y.Z (#<체크리스트 ID>)`는 `Cargo.toml`의
+   `[workspace.package]`와 workspace crate에 대한 모든 요구 `=X.Y.Z`의 버전을 X.Y.Z로 정하고,
+   `docs/changelog.md`와 `docs/changelog.ko.md`의 `## Unreleased`를 `## X.Y.Z`로 바꾸며 그 위에
+   비어 있는 새 `## Unreleased`를 둔다.
+2. 메인테이너는 merge된 `main`의 commit에 `vX.Y.Z` tag를 붙이고 tag를 push한다.
+3. tag push는 `.github/workflows/release.yml`을 실행한다. 이 workflow는 tag된 commit이 `main`에 있고
+   check `push-gate`와 `ci-passed`를 통과했는지, 모든 manifest에 tag의 버전이 있고 `docs/changelog.md`에
+   section `## X.Y.Z`가 있는지 확인하고, 모든 crate를 package해 GitHub Release를 만든다
+   ([워크스페이스](docs/workspace.ko.md)).
+
 ## 멱등성
 
 같은 tree는 언제 어느 machine에서든 같은 결과를 낸다. 한 곳에서 발견한 결함은 하나의 부류다. 이 저장소의 모든

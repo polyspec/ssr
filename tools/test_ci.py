@@ -83,6 +83,7 @@ class WorkflowRuleTest(TestCase):
         triggers = {
             "ci.yml": "on:\n  pull_request:\n  merge_group:\n  workflow_dispatch:\n",
             "push-gate.yml": "on:\n  push:\n    branches-ignore: ['gh-readonly-queue/**']\n  pull_request:\n  merge_group:\n",
+            "release.yml": "on:\n  push:\n    tags: ['v*', '*/v*']\n",
         }
         workflows = ROOT / ".github/workflows"
         self.assertEqual(sorted(path.name for path in workflows.glob("*.y*ml")), sorted(triggers))
@@ -143,6 +144,20 @@ class WorkflowRuleTest(TestCase):
         self.assertEqual(re.findall(r"(?m)^\s+run: (.+)$", body), [CI_PASSED_RUN])
         self.assertTrue(body.rstrip().endswith(f"run: {CI_PASSED_RUN}"))
         self.assertNotRegex(body, r"(?m)^    name:")
+
+    def test_release_runs_its_steps_in_order_with_the_tag_and_the_permission_to_release(self):
+        text = (ROOT / ".github/workflows/release.yml").read_text()
+        self.assertRegex(text, r"(?m)^permissions:\n  contents: write\n(?!  )")
+        jobs = workflow_jobs(text)
+        self.assertEqual(list(jobs), ["release"])
+        body = jobs["release"]
+        self.assertIn("\n      TAG: ${{ github.ref_name }}\n", body)
+        self.assertIn("\n      GH_TOKEN: ${{ github.token }}\n", body)
+        self.assertRegex(body, r"(?m)^    steps:\n(?:      #.*\n)*      - uses: actions/checkout@\S+ # v\d+\n        with:\n"
+                               r"          fetch-depth: 0\n")
+        runs = re.findall(r"(?m)^\s+run: (.+)$", body)
+        self.assertEqual(runs, ["make release-setup", "make release-verify", "make release-versions",
+                                "make release-assets", "make release-publish"])
 
     def test_the_linux_jobs_build_both_architectures(self):
         text = (ROOT / ".github/workflows/ci.yml").read_text()

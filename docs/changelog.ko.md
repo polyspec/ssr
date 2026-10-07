@@ -4,6 +4,15 @@
 
 ## Unreleased
 
+- `main`의 commit에 붙인 tag를 `.github/workflows/release.yml`로 릴리스한다.
+  이 workflow는 권한 `contents: write`로 tag `v*` 또는 `*/v*`의 push에서
+  실행된다. `make release-verify`는 tag된 commit이 `origin/main`에 있고 check
+  run `push-gate`와 `ci-passed`가 `success`로 끝났는지, `make release-versions`는
+  모든 manifest에 tag의 버전이 있고 `docs/changelog.md`에 section `## X.Y.Z`가
+  있는지 확인하고, `make release-assets`는 모든 crate를 package하며,
+  `make release-publish`는 section을 notes로 GitHub Release를 만든다
+  (`tools/release.py`, `tools/test_release.py`). AGENTS가 릴리스 절차를 적는다.
+
 - ruleset `main`에서 정확히 check `push-gate`와 `ci-passed`를 요구한다.
   `.github/workflows/ci.yml`의 마지막 job `ci-passed`는 다른 모든 job을 need로
   가지고, `if: ${{ always() }}`로 그 모든 job 뒤에 실행되며, need로 가진 job의
