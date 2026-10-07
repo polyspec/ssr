@@ -2,7 +2,12 @@
 
 # 변경 기록
 
-## 0.0.1
+## Unreleased
+
+- changelog의 맨 위에 section `## Unreleased`를 둔다. 릴리스된 ssr 버전이
+  없으므로 모든 항목이 그 아래에 있다. 모든 변경은 항목을 그곳에 추가하고,
+  릴리스는 그 section을 `## X.Y.Z`로 바꾸고 그 위에 비어 있는 새
+  `## Unreleased`를 둔다.
 
 - `.github/workflows/ci.yml`을 모든 pull request, merge group, 수동 실행
   (`workflow_dispatch`)에서 실행하고, 각 workflow의 trigger를 정확히 선언한다.

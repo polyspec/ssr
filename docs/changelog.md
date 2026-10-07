@@ -2,7 +2,12 @@
 
 # Changelog
 
-## 0.0.1
+## Unreleased
+
+- Keep the section `## Unreleased` at the top of the changelog. No version
+  of ssr is released, so every entry is under it; every change adds its
+  entry there, and a release renames it to `## X.Y.Z` below a new empty
+  `## Unreleased`.
 
 - Run `.github/workflows/ci.yml` on every pull request, merge group and manual
   run (`workflow_dispatch`), and declare the triggers of each workflow exactly.
