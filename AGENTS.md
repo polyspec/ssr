@@ -184,7 +184,9 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
    `make check` and `make bench` verify the target, SHA-256, binding and Cargo features of the
    official local archive before linking. Missing or changed inputs fail; no build downloads V8 or
    substitutes a V8 source build. A CI runner fetches the official archive and binding only through
-   `make ci-setup` (`tools/fetch_v8.py`), which verifies their SHA-256 before any build. Long builds report their commands and progress without a total
+   `make ci-setup` (`tools/fetch_v8.py`), which verifies their SHA-256 before any build, and installs
+   cargo-nextest and cargo-deny only from the release archives that `tools/tool-versions.json` declares
+   with their SHA-256 (`tools/fetch_tools.py`). Long builds report their commands and progress without a total
    duration limit; test cases retain individual time limits.
 7. Performance claims are measured by the maintained benchmark (`make bench`) with recorded limits.
    Performance is measured and never fails a test or check: a measurement beyond its limit prints a

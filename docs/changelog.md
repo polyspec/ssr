@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+- Install cargo-nextest 0.9.146 and cargo-deny 0.20.2 in CI from their
+  official release archives instead of compiling them. `tools/tool-versions.json`
+  declares the URL, SHA-256 and executable path of each archive under
+  `releases`, `tools/fetch_tools.py` installs only a verified executable, and
+  `make ci` checks the version report of each tool.
+
 - Build the CI targets with one Cargo job per processor of the runner.
   `BUILD_JOBS ?= 1` sets `CARGO_BUILD_JOBS` of the host targets, so a local
   build runs one job, and `make ci` sets `BUILD_JOBS` to the output of `nproc`.

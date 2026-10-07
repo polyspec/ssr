@@ -152,7 +152,8 @@
    고정된 로컬 V8 입력을 확인한다. `make check`와 `make bench`는 공식 로컬 archive의 target,
    SHA-256, binding과 Cargo feature를 검증한 뒤 연결한다. 입력 누락이나 변경은 실패이며 어떤 build도 V8을
    다운로드하거나 V8 소스 빌드로 대체하지 않는다. CI runner는 `make ci-setup`(`tools/fetch_v8.py`)으로만 공식
-   archive와 binding을 받고, 어떤 build보다 먼저 그 SHA-256을 검증한다. 긴 빌드는 전체 경과 시간 제한 없이 명령과 진행을
+   archive와 binding을 받고, 어떤 build보다 먼저 그 SHA-256을 검증하며, cargo-nextest와 cargo-deny는
+   `tools/tool-versions.json`이 SHA-256과 함께 선언한 release archive에서만 설치한다(`tools/fetch_tools.py`). 긴 빌드는 전체 경과 시간 제한 없이 명령과 진행을
    기록하고 테스트 사례에는 개별 제한 시간을 유지한다.
 7. 성능 주장은 유지되는 벤치마크(`make bench`)로 측정하고 한도를 기록한다.
    성능은 측정하며 test나 check를 실패시키지 않는다. 한도를 넘은 측정은 경고를 출력하고 CI에서는

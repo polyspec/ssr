@@ -84,7 +84,13 @@ commit whose records fail never reaches `main`. CI runs `make ci-records` (`pyth
 every check of `tools/check.py`, with the versions of the tools that a runner installs at their declared
 versions, Python and rustc.
 
-`.github/workflows/ci.yml` runs `make ci-setup` and `make ci` on `ubuntu-24.04-arm` and `ubuntu-24.04`. Cargo builds
+`.github/workflows/ci.yml` runs `make ci-setup` and `make ci` on `ubuntu-24.04-arm` and `ubuntu-24.04`. `make ci-setup`
+installs the pinned toolchain, the official V8 inputs of the host target (`tools/fetch_v8.py`) and the release binaries
+of cargo-nextest 0.9.146 and cargo-deny 0.20.2 for the host target: `tools/tool-versions.json` declares under
+`releases` the URL of each release archive, its SHA-256 and the path of the executable in it, and
+`tools/fetch_tools.py` downloads each archive, fails for another SHA-256 without installing anything and installs the
+executable into `$CARGO_HOME/bin` by one rename. `make ci` first checks the version report of Python, rustc,
+cargo-nextest and cargo-deny against `tools/tool-versions.json`. Cargo builds
 the host targets with `BUILD_JOBS` jobs: 1 by default, so a local build leaves the other processors of the host to
 other work, and `make ci` sets `BUILD_JOBS` to the processor count of the runner (`nproc`).
 

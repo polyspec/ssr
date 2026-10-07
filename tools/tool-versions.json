@@ -10,5 +10,11 @@
     {"name": "zig", "command": ["zig", "version"], "version": "0.16.0"},
     {"name": "container", "command": ["container", "--version"], "version": "container CLI version 1.3.1 (build: release, commit: unspeci)"},
     {"name": "containerctl", "program": "containerctl", "sha256": "e8483816ebc63273797a4252dce78c9ac2cb0bbfa930bb45551b77d8c34bdb97"}
+  ],
+  "releases": [
+    {"name": "cargo-nextest", "target": "aarch64-unknown-linux-gnu", "url": "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.146/cargo-nextest-0.9.146-aarch64-unknown-linux-gnu.tar.gz", "sha256": "b2e33d7c72de7ade0ff7b3a948ac37516b24f8a836b7a8870c1f634a94be9de9", "executable": "cargo-nextest"},
+    {"name": "cargo-nextest", "target": "x86_64-unknown-linux-gnu", "url": "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.146/cargo-nextest-0.9.146-x86_64-unknown-linux-gnu.tar.gz", "sha256": "682c21b777c333e96fd532e114d3a5a894e0729ab88d94c0a9f20f8419695428", "executable": "cargo-nextest"},
+    {"name": "cargo-deny", "target": "aarch64-unknown-linux-gnu", "url": "https://github.com/EmbarkStudios/cargo-deny/releases/download/0.20.2/cargo-deny-0.20.2-aarch64-unknown-linux-musl.tar.gz", "sha256": "995c82be0defc7a025cae49a2aa2644ce8245c9a3318fc4103907c6a285e8c7d", "executable": "cargo-deny-0.20.2-aarch64-unknown-linux-musl/cargo-deny"},
+    {"name": "cargo-deny", "target": "x86_64-unknown-linux-gnu", "url": "https://github.com/EmbarkStudios/cargo-deny/releases/download/0.20.2/cargo-deny-0.20.2-x86_64-unknown-linux-musl.tar.gz", "sha256": "9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f", "executable": "cargo-deny-0.20.2-x86_64-unknown-linux-musl/cargo-deny"}
   ]
 }

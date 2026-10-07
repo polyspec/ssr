@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+- CI에서 cargo-nextest 0.9.146과 cargo-deny 0.20.2를 컴파일하지 않고 공식
+  release archive에서 설치한다. `tools/tool-versions.json`은 `releases`에 각
+  archive의 URL, SHA-256, 실행 파일 경로를 선언하고, `tools/fetch_tools.py`는
+  검증된 실행 파일만 설치하며, `make ci`는 각 도구의 version 보고를 확인한다.
+
 - CI target을 runner의 processor마다 Cargo job 하나로 빌드한다.
   `BUILD_JOBS ?= 1`이 host target의 `CARGO_BUILD_JOBS`를 정하므로 로컬 빌드는
   job 하나로 실행되고, `make ci`는 `BUILD_JOBS`를 `nproc`의 출력으로 설정한다.

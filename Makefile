@@ -136,22 +136,23 @@ verify-build:
 	exit $$status
 
 # GitHub CI (.github/workflows/ci.yml and push-gate.yml) runs only make targets. ci-setup prepares a
-# fresh Linux runner: the pinned toolchain and test tools, the verified official V8 inputs of the
-# host target and the locked dependencies. ci runs the CI targets through tools/ci_run.py, which
-# runs every target past failures and writes var/ci/<target>.log and var/ci/summary.md; Cargo
-# builds with one job per processor of the runner (BUILD_JOBS).
+# fresh Linux runner: the pinned toolchain, the release binaries of the test tools and the official
+# V8 inputs of the host target, each verified by its SHA-256 (tools/fetch_tools.py,
+# tools/fetch_v8.py), and the locked dependencies. ci checks the versions of the tools and runs the
+# CI targets through tools/ci_run.py, which runs every target past failures and writes
+# var/ci/<target>.log and var/ci/summary.md; Cargo builds with one job per processor of the runner
+# (BUILD_JOBS).
 CI_TARGETS = ci-records check-fmt check-clippy check-deny check-examples ci-nextest
 CI_PUSH_TARGETS = ci-python push-check push-records
 
 ci-setup:
 	rustup toolchain install 1.98.1 --profile minimal --component clippy --component rustfmt --no-self-update
-	cargo install --locked cargo-nextest --version 0.9.146
-	cargo install --locked cargo-deny --version 0.20.2
+	python3 -m tools.fetch_tools "$$(RUSTUP_AUTO_INSTALL=0 rustc -vV | sed -n 's/^host: //p')"
 	python3 -m tools.fetch_v8 "$$(RUSTUP_AUTO_INSTALL=0 rustc -vV | sed -n 's/^host: //p')"
 	cargo fetch --locked
 
 ci:
-	python3 -m tools.tool_versions check python3 rustc
+	python3 -m tools.tool_versions check python3 rustc cargo-nextest cargo-deny
 	BUILD_JOBS=$$(nproc) python3 -m tools.ci_run $(CI_TARGETS)
 
 ci-nextest:
