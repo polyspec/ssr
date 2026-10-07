@@ -21,7 +21,9 @@ dependency on a crate of CRATES, and requires the section ``## X.Y.Z`` in docs/c
 npm tarballs and Composer zips only, and the repository has neither, so ``assets`` builds no archive. A crate is not
 released as an archive; it is consumed by git tag, because ``cargo package`` rewrites git dependencies, such as
 polyspec-ordered-json, into crates.io requirements that do not resolve. ``publish`` runs ``gh release create TAG
---verify-tag --title TAG --notes-file <the section X.Y.Z>`` without archives. Each failure names the tag, the file or
+--verify-tag --title TAG --notes-file <the notes>`` without archives; the notes are the section X.Y.Z when it has at
+most 125000 characters, the limit of a GitHub release body, and otherwise one line that links the section ``## X.Y.Z``
+of docs/changelog.md at the tag. Each failure names the tag, the file or
 check and both values, and exits with status 1.
 """
 
@@ -33,12 +35,16 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from urllib.parse import quote
 
 
 ROOT = Path(__file__).resolve().parents[1]
 MAIN = "origin/main"
 CHECKS = ("push-gate", "ci-passed")
 CHANGELOG = "docs/changelog.md"
+REPOSITORY_URL = "https://github.com/polyspec/ssr"
+# GitHub refuses a release body over 125000 characters.
+NOTES_LIMIT = 125000
 ASSETS = "var/release/assets"
 WORKSPACE = "Cargo.toml"
 # The crates of the workspace that a tag vX.Y.Z releases.
@@ -164,6 +170,15 @@ def changelog_section(root, version):
     return "\n".join(body) + "\n"
 
 
+def release_notes(tag, version, section):
+    """The notes of the release: the section when it has at most NOTES_LIMIT characters, otherwise one line that links
+    the section ``## version`` of docs/changelog.md at the tag, whose anchor is the version without dots."""
+    if len(section) <= NOTES_LIMIT:
+        return section
+    url = f"{REPOSITORY_URL}/blob/{quote(tag, safe='/')}/{CHANGELOG}#{version.replace('.', '')}"
+    return f"The changes of {version} are listed in [CHANGELOG.md]({url}).\n"
+
+
 def versions(root, tag):
     """Every manifest of the tag declares its version, and docs/changelog.md has the section of the version."""
     root = Path(root)
@@ -210,7 +225,7 @@ def publish(root, tag):
     """Create the GitHub Release of the tag with the section of docs/changelog.md as notes and the archives."""
     root = Path(root)
     _, version = parse_tag(tag)
-    notes = changelog_section(root, version)
+    notes = release_notes(tag, version, changelog_section(root, version))
     names = asset_names(tag)
     target = root / ASSETS
     missing = [name for name in names if not (target / name).is_file()]

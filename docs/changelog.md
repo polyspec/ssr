@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+- Link the changelog from the release notes when the section `## X.Y.Z`
+  exceeds 125000 characters, the limit of a GitHub release body:
+  `make release-publish` then passes one line that links the section
+  `## X.Y.Z` of `docs/changelog.md` at the tag.
+
 ## 0.0.1
 
 - Verify Linux on the Linux runners of CI only. `make check` runs no Linux

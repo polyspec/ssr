@@ -151,7 +151,9 @@ in `[workspace.package]` of `Cargo.toml`, in every crate manifest that declares 
 requirement on a crate of the workspace, and the section `## X.Y.Z` in `docs/changelog.md`, naming each file with both
 values; `make release-assets` builds the release assets, npm tarballs and Composer zips only, into an empty
 `var/release/assets`, and the repository has none; `make release-publish` runs `gh release create <tag> --verify-tag
---title <tag> --notes-file <the section X.Y.Z>` without archives. The repository has no Go module, so a tag
+--title <tag> --notes-file <the notes>` without archives; the notes are the section X.Y.Z when it has at most 125000
+characters, the limit of a GitHub release body, and otherwise the one line `The changes of X.Y.Z are listed in
+[CHANGELOG.md](https://github.com/polyspec/ssr/blob/<tag>/docs/changelog.md#<version without dots>).` The repository has no Go module, so a tag
 `<directory>/vX.Y.Z` fails. `tools/test_release.py` runs each step against a fake of `gh`, and `tools/test_ci.py` requires the trigger, the permission and the order of the
 steps.
 

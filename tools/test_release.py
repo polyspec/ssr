@@ -234,6 +234,29 @@ class PublishTest(TestCase):
         self.assertEqual(call, ["release", "create", "v0.0.1", "--verify-tag", "--title", "v0.0.1", "--notes-file", notes])
         self.assertEqual(recorded["notes"], "- The first entry of 0.0.1.\n\n- The second entry of 0.0.1.\n")
 
+    def test_a_section_over_the_limit_is_replaced_by_a_link_to_the_changelog(self):
+        section = "- " + "x" * (release.NOTES_LIMIT - 2) + "\n"
+        sandbox = Sandbox(self, changelog=f"# Changelog\n\n## Unreleased\n\n## 0.0.1\n\n{section}")
+        release.publish(sandbox.root, sandbox.tag("v0.0.1"))
+        self.assertEqual(sandbox.recorded()["notes"],
+                         "The changes of 0.0.1 are listed in [CHANGELOG.md]"
+                         "(https://github.com/polyspec/ssr/blob/v0.0.1/docs/changelog.md#001).\n")
+
+    def test_a_section_at_the_limit_is_kept_whole(self):
+        self.assertEqual(release.NOTES_LIMIT, 125000)
+        section = "- " + "x" * (release.NOTES_LIMIT - 3) + "\n"
+        self.assertEqual(len(section), release.NOTES_LIMIT)
+        sandbox = Sandbox(self, changelog=f"# Changelog\n\n## Unreleased\n\n## 0.0.1\n\n{section}")
+        release.publish(sandbox.root, sandbox.tag("v0.0.1"))
+        self.assertEqual(sandbox.recorded()["notes"], section)
+
+    def test_the_link_keeps_the_slashes_of_a_tag_and_encodes_each_segment(self):
+        over = "x" * (release.NOTES_LIMIT + 1)
+        self.assertEqual(release.release_notes("go/v1.2.3", "1.2.3", over),
+                         "The changes of 1.2.3 are listed in [CHANGELOG.md]"
+                         "(https://github.com/polyspec/ssr/blob/go/v1.2.3/docs/changelog.md#123).\n")
+        self.assertIn("/blob/a%20b/v1.2.3/", release.release_notes("a b/v1.2.3", "1.2.3", over))
+
     def test_publish_without_the_changelog_section_fails_before_any_request(self):
         sandbox = Sandbox(self, version="0.0.2")
         with self.assertRaisesRegex(release.Stop, r"^docs/changelog.md: no section ## 0.0.2$"):

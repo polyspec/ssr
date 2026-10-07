@@ -125,7 +125,9 @@ repos/<repository>/commits/<sha>/check-runs`)가 결론 `success`로 완료되�
 crate에 대한 모든 요구에 X.Y.Z가 있고 `docs/changelog.md`에 section `## X.Y.Z`가 있는지 확인하며, 파일마다 두 값을
 적는다. `make release-assets`는 릴리스 asset인 npm tarball과 Composer zip만 비어 있는 `var/release/assets`에 만들며,
 저장소에는 그런 패키지가 없다. `make release-publish`는 archive 없이 `gh release create <tag> --verify-tag --title <tag>
---notes-file <section X.Y.Z>`를 실행한다. 저장소에는 Go 모듈이 없으므로 tag `<directory>/vX.Y.Z`는 실패한다.
+--notes-file <notes>`를 실행한다. notes는 section X.Y.Z가 GitHub release body의 한도인 125000자 이하이면 그 section이고,
+아니면 한 줄 `The changes of X.Y.Z are listed in
+[CHANGELOG.md](https://github.com/polyspec/ssr/blob/<tag>/docs/changelog.md#<점을 뺀 version>).`이다. 저장소에는 Go 모듈이 없으므로 tag `<directory>/vX.Y.Z`는 실패한다.
 `tools/test_release.py`는 `gh`의 fake로
 각 step을 실행하고, `tools/test_ci.py`는 trigger, 권한, step의 순서를 요구한다.
 

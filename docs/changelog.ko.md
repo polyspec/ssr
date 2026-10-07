@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- section `## X.Y.Z`가 GitHub release body의 한도인 125000자를 넘으면 release
+  notes에서 changelog를 link한다. 이때 `make release-publish`는 tag의
+  `docs/changelog.md` section `## X.Y.Z`를 link하는 한 줄을 넘긴다.
+
 ## 0.0.1
 
 - Linux는 CI의 Linux runner에서만 검증한다. `make check`는 Linux container를
