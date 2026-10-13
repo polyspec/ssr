@@ -7,6 +7,9 @@
 - Pin Rust 1.99.0 in `rust-toolchain.toml` and as `rust-version` of every Cargo
   package, and Node.js 26.11.1 in `.node-version` and as `engines.node` of the
   build fixture manifest.
+- Track the license fixtures as the locks `tools/license-fixtures/xxhash-0.8.17.lock`
+  and `xxhash-0.8.18.lock`; the license case writes each package into a temporary
+  directory.
 
 ## 0.0.2
 

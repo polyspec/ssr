@@ -170,23 +170,51 @@ class WorkspaceTest(unittest.TestCase):
                 check.markdown_files(pathlib.Path(temporary))
 
     def test_license_exceptions_are_exact_versions(self):
-        # Each tracked package has a tracked lock, so the case resolves nothing with the registry.
+        # The case writes a package of each version into a temporary directory with the tracked lock
+        # of that version, so it resolves nothing with the registry and the tree tracks no Cargo
+        # package that no build of this repository builds.
         for version, accepted in (("0.8.18", True), ("0.8.17", False)):
-            manifest = ROOT / f"tools/license-fixtures/xxhash-{version}/Cargo.toml"
-            result = subprocess.run([
-                "cargo", "deny", "--manifest-path", str(manifest),
-                "--config", str(ROOT / "deny.toml"), "--locked", "--offline", "check", "licenses",
-                "--hide-inclusion-graph",
-            ], capture_output=True, text=True, check=False,
-                env={**os.environ, "CARGO_NET_OFFLINE": "true", "RUSTUP_AUTO_INSTALL": "0"})
+            with tempfile.TemporaryDirectory() as temporary:
+                package = pathlib.Path(temporary)
+                (package / "Cargo.toml").write_text(license_manifest(version))
+                (package / "Cargo.lock").write_bytes((ROOT / f"tools/license-fixtures/xxhash-{version}.lock").read_bytes())
+                (package / "src").mkdir()
+                (package / "src/lib.rs").write_text("")
+                result = subprocess.run([
+                    "cargo", "deny", "--manifest-path", str(package / "Cargo.toml"),
+                    "--config", str(ROOT / "deny.toml"), "--locked", "--offline", "check", "licenses",
+                    "--hide-inclusion-graph",
+                ], capture_output=True, text=True, check=False,
+                    env={**os.environ, "CARGO_NET_OFFLINE": "true", "RUSTUP_AUTO_INSTALL": "0"})
             self.assertEqual(result.returncode == 0, accepted,
                              f"xxhash-rust {version}: exit {result.returncode}\n{result.stdout}{result.stderr}")
 
     def test_license_fixtures_lock_the_exact_versions(self):
         for version in ("0.8.18", "0.8.17"):
-            lock = (ROOT / f"tools/license-fixtures/xxhash-{version}/Cargo.lock").read_text()
+            lock = (ROOT / f"tools/license-fixtures/xxhash-{version}.lock").read_text()
             self.assertIn(f'name = "xxhash-rust"\nversion = "{version}"\n', lock)
 
+    def test_the_license_fixtures_are_no_tracked_cargo_packages(self):
+        tracked = subprocess.run(["git", "ls-files", "tools/license-fixtures"], cwd=ROOT, capture_output=True,
+                                 text=True, check=True).stdout.split()
+        self.assertEqual(tracked, ["tools/license-fixtures/xxhash-0.8.17.lock",
+                                   "tools/license-fixtures/xxhash-0.8.18.lock"])
+
+
+def license_manifest(version):
+    """The manifest of the license case: a package that depends on xxhash-rust ``version`` and on
+    dragonbox_ecma 0.1.12, the two crates of the license exceptions of deny.toml."""
+    return ("[package]\n"
+            "name = \"license-verification\"\n"
+            "version = \"0.0.1\"\n"
+            "edition = \"2024\"\n"
+            "license = \"MIT\"\n"
+            "\n"
+            "[workspace]\n"
+            "\n"
+            "[dependencies]\n"
+            f"xxhash-rust = \"={version}\"\n"
+            "dragonbox_ecma = \"=0.1.12\"\n")
 
 if __name__ == "__main__":
     unittest.main()

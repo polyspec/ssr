@@ -6,6 +6,8 @@
 
 - `rust-toolchain.toml`과 모든 Cargo package의 `rust-version`에 Rust 1.99.0을,
   `.node-version`과 build fixture manifest의 `engines.node`에 Node.js 26.11.1을 고정한다.
+- license fixture를 lock `tools/license-fixtures/xxhash-0.8.17.lock`과 `xxhash-0.8.18.lock`으로
+  추적한다. license 사례는 각 package를 임시 directory에 쓴다.
 
 ## 0.0.2
 
