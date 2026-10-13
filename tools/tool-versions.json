@@ -2,10 +2,10 @@
   "tools": [
     {"name": "python3", "command": ["python3", "--version"], "minor": "Python 3.9"},
     {"name": "make", "command": ["make", "--version"], "version": "GNU Make 3.81"},
-    {"name": "rustc", "command": ["rustc", "--version"], "version": "rustc 1.98.1 (48a229cea 2026-09-01)"},
+    {"name": "rustc", "command": ["rustc", "--version"], "version": "rustc 1.99.0 (b940084d7 2026-09-28)"},
     {"name": "cargo-nextest", "command": ["cargo", "nextest", "--version"], "version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)"},
     {"name": "cargo-deny", "command": ["cargo", "deny", "--version"], "version": "cargo-deny 0.20.2"},
-    {"name": "node", "command": ["node", "--version"], "version": "v26.8.1"},
+    {"name": "node", "command": ["node", "--version"], "version": "v26.11.1"},
     {"name": "npm", "command": ["npm", "--version"], "version": "11.19.0"},
     {"name": "zig", "command": ["zig", "version"], "version": "0.16.0"}
   ],

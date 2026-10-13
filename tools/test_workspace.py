@@ -37,8 +37,12 @@ class WorkspaceTest(unittest.TestCase):
             self.assertIn('edition = "2024"', (ROOT / "crates" / crate / "Cargo.toml").read_text())
         self.assertEqual(manifest.count('"crates/polyspec-ssr-'), len(CRATES))
 
+    def test_node_is_pinned_in_node_version(self):
+        self.assertEqual((ROOT / ".node-version").read_text(), "26.11.1\n")
+        self.assertIn("node-version-file: .node-version", (ROOT / ".github/workflows/ci.yml").read_text())
+
     def test_toolchain_and_targets(self):
-        self.assertIn('channel = "1.98.1"', (ROOT / "rust-toolchain.toml").read_text())
+        self.assertIn('channel = "1.99.0"', (ROOT / "rust-toolchain.toml").read_text())
         makefile = (ROOT / "Makefile").read_text()
         self.assertIn("check:", makefile)
         self.assertIn("bench:", makefile)

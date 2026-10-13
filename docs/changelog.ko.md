@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+- `rust-toolchain.toml`과 모든 Cargo package의 `rust-version`에 Rust 1.99.0을,
+  `.node-version`과 build fixture manifest의 `engines.node`에 Node.js 26.11.1을 고정한다.
+
 ## 0.0.2
 
 - workspace manifest, `Cargo.lock`, `verification/engine/Cargo.lock`에서 ordered-json의

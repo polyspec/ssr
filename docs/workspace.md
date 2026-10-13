@@ -2,7 +2,7 @@
 
 # Workspace
 
-The Rust 1.98.1 workspace contains the eight crates named in AGENTS.md. All crates use edition
+The Rust 1.99.0 workspace contains the eight crates named in AGENTS.md. All crates use edition
 2024 and version 0.0.2. The workspace lockfile records dependency resolution. Each direct
 dependency must use an exact version after its official release is checked.
 
@@ -160,7 +160,7 @@ steps.
 Run `make bench` to execute Cargo benchmarks. The maintained measurements and limits are specified
 in S-11.
 
-Rust 1.98.1 is the pinned [Rust release](https://github.com/rust-lang/rust/releases/tag/1.98.1).
+Rust 1.99.0 is the pinned [Rust release](https://github.com/rust-lang/rust/releases/tag/1.99.0), and Node.js 26.11.1 is the pinned Node.js release of `.node-version`. Every Cargo package declares `rust-version = "1.99.0"`.
 cargo-nextest 0.9.146 is the pinned [test runner release](https://github.com/nextest-rs/nextest/releases/tag/cargo-nextest-0.9.146).
 The dependency check allows MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Unicode-3.0,
 Zlib and MPL-2.0. Other licenses fail the check.

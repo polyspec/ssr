@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- Pin Rust 1.99.0 in `rust-toolchain.toml` and as `rust-version` of every Cargo
+  package, and Node.js 26.11.1 in `.node-version` and as `engines.node` of the
+  build fixture manifest.
+
 ## 0.0.2
 
 - Depend on the released tag `v0.0.2` of ordered-json, version `=0.0.2`, in the

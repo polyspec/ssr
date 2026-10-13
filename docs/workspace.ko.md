@@ -2,7 +2,7 @@
 
 # 워크스페이스
 
-Rust 1.98.1 워크스페이스는 AGENTS.md에 적힌 여덟 크레이트로 구성한다. 모든 크레이트는 edition 2024와 버전
+Rust 1.99.0 워크스페이스는 AGENTS.md에 적힌 여덟 크레이트로 구성한다. 모든 크레이트는 edition 2024와 버전
 0.0.2를 쓴다. 워크스페이스 잠금 파일은 의존성 해석 결과를 기록한다. 직접 의존성은 공식 배포 정보를 확인한 뒤
 정확한 버전으로 지정한다.
 
@@ -133,7 +133,7 @@ crate에 대한 모든 요구에 X.Y.Z가 있고 `docs/changelog.md`에 section 
 
 `make bench`는 Cargo 벤치마크를 실행한다. 유지할 측정과 한도는 S-11에 명시한다.
 
-Rust 1.98.1은 고정한 [Rust 배포](https://github.com/rust-lang/rust/releases/tag/1.98.1)이다.
+Rust 1.99.0은 고정한 [Rust 배포](https://github.com/rust-lang/rust/releases/tag/1.99.0)이고, Node.js 26.11.1은 `.node-version`이 고정한 Node.js 배포다. 모든 Cargo 패키지는 `rust-version = "1.99.0"`을 선언한다.
 cargo-nextest 0.9.146은 고정한 [테스트 실행기 배포](https://github.com/nextest-rs/nextest/releases/tag/cargo-nextest-0.9.146)다.
 의존성 검사는 MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Unicode-3.0, Zlib,
 MPL-2.0을 허용한다. 다른 라이선스는 검사에서 실패한다.

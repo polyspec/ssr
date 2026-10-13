@@ -6,6 +6,7 @@
     {"paths": ["AGENTS.md", "AGENTS.ko.md", "docs/*.md"], "tests": ["python3 tools/check.py"]},
     {"paths": ["docs/checklist.md", "docs/checklist.ko.md"], "tests": ["python3 -m unittest tools.test_checklist_markers", "python3 -m unittest tools.test_full_run", "python3 -m unittest tools.test_push_gate"]},
     {"paths": ["docs/react.md", "docs/react.ko.md", "docs/runtime.md", "docs/runtime.ko.md"], "tests": ["python3 -m unittest tools.test_react_document"]},
+    {"paths": [".node-version"], "tests": ["python3 -m unittest tools.test_workspace"]},
     {"paths": ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml"], "tests": ["cargo nextest run --workspace", "python3 -m unittest tools.test_workspace", "python3 -m unittest tools.test_verify_archive", "make check-deny", "python3 -m unittest tools.test_release"]},
     {"paths": ["deny.toml"], "tests": ["make check-deny", "make verify-engine-deps", "python3 -m unittest tools.test_workspace"]},
     {"paths": ["features.json"], "tests": ["python3 tools/check_features.py", "python3 -m unittest tools.test_check_features"]},

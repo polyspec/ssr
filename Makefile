@@ -134,7 +134,7 @@ CI_TEST_TARGETS = check-examples ci-nextest
 CI_PUSH_TARGETS = ci-python push-check push-records
 
 ci-setup:
-	rustup toolchain install 1.98.1 --profile minimal --component clippy --component rustfmt --no-self-update
+	rustup toolchain install 1.99.0 --profile minimal --component clippy --component rustfmt --no-self-update
 	python3 -m tools.fetch_tools "$$(RUSTUP_AUTO_INSTALL=0 rustc -vV | sed -n 's/^host: //p')"
 	python3 -m tools.fetch_v8 "$$(RUSTUP_AUTO_INSTALL=0 rustc -vV | sed -n 's/^host: //p')"
 	cargo fetch --locked
