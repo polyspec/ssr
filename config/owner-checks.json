@@ -239,7 +239,8 @@
         "check-nextest",
         "tool-test-workspace",
         "tool-test-verify-archive",
-        "check-deny"
+        "check-deny",
+        "dependency-policy-check"
       ]
     },
     {
@@ -260,7 +261,8 @@
         "toolchain-check",
         "typecheck",
         "lint-ts",
-        "check-tools"
+        "check-tools",
+        "dependency-policy-check"
       ]
     },
     {
@@ -292,7 +294,8 @@
       ],
       "targets": [
         "toolchain-check",
-        "layout-check"
+        "layout-check",
+        "dependency-policy-check"
       ]
     },
     {
@@ -393,6 +396,15 @@
         "nextest-server",
         "check-ownership",
         "layout-check"
+      ]
+    },
+    {
+      "paths": [
+        "config/dependency-policy.json",
+        "config/dependency-review.json"
+      ],
+      "targets": [
+        "dependency-policy-check"
       ]
     }
   ]

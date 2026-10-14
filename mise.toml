@@ -2,3 +2,5 @@
 # `make install-tools` installs them with `mise install --locked`. go and python are at the pins of kit.
 [tools]
 "github:asamarts/alint" = "0.18.2"
+# cargo-audit, which make dependency-review runs on every Cargo.lock for its advisories.
+"github:rustsec/rustsec" = { version = "0.22.2", version_prefix = "cargo-audit/v" }

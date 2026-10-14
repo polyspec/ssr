@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "comment": "Written by make dependency-review RECORD=1 (scripts/kit/dependency-review.mts) from the registries; make dependency-policy-check compares the checkout with it without a network.",
+  "reviewed": "2026-10-14T09:08:40.186Z",
+  "locks": [
+    {
+      "lock": "package-lock.json",
+      "sha256": "d558f996966e12bb1f96d918d4dc7bbfaa413c6e4d349545d5bb653226555f3e",
+      "advisories": [
+        {
+          "package": "sprintf-js",
+          "version": "1.0.3",
+          "id": "1241202",
+          "severity": "moderate",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c"
+        }
+      ]
+    },
+    {
+      "lock": "Cargo.lock",
+      "sha256": "a5997a6901aa77492e03654aaf5ce2ac61bd43780ed860c0e73f440e64d4a517",
+      "advisories": [
+        {
+          "package": "paste",
+          "version": "1.0.15",
+          "id": "RUSTSEC-2024-0436",
+          "severity": "unmaintained",
+          "title": "paste - no longer maintained",
+          "url": "https://github.com/dtolnay/paste"
+        }
+      ]
+    },
+    {
+      "lock": "tests/test-ownership/Cargo.lock",
+      "sha256": "957bb427434fa2629e3c79d82804bb80b3114feb67b411045c29e956330dd484",
+      "advisories": []
+    }
+  ],
+  "dependencies": [
+    {
+      "ecosystem": "npm",
+      "manifest": "package.json",
+      "package": "@types/node",
+      "version": "26.6.5",
+      "latest": "26.6.5"
+    },
+    {
+      "ecosystem": "npm",
+      "manifest": "package.json",
+      "package": "smol-toml",
+      "version": "1.9.1",
+      "latest": "1.9.1"
+    },
+    {
+      "ecosystem": "npm",
+      "manifest": "package.json",
+      "package": "typescript",
+      "version": "7.0.2",
+      "latest": "7.0.2"
+    },
+    {
+      "ecosystem": "npm",
+      "manifest": "package.json",
+      "package": "yaml",
+      "version": "2.9.1",
+      "latest": "2.9.1"
+    }
+  ],
+  "vcs": []
+}

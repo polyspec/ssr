@@ -1,5 +1,5 @@
 <!-- doc-id: execution-checklist -->
-<!-- source-sha256: 903f1510f25e9ec76ac8fdf98919c9cb636b93291270f57368cd2665e8431439 -->
+<!-- source-sha256: c186bdf0c3704f6505c5adbe4eaba149d9b0185c5cfd937b657e5d2ce202c9bb -->
 # 체크리스트
 
 ## 항목
@@ -370,3 +370,4 @@
 - [o] S-50-6 kit 0.0.40과 그 mise toolchain으로 옮긴다(kit K131). 우선순위: S-50의 일부. 의존: S-50-3. 원인: kit 0.0.39는 도구를 mise로 설치하고, 0.0.40은 첫 mise.lock을 쓰고 남은 사본을 지운다. 수용 기준: `package.json`이 게시된 파일의 integrity로 `@polyspec/kit` 0.0.40을 pin하고, `mise.toml`이 alint를 선언하며 `mise.lock`이 이를 잠그고, `config/toolchain.json`은 mise의 release만 적으며, `make kit-check`, `make toolchain-check`, `make documents-check`, `make owner-validate`가 통과한다.
 - [o] S-50-7 kit 0.0.42로 옮긴다(kit K134, K135). 우선순위: S-50의 일부. 의존: S-50-6. 원인: 0.0.41은 bootstrap의 모든 platform(linux-arm64와 macos-x64 포함)의 도구를 잠그고, 0.0.42는 var/tools/go.mod를 쓴다. 수용 기준: `package.json`이 게시된 파일의 integrity로 `@polyspec/kit` 0.0.42를 pin하고, `mise.lock`이 모든 platform을 pin하며, `make kit-check`, `make toolchain-check`, `make documents-check`, `make owner-validate`가 통과한다.
 - [ ] S-50-8 cargo-nextest와 cargo-deny를 mise로 설치하고 `tools/`를 제거한다. 우선순위: S-50의 일부. 의존: mise 도구에 cargo-nextest와 cargo-deny를 더하는 kit release(kit K143). 원인: kit layout의 S9. `tools/tool_versions.py`, `tools/fetch_tools.py`, `tools/tool-versions.json`이 cargo-nextest와 cargo-deny를 Python으로 검사하고 설치하는데, 다른 저장소는 선언한 도구를 모두 mise로 설치하고, kit 0.0.42는 `mise.toml`에서 둘 다 거부한다(`make toolchain-lock`: `mise.toml tools declares github:nextest-rs/nextest, which kit does not check`). 수용 기준: `mise.toml`이 cargo-nextest 0.9.146과 cargo-deny 0.20.2를 선언하고 `mise.lock`이 잠그며, `tools/`와 그 make target이 제거되고, CI가 `make install-tools`로 둘을 설치하며 Python을 실행하지 않고, `make layout-check`가 `tools`에 대한 finding을 보고하지 않는다.
+- [o] S-50-9 kit의 dependency review로 의존성을 검토한다. 우선순위: S-50의 일부. 의존: S-50-7. 원인: ssr이 dependency policy를 선언하지 않아 `make dependency-review`가 `ENOENT: no such file or directory, open 'config/dependency-policy.json'`으로 실패했고, 선언한 뒤에는 yank된 release yoke-derive 0.8.3, sprintf-js와 paste의 advisory, 설치되지 않은 cargo-audit를 보고했다. 수용 기준: `config/dependency-policy.json`이 npm lock과 두 advisory 예외를 이유와 제거 조건과 함께 선언하고, `mise.toml`이 cargo-audit를 선언하며, `Cargo.lock`이 yoke-derive 0.8.4를 잠그고, `make dependency-review RECORD=1`이 `config/dependency-review.json`을 썼으며, `make check`가 실행하는 `make dependency-policy-check`가 통과한다.

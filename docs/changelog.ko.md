@@ -1,11 +1,15 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: a998cbefb2a6132354bb64911e15cc2f44ce569adc06886b022bb7817897230c -->
+<!-- source-sha256: c9567a85ca3280377788c694031d194786515b6b11d36566248e590709160f5c -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- kit의 dependency review로 의존성을 검토한다. `config/dependency-policy.json`은 npm lock을
+  선언하고 sprintf-js와 paste의 advisory를 이유와 함께 받아들이며, `config/dependency-review.json`은
+  검토를 기록하고, `make check`는 `make dependency-policy-check`를 실행한다. `mise.toml`은
+  cargo-audit를 선언하고, `Cargo.lock`은 yank된 0.8.3 대신 yoke-derive 0.8.4를 잠근다.
 - package를 `packages/<name>`에 두고(`members = ["packages/*"]`) package 이름은
   `polyspec-ssr-<name>`이며, build 테스트의 fixture 애플리케이션은
   `packages/build/tests/fixtures`에 둔다. `[workspace.lints]`는 `unsafe_code`와

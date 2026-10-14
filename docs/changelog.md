@@ -5,6 +5,11 @@
 
 ## Unreleased
 
+- Review the dependencies with the dependency review of kit: `config/dependency-policy.json`
+  declares the npm lock and accepts the advisories of sprintf-js and paste with their reasons,
+  `config/dependency-review.json` records the review, `make check` runs
+  `make dependency-policy-check`, `mise.toml` declares cargo-audit, and `Cargo.lock` locks
+  yoke-derive 0.8.4 in place of the yanked 0.8.3.
 - Place the packages in `packages/<name>` (`members = ["packages/*"]`), with
   the package names `polyspec-ssr-<name>`, and the fixture application of the
   build tests in `packages/build/tests/fixtures`. `[workspace.lints]` denies
