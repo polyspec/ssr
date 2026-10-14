@@ -1,5 +1,5 @@
 <!-- doc-id: workspace -->
-<!-- source-sha256: 8c4652567baaafe96e6c9901c12aa389485607fe61a4ed1e51403475e7ede9da -->
+<!-- source-sha256: f025e6686e221ae3cb72871c71d4b51bfa0a5ea6d90cd84cd5f71b54ae3a7cbd -->
 [English](workspace.md)
 
 # 워크스페이스
@@ -64,8 +64,8 @@ commit의 message를 `config/commits.json`과 비교한다. 모든 make 실행�
 설정하므로, make를 실행한 모든 checkout에서 hook이 실행된다. `make hooks-check`는 `core.hooksPath`가 `.githooks`이고
 hook이 kit의 것이며 실행 가능하지 않으면 실패하고, `make check`의 guard도 같은 검사를 실행한다. workflow
 `.github/workflows/push-gate.yml`은 모든 push의 push된 tip commit과 모든 pull request의 head commit(merge commit이 아님)에서
-job `push-gate`로 `mise.lock`의 도구(`make install-tools`)와 `make toolchain-check`가 읽는 `rust-toolchain.toml`의 Rust
-toolchain(`make install-rust`)을 설치하고 `make ci-push`를 실행한다. 이는 kit의 `make ci-targets`로 target `CI_PUSH_TARGETS`를 실행한다:
+job `push-gate`로 `make toolchain-check`가 읽는 `mise.lock`의 도구와 `rust-toolchain.toml`의 Rust toolchain을
+설치하고(`make install-tools`, kit K151) `make ci-push`를 실행한다. 이는 kit의 `make ci-targets`로 target `CI_PUSH_TARGETS`를 실행한다:
 `toolchain-check`, `push-gate-commit`(`HEAD`에 대한 kit의 push 검사로, 진행 중인 각 항목을
 error annotation과 job summary에 적고 실패하며 commit이 hook을 mode 100755로 추적하지 않을 때도 실패한다),
 `check-records`(`node scripts/check-records.mts`, 추적되는 파일의 검사: 기록 단어, React 문서, home directory로의 경로,
@@ -81,7 +81,8 @@ commit은 `main`에 오르지 않는다. kit의 `make documents-check`가 문서
 실행한다. 따라서 모든 CI target은 각 architecture에서 정확히 한 job에서 실행되고 두 job은 동시에 실행된다. 두 job은
 kit의 `make ci-targets`로 실패와 관계없이 target을 실행하고, 각 job은 target별 log와 요약인 `var/report/ci-targets`를
 `ci-<job>-<runner>`로 올린다.
-`make ci-setup`은 `rust-toolchain.toml`의 Rust toolchain과 host target의 공식 V8 입력(`scripts/fetch-v8.mts`)을 설치한다.
+`make install-tools`는 `rust-toolchain.toml`의 Rust toolchain을(kit K151), `make ci-setup`은 host target의 공식 V8
+입력(`scripts/fetch-v8.mts`)을 설치한다.
 `make ci-lint`와 `make ci-test`는 먼저 `make toolchain-check`를 실행하며, 이 검사는 cargo-nextest와 cargo-deny도 확인한다. Cargo는
 check target을 `BUILD_JOBS`개의 job으로 빌드한다. 기본값은 1이므로 로컬 빌드는 host의 다른 processor를 다른 작업에
 남기고, `make ci-lint`와 `make ci-test`는 `BUILD_JOBS`를 runner의 processor 수(`nproc`)로 설정한다.

@@ -75,8 +75,8 @@ refuses the push, naming each item in progress, and it checks the messages of th
 `config/commits.json`. Every make invocation sets `core.hooksPath` to `.githooks` when it differs, so the hook runs in
 every checkout where make has run; `make hooks-check` fails unless `core.hooksPath` is `.githooks` and the hook is the
 one of kit and executable, and the guard of `make check` runs the same check. The workflow
-`.github/workflows/push-gate.yml` installs the tools of `mise.lock` (`make install-tools`) and the Rust toolchain of
-`rust-toolchain.toml` (`make install-rust`), which `make toolchain-check` reads, and runs `make ci-push` in the job `push-gate` on the pushed tip commit of every push and
+`.github/workflows/push-gate.yml` installs the tools of `mise.lock` and the Rust toolchain of `rust-toolchain.toml` (`make install-tools`,
+kit K151), which `make toolchain-check` reads, and runs `make ci-push` in the job `push-gate` on the pushed tip commit of every push and
 on the head commit of every pull request, not on a merge commit: the targets `CI_PUSH_TARGETS` through `make
 ci-targets` of kit, which are `toolchain-check`, `push-gate-commit` (the push check
 of kit on `HEAD`, which fails with each item in progress as an error annotation and in the job summary, and when the
@@ -93,9 +93,9 @@ TOOLS=npm`, `make install-packages`) and the tools of `mise.lock` (`make install
 `check-clippy` and `check-deny`), and the job `test` runs `make ci-setup` and `make ci-test`, the targets `CI_TEST_TARGETS`
 (`check-examples` and `ci-nextest`), so every CI target runs in exactly one job of each architecture and the two jobs
 run at the same time; both run their targets through `make ci-targets` of kit, past failures, and each job uploads
-`var/report/ci-targets`, the log of each target and the summary, as `ci-<job>-<runner>`. `make ci-setup`
-installs the Rust toolchain of `rust-toolchain.toml` and the official V8 inputs of the host target
-(`scripts/fetch-v8.mts`). `make ci-lint` and `make ci-test` first run `make toolchain-check`, which checks
+`var/report/ci-targets`, the log of each target and the summary, as `ci-<job>-<runner>`. `make install-tools`
+installs the Rust toolchain of `rust-toolchain.toml` (kit K151) and `make ci-setup` the official V8 inputs of the host
+target (`scripts/fetch-v8.mts`). `make ci-lint` and `make ci-test` first run `make toolchain-check`, which checks
 cargo-nextest and cargo-deny too. Cargo builds
 the check targets with `BUILD_JOBS` jobs: 1 by default, so a local build leaves the other processors of the host to
 other work, and `make ci-lint` and `make ci-test` set `BUILD_JOBS` to the processor count of the runner (`nproc`).

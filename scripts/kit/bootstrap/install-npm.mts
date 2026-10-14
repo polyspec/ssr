@@ -41,6 +41,9 @@ function unpackVerified({ root, next, version, sha512, print }: { root: string; 
   rmSync(scratch, { recursive: true, force: true });
 }
 
+/** The wrappers of var/tools/bin that run the installed npm, each with its script of npm/bin. */
+export const NPM_WRAPPERS = { npm: 'npm-cli.js', npx: 'npx-cli.js' };
+
 /** Installs the declared npm `{ version, sha512 }` into var/tools/npm of `root` and writes the wrappers; returns `{ installed, release }`. */
 export function installNpm({ root, declared, print = () => {} }: { root: string; declared: { version: string; sha512?: string | undefined }; print?: (text: string) => void }) {
   const recorded = declared.sha512 ? `${declared.version}+sha512.${declared.sha512}` : declared.version;
@@ -53,7 +56,7 @@ export function installNpm({ root, declared, print = () => {} }: { root: string;
       else run('npm', ['install', '--prefix', next, '--no-save', '--no-package-lock', '--no-bin-links', '--no-audit', '--no-fund', `npm@${declared.version}`], { cwd: next, env: bootstrapEnvironment(root) }, print);
     },
   });
-  for (const [name, cli] of [['npm', 'npm-cli.js'], ['npx', 'npx-cli.js']] satisfies [string, string][]) {
+  for (const [name, cli] of Object.entries(NPM_WRAPPERS)) {
     writeWrapper(root, name, wrapperText(`${name} ${declared.version} of this checkout`, `exec node ${quote(path.join(prefix, 'node_modules/npm/bin', cli))} "$@"`), print);
   }
   return result;

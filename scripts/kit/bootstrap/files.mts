@@ -1,4 +1,5 @@
-// Reading and writing files: a JSON file, and a file that a reader never finds half written.
+// Reading and writing files: a JSON file, and a file that a reader never finds half written. Bytes are a Uint8Array (a Buffer is
+// one), a type of the standard library, so the copy lints clean in a consumer outside its TypeScript project as well (K150).
 import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -7,7 +8,7 @@ import path from 'node:path';
 export const readJson = (...parts: string[]): any => JSON.parse(readFileSync(path.join(...parts), 'utf8'));
 
 /** Writes `content` to `file` through a file of this process beside it and a rename; creates the directory; `mode` sets the file mode. */
-export function writeAtomic(file: string, content: string | NodeJS.ArrayBufferView, { mode }: { mode?: number | undefined } = {}): void {
+export function writeAtomic(file: string, content: string | Uint8Array, { mode }: { mode?: number | undefined } = {}): void {
   mkdirSync(path.dirname(file), { recursive: true });
   const next = `${file}.next-${process.pid}`;
   writeFileSync(next, content);

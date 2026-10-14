@@ -31,7 +31,7 @@ BUILD_JOBS ?= 1
 
 # A make without a target runs the full suite, so no command runs its steps without the guard.
 .DEFAULT_GOAL := check
-.PHONY: check review-advisories install-rust ci-setup ci-lint ci-test ci-nextest ci-push github-ruleset github-ruleset-check check-fixtures $(SSR_TARGETS) bench verify-archive
+.PHONY: check review-advisories ci-setup ci-lint ci-test ci-nextest ci-push github-ruleset github-ruleset-check check-fixtures $(SSR_TARGETS) bench verify-archive
 
 check:
 	node $(KIT)/full-run.$(KIT_EXT) run $(CHECK_TARGETS)
@@ -119,27 +119,22 @@ check-bench:
 bench:
 	cargo run --locked -p polyspec-ssr-runtime --example bench --features bench
 
-# GitHub CI (.github/workflows/ci.yml and push-gate.yml) runs only make targets. A job installs the npm of packageManager
-# (make install-tools TOOLS=npm), the packages of package-lock.json with @polyspec/kit (make install-packages) and the
-# tools of mise.lock, cargo-nextest and cargo-deny among them (make install-tools). ci-setup then prepares a fresh Linux
-# runner: the Rust toolchain of rust-toolchain.toml (make install-rust) and the official V8 inputs of the host target (scripts/fetch-v8.mts),
-# verified by their SHA-256, and the locked dependencies. On each architecture ci-lint and ci-test, two jobs of ci.yml,
-# check the versions of the tools (make toolchain-check) and run the lint and the test
-# targets through make ci-targets of kit, which runs every target past failures and writes var/report/ci-targets with a
-# log of each target and summary.md, the job summary; Cargo builds with one job per processor of the runner (BUILD_JOBS).
-# The job push-gate installs the tools of mise.lock and the Rust toolchain, which make toolchain-check reads, and runs the
-# checks that build no Rust: the toolchain, the checklist, the records and the TypeScript.
+# GitHub CI (.github/workflows/ci.yml and push-gate.yml) runs only make targets. A job installs the npm of
+# packageManager (make install-tools TOOLS=npm), the packages of package-lock.json with @polyspec/kit (make
+# install-packages) and the tools of mise.lock, cargo-nextest and cargo-deny among them, and the Rust toolchain of
+# rust-toolchain.toml (make install-tools, kit K151). ci-setup then prepares a fresh Linux runner: the official V8
+# inputs of the host target (scripts/fetch-v8.mts), verified by their SHA-256, and the locked dependencies. On each
+# architecture ci-lint and ci-test, two jobs of ci.yml, check the versions of the tools (make toolchain-check) and run
+# the lint and the test targets through make ci-targets of kit, which runs every target past failures and writes
+# var/report/ci-targets with a log of each target and summary.md, the job summary; Cargo builds with one job per
+# processor of the runner (BUILD_JOBS). The job push-gate installs the tools of mise.lock and the Rust toolchain, which
+# make toolchain-check reads, and runs the checks that build no Rust: the toolchain, the checklist, the records and the
+# TypeScript.
 CI_LINT_TARGETS = check-fixture-filter check-fmt check-clippy check-deny
 CI_TEST_TARGETS = check-examples ci-nextest
 CI_PUSH_TARGETS = toolchain-check push-gate-commit check-records typecheck lint-ts
 
-# The Rust toolchain of rust-toolchain.toml with its components, installed by rustup: make ci-setup and the job push-gate,
-# whose make toolchain-check reads it, run it on a fresh runner.
-install-rust:
-	rustup toolchain install --no-self-update
-
 ci-setup:
-	$(MAKE) --no-print-directory install-rust
 	node scripts/fetch-v8.mts "$$(RUSTUP_AUTO_INSTALL=0 rustc -vV | sed -n 's/^host: //p')"
 	cargo fetch --locked
 

@@ -1,6 +1,7 @@
 # The folder layout of ssr (S5, S7, S9), checked by make layout-check: the common rules of config/layout.kit.yml and the
-# map of this repository. A rule of kit is overridden by its id with the full list of its paths; each entry that this file
-# adds carries its reason in a comment right above it.
+# map of this repository. A rule of kit is overridden by its id with the full list of its paths, except layout-root-files,
+# which adds the root files of ssr in vars.root_files (K145); each entry that this file adds carries its reason in a
+# comment right above it.
 version: 1
 extends:
   - layout.kit.yml
@@ -33,45 +34,12 @@ rules:
       # (https://nexte.st/docs/configuration/); another place needs --config-file on every command.
       - "!.config"
 
+  # The root files of ssr that kit's list lacks (K145).
   - id: layout-root-files
-    paths:
-      - "*"
-      - "!README.md"
-      - "!README.ko.md"
-      - "!AGENTS.md"
-      - "!AGENTS.ko.md"
-      - "!PRINCIPLES.md"
-      - "!PRINCIPLES.ko.md"
-      - "!CHANGELOG.md"
-      - "!CHANGELOG.ko.md"
-      - "!LICENSE"
-      - "!Makefile"
-      - "!kit.json"
-      - "!package.json"
-      - "!package-lock.json"
-      - "!tsconfig.json"
-      - "!.gitignore"
-      - "!.gitattributes"
-      - "!.node-version"
-      - "!.python-version"
-      - "!.php-version"
-      - "!rust-toolchain.toml"
-      - "!mise.toml"
-      - "!mise.lock"
-      - "!ruff.toml"
-      - "!phpcs.xml.dist"
-      - "!phpstan.dist.neon"
-      - "!Cargo.toml"
-      - "!Cargo.lock"
-      - "!go.work"
-      - "!go.work.sum"
-      - "!.golangci.yml"
-      - "!.oxlintrc.json"
-      - "!knip.json"
-      - "!.editorconfig"
+    vars:
       # cargo-deny reads deny.toml of the workspace root, by its own convention
       # (https://embarkstudios.github.io/cargo-deny/checks/cfg.html); another place needs --config on every command.
-      - "!deny.toml"
+      root_files: "{deny.toml}"
 
   # ssr is Rust only: each crate of the Cargo workspace is a component, named without the repository prefix that its
   # package name polyspec-ssr-<component> carries.
