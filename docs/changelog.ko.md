@@ -1,11 +1,12 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 9a43a9260078397dcd018bdf353587855763efde018435c2679d649f8f959e3c -->
+<!-- source-sha256: 4a83d8e8bc2b61b7fd657318dad0cfaf1cb806ed2055343603beb69b476d1360 -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- ssr은 PHP를 선언하지 않으므로 `make toolchain-check`가 PHP lint를 검사하지 않는다(kit 0.0.39).
 - `rust-toolchain.toml`과 모든 Cargo package의 `rust-version`에 Rust 1.99.0을,
   `.node-version`과 build fixture manifest의 `engines.node`에 Node.js 26.11.1을 고정한다.
 - license fixture를 lock `tools/license-fixtures/xxhash-0.8.17.lock`과 `xxhash-0.8.18.lock`으로
