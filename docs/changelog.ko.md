@@ -1,11 +1,12 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: c9567a85ca3280377788c694031d194786515b6b11d36566248e590709160f5c -->
+<!-- source-sha256: 7f09ea5a22ee34adfd588d19bc9325082c346533e74bf33f7e2f5d0de4e534d7 -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- kit 0.0.43을 실행한다. 그 oxlint는 node:test의 등록을 허용하고, knip은 entry를 layout에서 얻는다.
 - kit의 dependency review로 의존성을 검토한다. `config/dependency-policy.json`은 npm lock을
   선언하고 sprintf-js와 paste의 advisory를 이유와 함께 받아들이며, `config/dependency-review.json`은
   검토를 기록하고, `make check`는 `make dependency-policy-check`를 실행한다. `mise.toml`은

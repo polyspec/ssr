@@ -5,6 +5,8 @@
 
 ## Unreleased
 
+- Run kit 0.0.43, whose oxlint allows the registrations of node:test and whose knip
+  takes its entries from the layout.
 - Review the dependencies with the dependency review of kit: `config/dependency-policy.json`
   declares the npm lock and accepts the advisories of sprintf-js and paste with their reasons,
   `config/dependency-review.json` records the review, `make check` runs
