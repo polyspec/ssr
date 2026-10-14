@@ -22,7 +22,7 @@ function Deferred({ failClient }: { failClient: boolean }) {
   if (typeof window === "undefined") {
     if (!attemptedOnServer) {
       attemptedOnServer = true;
-      Promise.resolve().then(() => rejectOnServer(new Error("late server failure")));
+      queueMicrotask(() => rejectOnServer(new Error("late server failure")));
       throw suspendedOnServer;
     }
     throw new Error("late server failure");

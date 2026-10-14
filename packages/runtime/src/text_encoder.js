@@ -10,18 +10,24 @@
   globalThis.TextEncoder = class TextEncoder {
     #brand = true;
 
+    // The brand check of WebIDL: a method or getter called on another receiver throws a TypeError, since reading the
+    // private field of an object that lacks it throws one.
+    static #check(receiver) {
+      if (receiver.#brand !== true) throw new TypeError("Illegal invocation");
+    }
+
     get encoding() {
-      this.#brand;
+      TextEncoder.#check(this);
       return "utf-8";
     }
 
     encode(input = "") {
-      this.#brand;
+      TextEncoder.#check(this);
       return encodeUtf8(domString(input));
     }
 
     encodeInto(source, destination) {
-      this.#brand;
+      TextEncoder.#check(this);
       if (arguments.length < 2) throw new TypeError("encodeInto requires source and destination");
       source = domString(source);
       if (!(destination instanceof Uint8Array)) {
