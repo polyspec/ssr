@@ -474,6 +474,23 @@
       "targets": [
         "kit-check"
       ]
+    },
+    {
+      "paths": [
+        "config/layout.yml"
+      ],
+      "targets": [
+        "layout-check"
+      ]
+    },
+    {
+      "paths": [
+        "config/toolchain.json"
+      ],
+      "targets": [
+        "toolchain-check",
+        "layout-check"
+      ]
     }
   ]
 }

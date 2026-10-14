@@ -1,0 +1,14 @@
+# The folder layout of ssr (S5, S7, S9), checked by make layout-check: the common rules of config/layout.kit.yml and the
+# map of this repository. It declares no exception: every finding is an item of the checklist.
+version: 1
+extends:
+  - layout.kit.yml
+
+rules:
+  - extends_template: no-repository-prefix
+    id: layout-no-repository-prefix
+    vars: { repo: ssr }
+
+  - extends_template: go-module-path
+    id: layout-go-module-path
+    vars: { repo: ssr }
