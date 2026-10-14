@@ -5,7 +5,7 @@ use std::thread;
 use std::time::Instant;
 
 /// The chromium build of the package installation, which the nextest setup script
-/// `install-packages` names (`tools/install_packages.py`): the same browser on every machine.
+/// `install-packages` names (`scripts/install-packages.mts`): the same browser on every machine.
 pub fn browser() -> String {
     let path = std::env::var("SSR_BROWSER").unwrap_or_else(|_| {
         panic!(
