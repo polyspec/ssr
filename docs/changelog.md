@@ -5,6 +5,9 @@
 
 ## Unreleased
 
+- Run kit 0.0.44: `config/layout.yml` names `deny.toml` in `vars.root_files` of `layout-root-files`,
+  and `make install-tools` installs the Rust toolchain of `rust-toolchain.toml` in place of
+  `make install-rust`, which is removed.
 - `make lint-ts` runs oxlint without findings: the brand check of `TextEncoder` reads `#brand`
   and the fixture `ReactStreamApp.tsx` rejects in a microtask.
 - The job push-gate installs the tools of `mise.lock` and the Rust toolchain of

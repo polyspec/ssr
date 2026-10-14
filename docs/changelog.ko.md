@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: f0d02846992c0dffe7dfc2942501d7e487741a1fa93dd6ba41c8f499f2dc6ebc -->
+<!-- source-sha256: 9d04f2e9f99887fd6cfb7ca14079582587c34db93db90d20a790b5029f6fe1ed -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- kit 0.0.44를 실행한다. `config/layout.yml`은 `layout-root-files`의 `vars.root_files`에 `deny.toml`을 적고,
+  제거된 `make install-rust` 대신 `make install-tools`가 `rust-toolchain.toml`의 Rust toolchain을 설치한다.
 - `make lint-ts`의 oxlint가 finding 없이 통과한다. `TextEncoder`의 brand 검사는 `#brand`를 읽고,
   fixture `ReactStreamApp.tsx`는 microtask에서 reject한다.
 - job push-gate는 `make toolchain-check` 전에 `mise.lock`의 도구와 `rust-toolchain.toml`의 Rust toolchain을
