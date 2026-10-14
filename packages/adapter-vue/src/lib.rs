@@ -1,4 +1,3 @@
-
 use polyspec_ssr_core::{Page, Render, RenderResult, Value};
 use polyspec_ssr_runtime::Pool;
 use std::fmt;

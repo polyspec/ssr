@@ -1,4 +1,3 @@
-
 use polyspec_ssr_core::{Page, Render, RenderResult, Value};
 use std::fmt;
 use std::path::Path;

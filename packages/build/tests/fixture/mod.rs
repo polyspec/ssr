@@ -6,7 +6,10 @@
 //! generated entries there, builds with the installed packages as `BuildConfig::dependencies` and
 //! removes the root when it ends, also when an assertion fails. No test writes into the checkout
 //! or into the package installation, and two tests never share a root.
-#![allow(dead_code, reason = "each test binary that includes this module uses a part of it")]
+#![allow(
+    dead_code,
+    reason = "each test binary that includes this module uses a part of it"
+)]
 
 use std::fs;
 use std::path::{Path, PathBuf};
