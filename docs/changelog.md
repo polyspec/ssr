@@ -5,6 +5,7 @@
 
 ## Unreleased
 
+- Run kit 0.0.40, whose tools mise installs from `mise.toml` and `mise.lock`.
 - `make toolchain-check` checks no PHP lint, since ssr declares no PHP (kit 0.0.39).
 - Pin Rust 1.99.0 in `rust-toolchain.toml` and as `rust-version` of every Cargo
   package, and Node.js 26.11.1 in `.node-version` and as `engines.node` of the
