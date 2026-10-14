@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: b72c4bcad64f21f0daed607e8e745ab8f830febd489cdb7e77e358a22fc8e57b -->
+<!-- source-sha256: fd6cbcca510139751da5b97d12d3e37acb45bae4299cab3083dbec7688fe936d -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- job push-gate는 `make toolchain-check` 전에 `mise.lock`의 도구와 `rust-toolchain.toml`의 Rust toolchain을
+  설치한다(`make install-rust`).
 - packages/의 Rust를 rustfmt로 정리한다.
 - 폴더가 kit layout의 S5, S7, S9를 따른다. `make layout-check`가 통과한다.
 - cargo-nextest 0.9.146과 cargo-deny 0.20.2를 `mise.toml`과 `mise.lock`에서 mise로 설치한다. `tools/`와 그

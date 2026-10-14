@@ -5,6 +5,8 @@
 
 ## Unreleased
 
+- The job push-gate installs the tools of `mise.lock` and the Rust toolchain of
+  `rust-toolchain.toml` (`make install-rust`) before `make toolchain-check`.
 - Format the Rust of packages/ with rustfmt.
 - The folders follow S5, S7 and S9 of the layout of kit: `make layout-check` passes.
 - Install cargo-nextest 0.9.146 and cargo-deny 0.20.2 with mise from `mise.toml` and
