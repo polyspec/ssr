@@ -1,7 +1,19 @@
 {
   "schema": 1,
   "entries": {
-    "packages/runtime/src/*.js": "include_str! of packages/runtime/src/web.rs embeds each source into the runtime, which V8 evaluates; no import reaches it, and make test runs it through the Rust tests of packages/runtime",
-    "packages/build/tests/fixtures/*.{ts,tsx,js,mjs}": "the shared npm fixture that the Rust tests of the packages build and run by path, the browser scripts browser*.mjs through the adapter tests and tests/tools/browser-launch.test.mts; no import reaches them"
+    "packages/runtime/src/*.js": "include_str! of packages/runtime/src/web.rs embeds each source into the runtime, which V8 evaluates; no import reaches it, and make test runs it through the Rust tests of packages/runtime"
+  },
+  "workspaces": {
+    "packages/build/tests/fixtures": {
+      "reason": "the shared npm fixture that the Rust tests of the packages build, render and drive in a browser by path, with the dependencies of its own package.json",
+      "entries": {
+        "*.{ts,tsx,js,mjs,svelte}": "the applications, client and server entries and browser scripts that the Rust tests build and run by path, and the browser scripts that tests/tools/browser-launch.test.mts runs; no import reaches them"
+      },
+      "ignoreDependencies": {
+        "@fontsource/inter": "only the Rust tests load it: the build of packages/build bundles the @import of app.css, a stylesheet that no JavaScript imports",
+        "svelte": "only the Rust tests load it: packages/build compiles the .svelte files with the svelte compiler of this project",
+        "playwright-core": "only the Rust tests load it: the browser scripts import it by a file URL into node_modules that the Rust tests pass, which knip cannot resolve"
+      }
+    }
   }
 }
