@@ -20,16 +20,12 @@ permissions:
 
 jobs:
   push-gate:
-    # actions/setup-python provides Python 3.9 for Ubuntu 24.04, not for 26.04; the tools pin the
-    # minor version 3.9 (tools/tool-versions.json). The actions are pinned to commits.
+    # The actions are pinned to commits.
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: "3.9"
       # The Node.js of .node-version runs the tools of kit; the npm of packageManager installs the packages, so the cache
       # of setup-node is off.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -40,7 +36,7 @@ jobs:
         run: make install-tools TOOLS=npm
       - name: install packages
         run: make install-packages
-      - name: declared tools and no checklist item in progress
+      - name: declared tools, no checklist item in progress, the records and the TypeScript
         run: make ci-push
       - name: upload the logs and the summary
         if: ${{ !cancelled() }}

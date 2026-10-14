@@ -1,5 +1,6 @@
 # The folder layout of ssr (S5, S7, S9), checked by make layout-check: the common rules of config/layout.kit.yml and the
-# map of this repository. It declares no exception: every finding is an item of the checklist.
+# map of this repository. A rule of kit is overridden by its id with the full list of its paths; each entry that this file
+# adds carries its reason in a comment right above it.
 version: 1
 extends:
   - layout.kit.yml
@@ -12,3 +13,102 @@ rules:
   - extends_template: go-module-path
     id: layout-go-module-path
     vars: { repo: ssr }
+
+  - id: layout-root-folders
+    paths:
+      - "*"
+      - "!packages"
+      - "!contracts"
+      - "!docs"
+      - "!scripts"
+      - "!tests"
+      - "!examples"
+      - "!benchmarks"
+      - "!config"
+      - "!.github"
+      - "!.githooks"
+      - "!.kit"
+      - "!.mise"
+      # cargo-nextest reads its configuration from .config/nextest.toml of the workspace root, by its own convention
+      # (https://nexte.st/docs/configuration/); another place needs --config-file on every command.
+      - "!.config"
+
+  - id: layout-root-files
+    paths:
+      - "*"
+      - "!README.md"
+      - "!README.ko.md"
+      - "!AGENTS.md"
+      - "!AGENTS.ko.md"
+      - "!PRINCIPLES.md"
+      - "!PRINCIPLES.ko.md"
+      - "!CHANGELOG.md"
+      - "!CHANGELOG.ko.md"
+      - "!LICENSE"
+      - "!Makefile"
+      - "!kit.json"
+      - "!package.json"
+      - "!package-lock.json"
+      - "!tsconfig.json"
+      - "!.gitignore"
+      - "!.gitattributes"
+      - "!.node-version"
+      - "!.python-version"
+      - "!.php-version"
+      - "!rust-toolchain.toml"
+      - "!mise.toml"
+      - "!mise.lock"
+      - "!ruff.toml"
+      - "!phpcs.xml.dist"
+      - "!phpstan.dist.neon"
+      - "!Cargo.toml"
+      - "!Cargo.lock"
+      - "!go.work"
+      - "!go.work.sum"
+      - "!.golangci.yml"
+      - "!.oxlintrc.json"
+      - "!knip.json"
+      - "!.editorconfig"
+      # cargo-deny reads deny.toml of the workspace root, by its own convention
+      # (https://embarkstudios.github.io/cargo-deny/checks/cfg.html); another place needs --config on every command.
+      - "!deny.toml"
+
+  # ssr is Rust only: each crate of the Cargo workspace is a component, named without the repository prefix that its
+  # package name polyspec-ssr-<component> carries.
+  - id: layout-packages
+    paths:
+      - "packages/*"
+      - "!packages/go"
+      - "!packages/php"
+      - "!packages/php-ext"
+      - "!packages/python"
+      - "!packages/rust"
+      - "!packages/ts"
+      - "!packages/js"
+      - "!packages/core"
+      - "!packages/build"
+      - "!packages/runtime"
+      - "!packages/adapter-react"
+      - "!packages/adapter-vue"
+      - "!packages/adapter-svelte"
+      - "!packages/adapter-vanilla"
+      - "!packages/nonce"
+      - "!packages/server"
+
+  - id: layout-root-tests
+    paths:
+      - "tests/*"
+      - "!tests/kit"
+      # The tool tests: the tests of scripts/ and of the configuration of the repository (workflows, Makefile, deny.toml).
+      - "!tests/tools"
+      # The check of the test ownership of config/test-ownership.json across the packages (docs/test-ownership.md).
+      - "!tests/test-ownership"
+
+  - id: layout-infrastructure-typescript
+    paths:
+      - "scripts/**/*.{js,mjs,cjs,py,sh,bash,zsh,rb,pl,php,go,rs,ps1,bat,cmd}"
+      - "tests/**/*.{js,mjs,cjs,py,sh,bash,zsh,rb,pl,php,go,rs,ps1,bat,cmd}"
+      - "!tests/kit/fixture/**"
+      # S9 exception: the test ownership check reads the Rust sources of the packages with syn, the parser of the Rust
+      # ecosystem, and runs cargo nextest; a parser of Rust in another language would reinvent syn.
+      - "!tests/test-ownership/**"

@@ -1,0 +1,33 @@
+# The test ownership check (docs/test-ownership.md): validates config/test-ownership.json against the workspace and
+# runs the declared tests once on one workspace build. A standalone package with its own lock file, run by
+#   cargo run --locked --manifest-path tests/test-ownership/Cargo.toml -- <repository root>
+[package]
+name = "polyspec-ssr-test-ownership"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.99.0"
+publish = false
+
+[workspace]
+
+# The lints of every package (S8, config/cargo.schema.json): no unsafe code, and no allow attribute without its reason.
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+allow_attributes_without_reason = "deny"
+
+[lints]
+workspace = true
+
+[dependencies]
+cargo_metadata = { version = "=0.23.1", features = ["unstable"] }
+proc-macro2 = { version = "=1.0.107", default-features = false, features = ["span-locations"] }
+rustix = { version = "=1.1.5", features = ["process"] }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
+signal-hook = "=0.4.5"
+syn = { version = "=3.0.6", default-features = false, features = ["full", "parsing", "visit"] }
+
+[dev-dependencies]
+tempfile = "=3.27.0"

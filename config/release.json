@@ -25,7 +25,8 @@
   "notReleased": {
     "config/php-lint/composer.json": "the Composer project of the PHP lint that kit copies into every repository",
     "package.json": "the npm project that installs the package @polyspec/kit for the tools of this repository",
-    "packages/build/tests/fixtures/package.json": "the npm packages of the build cases"
+    "packages/build/tests/fixtures/package.json": "the npm packages of the build cases",
+    "tests/test-ownership/Cargo.toml": "the test ownership check of make check-ownership"
   },
   "goModules": {},
   "proof": {

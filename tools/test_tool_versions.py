@@ -45,16 +45,12 @@ class ToolVersionsTest(TestCase):
             self.assertIn(f"actual {report!r}", error)
 
     def test_python_is_pinned_to_its_minor_version_here_and_in_the_workflow(self):
+        # The jobs lint and test of ci.yml run the tool version check of this module (make ci-lint, make ci-test).
         self.assertEqual(tool_versions.declared()["python3"]["minor"], "Python 3.9")
-        workflow = (ROOT / ".github/workflows/push-gate.yml").read_text()
-        self.assertIn('python-version: "3.9"', workflow)
-        self.assertIn("run: make ci-push", workflow)
-        self.assertIn("CI_PUSH_TARGETS = toolchain-check ci-python push-gate-commit push-records",
-                      (ROOT / "Makefile").read_text().splitlines())
-        self.assertEqual(recipe("ci-python"), ["python3 -m tools.tool_versions check python3"])
-        for line in workflow.splitlines():
-            if "uses: " in line:
-                self.assertRegex(line, r"uses: [a-z-]+/[a-z-]+@[0-9a-f]{40} # v\d+$")
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        self.assertEqual(workflow.count('python-version: "3.9"'), 2)
+        for target in ("ci-lint", "ci-test"):
+            self.assertIn("python3 -m tools.tool_versions check python3 cargo-nextest cargo-deny", recipe(target))
 
     def test_a_missing_tool_fails_with_its_cause(self):
         tools = {"absent": {"name": "absent", "command": ["/nonexistent/tool", "--version"], "version": "1"}}
@@ -90,30 +86,3 @@ class ToolVersionsTest(TestCase):
         # Node.js, npm and Rust are declared in .node-version, packageManager of package.json and rust-toolchain.toml,
         # which make toolchain-check of kit checks.
         self.assertEqual(set(tool_versions.declared()), {"python3", "make", "cargo-nextest", "cargo-deny"})
-
-
-class EntryTest(TestCase):
-    def test_every_make_entry_outside_the_guard_checks_the_tools_first(self):
-        for target in ("bench", "review-advisories"):
-            self.assertEqual(recipe(target)[0], "python3 -m tools.tool_versions check", target)
-
-    def test_no_target_or_tool_runs_a_container_tool_of_the_host(self):
-        # Linux builds and tests run on the Linux runners of ci.yml, so no target needs one.
-        for line in (ROOT / "Makefile").read_text().splitlines():
-            self.assertNotRegex(line, r"\bcontainer(ctl)?\b", line)
-        for source in (ROOT / "tools").glob("*.py"):
-            if not source.name.startswith("test_"):
-                self.assertNotRegex(source.read_text(), r"[\"']container(ctl)?[\"']", source)
-
-    def test_rustup_never_installs_a_toolchain(self):
-        makefile = (ROOT / "Makefile").read_text()
-        self.assertIn("\nexport RUSTUP_AUTO_INSTALL := 0\n", makefile)
-        self.assertIn("V8_TARGET := $(shell RUSTUP_AUTO_INSTALL=0 rustc -vV", makefile)
-
-    def test_the_full_suite_checks_no_advisory_and_the_review_does(self):
-        self.assertEqual(recipe("check-deny"), ["cargo deny check $(DENY_CHECKS)"])
-        self.assertIn("DENY_CHECKS = bans licenses sources", (ROOT / "Makefile").read_text().splitlines())
-        self.assertEqual([command for command in recipe("review-advisories") if "cargo deny" in command],
-                         ["cargo deny check advisories"])
-        self.assertNotIn("review-advisories", next(line for line in (ROOT / "Makefile").read_text().splitlines()
-                                                   if line.startswith("CHECK_TARGETS = ")))

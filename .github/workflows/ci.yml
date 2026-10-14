@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # The records, the formatting, Clippy and the dependency check (CI_LINT_TARGETS).
+  # The filter of the fixture packages, the formatting, Clippy and the dependency check (CI_LINT_TARGETS).
   lint:
     strategy:
       fail-fast: false
@@ -35,6 +35,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      # Python runs the tool version check of tools/ until mise installs cargo-nextest and cargo-deny (S-50-8).
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.9"
@@ -71,6 +72,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      # Python runs the tool version check of tools/ until mise installs cargo-nextest and cargo-deny (S-50-8).
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.9"

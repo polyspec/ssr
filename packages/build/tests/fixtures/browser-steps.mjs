@@ -3,11 +3,11 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 // The browser driver comes from the package installation that SSR_PACKAGES names
-// (tools/install_packages.py); the scripts run from a copy of the fixture sources, which has no
+// (scripts/install-packages.mts); the scripts run from a copy of the fixture sources, which has no
 // node_modules, so the import names its absolute path.
 const packages = process.env.SSR_PACKAGES;
 if (!packages) {
-  throw new Error("SSR_PACKAGES is not set; it names the package installation of tools/install_packages.py");
+  throw new Error("SSR_PACKAGES is not set; it names the package installation of scripts/install-packages.mts");
 }
 export const { chromium } = await import(
   pathToFileURL(join(packages, "node_modules/playwright-core/index.mjs")).href

@@ -1,6 +1,6 @@
 //! The application root of one test.
 //!
-//! The nextest setup script `install-packages` (`tools/install_packages.py`) names the fixture
+//! The nextest setup script `install-packages` (`scripts/install-packages.mts`) names the fixture
 //! sources in `SSR_FIXTURES` and the immutable package installation of their lock in
 //! `SSR_PACKAGES`. Each test copies the sources into a new temporary root of its own, writes its
 //! generated entries there, builds with the installed packages as `BuildConfig::dependencies` and

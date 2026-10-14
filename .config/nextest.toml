@@ -2,7 +2,7 @@
 experimental = ["setup-scripts"]
 
 # A case's limit only ends a hung case, far above the time a case takes; it is not a performance
-# criterion. nextest reports such a case as TIMEOUT, which tools/cargo_case.py names hung.
+# criterion. nextest reports such a case as TIMEOUT, which tests/test-ownership names hung.
 [profile.default]
 slow-timeout = { period = "30s", terminate-after = 1 }
 status-level = "all"
@@ -20,10 +20,10 @@ failure-output = "immediate-final"
 
 # The polyspec-ssr-server tests run the development_process and socket_process examples. Cargo builds
 # examples only when no target is selected, so before any test of polyspec-ssr-server this script builds
-# both and names them in SSR_DEVELOPMENT_PROCESS and SSR_SOCKET_PROCESS (tools/build_programs.py).
+# both and names them in SSR_DEVELOPMENT_PROCESS and SSR_SOCKET_PROCESS (scripts/build-programs.mts).
 # The build reports itself every 60 s and has no time limit.
 [scripts.setup.build-programs]
-command = ["python3", "-m", "tools.build_programs"]
+command = ["node", "scripts/build-programs.mts"]
 slow-timeout = { period = "60s" }
 
 [[profile.default.scripts]]
@@ -32,12 +32,12 @@ setup = "build-programs"
 
 # Every test builds with the packages of packages/build/tests/fixtures. Before the tests, this
 # script installs them once per lock into the immutable var/packages/<digest> and names it in
-# SSR_PACKAGES, and names the fixture sources in SSR_FIXTURES (tools/install_packages.py); each
+# SSR_PACKAGES, and names the fixture sources in SSR_FIXTURES (scripts/install-packages.mts); each
 # test copies the sources into a temporary root of its own. The install has no time limit. The
-# filter names exactly the test binaries that read the installation, which tools/check.py checks
-# (filter_errors of tools/install_packages.py), so tests that need no packages run without npm.
+# filter names exactly the test binaries that read the installation, which make check-fixture-filter
+# checks (scripts/install-packages.mts check-filter), so tests that need no packages run without npm.
 [scripts.setup.install-packages]
-command = ["python3", "-m", "tools.install_packages"]
+command = ["node", "scripts/install-packages.mts"]
 slow-timeout = { period = "60s" }
 
 [[profile.default.scripts]]
