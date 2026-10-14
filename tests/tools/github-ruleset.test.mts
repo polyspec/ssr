@@ -125,7 +125,7 @@ function jobs(workflow: string): string[] {
   return [...workflow.slice(start + '\njobs:\n'.length).matchAll(/^ {2}([\w-]+):\s*$/gm)].map(match => match[1] ?? '');
 }
 
-await test('main takes changes only through pull requests and the merge queue without bypass', () => {
+test('main takes changes only through pull requests and the merge queue without bypass', () => {
   const ruleset = DECLARATION.ruleset;
   assert.equal(ruleset.enforcement, 'active');
   assert.equal(ruleset.target, 'branch');
@@ -149,7 +149,7 @@ await test('main takes changes only through pull requests and the merge queue wi
   assert.deepEqual(DECLARATION.settings, { allow_rebase_merge: true, allow_auto_merge: true, delete_branch_on_merge: true });
 });
 
-await test('the required checks are the push gate and the job ci-passed', () => {
+test('the required checks are the push gate and the job ci-passed', () => {
   const checks = DECLARATION.ruleset.rules.find(rule => rule.type === 'required_status_checks')?.parameters?.required_status_checks;
   // The check of a job without a name is the job ID. ci-passed, the last job of ci.yml, passes only when every other
   // job of ci.yml passed, the jobs lint and test on each runner of their matrix included.
@@ -163,7 +163,7 @@ await test('the required checks are the push gate and the job ci-passed', () => 
   assert.deepEqual(checks, ['push-gate', 'ci-passed'].map(job => ({ context: job, integration_id: 15368 })));
 });
 
-await test('the Makefile runs the script for each target and publishes nothing', () => {
+test('the Makefile runs the script for each target and publishes nothing', () => {
   const makefile = readFileSync(path.join(ROOT, 'Makefile'), 'utf8');
   for (const [target, mode] of [['github-ruleset', 'apply'], ['github-ruleset-check', 'check']] as const) {
     assert.match(makefile, new RegExp(`^${target}:\\n\\tnode scripts/github-ruleset\\.mts ${mode}$`, 'm'));
@@ -174,7 +174,7 @@ await test('the Makefile runs the script for each target and publishes nothing',
   assert.ok(!phony[1].split(/\s+/).includes('push'));
 });
 
-await test('check fails without the ruleset and apply creates it', t => {
+test('check fails without the ruleset and apply creates it', t => {
   const sandbox = new Sandbox(t);
   const result = sandbox.run('check');
   assert.equal(result.status, 1, result.stdout);
@@ -190,7 +190,7 @@ await test('check fails without the ruleset and apply creates it', t => {
   assert.ok(again.stdout.includes('the repository matches .github/ruleset.json'), again.stdout);
 });
 
-await test('a setting that differs fails check and apply patches only the declared settings', t => {
+test('a setting that differs fails check and apply patches only the declared settings', t => {
   const sandbox = new Sandbox(t, { rulesets: [live(DECLARATION.ruleset)], settings: { ...DECLARATION.settings, allow_auto_merge: false } });
   const result = sandbox.run('check');
   assert.equal(result.status, 1);
@@ -202,7 +202,7 @@ await test('a setting that differs fails check and apply patches only the declar
   assert.equal(sandbox.run('check').status, 0);
 });
 
-await test('check names a missing merge queue', t => {
+test('check names a missing merge queue', t => {
   const ruleset = live(DECLARATION.ruleset);
   ruleset.rules = ruleset.rules.filter(rule => rule.type !== 'merge_queue');
   const sandbox = new Sandbox(t, { rulesets: [ruleset] });
@@ -212,7 +212,7 @@ await test('check names a missing merge queue', t => {
   assert.ok(result.stderr.slice(result.stderr.indexOf('declared')).includes('"merge_method":"REBASE"'), result.stderr);
 });
 
-await test('order and fields that GitHub adds are not differences', t => {
+test('order and fields that GitHub adds are not differences', t => {
   const ruleset = live(DECLARATION.ruleset);
   ruleset.rules = [...ruleset.rules].reverse();
   ruleset.conditions = { ref_name: { exclude: [], include: ['refs/heads/main'] } };
@@ -221,7 +221,7 @@ await test('order and fields that GitHub adds are not differences', t => {
   assert.equal(result.status, 0, result.stderr);
 });
 
-await test('a bypass actor differs and apply replaces the ruleset of the name', t => {
+test('a bypass actor differs and apply replaces the ruleset of the name', t => {
   const ruleset = live(DECLARATION.ruleset);
   ruleset.bypass_actors = [{ actor_id: 5, actor_type: 'RepositoryRole', bypass_mode: 'always' }];
   const other = live({ ...DECLARATION.ruleset, name: 'tags', target: 'tag' }, 8);
@@ -237,7 +237,7 @@ await test('a bypass actor differs and apply replaces the ruleset of the name', 
   assert.equal(sandbox.state().rulesets[0]?.name, 'tags', 'apply changes only the ruleset of the name');
 });
 
-await test('a missing rule, another check and disabled enforcement each differ', t => {
+test('a missing rule, another check and disabled enforcement each differ', t => {
   const ruleset = live(DECLARATION.ruleset);
   ruleset.enforcement = 'evaluate';
   ruleset.rules = ruleset.rules.filter(rule => rule.type !== 'non_fast_forward');
@@ -253,7 +253,7 @@ await test('a missing rule, another check and disabled enforcement each differ',
   assert.equal(count(result.stderr, /\[ruleset\] differs:/g), 2, result.stderr);
 });
 
-await test('two rulesets of the name fail with both ids', t => {
+test('two rulesets of the name fail with both ids', t => {
   const sandbox = new Sandbox(t, { rulesets: [live(DECLARATION.ruleset, 7), live(DECLARATION.ruleset, 9)] });
   for (const mode of ['check', 'apply']) {
     const result = sandbox.run(mode);

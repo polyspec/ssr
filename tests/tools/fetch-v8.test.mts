@@ -12,7 +12,7 @@ import { fetchInputs, files } from '../../scripts/fetch-v8.mts';
 
 const sha256 = (text: string): string => createHash('sha256').update(text).digest('hex');
 
-await test('the files are verified and published, a verified file is kept and another digest fails', async t => {
+test('the files are verified and published, a verified file is kept and another digest fails', async t => {
   const directory = mkdtempSync(path.join(tmpdir(), 'ssr-fetch-v8-'));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const target = 'x86_64-unknown-linux-gnu';
@@ -48,6 +48,6 @@ await test('the files are verified and published, a verified file is kept and an
   assert.deepEqual(readdirSync(destination), [names[1]]);
 });
 
-await test('an undeclared target fails', () => {
+test('an undeclared target fails', () => {
   assert.throws(() => files('riscv64'), /unsupported V8 target: riscv64; declared targets: \["aarch64-apple-darwin",/);
 });

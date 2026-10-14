@@ -15,7 +15,7 @@ const OFFLINE = { ...process.env, CARGO_NET_OFFLINE: 'true', RUSTUP_AUTO_INSTALL
 
 type Metadata = { packages: { name: string; edition: string; manifest_path: string }[]; workspace_members: string[] };
 
-await test('every folder of packages/ is a member named polyspec-ssr-<folder> of edition 2024', () => {
+test('every folder of packages/ is a member named polyspec-ssr-<folder> of edition 2024', () => {
   const result = spawnSync('cargo', ['metadata', '--no-deps', '--offline', '--locked', '--format-version', '1'],
     { cwd: ROOT, env: OFFLINE, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   assert.equal(result.status, 0, result.stderr);
@@ -41,7 +41,7 @@ xxhash-rust = "=${version}"
 dragonbox_ecma = "=0.1.12"
 `;
 
-await test('the license exceptions are exact versions', t => {
+test('the license exceptions are exact versions', t => {
   for (const [version, accepted] of [['0.8.18', true], ['0.8.17', false]] as const) {
     const directory = mkdtempSync(path.join(tmpdir(), 'ssr-workspace-'));
     t.after(() => rmSync(directory, { recursive: true, force: true }));
@@ -55,7 +55,7 @@ await test('the license exceptions are exact versions', t => {
   }
 });
 
-await test('the license fixtures lock the exact versions and are no Cargo packages', () => {
+test('the license fixtures lock the exact versions and are no Cargo packages', () => {
   assert.deepEqual(readdirSync(FIXTURES).sort(), ['xxhash-0.8.17.lock', 'xxhash-0.8.18.lock']);
   for (const version of ['0.8.18', '0.8.17']) {
     assert.ok(readFileSync(path.join(FIXTURES, `xxhash-${version}.lock`), 'utf8').includes(`name = "xxhash-rust"\nversion = "${version}"\n`));

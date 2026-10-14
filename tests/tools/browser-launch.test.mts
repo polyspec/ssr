@@ -100,7 +100,7 @@ try {
 }
 `;
 
-await test('a page step past its limit is reported as hung, with its step and the limit', async (t) => {
+test('a page step past its limit is reported as hung, with its step and the limit', async (t) => {
   const directory = temporary(t);
   const packages = stubPackages(directory);
   const scripts = path.join(directory, 'fixtures');
@@ -175,7 +175,7 @@ async function checkScript(t: test.TestContext, name: string): Promise<void> {
   assert.ok(result.stderr.includes('net::ERR_CONNECTION_REFUSED'), text);
 }
 
-await test('a script that passes a launch limit fails', async (t) => {
+test('a script that passes a launch limit fails', async (t) => {
   const scripts = temporary(t);
   copyFileSync(path.join(FIXTURES, 'browser-steps.mjs'), path.join(scripts, 'browser-steps.mjs'));
   const original = readFileSync(path.join(FIXTURES, 'browser.mjs'), 'utf8');
@@ -188,7 +188,7 @@ await test('a script that passes a launch limit fails', async (t) => {
   assert.ok(result.stderr.includes('launch limit 300000'), text);
 });
 
-await test('a script without the package installation names the variable', async () => {
+test('a script without the package installation names the variable', async () => {
   const env = { ...process.env };
   delete env.SSR_PACKAGES;
   const result = await runCase([process.execPath, path.join(FIXTURES, 'browser.mjs'), await closedBase(), '/browser/of/the/case'],
@@ -197,8 +197,8 @@ await test('a script without the package installation names the variable', async
   assert.match(result.stderr, /SSR_PACKAGES is not set; it names the package installation of scripts\/install-packages\.mts/, report(result));
 });
 
-await test('the React script proceeds after a slow launch', (t) => checkScript(t, 'browser.mjs'));
-await test('the React stream script proceeds after a slow launch', (t) => checkScript(t, 'browser-react-stream.mjs'));
-await test('the Svelte script proceeds after a slow launch', (t) => checkScript(t, 'browser-svelte.mjs'));
-await test('the vanilla script proceeds after a slow launch', (t) => checkScript(t, 'browser-vanilla.mjs'));
-await test('the Vue script proceeds after a slow launch', (t) => checkScript(t, 'browser-vue.mjs'));
+test('the React script proceeds after a slow launch', (t) => checkScript(t, 'browser.mjs'));
+test('the React stream script proceeds after a slow launch', (t) => checkScript(t, 'browser-react-stream.mjs'));
+test('the Svelte script proceeds after a slow launch', (t) => checkScript(t, 'browser-svelte.mjs'));
+test('the vanilla script proceeds after a slow launch', (t) => checkScript(t, 'browser-vanilla.mjs'));
+test('the Vue script proceeds after a slow launch', (t) => checkScript(t, 'browser-vue.mjs'));

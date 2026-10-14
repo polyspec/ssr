@@ -10,13 +10,13 @@ const ROOT = path.resolve(import.meta.dirname, '../..');
 const artifact = (name: string, kind: string[], executable: string): string =>
   JSON.stringify({ reason: 'compiler-artifact', target: { name, kind }, executable });
 
-await test('the command builds both examples of polyspec-ssr-server', () => {
+test('the command builds both examples of polyspec-ssr-server', () => {
   assert.deepEqual(command(), [
     'cargo', 'build', '--locked', '-p', 'polyspec-ssr-server', '--message-format', 'json-render-diagnostics',
     '--example', 'development_process', '--example', 'socket_process']);
 });
 
-await test('the executables come from the example artifacts', () => {
+test('the executables come from the example artifacts', () => {
   const messages = [
     JSON.stringify({ reason: 'build-finished', success: true }),
     artifact('development_process', ['lib'], '/target/debug/libdevelopment_process.rlib'),
@@ -29,12 +29,12 @@ await test('the executables come from the example artifacts', () => {
   });
 });
 
-await test('a missing executable is an error', () => {
+test('a missing executable is an error', () => {
   assert.throws(() => executables(artifact('development_process', ['example'], '/target/debug/examples/development_process')),
     /Cargo reported no executable for socket_process/);
 });
 
-await test('the tool runs only as a setup script', () => {
+test('the tool runs only as a setup script', () => {
   const env = { ...process.env };
   delete env.NEXTEST_ENV;
   const result = spawnSync(process.execPath, ['scripts/build-programs.mts'], { cwd: ROOT, env, encoding: 'utf8' });

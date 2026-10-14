@@ -34,7 +34,7 @@ function commitAll(root: string): void {
   }
 }
 
-await test('the record and term checks report prohibited words', t => {
+test('the record and term checks report prohibited words', t => {
   const root = temporary(t);
   write(root, { 'example.md': 'orphan site\n' });
   commitAll(root);
@@ -43,21 +43,21 @@ await test('the record and term checks report prohibited words', t => {
     `${path.join(root, 'example.md')}: unapproved term site`]);
 });
 
-await test('a record word in a Rust comment of packages is named, in code it is not', t => {
+test('a record word in a Rust comment of packages is named, in code it is not', t => {
   const root = temporary(t);
   write(root, { 'packages/core/src/lib.rs': 'fn dead() {}\n// an orphan process\n', 'other/lib.rs': '// orphan\n' });
   commitAll(root);
   assert.deepEqual(checkWords(root), [`${path.join(root, 'packages/core/src/lib.rs')}:2: prohibited record word`]);
 });
 
-await test('a word only joined to a record word by a hyphen or letter is no record word', t => {
+test('a word only joined to a record word by a hyphen or letter is no record word', t => {
   const root = temporary(t);
   write(root, { 'example.md': 'dead-end, gateway, sites, 사이트맵\n' });
   commitAll(root);
   assert.deepEqual(checkWords(root), []);
 });
 
-await test('untracked and ignored documents are not read', t => {
+test('untracked and ignored documents are not read', t => {
   const root = temporary(t);
   write(root, {
     '.gitignore': 'node_modules/\n',
@@ -69,7 +69,7 @@ await test('untracked and ignored documents are not read', t => {
   assert.equal(checkWords(root).length, 2);
 });
 
-await test('the copies of kit are no records of this repository', t => {
+test('the copies of kit are no records of this repository', t => {
   // make kit-check of kit compares the copies with the installed package; the record checks read the files of ssr.
   const root = temporary(t);
   write(root, {
@@ -87,7 +87,7 @@ await test('the copies of kit are no records of this repository', t => {
   assert.equal(checkWords(root).length, 2);
 });
 
-await test('a kit package without kit.copies is an error', t => {
+test('a kit package without kit.copies is an error', t => {
   const root = temporary(t);
   write(root, {
     'package.json': '{"devDependencies": {"@polyspec/kit": "1.0.0"}}\n',
@@ -97,7 +97,7 @@ await test('a kit package without kit.copies is an error', t => {
   assert.throws(() => checkWords(root), /declares no object kit\.copies/);
 });
 
-await test('an absolute path into a home directory fails', t => {
+test('an absolute path into a home directory fails', t => {
   const root = temporary(t);
   // The path is composed, so this file names no home directory itself.
   const home = '/' + 'Users' + '/someone/';
@@ -110,11 +110,11 @@ await test('an absolute path into a home directory fails', t => {
   assert.deepEqual(checkOutsidePaths(root), [`Cargo.toml:2:17: absolute path into a home directory: ${home}`]);
 });
 
-await test('the repository names no home directory', () => {
+test('the repository names no home directory', () => {
   assert.deepEqual(checkOutsidePaths(ROOT), []);
 });
 
-await test('an assertion on a measured time is named', t => {
+test('an assertion on a measured time is named', t => {
   // The sources are composed, so this file holds no assertion on a measured time itself.
   const word = 'assert';
   const error = 'an assertion judges a measured time; assert the behaviour and print the time';
@@ -136,18 +136,18 @@ await test('an assertion on a measured time is named', t => {
     `steps.mjs:1: ${error}`, `steps.test.mts:4: ${error}`, `steps.test.mts:5: ${error}`]);
 });
 
-await test('no assertion judges a measured time', () => {
+test('no assertion judges a measured time', () => {
   assert.deepEqual(checkTimedAssertions(ROOT), []);
 });
 
-await test('a checkout that git cannot read fails', t => {
+test('a checkout that git cannot read fails', t => {
   const root = temporary(t);
   assert.throws(() => markdownFiles(root),
     (error: unknown) => error instanceof CheckoutError
       && /^git ls-files -- \*\.md in .* exited with 128: fatal: not a git repository/.test(error.message));
 });
 
-await test('the tool takes no argument', () => {
+test('the tool takes no argument', () => {
   const result = spawnSync(process.execPath, ['scripts/check-records.mts', 'records'], { cwd: ROOT, encoding: 'utf8' });
   assert.equal(result.status, 2);
   assert.equal(result.stderr, 'usage: node scripts/check-records.mts\n');
@@ -156,7 +156,7 @@ await test('the tool takes no argument', () => {
 const CONTRACT = '`framework_entry` `server_entry` `client_entry` `Pool::new_react` `Pool::render_stream` `ReactAdapter::stream_parts`';
 const RUNTIME = '`Pool::new_react` `Pool::render_stream` `setTimeout`';
 
-await test('a missing stream API and the old Pool::new are errors of the React document', t => {
+test('a missing stream API and the old Pool::new are errors of the React document', t => {
   const root = temporary(t);
   write(root, {
     'docs/react.md': '`Pool::new`', 'docs/react.ko.md': CONTRACT, 'docs/runtime.md': RUNTIME, 'docs/runtime.ko.md': RUNTIME,
@@ -166,7 +166,7 @@ await test('a missing stream API and the old Pool::new are errors of the React d
   assert.ok(errors.some(error => error.includes('omits `Pool::render_stream`')));
 });
 
-await test('both React documents require the current API', t => {
+test('both React documents require the current API', t => {
   const root = temporary(t);
   write(root, {
     'docs/react.md': CONTRACT, 'docs/react.ko.md': CONTRACT, 'docs/runtime.md': RUNTIME, 'docs/runtime.ko.md': RUNTIME,
@@ -174,7 +174,7 @@ await test('both React documents require the current API', t => {
   assert.deepEqual(checkReactDocument(root), []);
 });
 
-await test('a missing React document is named', t => {
+test('a missing React document is named', t => {
   const root = temporary(t);
   write(root, { 'docs/react.md': CONTRACT, 'docs/runtime.md': RUNTIME });
   assert.deepEqual(checkReactDocument(root), [

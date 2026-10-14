@@ -44,7 +44,7 @@ function sandbox(t: TestContext): Sandbox {
   return { root, fixtures, packages: path.join(root, 'packages'), log, env };
 }
 
-await test('the lock digest names an installation that is published once', t => {
+test('the lock digest names an installation that is published once', t => {
   const { fixtures, packages, log, env } = sandbox(t);
   const target = install(fixtures, packages, { env });
   assert.equal(target, path.join(packages, digest(fixtures)));
@@ -55,7 +55,7 @@ await test('the lock digest names an installation that is published once', t => 
   assert.deepEqual(readdirSync(packages).sort(), [path.basename(target)]);
 });
 
-await test('a changed lock selects a new installation', t => {
+test('a changed lock selects a new installation', t => {
   const { fixtures, packages, env } = sandbox(t);
   const first = install(fixtures, packages, { env });
   writeFileSync(path.join(fixtures, 'package-lock.json'), '{"lockfileVersion":3,"changed":true}\n');
@@ -64,14 +64,14 @@ await test('a changed lock selects a new installation', t => {
   assert.deepEqual(readdirSync(packages).sort(), [path.basename(first), path.basename(second)].sort());
 });
 
-await test('a symbolic link fails and publishes nothing', t => {
+test('a symbolic link fails and publishes nothing', t => {
   const { fixtures, packages, env } = sandbox(t);
   assert.throws(() => install(fixtures, packages, { env: { ...env, NPM_LINK: '1' } }),
     /installed package contains a symbolic link: .*linked/);
   assert.deepEqual(readdirSync(packages), []);
 });
 
-await test('a concurrent publication keeps the first installation', t => {
+test('a concurrent publication keeps the first installation', t => {
   const { fixtures, packages, env } = sandbox(t);
   const target = path.join(packages, digest(fixtures));
   // Another run publishes the same digest between this run's install and its rename.
@@ -85,7 +85,7 @@ await test('a concurrent publication keeps the first installation', t => {
   assert.deepEqual(readdirSync(packages), [path.basename(target)]);
 });
 
-await test('the setup script names the installation and the sources', t => {
+test('the setup script names the installation and the sources', t => {
   const { root, fixtures, packages, env } = sandbox(t);
   const destination = path.join(root, 'nextest-env');
   writeFileSync(destination, '');
@@ -95,7 +95,7 @@ await test('the setup script names the installation and the sources', t => {
     `SSR_PACKAGES=${target}\nSSR_FIXTURES=${fixtures}\nSSR_BROWSER=${target}/browsers/chromium/chrome\n`);
 });
 
-await test('the installation holds the pinned browser', t => {
+test('the installation holds the pinned browser', t => {
   const { fixtures, packages, env } = sandbox(t);
   const target = install(fixtures, packages, { env });
   assert.equal(browser(target, env), path.join(target, 'browsers/chromium/chrome'));
@@ -128,32 +128,32 @@ function checkout(t: TestContext, binaries: string[]): string {
   return root;
 }
 
-await test('the filter names exactly the readers', t => {
+test('the filter names exactly the readers', t => {
   const root = checkout(t, ['polyspec-ssr-a', 'polyspec-ssr-a::reads', 'polyspec-ssr-b::env']);
   assert.deepEqual(filterErrors(root), []);
 });
 
-await test('a reader outside the filter and a stale entry fail', t => {
+test('a reader outside the filter and a stale entry fail', t => {
   const root = checkout(t, ['polyspec-ssr-a', 'polyspec-ssr-a::plain', 'polyspec-ssr-b::env']);
   assert.deepEqual(filterErrors(root), [
     'polyspec-ssr-a::reads reads SSR_PACKAGES or SSR_FIXTURES but is outside the install-packages filter',
     'polyspec-ssr-a::plain is in the install-packages filter but reads no installation']);
 });
 
-await test('a filter that is not a list of binaries fails', t => {
+test('a filter that is not a list of binaries fails', t => {
   const root = checkout(t, ['polyspec-ssr-a']);
   const config = path.join(root, '.config/nextest.toml');
   writeFileSync(config, readFileSync(config, 'utf8').replace('binary_id(=polyspec-ssr-a)', 'all()'));
   assert.ok(filterErrors(root).includes(".config/nextest.toml: install-packages filter term 'all()' is not binary_id(=<id>)"));
 });
 
-await test('a configuration without the install-packages entry fails', t => {
+test('a configuration without the install-packages entry fails', t => {
   const root = checkout(t, ['polyspec-ssr-a']);
   const config = path.join(root, '.config/nextest.toml');
   writeFileSync(config, readFileSync(config, 'utf8').replace('setup = "install-packages"', 'setup = "other"'));
   assert.deepEqual(filterErrors(root), ['.config/nextest.toml: no filter of the setup script install-packages']);
 });
 
-await test('the repository filter names its readers', () => {
+test('the repository filter names its readers', () => {
   assert.deepEqual(filterErrors(ROOT), []);
 });

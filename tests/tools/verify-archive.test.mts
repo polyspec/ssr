@@ -11,7 +11,7 @@ import { checkDisk, checkEnvironment, checkFeatures, checkFiles, type Metadata }
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const sha256 = (text: string): string => createHash('sha256').update(text).digest('hex');
 
-await test('less than 10 GiB free fails', t => {
+test('less than 10 GiB free fails', t => {
   const free = (bavail: bigint) => t.mock.method(fs, 'statfsSync', () => ({ bavail, bsize: 1n }), { times: 1 });
   free(10n * 1024n ** 3n - 1n);
   assert.throws(() => checkDisk('/'), /at least 10 GiB free disk space is required: available_bytes=10737418239/);
@@ -19,7 +19,7 @@ await test('less than 10 GiB free fails', t => {
   checkDisk('/');
 });
 
-await test('missing, changed, relative and symbolic inputs fail', t => {
+test('missing, changed, relative and symbolic inputs fail', t => {
   // The temporary directory is canonical, as the inputs must be (macOS links /var to /private/var).
   const root = fs.realpathSync(fs.mkdtempSync(path.join(tmpdir(), 'ssr-verify-archive-')));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -42,7 +42,7 @@ await test('missing, changed, relative and symbolic inputs fail', t => {
   assert.throws(() => verify(archive, symbolic), /absolute canonical regular file/);
 });
 
-await test('the environment rejects source and debug builds, bypasses and another selection', () => {
+test('the environment rejects source and debug builds, bypasses and another selection', () => {
   for (const env of [
     { V8_FROM_SOURCE: '1' },
     { V8_FORCE_DEBUG: 'true' },
@@ -58,7 +58,7 @@ await test('the environment rejects source and debug builds, bypasses and anothe
     { RUSTY_V8_ARCHIVE: '/verified/archive.a.gz', RUSTY_V8_SRC_BINDING_PATH: '/verified/binding.rs', V8_FROM_SOURCE: '0' });
 });
 
-await test('the default commands require the official local inputs', () => {
+test('the default commands require the official local inputs', () => {
   const makefile = fs.readFileSync(path.join(ROOT, 'Makefile'), 'utf8');
   // Every target that links V8 verifies the archive first.
   assert.match(makefile, /\nverify-archive:\n\tnode scripts\/verify-archive\.mts\n/);
@@ -69,7 +69,7 @@ await test('the default commands require the official local inputs', () => {
   assert.ok(!fs.readFileSync(path.join(ROOT, 'Cargo.toml'), 'utf8').includes('"v8_enable_pointer_compression"'));
 });
 
-await test('a feature or version mismatch fails', () => {
+test('a feature or version mismatch fails', () => {
   const node = { id: 'v8', features: ['default', 'simdutf', 'use_custom_libcxx'] };
   const metadata: Metadata = { packages: [{ name: 'v8', version: '150.4.0', id: 'v8' }], resolve: { nodes: [node] } };
   checkFeatures(metadata);
@@ -84,7 +84,7 @@ await test('a feature or version mismatch fails', () => {
   assert.throws(() => checkFeatures(metadata), /selected versions: \["150\.3\.0"\]/);
 });
 
-await test('the command fails for an undeclared target or an archive without a binding', () => {
+test('the command fails for an undeclared target or an archive without a binding', () => {
   const run = (...args: string[]) => spawnSync(process.execPath, ['scripts/verify-archive.mts', ...args], { cwd: ROOT, encoding: 'utf8' });
   let result = run('riscv64', '--files-only');
   assert.equal(result.status, 1);

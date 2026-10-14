@@ -58,7 +58,7 @@ function variable(name: string): string[] {
   return found[1]!.split(/\s+/);
 }
 
-await test('every step runs a make target', () => {
+test('every step runs a make target', () => {
   const targets = makeTargets();
   for (const name of WORKFLOWS) {
     const commands = Object.values(workflow(name).jobs).flatMap(runs);
@@ -71,7 +71,7 @@ await test('every step runs a make target', () => {
   }
 });
 
-await test('every job uploads its logs and summary also after a failure', () => {
+test('every job uploads its logs and summary also after a failure', () => {
   for (const name of WORKFLOWS) {
     const { jobs } = workflow(name);
     const reporting = REPORTING_JOBS[name] ?? [];
@@ -87,7 +87,7 @@ await test('every job uploads its logs and summary also after a failure', () => 
   }
 });
 
-await test('every action is pinned to a commit', () => {
+test('every action is pinned to a commit', () => {
   for (const name of WORKFLOWS) {
     for (const line of read(`.github/workflows/${name}`).split('\n')) {
       if (line.includes('uses: ')) assert.match(line, /uses: [a-z-]+\/[a-z-]+@[0-9a-f]{40} # v\d+$/, name);
@@ -95,7 +95,7 @@ await test('every action is pinned to a commit', () => {
   }
 });
 
-await test('a new push cancels the previous pull request run', () => {
+test('a new push cancels the previous pull request run', () => {
   assert.deepEqual(workflow('ci.yml').concurrency, {
     group: '${{ github.workflow }}-${{ github.ref }}',
     'cancel-in-progress': "${{ github.event_name == 'pull_request' }}",
@@ -103,7 +103,7 @@ await test('a new push cancels the previous pull request run', () => {
   assert.equal(workflow('push-gate.yml').concurrency, undefined);
 });
 
-await test('each workflow declares exactly its triggers', () => {
+test('each workflow declares exactly its triggers', () => {
   // ci.yml runs the checks on every pull request, merge group and manual run: the merge group runs CI on the commit that
   // main receives. push-gate.yml also runs on every push outside the branches of the merge queue. The only other workflow
   // is the release workflow of kit.
@@ -114,13 +114,13 @@ await test('each workflow declares exactly its triggers', () => {
   });
 });
 
-await test('the push check runs the record checks and the TypeScript checks', () => {
+test('the push check runs the record checks and the TypeScript checks', () => {
   assert.deepEqual(variable('CI_PUSH_TARGETS'), ['toolchain-check', 'push-gate-commit', 'check-records', 'typecheck', 'lint-ts']);
   assert.deepEqual(recipe('check-records'), ['node scripts/check-records.mts']);
   assert.deepEqual(runs(workflow('push-gate.yml').jobs['push-gate']!), [...INSTALL_KIT, 'make ci-push']);
 });
 
-await test('ci-passed is the last job and needs every other job', () => {
+test('ci-passed is the last job and needs every other job', () => {
   const { jobs } = workflow('ci.yml');
   const names = Object.keys(jobs);
   assert.equal(names.at(-1), 'ci-passed');
@@ -133,7 +133,7 @@ await test('ci-passed is the last job and needs every other job', () => {
   assert.equal(body.steps.at(-1)?.run, CI_PASSED_RUN);
 });
 
-await test('each architecture runs every CI target in exactly one job', () => {
+test('each architecture runs every CI target in exactly one job', () => {
   const { jobs } = workflow('ci.yml');
   assert.deepEqual(Object.keys(jobs).sort(), [...Object.keys(CI_JOBS), 'ci-passed'].sort());
   const targets: string[] = [];
@@ -151,7 +151,7 @@ await test('each architecture runs every CI target in exactly one job', () => {
   assert.doesNotMatch(makefile, /^ci:/m);
 });
 
-await test('the CI jobs take cargo-nextest and cargo-deny from mise and run no Python', () => {
+test('the CI jobs take cargo-nextest and cargo-deny from mise and run no Python', () => {
   // make install-tools installs the tools of mise.lock, cargo-nextest and cargo-deny among them, and make toolchain-check
   // checks their versions; no step sets up Python and no target of the CI jobs runs it.
   for (const job of Object.keys(CI_JOBS)) {
@@ -179,17 +179,17 @@ function buildJobs(t: test.TestContext, environment: Record<string, string>): st
   return [...ran.stdout.matchAll(/^CARGO_BUILD_JOBS=(.*)$/gm)].map(match => match[1]!);
 }
 
-await test('a local build runs one job and BUILD_JOBS sets the count', t => {
+test('a local build runs one job and BUILD_JOBS sets the count', t => {
   assert.deepEqual(buildJobs(t, {}), ['1']);
   assert.deepEqual(buildJobs(t, { BUILD_JOBS: '4' }), ['4']);
 });
 
-await test('rustup never installs a toolchain', () => {
+test('rustup never installs a toolchain', () => {
   assert.ok(makefile.includes('\nexport RUSTUP_AUTO_INSTALL := 0\n'));
   assert.ok(makefile.includes('V8_TARGET := $(shell RUSTUP_AUTO_INSTALL=0 rustc -vV'));
 });
 
-await test('the full suite checks no advisory and the review does', () => {
+test('the full suite checks no advisory and the review does', () => {
   assert.deepEqual(recipe('check-deny'), ['cargo deny check $(DENY_CHECKS)']);
   assert.deepEqual(variable('DENY_CHECKS'), ['bans', 'licenses', 'sources']);
   assert.deepEqual(recipe('review-advisories'), ['cargo deny check advisories',
