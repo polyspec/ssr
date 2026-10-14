@@ -1,5 +1,5 @@
 <!-- doc-id: execution-checklist -->
-<!-- source-sha256: 7d363aad4aa54022fb17e962369774919ed22d6fb56bd71295f036ef87db93f7 -->
+<!-- source-sha256: 2bc5d46037fdc77232e5d99691725e4d1741169714e4e2e93a69b81efd0b3f76 -->
 # 체크리스트
 
 ## 항목
@@ -368,3 +368,4 @@
 - [o] S-50-4 PHP를 선언하지 않은 곳에서는 PHP lint 없이 make toolchain-check를 실행한다. 우선순위: S-50의 일부. 의존: S-50-3. 원인: kit 0.0.38은 모든 저장소에 `config/php-lint/composer.lock`의 phpcs와 phpstan을 요구하고, ssr에는 PHP가 없는데도 `make install-tools`가 `php-lint needs var/tools/composer/composer.phar, the Composer that config/toolchain.json composer declares`로 실패한다. kit 0.0.39는 PHP를 선언한 곳에서만 PHP lint를 검사한다(kit K129). Red(K79가 기록): `make toolchain-check`가 `phpcs: \`phpcs --version\` failed`와 `2 of 5 tools differ from the declared versions`를 보고한다. 수용 기준: kit 0.0.39에서 `make install-tools`와 `make toolchain-check`가 통과한다.
 - [ ] S-50-5 폴더를 kit layout의 S5, S7, S9에 맞춘다. 우선순위: S-50의 일부. 의존: S-50-3. 원인: kit의 layout 규칙. Red(kit 0.0.38에서 K79가 기록): `make layout-check`가 20개 finding을 보고하며 첫 줄은 `.config: error: layout-root-folders: S5: the root holds only packages/, contracts/, docs/, scripts/, tests/, examples/, benchmarks/ and config/`이다. 수용 기준: `make layout-check`가 통과한다.
 - [o] S-50-6 kit 0.0.40과 그 mise toolchain으로 옮긴다(kit K131). 우선순위: S-50의 일부. 의존: S-50-3. 원인: kit 0.0.39는 도구를 mise로 설치하고, 0.0.40은 첫 mise.lock을 쓰고 남은 사본을 지운다. 수용 기준: `package.json`이 게시된 파일의 integrity로 `@polyspec/kit` 0.0.40을 pin하고, `mise.toml`이 alint를 선언하며 `mise.lock`이 이를 잠그고, `config/toolchain.json`은 mise의 release만 적으며, `make kit-check`, `make toolchain-check`, `make documents-check`, `make owner-validate`가 통과한다.
+- [o] S-50-7 kit 0.0.42로 옮긴다(kit K134, K135). 우선순위: S-50의 일부. 의존: S-50-6. 원인: 0.0.41은 bootstrap의 모든 platform(linux-arm64와 macos-x64 포함)의 도구를 잠그고, 0.0.42는 var/tools/go.mod를 쓴다. 수용 기준: `package.json`이 게시된 파일의 integrity로 `@polyspec/kit` 0.0.42를 pin하고, `mise.lock`이 모든 platform을 pin하며, `make kit-check`, `make toolchain-check`, `make documents-check`, `make owner-validate`가 통과한다.

@@ -7,6 +7,12 @@ version = "0.18.2"
 backend = "github:asamarts/alint"
 specifiers = ["0.18.2"]
 
+[tools."github:asamarts/alint"."platforms.linux-arm64"]
+checksum = "sha256:133ae54580b1c84d6aa1641d72448267241064ee9c5be119bb649f6acad9e005"
+url = "https://github.com/asamarts/alint/releases/download/v0.18.2/alint-v0.18.2-aarch64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/asamarts/alint/releases/assets/636119382"
+provenance = "github-attestations"
+
 [tools."github:asamarts/alint"."platforms.linux-x64"]
 checksum = "sha256:ce1f182bf3205aceab62fad40dbdd7502de638ed89cbb4fef10320803384ff9b"
 url = "https://github.com/asamarts/alint/releases/download/v0.18.2/alint-v0.18.2-x86_64-unknown-linux-musl.tar.gz"
@@ -17,4 +23,10 @@ provenance = "github-attestations"
 checksum = "sha256:ccfb4d13c6001b6ee5d31f2e139ce3e9710df54ba75c5601ef2a96be9ad8d4b2"
 url = "https://github.com/asamarts/alint/releases/download/v0.18.2/alint-v0.18.2-aarch64-apple-darwin.tar.gz"
 url_api = "https://api.github.com/repos/asamarts/alint/releases/assets/636119381"
+provenance = "github-attestations"
+
+[tools."github:asamarts/alint"."platforms.macos-x64"]
+checksum = "sha256:23dc62149aacc8168f922e35e067a244d3c715725182322dcc3564129968dd8c"
+url = "https://github.com/asamarts/alint/releases/download/v0.18.2/alint-v0.18.2-x86_64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/asamarts/alint/releases/assets/636119387"
 provenance = "github-attestations"
