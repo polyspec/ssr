@@ -1,3 +1,5 @@
+<!-- doc-id: react -->
+<!-- source-sha256: 37e57d46e6b36d5f6e7b241aa4b4ebc161fe7c070243d902308b74c9e857ce33 -->
 [English](react.md)
 
 # React 어댑터

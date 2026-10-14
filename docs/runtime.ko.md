@@ -1,3 +1,5 @@
+<!-- doc-id: runtime -->
+<!-- source-sha256: 3c5eb6d6cdb27e50fd81a34609e913aa1fa8248f498172709f8cac1c67e53db4 -->
 [English](runtime.md)
 
 # 런타임

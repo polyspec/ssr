@@ -89,8 +89,10 @@ class ArchiveTest(TestCase):
     def test_default_commands_require_official_local_inputs(self):
         root = Path(__file__).resolve().parents[1]
         makefile = (root / "Makefile").read_text()
-        self.assertIn("CHECK_SETUP = verify-archive check-fixtures", makefile)
-        self.assertIn("bench: verify-archive", makefile)
+        # Every target that links V8 verifies the archive first.
+        self.assertIn("\ncheck-ownership check-clippy check-examples check-nextest check-features check-bench bench: verify-archive\n",
+                      makefile)
+        self.assertIn("$(eval nextest-$(crate): verify-archive ;", makefile)
         self.assertIn("librusty_v8_simdutf_release_", makefile)
         self.assertNotIn("--fetch", makefile)
         manifest = (root / "Cargo.toml").read_text()

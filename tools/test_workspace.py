@@ -47,39 +47,6 @@ class WorkspaceTest(unittest.TestCase):
         self.assertIn("check:", makefile)
         self.assertIn("bench:", makefile)
 
-    def test_document_checks_report_missing_pair_and_link(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = pathlib.Path(temporary)
-            (root / "docs").mkdir()
-            (root / "docs/example.md").write_text("[missing](absent.md)\n")
-            commit_all(root)
-            errors = check.check_pairs_and_links(root)
-            self.assertEqual(len(errors), 2)
-
-    def test_document_checks_compare_temporary_bypass_state(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = pathlib.Path(temporary)
-            (root / "docs").mkdir()
-            (root / "docs/checklist.md").write_text("- [!] S-0-2 cause; retry condition\n")
-            (root / "docs/checklist.ko.md").write_text("- [ ] S-0-2 원인; 재시도 조건\n")
-            commit_all(root)
-            self.assertIn(
-                "docs/checklist.md: item IDs or states differ from Korean document",
-                check.check_pairs_and_links(root),
-            )
-
-    def test_document_checks_compare_nested_subitem_state(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = pathlib.Path(temporary)
-            (root / "docs").mkdir()
-            (root / "docs/checklist.md").write_text("- [o] S-0-2-1 Define the threshold.\n")
-            (root / "docs/checklist.ko.md").write_text("- [ ] S-0-2-1 기준 정의.\n")
-            commit_all(root)
-            self.assertIn(
-                "docs/checklist.md: item IDs or states differ from Korean document",
-                check.check_pairs_and_links(root),
-            )
-
     def test_record_and_term_checks_report_prohibited_words(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = pathlib.Path(temporary)
@@ -99,7 +66,23 @@ class WorkspaceTest(unittest.TestCase):
             commit_all(root)
             (root / "notes.md").write_text("orphan site [missing](absent.md)\n")
             (root / "crates" / "sample" / "lib.rs").write_text("// orphan\n")
-            self.assertEqual(len(check.check_pairs_and_links(root)), 2)
+            self.assertEqual(len(check.check_words(root)), 2)
+
+    def test_the_copies_of_kit_are_no_records_of_this_repository(self):
+        # make kit-check of kit compares the copies with the installed package; the record checks read the files of ssr.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            (root / "package.json").write_text('{"devDependencies": {"@polyspec/kit": "1.0.0"}}\n')
+            (root / "PRINCIPLES.md").write_text("An orphan process.\n")
+            (root / "record.md").write_text("An orphan process.\n")
+            commit_all(root)
+            with self.assertRaisesRegex(OSError, "node_modules/@polyspec/kit/package.json is missing; run make install-packages"):
+                check.check_words(root)
+            package = root / "node_modules/@polyspec/kit"
+            package.mkdir(parents=True)
+            (package / "package.json").write_text('{"kit": {"copies": {"PRINCIPLES.md": "PRINCIPLES.md"}}}\n')
+            self.assertEqual(check.check_words(root), [f"{root / 'record.md'}: prohibited record word orphan"])
+            (root / "package.json").write_text('{"devDependencies": {}}\n')
             self.assertEqual(len(check.check_words(root)), 2)
 
     def test_an_absolute_path_into_a_home_directory_fails(self):

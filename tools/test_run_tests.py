@@ -45,3 +45,18 @@ class RunCaseTest(TestCase):
         self.assertEqual(run_tests.run_case([sys.executable, "-c", "raise SystemExit(3)"], 10)[0], "FAIL")
         skipped = "import sys; print('OK (skipped=1)', file=sys.stderr)"
         self.assertEqual(run_tests.run_case([sys.executable, "-c", skipped], 10)[0], "FAIL")
+
+
+class SelectionTest(TestCase):
+    def test_the_named_test_files_select_their_cases_and_no_name_selects_every_module(self):
+        selected = run_tests.test_ids(["tools/test_bench.py", "tools/test_cargo_case.py"])
+        self.assertTrue(selected)
+        self.assertEqual({test_id.split(".")[1] for test_id in selected}, {"test_bench", "test_cargo_case"})
+        every = run_tests.test_ids()
+        self.assertTrue(set(selected) < set(every))
+        self.assertIn("test_run_tests", {test_id.split(".")[1] for test_id in every})
+
+    def test_a_name_that_is_no_tool_test_file_fails(self):
+        for name in ("tools/check.py", "tools/test_absent.py", "test_bench"):
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, f"{name}: not a tool test file"):
+                run_tests.test_ids([name])

@@ -1,3 +1,5 @@
+<!-- doc-id: svelte -->
+<!-- source-sha256: 067684ab30bce3d7c1050e42d0cc87c5cc1d1e912b3b910eb0ac7ddeedd5058f -->
 [English](svelte.md)
 
 # Svelte 어댑터

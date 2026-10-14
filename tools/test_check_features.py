@@ -34,8 +34,9 @@ class FeatureCheckTest(TestCase):
 
     def test_make_check_runs_feature_cases(self):
         makefile = (check_features.ROOT / "Makefile").read_text()
-        targets = re.search(r"^CHECK_TARGETS = (.*)$", makefile, re.MULTILINE).group(1).split()
+        targets = re.search(r"^SSR_TARGETS = (.*)$", makefile, re.MULTILINE).group(1).split()
         self.assertIn("check-features", targets)
+        self.assertIn("$(SSR_TARGETS)", re.search(r"^CHECK_TARGETS = (.*)$", makefile, re.MULTILINE).group(1).split())
         self.assertIn("\ncheck-features:\n\tpython3 tools/check_features.py\n", makefile)
 
     def run_manifest(self, data, runner):

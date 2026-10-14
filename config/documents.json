@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "comment": "The documents of ssr: the agent procedures, the principles that kit copies, and the documents of docs/. Every English document has its Korean twin .ko.md. The checklist is in config/checklist.json.",
+  "include": [
+    "AGENTS.md",
+    "PRINCIPLES.md",
+    "docs/**/*.md"
+  ],
+  "changelogs": [
+    "docs/changelog.md"
+  ]
+}

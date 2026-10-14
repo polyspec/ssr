@@ -1,3 +1,4 @@
+<!-- doc-id: benchmarks -->
 # Render benchmark
 
 `make bench` renders one fixed SSR page through a 16-worker snapshot runtime. Each call checks

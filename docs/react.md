@@ -1,3 +1,4 @@
+<!-- doc-id: react -->
 [Korean](react.ko.md)
 
 # React adapter

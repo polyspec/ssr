@@ -1,3 +1,4 @@
+<!-- doc-id: runtime -->
 [Korean](runtime.ko.md)
 
 # Runtime

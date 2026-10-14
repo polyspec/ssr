@@ -5,11 +5,12 @@ that reports its version and the exact first line of that report; a tool without
 command is named by the SHA-256 of its executable. Python is pinned to a minor version
 (``minor``): the tools use only its standard library, whose behavior is stable within a minor
 version, and one patch release cannot be installed identically on macOS and on the CI runners;
-the check prints the running patch release as evidence and fails for another minor version. Every entry checks the declaration before any
-step: ``make check`` and ``make rerun-failed`` through the guard of ``tools/full_run.py``,
-``tools/check.py`` before a commit, the other make targets as their first command, and the push
-check for the tools it runs. A missing tool or another version fails with the expected and the
-actual report, so the same tree runs with the same tools on every machine.
+the check prints the running patch release as evidence and fails for another minor version. The make
+targets that run a declared tool check it as their first command, and the CI jobs check the tools
+they run. A missing tool or another version fails with the expected and the actual report, so the
+same tree runs with the same tools on every machine. Node.js, npm and Rust are declared in
+``.node-version``, ``package.json`` and ``rust-toolchain.toml`` and checked by make toolchain-check
+of kit.
 
     python3 -m tools.tool_versions check [<tool>...]
     python3 -m tools.tool_versions report

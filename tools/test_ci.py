@@ -1,5 +1,4 @@
 import hashlib
-import io
 import json
 import os
 from pathlib import Path
@@ -11,17 +10,24 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
-from tools import ci_run, fetch_tools, fetch_v8, tool_versions, verify_archive
+from tools import fetch_tools, fetch_v8, tool_versions, verify_archive
 
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOWS = sorted((ROOT / ".github/workflows").glob("*.yml"))
+# The workflows of this repository. .github/workflows/release.yml is a copy of the release workflow of kit, which make
+# kit-sync writes and make kit-check compares, so its steps are tested in kit.
+WORKFLOWS = [ROOT / ".github/workflows/ci.yml", ROOT / ".github/workflows/push-gate.yml"]
+# The make files of the targets: the Makefile, the bootstrap of kit that it includes and the kit.mk of the installed package
+# that the bootstrap includes.
+MAKE_FILES = [ROOT / "Makefile", ROOT / "scripts/kit/kit-bootstrap.mk", ROOT / "node_modules/@polyspec/kit/dist/kit.mk"]
+# The steps that install the package of kit before any other make target of a job.
+INSTALL_KIT = ["make install-tools TOOLS=npm", "make install-packages"]
 
 
 # The step of the job ci-passed: the JSON of `needs` reaches make as a variable of its command line.
 CI_PASSED_RUN = "make ci-passed RESULTS='${{ toJSON(needs) }}'"
-# The jobs that run their checks through tools/ci_run.py and upload its logs and summary. ci-passed prints the result
-# of each job it needs in its log; release.yml prints the result of each release step in its log.
+# The jobs that run their checks through make ci-targets of kit and upload its logs and summary. ci-passed prints the
+# result of each job it needs in its log.
 REPORTING_JOBS = {"ci.yml": ["lint", "test"], "push-gate.yml": ["push-gate"]}
 # The make target and the targets of each check job of ci.yml; each CI target runs in exactly one job of each architecture.
 CI_JOBS = {"lint": ("ci-lint", "CI_LINT_TARGETS"), "test": ("ci-test", "CI_TEST_TARGETS")}
@@ -41,7 +47,8 @@ def job_key(body, key):
 
 
 def makefile_targets():
-    return set(re.findall(r"^([A-Za-z0-9_.-]+):", (ROOT / "Makefile").read_text(), re.MULTILINE))
+    return {target for path in MAKE_FILES
+            for target in re.findall(r"^([A-Za-z0-9_.-]+):", path.read_text(), re.MULTILINE)}
 
 
 class WorkflowRuleTest(TestCase):
@@ -51,7 +58,7 @@ class WorkflowRuleTest(TestCase):
             commands = re.findall(r"^\s+run: (.+)$", workflow.read_text(), re.MULTILINE)
             self.assertTrue(commands, workflow)
             for command in commands:
-                found = re.fullmatch(r"make ([a-z0-9-]+)(?: [A-Z_]+='\$\{\{ [^}]+ \}\}')*", command)
+                found = re.fullmatch(r"make ([a-z0-9-]+)(?: [A-Z_]+='\$\{\{ [^}]+ \}\}'| TOOLS=[a-z]+)*", command)
                 self.assertIsNotNone(found, f"{workflow.name}: {command} is not a make target")
                 self.assertIn(found.group(1), targets, f"{workflow.name}: {command}")
 
@@ -59,13 +66,13 @@ class WorkflowRuleTest(TestCase):
         for workflow in WORKFLOWS:
             jobs = workflow_jobs(workflow.read_text())
             reporting = REPORTING_JOBS.get(workflow.name, [])
-            self.assertEqual(sorted(set(jobs) - set(reporting)),
-                             {"ci.yml": ["ci-passed"], "release.yml": ["release"]}.get(workflow.name, []), workflow.name)
+            self.assertEqual(sorted(set(jobs) - set(reporting)), {"ci.yml": ["ci-passed"]}.get(workflow.name, []),
+                             workflow.name)
             for name in reporting:
                 body = jobs[name]
                 self.assertRegex(body, r"if: \$\{\{ !cancelled\(\) \}\}\n\s+uses: actions/upload-artifact@",
                                  f"{workflow.name}: {name}")
-                self.assertIn("path: var/ci/", body, f"{workflow.name}: {name}")
+                self.assertIn("path: var/report/ci-targets/", body, f"{workflow.name}: {name}")
                 if "matrix:" in body:
                     self.assertIn("fail-fast: false", body, f"{workflow.name}: {name}")
 
@@ -83,16 +90,13 @@ class WorkflowRuleTest(TestCase):
 
     def test_each_workflow_declares_exactly_its_triggers(self):
         # ci.yml runs the checks on every pull request, merge group and manual run; push-gate.yml also runs on every
-        # push outside the branches of the merge queue; release.yml runs on the push of a tag vX.Y.Z or <directory>/vX.Y.Z
-        # at any depth (in a tag filter * does not match /, so **/v* covers a tag with any number of /). No other
-        # workflow exists.
+        # push outside the branches of the merge queue. The only other workflow is the release workflow of kit.
         triggers = {
             "ci.yml": "on:\n  pull_request:\n  merge_group:\n  workflow_dispatch:\n",
             "push-gate.yml": "on:\n  push:\n    branches-ignore: ['gh-readonly-queue/**']\n  pull_request:\n  merge_group:\n",
-            "release.yml": "on:\n  push:\n    tags: ['v*', '**/v*']\n",
         }
         workflows = ROOT / ".github/workflows"
-        self.assertEqual(sorted(path.name for path in workflows.glob("*.y*ml")), sorted(triggers))
+        self.assertEqual(sorted(path.name for path in workflows.glob("*.y*ml")), sorted([*triggers, "release.yml"]))
         for name, block in triggers.items():
             declared = re.search(r"(?m)^on:\n(?:  .*\n)+", (workflows / name).read_text())
             self.assertEqual(declared.group(0) if declared else "", block, name)
@@ -115,23 +119,19 @@ class WorkflowRuleTest(TestCase):
         self.assertIn("push-records", push)
         self.assertIn("ci-records", ci)
         self.assertRegex(makefile, r"(?m)^push-records:\n\tpython3 tools/check.py records$")
-        self.assertRegex(makefile, r"(?m)^ci-records:\n\tpython3 tools/check.py ci$")
+        self.assertRegex(makefile, r"(?m)^ci-records:\n\tpython3 tools/check.py$")
         self.assertIn("run: make ci-push", (ROOT / ".github/workflows/push-gate.yml").read_text())
 
     def test_the_record_mode_fails_a_tree_whose_records_fail(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "docs").mkdir()
-            marker = "[" + "~" + "]"
-            for name in ("checklist.md", "checklist.ko.md"):
-                (root / "docs" / name).write_text(f"- [o] S-1 Item, once marked `{marker}`.\n")
+            (root / "docs/record.md").write_text("An orphan process.\n")
             subprocess.run(["git", "init", "-q"], cwd=root, check=True)
             subprocess.run(["git", "add", "-A"], cwd=root, check=True)
             from tools import check
             errors = check.check_records(root)
-        detail = "outside an item state; a checklist marker appears only as the state of an item"
-        for name in ("checklist.md", "checklist.ko.md"):
-            self.assertIn(f"docs/{name}:1:30: state marker {marker} {detail}", errors)
+        self.assertIn(f"{root / 'docs/record.md'}: prohibited record word orphan", errors)
         result = subprocess.run([sys.executable, "tools/check.py", "records"], cwd=ROOT, capture_output=True, text=True)
         self.assertEqual((result.returncode, result.stdout), (0, "records: pass\n"), result.stderr)
         usage = subprocess.run([sys.executable, "tools/check.py", "other"], cwd=ROOT, capture_output=True, text=True)
@@ -144,37 +144,12 @@ class WorkflowRuleTest(TestCase):
         self.assertEqual(job_key(body, "if"), "${{ always() }}")
         needs = [job.strip() for job in job_key(body, "needs").strip("[]").split(",")]
         self.assertEqual(sorted(needs), sorted(job for job in jobs if job != "ci-passed"))
-        # The runner of the job push-gate, which also needs only Python.
+        # The runner of the job push-gate; make ci-passed needs only Node.js and the package of kit.
         gate = workflow_jobs((ROOT / ".github/workflows/push-gate.yml").read_text())["push-gate"]
         self.assertEqual(job_key(body, "runs-on"), job_key(gate, "runs-on"))
-        self.assertEqual(re.findall(r"(?m)^\s+run: (.+)$", body), [CI_PASSED_RUN])
+        self.assertEqual(re.findall(r"(?m)^\s+run: (.+)$", body), [*INSTALL_KIT, CI_PASSED_RUN])
         self.assertTrue(body.rstrip().endswith(f"run: {CI_PASSED_RUN}"))
         self.assertNotRegex(body, r"(?m)^    name:")
-
-    def test_release_runs_its_steps_in_order_with_the_tag_and_the_permission_to_release(self):
-        text = (ROOT / ".github/workflows/release.yml").read_text()
-        self.assertRegex(text, r"(?m)^permissions:\n  contents: write\n(?!  )")
-        jobs = workflow_jobs(text)
-        self.assertEqual(list(jobs), ["release"])
-        body = jobs["release"]
-        self.assertIn("\n      TAG: ${{ github.ref_name }}\n", body)
-        self.assertIn("\n      GH_TOKEN: ${{ github.token }}\n", body)
-        self.assertRegex(body, r"(?m)^    steps:\n(?:      #.*\n)*      - uses: actions/checkout@\S+ # v\d+\n        with:\n"
-                               r"          fetch-depth: 0\n")
-        runs = re.findall(r"(?m)^\s+run: (.+)$", body)
-        self.assertEqual(runs, ["make release-setup", "make release-verify", "make release-versions",
-                                "make release-assets", "make release-publish"])
-
-    def test_release_runs_on_the_tags_at_any_depth(self):
-        text = (ROOT / ".github/workflows/release.yml").read_text()
-        expected = "on:\n  push:\n    tags: ['v*', '**/v*']\n"
-        for case, broken in (("one level", text.replace("'**/v*'", "'*/v*'")),
-                             ("no directory", text.replace(", '**/v*'", ""))):
-            with self.subTest(case=case):
-                self.assertNotEqual(broken, text)
-                declared = re.search(r"(?m)^on:\n(?:  .*\n)+", broken)
-                self.assertNotEqual(declared.group(0) if declared else "", expected)
-        self.assertEqual(re.search(r"(?m)^on:\n(?:  .*\n)+", text).group(0), expected)
 
     def test_each_architecture_runs_every_ci_target_in_exactly_one_job(self):
         jobs = workflow_jobs((ROOT / ".github/workflows/ci.yml").read_text())
@@ -185,12 +160,18 @@ class WorkflowRuleTest(TestCase):
             body = jobs[job]
             self.assertIn("\n        runner: [ubuntu-24.04-arm, ubuntu-24.04]\n", body, job)
             self.assertEqual(job_key(body, "runs-on"), "${{ matrix.runner }}", job)
-            self.assertEqual(re.findall(r"(?m)^\s+run: (.+)$", body), ["make ci-setup", f"make {target}"], job)
+            self.assertEqual(re.findall(r"(?m)^\s+run: (.+)$", body), [*INSTALL_KIT, "make ci-setup", f"make {target}"], job)
             self.assertIn(f"name: ci-{job}-${{{{ matrix.runner }}}}\n", body, job)
-            self.assertEqual(recipe(target)[-1], f"BUILD_JOBS=$$(nproc) python3 -m tools.ci_run $({variable})", job)
+            self.assertEqual(recipe(target)[-1], ci_targets(variable), job)
             targets += re.search(rf"(?m)^{variable} = (.*)$", makefile).group(1).split()
         self.assertEqual(sorted(targets), sorted(CI_TARGETS))
         self.assertNotRegex(makefile, r"(?m)^ci:")
+
+
+def ci_targets(variable):
+    """The recipe line of a CI job target: make ci-targets of kit with the targets of ``variable`` and one Cargo build job
+    per processor of the runner."""
+    return f'BUILD_JOBS=$$(nproc) $(MAKE) --no-print-directory ci-targets TARGETS="$({variable})"'
 
 
 def recipe(target):
@@ -228,90 +209,7 @@ class BuildJobsTest(TestCase):
 
     def test_the_ci_targets_build_with_the_processor_count_of_the_runner(self):
         for target, variable in CI_JOBS.values():
-            self.assertEqual(recipe(target)[-1], f"BUILD_JOBS=$$(nproc) python3 -m tools.ci_run $({variable})")
-
-
-NEEDS = """{
-  "linux": {
-    "result": "%s",
-    "outputs": {}
-  }
-}"""
-
-
-class CiPassedTest(TestCase):
-    """make ci-passed passes only when every job of `needs` has the result success."""
-
-    def passed(self, text):
-        printed = io.StringIO()
-        return ci_run.passed(text, printed), printed.getvalue()
-
-    def test_every_needed_job_with_the_result_success_passes(self):
-        status, printed = self.passed(NEEDS % "success")
-        self.assertEqual(status, 0, printed)
-        self.assertIn("[ci-passed] linux: success", printed)
-        self.assertIn("[ci-passed] every needed job passed: linux", printed)
-
-    def test_a_failed_skipped_or_cancelled_job_fails_with_its_name_and_result(self):
-        for result in ("failure", "skipped", "cancelled"):
-            with self.subTest(result=result):
-                text = json.dumps({"linux": {"result": "success", "outputs": {}}, "other": {"result": result, "outputs": {}}})
-                status, printed = self.passed(text)
-                self.assertEqual(status, 1, printed)
-                self.assertIn(f"[ci-passed] failed: other ({result}); every needed job must have the result success",
-                              printed)
-
-    def test_results_that_name_no_job_or_are_not_json_fail_with_the_cause(self):
-        for text, cause in ((None, "RESULTS is not set"), ("", "RESULTS is not JSON"), ("{", "RESULTS is not JSON"),
-                            ("{}", "RESULTS names no job"), ("[]", "RESULTS names no job"),
-                            ('{"linux": "success"}', "linux: no result")):
-            with self.subTest(text=text):
-                status, printed = self.passed(text)
-                self.assertEqual(status, 1, printed)
-                self.assertIn(cause, printed)
-
-    def test_make_ci_passed_reads_the_multi_line_json_of_needs(self):
-        environment = {name: value for name, value in os.environ.items()
-                       if name not in ("MAKEFLAGS", "MFLAGS", "MAKELEVEL", "GNUMAKEFLAGS", "MAKEFILES", "RESULTS")}
-        for result, status in (("success", 0), ("failure", 2)):
-            with self.subTest(result=result):
-                ran = subprocess.run(["make", "--no-print-directory", "ci-passed", f"RESULTS={NEEDS % result}"],
-                                     cwd=ROOT, env=environment, capture_output=True, text=True)
-                self.assertEqual(ran.returncode, status, ran.stdout + ran.stderr)
-                self.assertIn(f"[ci-passed] linux: {result}", ran.stdout)
-
-
-STUB = """good:
-\techo good output
-bad:
-\t@echo compiling; echo 'error[E0425]: cannot find value'; false
-late:
-\techo late output
-"""
-
-
-class CiRunTest(TestCase):
-    def test_every_target_runs_and_each_failure_is_summarized(self):
-        with TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / "Makefile").write_text(STUB)
-            summary_file = root / "step-summary.md"
-            with patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary_file)}):
-                status = ci_run.run(["good", "bad", "late"], root)
-            self.assertEqual(status, 1)
-            self.assertEqual(sorted(path.name for path in (root / "var/ci").iterdir()),
-                             ["bad.log", "good.log", "late.log", "summary.md"])
-            self.assertIn("late output", (root / "var/ci/late.log").read_text())
-            summary = (root / "var/ci/summary.md").read_text()
-            self.assertIn("| `good` | PASS | 0 |", summary)
-            self.assertIn("| `bad` | FAIL | 2 |", summary)
-            self.assertIn("| `late` | PASS | 0 |", summary)
-            self.assertIn("## `bad`\n\n```\nerror[E0425]: cannot find value\n", summary)
-            self.assertEqual(summary_file.read_text(), summary)
-
-    def test_a_failure_without_an_error_line_shows_the_last_lines(self):
-        log = "\n".join(f"line {number}" for number in range(40))
-        self.assertEqual(ci_run.first_lines(log), [f"line {number}" for number in range(20, 40)])
+            self.assertEqual(recipe(target)[-1], ci_targets(variable))
 
 
 class FetchV8Test(TestCase):
@@ -408,4 +306,5 @@ class FetchToolsTest(TestCase):
         self.assertFalse([command for command in setup if "cargo install" in command], setup)
         self.assertIn("python3 -m tools.fetch_tools \"$$(RUSTUP_AUTO_INSTALL=0 rustc -vV | sed -n 's/^host: //p')\"", setup)
         for target, _ in CI_JOBS.values():
-            self.assertEqual(recipe(target)[0], "python3 -m tools.tool_versions check python3 rustc cargo-nextest cargo-deny")
+            self.assertEqual(recipe(target)[:2], ["$(MAKE) --no-print-directory toolchain-check",
+                                                  "python3 -m tools.tool_versions check python3 cargo-nextest cargo-deny"])

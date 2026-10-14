@@ -1,6 +1,30 @@
+<!-- doc-id: agents -->
 # Development procedures
 
-The user's instructions take precedence. [Korean](AGENTS.ko.md).
+The user's instructions take precedence. [Korean](AGENTS.ko.md). The working principles of every polyspec
+repository are in [PRINCIPLES.md](PRINCIPLES.md); this file states the rules of ssr.
+
+## Shared tools
+
+- ssr runs the shared tools of the package `@polyspec/kit` (kit). `package.json` pins it by the URL of its release
+  asset with its integrity, and `package-lock.json` holds it. A checkout installs it in two online steps: `make
+  install-tools TOOLS=npm` installs the npm of `packageManager` into `var/tools`, and `make install-packages` installs
+  `package-lock.json` with that npm. The Makefile includes `scripts/kit/kit-bootstrap.mk`, which includes the `kit.mk` of
+  the installed package; before the install only those two targets run.
+- kit's targets are the toolchains (`install-tools`, `toolchain-check`), the copies (`kit-sync`, `kit-check`), the Git
+  hooks and the push check (`hooks`, `hooks-check`, `push-gate-hook`, `push-gate-commit`), the guard of the full run
+  (`make check`, `rerun-failed`), the documents (`documents-check`, `documents-stamp`), the commit messages
+  (`commits-check`), the CI report (`ci-targets`, `ci-summary`, `ci-passed`) and the release (`release-*`). They read
+  `config/*.json`: `checklist.json`, `commits.json`, `documents.json` and `release.json`.
+- kit writes copies of its files with `make kit-sync` (`kit.copies` of its `package.json`): `scripts/kit/`,
+  `.github/workflows/release.yml`, `PRINCIPLES.md(.ko)`, `config/layout.kit.yml`, the lint configurations and the
+  schemas. A copy is changed in kit and copied again, never edited here; `make kit-check` fails on a changed or missing
+  copy. A newer kit is taken by updating `@polyspec/kit` in `package.json` and `package-lock.json`, then `make
+  install-packages` and `make kit-sync`.
+- kit pins Node.js 26.11.1 (`.node-version`, `engines.node` `>=26.11.1`) and Rust 1.99.0 (`rust-toolchain.toml`,
+  `rust-version` of every Cargo package); `make toolchain-check` fails on another declaration. A Korean document holds
+  `<!-- source-sha256: ... -->`, the sha256 of its English document, which `make documents-stamp` writes once the
+  translation holds the same information.
 
 ## Repository
 
@@ -8,15 +32,14 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   sub-items included, is `[~]`, neither in the tip commit of a pushed ref nor in the working tree.
   Earlier commits of a push may hold items in progress, because an item is recorded in progress
   in one commit and completed in a later one. The tracked
-  pre-push hook `.githooks/pre-push` runs `python3 -m tools.push_gate hook`, which refuses such a
-  push and names each item with its ID and title. Every make invocation sets `core.hooksPath` to
-  `.githooks` when it differs; `make hooks` sets and checks it, and `tools/check.py` and the guard
-  of `make check` fail while it is not set. The workflow `.github/workflows/push-gate.yml` runs
-  `python3 -m tools.push_gate commit` in the job `push-gate` on every push, pull request and merge
-  group and fails the same way, also for a push that did not run the hook. The same job runs the record
-  checks of `tools/check.py` (`python3 tools/check.py records`: the records, the checklist markers
-  and texts, the words, the document pairs and links), so a commit whose records fail never
-  reaches `main`; CI runs every check of `tools/check.py` (`make ci-records`).
+  pre-push hook `.githooks/pre-push`, which `make hooks` writes, runs `make push-gate-hook`, the push check of kit,
+  which refuses such a push and names each item with its ID and title. Every make invocation sets `core.hooksPath` to
+  `.githooks` when it differs; `make hooks` sets and checks it, and `make hooks-check` and the guard of `make check` fail
+  while it is not set. The workflow `.github/workflows/push-gate.yml` runs `make ci-push` in the job `push-gate` on every
+  push, pull request and merge group: `make push-gate-commit` fails the same way, also for a push that did not run the
+  hook, and `make push-records` runs the record checks of `tools/check.py` (the words, the React document, the paths and
+  the timed assertions), so a commit whose records fail never reaches `main`; CI runs every check of `tools/check.py`
+  (`make ci-records`).
 - Every change reaches `main` through a pull request and the merge queue; no command of this
   repository pushes `main`. Publish a branch with the standard commands of GitHub, or with the
   GitHub UI:
@@ -101,8 +124,8 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 
 ## Checklist
 
-- `docs/checklist.md` is the only task tracker. `docs/checklist.ko.md` has identical task IDs and
-  states. Do not create another checklist. Split an item into numbered sub-items or add items when
+- `docs/plans/execution-checklist.md` is the only task tracker, declared in `config/checklist.json`.
+  `docs/plans/execution-checklist.ko.md` has identical task IDs and states. Do not create another checklist. Split an item into numbered sub-items or add items when
   needed.
 - Record repository-specific work with a concrete artifact and verifiable completion evidence in
   the checklist. Keep standing instructions for how to work in this file. A requested policy change
@@ -120,8 +143,8 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   it. Each item names its dependencies and its completion evidence. Requirements are in
   `docs/requirements.md`; rules are in this file. A state marker, also an x or a capital X between
   brackets as Markdown task lists write it, appears only as the state of an item line; the
-  checklists have no legend, and their texts name states in words. `tools/check.py` fails for any
-  other line or marker and names its file, line and column.
+  checklists have no legend, and their texts name states in words. `make documents-check` fails for
+  any other line or marker and names its file, line and column.
 - Work in parallel and control work in progress. Independent items A, B, C and D may run at the same
   time; starting new work is not restricted. Do not advance existing items partially while adding
   more `[~]` items so that only the number of unfinished items grows. For example, A[~] and D[~]
@@ -138,7 +161,8 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
 - Write commit messages in English as `type(scope): subject (#issue)`: a subject of at most 50
   characters, capitalized, imperative, without a trailing period; a blank line; a body wrapped
   near 72 characters explaining what changed and why; an optional footer for references. The
-  type is one of feat, fix, docs, style, refactor, test or chore.
+  type is one of feat, fix, docs, style, refactor, test or chore. `make commits-check` checks the
+  messages against `config/commits.json`, and the pre-push hook checks the pushed commits.
 - During development run only the unit-level Red and Green tests that own the change. The full
   and end-to-end checks (the targets of `make check`, `make verify-build` and the ownership check) and the
   Linux build and tests run in GitHub CI on every pull request,
@@ -151,7 +175,7 @@ The user's instructions take precedence. [Korean](AGENTS.ko.md).
   of a timeout, so its process and result stay observable.
 - `make check` enforces this: before any step it refuses while a checklist item, sub-items
   included, is `[~]`, while tracked files have uncommitted changes, while files that are neither
-  tracked nor ignored exist, while the pre-push hook is not installed, and when `var/full-run.json` records a full run of the same tree. Commit, complete every active item, then run `make check`
+  tracked nor ignored exist, while the pre-push hook is not installed, while another run holds the lock, and when `var/full-run.json` records a full run of the same tree. Commit, complete every active item, then run `make check`
   once. `make rerun-failed` reruns, on the recorded tree, only the targets that did not pass, for
   a failure whose cause lies outside the tree (an environment or a machine resource). A failure
   of the code is fixed as a checklist item; its commit makes a new tree, whose full suite runs
@@ -216,10 +240,11 @@ creates, moves or pushes a tag; a tag is never raised through a pull request.
    workspace, and renames `## Unreleased` of `docs/changelog.md` and `docs/changelog.ko.md` to
    `## X.Y.Z`, with a new empty `## Unreleased` above it.
 2. The maintainer tags the merged commit of `main` `vX.Y.Z` and pushes the tag.
-3. The tag push runs `.github/workflows/release.yml`: it requires the tagged commit on `main` with the
-   checks `push-gate` and `ci-passed` passed, the version of the tag in every manifest and the section
-   `## X.Y.Z` in `docs/changelog.md` and creates the GitHub Release; a crate is not released as an
-   archive and is consumed by git tag ([workspace](docs/workspace.md)).
+3. The tag push runs `.github/workflows/release.yml`, the release workflow of kit: it requires the tagged
+   commit on `main` with the checks `push-gate` and `ci-passed` passed, the version of the tag in every
+   manifest of `config/release.json` and the section `## X.Y.Z` in `docs/changelog.md`, creates the GitHub
+   Release as a draft, proves that each crate resolves from the tag and makes the release public; a crate is
+   not released as an archive and is consumed by git tag ([workspace](docs/workspace.md)).
 
 ## Idempotency
 
@@ -229,7 +254,8 @@ is a class: check every tool, test and recipe of this repository for it and fix 
 1. No result depends on the time or the outside world. Checks make no live registry query
    (`npm outdated`, `npm audit`, `npm view`, a lock resolved at run time, a security advisory
    database), install no tool at run time (`@latest`, rustup auto-install) and run every tool at
-   the version that `tools/tool-versions.json` declares, the same way on this host and in CI.
+   the version that `.node-version`, `packageManager` of `package.json`, `rust-toolchain.toml` and
+   `tools/tool-versions.json` declare, the same way on this host and in CI.
    Advisories are reviewed separately (`make review-advisories`).
 2. A test reads only what it creates or what its run installs and verifies: no build output,
    installed package copy or target directory left by another run, no untracked file, no path
@@ -249,7 +275,7 @@ is a class: check every tool, test and recipe of this repository for it and fix 
 8. No result is read from output whose format differs between versions or contexts: tool results
    come from machine-readable reports at a pinned format, and recipes are read from the Makefile,
    not from `make -n`.
-9. Every tracked file has owning tests in `tools/test-owners.json`, and every crate that another
+9. Every tracked file has owning checks in `config/owner-checks.json`, and every crate that another
    crate depends on has a declared behavior in `tools/test-ownership.json`.
 10. Shared state has one owner at a time: concurrent runs use their own directories, a holder lock
     or a content-addressed immutable path, never a shared temporary or output directory, database
@@ -269,7 +295,7 @@ is a class: check every tool, test and recipe of this repository for it and fix 
   trailers) and no conversation or investigation history; a sentence without such a fact about ssr
   is deleted. Such context stays in local memory outside Git.
 - English is canonical. Update the `.ko.md` file in the same change with equal information.
-- Before each commit, run the Red and Green tests that own the change, as
-  `python3 -m tools.owning_tests select` names them from `tools/test-owners.json`, and
-  `tools/check.py`, which runs the record and terminology checks on tracked files, fails for each
-  file that is neither tracked nor ignored and fails for a tracked file without owning tests.
+- Before each commit, run the Red and Green checks that own the change, `make owner-check`, which
+  runs the owners of the changed files from `config/owner-checks.json`; `make owner-validate` fails
+  for a tracked file without an owner, and `tools/check.py`, which runs the record and terminology
+  checks on tracked files, fails for each file that is neither tracked nor ignored.

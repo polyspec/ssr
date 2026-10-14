@@ -1,3 +1,4 @@
+<!-- doc-id: svelte -->
 [Korean](svelte.ko.md)
 
 # Svelte adapter

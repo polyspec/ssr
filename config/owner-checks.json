@@ -1,0 +1,479 @@
+{
+  "schema": 1,
+  "comment": "The checks that own each tracked path, read by make owner-check of kit: it runs the owners of the changed paths, never the full suite. A changed tool test file runs itself through check-tools (TESTS); tool-test-<name> runs the module tools/test_<name>.py and nextest-<crate> the tests of crates/polyspec-ssr-<crate>. The copies of kit are owned by kit-check.",
+  "owners": [
+    {
+      "paths": [
+        "tools/test_bench.py",
+        "tools/test_browser_launch.py",
+        "tools/test_build_programs.py",
+        "tools/test_cargo_case.py",
+        "tools/test_check_features.py",
+        "tools/test_ci.py",
+        "tools/test_github_ruleset.py",
+        "tools/test_install_packages.py",
+        "tools/test_react_document.py",
+        "tools/test_run_tests.py",
+        "tools/test_test_ownership.py",
+        "tools/test_tool_versions.py",
+        "tools/test_verify_archive.py",
+        "tools/test_verify_engine.py",
+        "tools/test_workspace.py"
+      ],
+      "targets": [
+        "check-tools"
+      ],
+      "variable": "TESTS"
+    },
+    {
+      "paths": [
+        ".config/nextest.toml"
+      ],
+      "targets": [
+        "nextest-server",
+        "tool-test-build_programs",
+        "tool-test-check_features"
+      ]
+    },
+    {
+      "paths": [
+        ".github/workflows/push-gate.yml"
+      ],
+      "targets": [
+        "tool-test-ci"
+      ]
+    },
+    {
+      "paths": [
+        ".gitignore"
+      ],
+      "targets": [
+        "check-records"
+      ]
+    },
+    {
+      "paths": [
+        "AGENTS.md",
+        "AGENTS.ko.md",
+        "docs/**/*.md",
+        "config/documents.json"
+      ],
+      "targets": [
+        "documents-check",
+        "check-records"
+      ]
+    },
+    {
+      "paths": [
+        "config/checklist.json",
+        ".githooks/pre-push"
+      ],
+      "targets": [
+        "documents-check",
+        "hooks-check",
+        "push-gate-commit"
+      ]
+    },
+    {
+      "paths": [
+        "docs/react.md",
+        "docs/react.ko.md",
+        "docs/runtime.md",
+        "docs/runtime.ko.md"
+      ],
+      "targets": [
+        "tool-test-react_document"
+      ]
+    },
+    {
+      "paths": [
+        ".node-version"
+      ],
+      "targets": [
+        "toolchain-check",
+        "tool-test-workspace"
+      ]
+    },
+    {
+      "paths": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "rust-toolchain.toml"
+      ],
+      "targets": [
+        "toolchain-check",
+        "check-nextest",
+        "tool-test-workspace",
+        "tool-test-verify_archive",
+        "check-deny"
+      ]
+    },
+    {
+      "paths": [
+        "deny.toml"
+      ],
+      "targets": [
+        "check-deny",
+        "verify-engine-deps",
+        "tool-test-workspace"
+      ]
+    },
+    {
+      "paths": [
+        "features.json"
+      ],
+      "targets": [
+        "check-features",
+        "tool-test-check_features"
+      ]
+    },
+    {
+      "paths": [
+        "Makefile"
+      ],
+      "targets": [
+        "tool-test-tool_versions",
+        "tool-test-verify_archive",
+        "tool-test-check_features",
+        "tool-test-github_ruleset",
+        "tool-test-ci",
+        "tool-test-run_tests",
+        "owner-validate"
+      ]
+    },
+    {
+      "paths": [
+        "tools/__init__.py"
+      ],
+      "targets": [
+        "check-tools"
+      ]
+    },
+    {
+      "paths": [
+        "tools/bench.py"
+      ],
+      "targets": [
+        "tool-test-bench"
+      ]
+    },
+    {
+      "paths": [
+        "tools/build_programs.py"
+      ],
+      "targets": [
+        "tool-test-build_programs",
+        "nextest-server"
+      ]
+    },
+    {
+      "paths": [
+        "tools/cargo_case.py"
+      ],
+      "targets": [
+        "tool-test-cargo_case",
+        "tool-test-test_ownership",
+        "tool-test-check_features"
+      ]
+    },
+    {
+      "paths": [
+        "tools/check.py"
+      ],
+      "targets": [
+        "tool-test-workspace",
+        "tool-test-react_document"
+      ]
+    },
+    {
+      "paths": [
+        "tools/check_features.py"
+      ],
+      "targets": [
+        "tool-test-check_features"
+      ]
+    },
+    {
+      "paths": [
+        "tools/run_tests.py"
+      ],
+      "targets": [
+        "tool-test-run_tests",
+        "tool-test-browser_launch"
+      ]
+    },
+    {
+      "paths": [
+        "tools/test_ownership.py"
+      ],
+      "targets": [
+        "check-ownership",
+        "tool-test-test_ownership"
+      ]
+    },
+    {
+      "paths": [
+        "tools/tool_versions.py"
+      ],
+      "targets": [
+        "tool-test-tool_versions"
+      ]
+    },
+    {
+      "paths": [
+        "tools/verify_archive.py"
+      ],
+      "targets": [
+        "tool-test-verify_archive",
+        "tool-test-verify_engine"
+      ]
+    },
+    {
+      "paths": [
+        "tools/verify_engine.py"
+      ],
+      "targets": [
+        "tool-test-verify_engine"
+      ]
+    },
+    {
+      "paths": [
+        "tools/test-ownership.json"
+      ],
+      "targets": [
+        "check-ownership"
+      ]
+    },
+    {
+      "paths": [
+        "tools/tool-versions.json"
+      ],
+      "targets": [
+        "tool-test-tool_versions",
+        "tool-versions-check",
+        "tool-test-ci"
+      ]
+    },
+    {
+      "paths": [
+        "tools/zig-linker-x86_64"
+      ],
+      "targets": [
+        "tool-test-verify_engine"
+      ]
+    },
+    {
+      "paths": [
+        "tools/license-fixtures/**"
+      ],
+      "targets": [
+        "tool-test-workspace"
+      ]
+    },
+    {
+      "paths": [
+        "tools/build-probe/**"
+      ],
+      "targets": [
+        "verify-build"
+      ]
+    },
+    {
+      "paths": [
+        "tools/build-probe/tests/fixtures/**"
+      ],
+      "targets": [
+        "check-nextest",
+        "tool-test-browser_launch"
+      ]
+    },
+    {
+      "paths": [
+        "verification/engine/**"
+      ],
+      "targets": [
+        "verify-engine-deps",
+        "tool-test-verify_engine"
+      ]
+    },
+    {
+      "paths": [
+        "crates/polyspec-ssr-adapter-react/**"
+      ],
+      "targets": [
+        "nextest-adapter-react",
+        "check-ownership"
+      ]
+    },
+    {
+      "paths": [
+        "crates/polyspec-ssr-adapter-svelte/**"
+      ],
+      "targets": [
+        "nextest-adapter-svelte",
+        "check-ownership"
+      ]
+    },
+    {
+      "paths": [
+        "crates/polyspec-ssr-adapter-vanilla/**"
+      ],
+      "targets": [
+        "nextest-adapter-vanilla",
+        "check-ownership"
+      ]
+    },
+    {
+      "paths": [
+        "crates/polyspec-ssr-adapter-vue/**"
+      ],
+      "targets": [
+        "nextest-adapter-vue",
+        "check-ownership"
+      ]
+    },
+    {
+      "paths": [
+        "crates/polyspec-ssr-build/**"
+      ],
+      "targets": [
+        "nextest-build",
+        "check-ownership"
+      ]
+    },
+    {
+      "paths": [
+        "crates/polyspec-ssr-core/**"
+      ],
+      "targets": [
+        "nextest-core",
+        "check-ownership"
+      ]
+    },
+    {
+      "paths": [
+        "crates/polyspec-ssr-nonce/**"
+      ],
+      "targets": [
+        "nextest-nonce",
+        "check-ownership"
+      ]
+    },
+    {
+      "paths": [
+        "crates/polyspec-ssr-runtime/**"
+      ],
+      "targets": [
+        "nextest-runtime",
+        "check-ownership"
+      ]
+    },
+    {
+      "paths": [
+        "crates/polyspec-ssr-server/**"
+      ],
+      "targets": [
+        "nextest-server",
+        "check-ownership"
+      ]
+    },
+    {
+      "paths": [
+        "tools/install_packages.py"
+      ],
+      "targets": [
+        "tool-test-install_packages",
+        "tool-test-browser_launch",
+        "check-nextest"
+      ]
+    },
+    {
+      "paths": [
+        "crates/polyspec-ssr-build/tests/fixture/**"
+      ],
+      "targets": [
+        "check-nextest",
+        "verify-build"
+      ]
+    },
+    {
+      "paths": [
+        "tools/github_ruleset.py",
+        ".github/ruleset.json"
+      ],
+      "targets": [
+        "tool-test-github_ruleset"
+      ]
+    },
+    {
+      "paths": [
+        "tools/fetch_tools.py",
+        "tools/fetch_v8.py",
+        ".github/workflows/ci.yml"
+      ],
+      "targets": [
+        "tool-test-ci"
+      ]
+    },
+    {
+      "paths": [
+        "package.json",
+        "package-lock.json"
+      ],
+      "targets": [
+        "kit-check",
+        "toolchain-check",
+        "tool-test-ci"
+      ]
+    },
+    {
+      "paths": [
+        "config/commits.json"
+      ],
+      "targets": [
+        "commits-check"
+      ]
+    },
+    {
+      "paths": [
+        "config/owner-checks.json"
+      ],
+      "targets": [
+        "owner-validate"
+      ]
+    },
+    {
+      "paths": [
+        "config/release.json"
+      ],
+      "targets": [
+        "kit-check",
+        "release-coverage"
+      ]
+    },
+    {
+      "paths": [
+        "scripts/kit/**",
+        ".github/workflows/release.yml",
+        "PRINCIPLES.md",
+        "PRINCIPLES.ko.md",
+        "config/layout.kit.yml",
+        "ruff.toml",
+        "phpcs.xml.dist",
+        "phpstan.dist.neon",
+        ".golangci.yml",
+        ".oxlintrc.json",
+        "knip.json",
+        ".editorconfig",
+        "config/api-extractor.kit.json",
+        "config/pyproject.schema.json",
+        "config/composer.schema.json",
+        "config/cargo.schema.json",
+        "config/php-lint/**"
+      ],
+      "targets": [
+        "kit-check"
+      ]
+    }
+  ]
+}

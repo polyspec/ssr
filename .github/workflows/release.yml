@@ -1,14 +1,20 @@
-# Release: a tag push creates the GitHub Release of the tag. Every change reaches main through the merge queue with the
-# required checks, so every commit of main passed the full checks; the maintainer releases by tagging a commit of main
-# vX.Y.Z after a version-bump pull request. In a tag filter * does not match /, so '**/v*' covers a tag
-# <directory>/vX.Y.Z at any depth. The steps run in order and stop at the first failure: make release-verify requires
-# the tagged commit on origin/main with the check runs push-gate and ci-passed concluded success, without running the
-# tests again; make release-versions requires the version of the tag in every manifest and its section in
-# docs/changelog.md; make release-assets builds the release assets, npm tarballs and Composer zips only, which the
-# repository has none of, since every crate is not released as an archive and is consumed by git tag; make
-# release-publish creates the GitHub Release with the section as notes (tools/release.py). TAG reaches the make targets
-# through the environment, never as shell text. Each step runs a make target; make release-setup checks Python against
-# tools/tool-versions.json. The runner and each action are pinned, as in ci.yml.
+# Release workflow of a repository that adopts kit. kit-sync copies this file from the installed package @polyspec/kit to
+# .github/workflows/release.yml, and kit-check fails when the checkout differs from it; a repository never edits it.
+#
+# A tag push creates the GitHub Release of the tag as a draft, proves the draft from outside the checkout, and makes it public
+# only after the proof passes. The steps run in order and stop at the first failure; each step runs one make target of
+# kit with TAG from the environment. The first two install the package in the bootstrap order of a repository:
+#   install-tools TOOLS=npm installs the npm of packageManager with the copied installer of scripts/kit/bootstrap
+#   install-packages installs package-lock.json with that npm, @polyspec/kit included, whose kit.mk has the targets below
+#   release-tools    installs the tools that config/release.json needs for the packages and proof of this repository
+#   release-tools-path puts var/tools/bin on the PATH of the steps that follow, through GITHUB_PATH
+#   release-verify   the tagged commit is on origin/main and its check runs concluded success, without running the tests again
+#   release-versions every manifest has the version of the tag and the changelog has its section
+#   release-assets  builds the archive of every package into var/release/assets
+#   release-publish creates the GitHub Release of the tag as a draft, with its notes and archives
+#   release-proof   proves the draft: its assets, its consumer installs, its git-tag installs and its Go module tags
+#   release-undraft makes the release public; it runs only after release-proof passed
+# A failed step leaves the release a draft and fails the run, so a release that cannot be installed is never public.
 name: release
 
 on:
@@ -20,25 +26,49 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-24.04
     env:
       TAG: ${{ github.ref_name }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      # The whole history and every branch, so origin/main is there for the ancestry check.
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      # actions/checkout v6.1.0: the whole history and every branch, so origin/main is there for the ancestry check.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      # actions/setup-node v6.5.0: the Node.js of .node-version runs the bootstrap and the tools of @polyspec/kit. The pinned
+      # npm of var/tools installs the packages, so the cache of setup-node is off.
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          python-version: "3.9"
-      - name: prepare the runner
-        run: make release-setup
+          node-version-file: .node-version
+          package-manager-cache: false
+      # actions/setup-php: the PHP of .php-version runs the Composer proof of the release; a checkout that declares
+      # none keeps the PHP of the runner.
+      - uses: shivammathur/setup-php@d52fc211a0436f8839a587b3b5b8efddab4744ea
+        if: ${{ hashFiles('.php-version') != '' }}
+        with:
+          php-version-file: .php-version
+          # The proof runs with no debugger or coverage driver, as the checks do.
+          coverage: none
+      - name: install npm
+        run: make install-tools TOOLS=npm
+      - name: install packages
+        run: make install-packages
+      - name: make release-tools
+        run: make release-tools
+      # The tools of var/tools/bin — the Go of .go-version the release builds with, and whatever else the packages
+      # need — join PATH for the steps that follow; a step's PATH is its own, so the export goes to the file the
+      # runner reads between steps.
+      - name: put the installed tools on PATH
+        run: make release-tools-path
       - name: verify the tagged commit
         run: make release-verify
       - name: check the versions
         run: make release-versions
       - name: build the assets
         run: make release-assets
-      - name: create the release
+      - name: create the draft release
         run: make release-publish
+      - name: prove the draft release
+        run: make release-proof TAG="$TAG"
+      - name: make the release public
+        run: make release-undraft TAG="$TAG"

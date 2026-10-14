@@ -49,9 +49,9 @@ class ToolVersionsTest(TestCase):
         workflow = (ROOT / ".github/workflows/push-gate.yml").read_text()
         self.assertIn('python-version: "3.9"', workflow)
         self.assertIn("run: make ci-push", workflow)
-        self.assertIn("CI_PUSH_TARGETS = ci-python push-check push-records", (ROOT / "Makefile").read_text().splitlines())
+        self.assertIn("CI_PUSH_TARGETS = toolchain-check ci-python push-gate-commit push-records",
+                      (ROOT / "Makefile").read_text().splitlines())
         self.assertEqual(recipe("ci-python"), ["python3 -m tools.tool_versions check python3"])
-        self.assertEqual(recipe("push-check"), ["python3 -m tools.push_gate commit HEAD"])
         for line in workflow.splitlines():
             if "uses: " in line:
                 self.assertRegex(line, r"uses: [a-z-]+/[a-z-]+@[0-9a-f]{40} # v\d+$")
@@ -87,8 +87,9 @@ class ToolVersionsTest(TestCase):
                 tool_versions.declared(path)
 
     def test_the_repository_declares_every_tool_it_runs(self):
-        self.assertEqual(set(tool_versions.declared()), {
-            "python3", "make", "rustc", "cargo-nextest", "cargo-deny", "node", "npm", "zig"})
+        # Node.js, npm and Rust are declared in .node-version, packageManager of package.json and rust-toolchain.toml,
+        # which make toolchain-check of kit checks.
+        self.assertEqual(set(tool_versions.declared()), {"python3", "make", "cargo-nextest", "cargo-deny", "zig"})
 
 
 class EntryTest(TestCase):

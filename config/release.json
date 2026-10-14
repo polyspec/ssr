@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "repositoryUrl": "https://github.com/polyspec/ssr",
+  "changelog": "docs/changelog.md",
+  "changelogTranslations": [
+    "docs/changelog.ko.md"
+  ],
+  "checks": [
+    "push-gate",
+    "ci-passed"
+  ],
+  "packages": [],
+  "manifests": {
+    "Cargo.toml": "version",
+    "crates/polyspec-ssr-core/Cargo.toml": "git-tag",
+    "crates/polyspec-ssr-build/Cargo.toml": "git-tag",
+    "crates/polyspec-ssr-runtime/Cargo.toml": "git-tag",
+    "crates/polyspec-ssr-adapter-react/Cargo.toml": "git-tag",
+    "crates/polyspec-ssr-adapter-vue/Cargo.toml": "git-tag",
+    "crates/polyspec-ssr-adapter-svelte/Cargo.toml": "git-tag",
+    "crates/polyspec-ssr-adapter-vanilla/Cargo.toml": "git-tag",
+    "crates/polyspec-ssr-nonce/Cargo.toml": "git-tag",
+    "crates/polyspec-ssr-server/Cargo.toml": "git-tag"
+  },
+  "notReleased": {
+    "config/php-lint/composer.json": "the Composer project of the PHP lint that kit copies into every repository",
+    "package.json": "the npm project that installs the package @polyspec/kit for the tools of this repository",
+    "tools/build-probe/Cargo.toml": "the build verification program of make verify-build",
+    "tools/build-probe/tests/fixtures/package.json": "the npm packages of the build cases",
+    "verification/engine/Cargo.toml": "the engine verification program of tools/verify_engine.py"
+  },
+  "goModules": {},
+  "proof": {
+    "gitTag": {
+      "crates/polyspec-ssr-core/Cargo.toml": {
+        "kind": "rust",
+        "name": "polyspec-ssr-core",
+        "smoke": [
+          "cargo",
+          "check"
+        ]
+      },
+      "crates/polyspec-ssr-build/Cargo.toml": {
+        "kind": "rust",
+        "name": "polyspec-ssr-build",
+        "smoke": [
+          "cargo",
+          "check"
+        ]
+      },
+      "crates/polyspec-ssr-runtime/Cargo.toml": {
+        "kind": "rust",
+        "name": "polyspec-ssr-runtime",
+        "smoke": [
+          "cargo",
+          "check"
+        ]
+      },
+      "crates/polyspec-ssr-adapter-react/Cargo.toml": {
+        "kind": "rust",
+        "name": "polyspec-ssr-adapter-react",
+        "smoke": [
+          "cargo",
+          "check"
+        ]
+      },
+      "crates/polyspec-ssr-adapter-vue/Cargo.toml": {
+        "kind": "rust",
+        "name": "polyspec-ssr-adapter-vue",
+        "smoke": [
+          "cargo",
+          "check"
+        ]
+      },
+      "crates/polyspec-ssr-adapter-svelte/Cargo.toml": {
+        "kind": "rust",
+        "name": "polyspec-ssr-adapter-svelte",
+        "smoke": [
+          "cargo",
+          "check"
+        ]
+      },
+      "crates/polyspec-ssr-adapter-vanilla/Cargo.toml": {
+        "kind": "rust",
+        "name": "polyspec-ssr-adapter-vanilla",
+        "smoke": [
+          "cargo",
+          "check"
+        ]
+      },
+      "crates/polyspec-ssr-nonce/Cargo.toml": {
+        "kind": "rust",
+        "name": "polyspec-ssr-nonce",
+        "smoke": [
+          "cargo",
+          "check"
+        ]
+      },
+      "crates/polyspec-ssr-server/Cargo.toml": {
+        "kind": "rust",
+        "name": "polyspec-ssr-server",
+        "smoke": [
+          "cargo",
+          "check"
+        ]
+      }
+    }
+  }
+}

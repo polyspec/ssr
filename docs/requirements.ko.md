@@ -1,3 +1,5 @@
+<!-- doc-id: requirements -->
+<!-- source-sha256: 1dec7ff02e45dabc14287af2b40d88280e25091e1148e26240468ad61171c09d -->
 [English](requirements.md)
 
 # 요구 사항

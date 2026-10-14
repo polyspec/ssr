@@ -1,3 +1,4 @@
+<!-- doc-id: vanilla -->
 [Korean](vanilla.ko.md)
 
 # Vanilla adapter

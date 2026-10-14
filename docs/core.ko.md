@@ -1,3 +1,5 @@
+<!-- doc-id: core -->
+<!-- source-sha256: 212e7aaa6eca70605c6e34ef330ad08111efa68259395ec3ec1b238b2c4338e5 -->
 [English](core.md)
 
 # 렌더 계약

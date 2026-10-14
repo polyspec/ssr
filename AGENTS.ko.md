@@ -1,20 +1,43 @@
+<!-- doc-id: agents -->
+<!-- source-sha256: f9a2db794e4cc1e574e64a8831805065e68a5b4d56357afe8d8f840145ce3a6c -->
 # 개발 절차
 
-사용자의 지시가 우선한다. [English](AGENTS.md).
+사용자의 지시가 우선한다. [English](AGENTS.md). 모든 polyspec 저장소의 작업 원칙은
+[PRINCIPLES.ko.md](PRINCIPLES.ko.md)에 있고, 이 파일은 ssr의 규칙을 적는다.
+
+## 공유 도구
+
+- ssr은 package `@polyspec/kit`(kit)의 공유 도구를 실행한다. `package.json`은 이를 release asset의 URL과 integrity로
+  고정하고 `package-lock.json`이 이를 담는다. checkout은 이를 두 번의 online 단계로 설치한다. `make install-tools
+  TOOLS=npm`은 `packageManager`의 npm을 `var/tools`에 설치하고, `make install-packages`는 그 npm으로
+  `package-lock.json`을 설치한다. Makefile은 설치된 package의 `kit.mk`를 include하는 `scripts/kit/kit-bootstrap.mk`를
+  include하며, 설치 전에는 그 두 target만 실행된다.
+- kit의 target은 toolchain(`install-tools`, `toolchain-check`), 사본(`kit-sync`, `kit-check`), Git hook과 push 검사
+  (`hooks`, `hooks-check`, `push-gate-hook`, `push-gate-commit`), 전체 실행의 guard(`make check`, `rerun-failed`),
+  문서(`documents-check`, `documents-stamp`), commit message(`commits-check`), CI 보고(`ci-targets`, `ci-summary`,
+  `ci-passed`), 릴리스(`release-*`)다. 이것들은 `config/*.json`인 `checklist.json`, `commits.json`, `documents.json`,
+  `release.json`을 읽는다.
+- kit은 `make kit-sync`로 자기 file의 사본(그 `package.json`의 `kit.copies`)을 쓴다: `scripts/kit/`,
+  `.github/workflows/release.yml`, `PRINCIPLES.md(.ko)`, `config/layout.kit.yml`, lint 설정, schema. 사본은 kit에서
+  바꾸고 다시 복사하며 여기서 고치지 않는다. 바뀌거나 없는 사본에서 `make kit-check`가 실패한다. 새 kit은
+  `package.json`과 `package-lock.json`의 `@polyspec/kit`을 갱신하고 `make install-packages`와 `make kit-sync`를 실행해
+  받는다.
+- kit은 Node.js 26.11.1(`.node-version`, `engines.node` `>=26.11.1`)과 Rust 1.99.0(`rust-toolchain.toml`, 모든 Cargo
+  package의 `rust-version`)을 고정하며, 다른 선언에서 `make toolchain-check`가 실패한다. 한국어 문서는 영어 문서의
+  sha256인 `<!-- source-sha256: ... -->`를 가지며, 번역이 같은 정보를 담으면 `make documents-stamp`가 이를 쓴다.
 
 ## 저장소
 
 - 원격 `origin`은 `github.com/polyspec/ssr`이다. push는 push하는 ref의 tip commit과 작업 트리 어디에서도
   체크리스트 항목(하위 항목 포함)이 `[~]`가 아닐 때만 한다. 항목은 한 commit에서 진행 중으로 기록되고 다음 commit에서 완료되므로 push의
-  앞선 commit에는 진행 중 항목이 있을 수 있다. 추적되는 pre-push hook `.githooks/pre-push`는
-  `python3 -m tools.push_gate hook`을 실행하고, 이것은 그런 push를 거부하며 각 항목의 ID와 제목을 적는다.
+  앞선 commit에는 진행 중 항목이 있을 수 있다. `make hooks`가 쓰는 추적되는 pre-push hook `.githooks/pre-push`는
+  kit의 push 검사인 `make push-gate-hook`을 실행하고, 이것은 그런 push를 거부하며 각 항목의 ID와 제목을 적는다.
   모든 make 실행은 `core.hooksPath`가 `.githooks`와 다르면 그것으로 설정하고, `make hooks`가 설정하고
-  검사하며, 설정되지 않은 동안 `tools/check.py`와 `make check`의 guard가 실패한다. workflow
-  `.github/workflows/push-gate.yml`은 모든 push, pull request, merge group에서 job `push-gate`로
-  `python3 -m tools.push_gate commit`을 실행하고 같은 방식으로 실패하며, hook을 실행하지 않은 push에도 그렇다.
-  같은 job이 `tools/check.py`의 기록 검사(`python3 tools/check.py records`: 기록, checklist 표시와 문장, 단어,
-  문서 쌍과 link)를 실행하므로 기록 검사가 실패하는 commit은 `main`에 오르지 않는다. CI는 `tools/check.py`의 모든
-  검사를 실행한다(`make ci-records`).
+  검사하며, 설정되지 않은 동안 `make hooks-check`와 `make check`의 guard가 실패한다. workflow
+  `.github/workflows/push-gate.yml`은 모든 push, pull request, merge group에서 job `push-gate`로 `make ci-push`를
+  실행한다. `make push-gate-commit`은 같은 방식으로 실패하며 hook을 실행하지 않은 push에도 그렇고, `make
+  push-records`는 `tools/check.py`의 기록 검사(단어, React 문서, 경로, 시간 assertion)를 실행하므로 기록 검사가
+  실패하는 commit은 `main`에 오르지 않는다. CI는 `tools/check.py`의 모든 검사를 실행한다(`make ci-records`).
 - 모든 변경은 pull request와 merge queue를 거쳐 `main`에 들어간다. 이 저장소의 어떤 명령도 `main`을 push하지 않는다.
   branch는 GitHub의 표준 명령이나 GitHub UI로 게시한다.
 
@@ -88,7 +111,8 @@
 
 ## 체크리스트
 
-- `docs/checklist.md`가 유일한 작업 추적 파일이다. `docs/checklist.ko.md`는 같은 작업 ID와 상태를 가진다.
+- `config/checklist.json`이 선언한 `docs/plans/execution-checklist.md`가 유일한 작업 추적 파일이다.
+  `docs/plans/execution-checklist.ko.md`는 같은 작업 ID와 상태를 가진다.
   다른 체크리스트를 만들지 않는다. 필요하면 항목을 번호가 붙은 세부 항목으로 나누거나 항목을 추가한다.
 - 체크리스트에는 저장소에 고유한 작업의 구체적인 산출물과 검증 가능한 완료 증거를 기록한다. 지속해서
   적용할 업무 지침은 이 파일에 둔다. 지침 변경 요청은 이 파일을 갱신하며, 별도의 저장소 구현이나
@@ -101,7 +125,7 @@
 - 체크리스트에는 항목과 제목만 둔다. 항목은 하이픈, 공백, 상태, 공백, ID로 시작하는 항목 줄과 그 바로 다음에
   오는, 공백 두 칸으로 들여 쓴 줄이다. 각 항목은 의존 관계와 완료 증거를 적는다. 요구 사항은
   `docs/requirements.ko.md`에, 규칙은 이 파일에 둔다. 상태 표시는, Markdown task list가 쓰는 대괄호 안의 x나
-  대문자 X도, 항목 줄의 상태로만 쓴다. 체크리스트에는 범례가 없고 문장은 상태를 말로 적는다. `tools/check.py`는
+  대문자 X도, 항목 줄의 상태로만 쓴다. 체크리스트에는 범례가 없고 문장은 상태를 말로 적는다. `make documents-check`는
   다른 줄이나 표시에 대해 실패하고 그 file, 줄, 열을 적는다.
 - 병렬로 작업하되 진행 중 작업을 통제한다. 서로 독립인 A, B, C, D는 동시에 진행할 수 있으며 새 작업의 시작을
   제한하지 않는다. 기존 항목을 조금씩만 진행하면서 `[~]` 항목을 계속 추가해 미완료 항목 수만 늘리지 않는다.
@@ -114,7 +138,8 @@
   하나의 커밋으로 남긴다.
 - 커밋 로그는 영문으로 `type(scope): subject (#issue)` 형식으로 쓴다: 50자 이내 명령조 대문자 시작
   제목(끝 마침표 없음), 빈 줄, 72자 부근 개행한 본문(무엇을·왜 변경했는지), 선택적 꼬리말. 타입은
-  feat, fix, docs, style, refactor, test, chore 중 하나다.
+  feat, fix, docs, style, refactor, test, chore 중 하나다. `make commits-check`는 message를 `config/commits.json`과
+  비교하고, pre-push hook은 push되는 commit을 검사한다.
 - 개발 중에는 변경을 소유한 unit 수준의 Red·Green 테스트만 실행한다. 전체 검사와 end-to-end 검사(`make check`의
   target, `make verify-build`, ownership 검사)와 Linux build와 test는 모든 pull request,
   merge group, 수동 실행의 GitHub CI(`.github/workflows/ci.yml`)에서 실행한다. 그 job `lint`와 `test`는 각
@@ -124,7 +149,7 @@
   경과 시간을 출력하고 자기 타임아웃을 가지며, 전체 일괄 타임아웃은 쓰지 않는다. 장기 작업은 타임아웃 대신
   상세 단계 로그로 관측한다.
 - `make check`가 이 규칙을 강제한다: 어떤 단계보다 먼저, 체크리스트 항목(하위 항목 포함)이 `[~]`인 동안, 추적하는
-  file에 commit하지 않은 변경이 있는 동안, 추적되지도 무시되지도 않는 file이 있는 동안, pre-push hook이 설치되지 않은 동안, 그리고 `var/full-run.json`이 같은 tree의 전체 실행을 기록하고 있을 때
+  file에 commit하지 않은 변경이 있는 동안, 추적되지도 무시되지도 않는 file이 있는 동안, pre-push hook이 설치되지 않은 동안, 다른 실행이 lock을 잡은 동안, 그리고 `var/full-run.json`이 같은 tree의 전체 실행을 기록하고 있을 때
   거부한다. commit하고 활성 항목을 모두 완료한 뒤 `make check`를 한 번 실행한다. `make rerun-failed`는 원인이
   tree 밖(환경이나 machine 자원)에 있는 실패에 대해, 기록된 tree에서 통과하지 못한 target만 다시 실행한다. code의
   실패는 체크리스트 항목으로 고치고, 그 commit은 새 tree를 만들며 그 전체 묶음은 활성 항목이 모두 완료되었을 때 한 번
@@ -182,10 +207,11 @@ tag는 pull request로 올리지 않는다.
    `docs/changelog.md`와 `docs/changelog.ko.md`의 `## Unreleased`를 `## X.Y.Z`로 바꾸며 그 위에
    비어 있는 새 `## Unreleased`를 둔다.
 2. 메인테이너는 merge된 `main`의 commit에 `vX.Y.Z` tag를 붙이고 tag를 push한다.
-3. tag push는 `.github/workflows/release.yml`을 실행한다. 이 workflow는 tag된 commit이 `main`에 있고
-   check `push-gate`와 `ci-passed`를 통과했는지, 모든 manifest에 tag의 버전이 있고 `docs/changelog.md`에
-   section `## X.Y.Z`가 있는지 확인하고 GitHub Release를 만든다. crate는 archive로 릴리스하지 않고
-   git tag로 사용한다([워크스페이스](docs/workspace.ko.md)).
+3. tag push는 kit의 release workflow인 `.github/workflows/release.yml`을 실행한다. 이 workflow는 tag된 commit이
+   `main`에 있고 check `push-gate`와 `ci-passed`를 통과했는지, `config/release.json`의 모든 manifest에 tag의
+   버전이 있고 `docs/changelog.md`에 section `## X.Y.Z`가 있는지 확인하고, GitHub Release를 초안으로 만들고, 각
+   crate가 tag에서 해석되는지 증명한 뒤 릴리스를 공개한다. crate는 archive로 릴리스하지 않고 git tag로
+   사용한다([워크스페이스](docs/workspace.ko.md)).
 
 ## 멱등성
 
@@ -194,7 +220,7 @@ tag는 pull request로 올리지 않는다.
 
 1. 어떤 결과도 시간이나 외부 세계에 따라 달라지지 않는다. 검사는 live registry 조회(`npm outdated`, `npm audit`,
    `npm view`, 실행 시점에 정해지는 잠금 파일, 보안 공지 database)를 하지 않고, 실행 중에 도구를 설치하지 않으며
-   (`@latest`, rustup 자동 설치), 모든 도구를 `tools/tool-versions.json`이 선언한 version으로 이 host와 CI에서 같은
+   (`@latest`, rustup 자동 설치), 모든 도구를 `.node-version`, `package.json`의 `packageManager`, `rust-toolchain.toml`, `tools/tool-versions.json`이 선언한 version으로 이 host와 CI에서 같은
    방식으로 실행한다. 보안 공지는 따로 검토한다(`make review-advisories`).
 2. 테스트는 자기가 만든 것이나 자기 실행이 설치하고 검증한 것만 읽는다. 다른 실행이 남긴 build 출력, 설치된 package
    사본, target directory, 추적되지 않는 file, 다른 checkout을 가리키는 컴파일 시점 고정 경로, checkout 사이에 공유한
@@ -209,7 +235,7 @@ tag는 pull request로 올리지 않는다.
    directory는 assertion이 실패해도 guard가 지운다.
 8. version이나 맥락마다 형식이 다른 출력에서 결과를 읽지 않는다. 도구 결과는 고정된 형식의 기계용 보고에서 읽고,
    recipe는 `make -n`이 아니라 Makefile에서 읽는다.
-9. 추적되는 모든 file은 `tools/test-owners.json`에 소유 테스트를 가지고, 다른 crate가 의존하는 모든 crate는
+9. 추적되는 모든 file은 `config/owner-checks.json`에 소유 검사를 가지고, 다른 crate가 의존하는 모든 crate는
    `tools/test-ownership.json`에 선언된 동작을 가진다.
 10. 공유 상태는 한 번에 한 소유자만 가진다. 동시 실행은 자기 directory, holder lock, 내용 주소의 불변 경로를 쓰고,
     lease 없는 공유 임시·출력 directory, database, port를 쓰지 않는다.
@@ -227,6 +253,6 @@ tag는 pull request로 올리지 않는다.
   코드의 출처, 이식 경위, 작성자나 도구 표기(Co-Authored-By 포함), 대화나 조사 경위를 담지 않는다. ssr에 대한 그런 사실이
   없는 문장은 지운다. 그런 맥락은 Git 밖의 로컬 메모리에 둔다.
 - 영어가 원본이다. `.ko.md` 파일을 같은 변경에서 같은 정보로 갱신한다.
-- 커밋 전에 `python3 -m tools.owning_tests select`가 `tools/test-owners.json`에서 고르는, 변경을 소유한 Red·Green
-  테스트와, 추적되는 file에 기록 검사와 용어 검사를 실행하고 추적되지도 무시되지도 않는 file마다, 그리고 소유 테스트가
-  없는 추적 file마다 실패하는 `tools/check.py`를 실행한다.
+- 커밋 전에 변경을 소유한 Red·Green 검사인 `make owner-check`를 실행한다. 이는 `config/owner-checks.json`에서 바뀐
+  file의 소유자를 실행한다. `make owner-validate`는 소유자가 없는 추적 file에서 실패하고, 추적되는 file에 기록 검사와
+  용어 검사를 실행하는 `tools/check.py`는 추적되지도 무시되지도 않는 file마다 실패한다.

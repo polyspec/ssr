@@ -1,3 +1,5 @@
+<!-- doc-id: test-ownership -->
+<!-- source-sha256: 18d5b0d17a63b5f91a6f5670c04d3e5b9075ed65b345c7cbb50481be079ecb41 -->
 [English](test-ownership.md)
 
 # 테스트 소유 위치
@@ -30,10 +32,8 @@ import로 계산하지 않는다. 그룹 import와 기호 이름 변경을 지�
 (`--message-format-version 0.1`의 `--message-format libtest-json`)에서 읽고, nextest version마다 문구가 다른 사람용
 출력에서는 읽지 않는다. feature 검사(`tools/check_features.py`)도 같은 방식으로 사례를 읽는다.
 
-`tools/test-owners.json`은 추적되는 모든 파일을 그 소유 테스트의 명령에 대응시킨다: Git 경로 패턴과
-Python 테스트 모듈, 워크스페이스 패키지와 테스트 대상, make target, 추적되는 도구를 가리키는 테스트 명령이다.
-`tools/check.py`가 실행하는 `python3 -m tools.owning_tests check`는 소유 테스트가 없는 추적 파일, 추적 파일을
-가리키지 않는 패턴, 존재하지 않는 테스트를 가리키는 명령에서 실패한다. `python3 -m tools.owning_tests select`는
-`HEAD`와 비교해 바뀐 파일의 소유 테스트 명령을 한 번씩 출력하고, 소유자가 없는 바뀐 파일에서 실패한다. 지운 파일은
-바뀐 파일이 아니다. 이것이
-커밋 전에 실행할 Red·Green 테스트다.
+`config/owner-checks.json`은 추적되는 모든 파일을 그 소유 검사의 make target에 대응시킨다: 경로 glob과 target이며,
+Python 테스트 모듈 `tools/test_<name>.py`의 `tool-test-<name>`, `crates/polyspec-ssr-<crate>` 테스트의
+`nextest-<crate>`, `TESTS`로 받은 바뀐 도구 테스트 파일을 실행하는 `check-tools` 같은 것이다. kit의 `make
+owner-validate`는 소유자가 없는 추적 파일과 존재하지 않는 target에서 실패한다. `make owner-check`는 `HEAD`와 비교해
+바뀐 파일(또는 `PATHS`)의 소유자를 한 번씩 실행한다. 이것이 커밋 전에 실행할 Red·Green 테스트다.

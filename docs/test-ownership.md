@@ -1,3 +1,4 @@
+<!-- doc-id: test-ownership -->
 [Korean](test-ownership.ko.md)
 
 # Test ownership
@@ -37,10 +38,9 @@ result is a failure. The result of each case is read from the machine-readable r
 whose text differs between nextest versions; the feature check (`tools/check_features.py`) reads
 its cases the same way.
 
-`tools/test-owners.json` maps every tracked file to the commands of its owning tests: Git path
-patterns and test commands, which name Python test modules, workspace packages and test targets,
-make targets and tracked tools. `python3 -m tools.owning_tests check`, which `tools/check.py`
-runs, fails for a tracked file without owning tests, for a pattern that names no tracked file and
-for a command that names no existing test. `python3 -m tools.owning_tests select` prints the
-owning test commands of the files changed against `HEAD`, once each, and fails for a changed file
-without an owner; a removed file is not a changed file; these are the Red and Green tests to run before a commit.
+`config/owner-checks.json` maps every tracked file to the make targets of its owning checks: path globs and
+targets, such as `tool-test-<name>` for the Python test module `tools/test_<name>.py`, `nextest-<crate>` for the tests
+of `crates/polyspec-ssr-<crate>`, and `check-tools`, which runs the changed tool test files that it receives in
+`TESTS`. `make owner-validate` of kit fails for a tracked file without an owner and for a target that does not exist.
+`make owner-check` runs the owners of the files changed against `HEAD` (or of `PATHS`), once each; these are the Red
+and Green tests to run before a commit.

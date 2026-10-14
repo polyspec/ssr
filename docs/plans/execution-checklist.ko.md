@@ -1,3 +1,5 @@
+<!-- doc-id: execution-checklist -->
+<!-- source-sha256: 8034c8671306a7bc44ee7a85d4702b0580bb9fbab9ffc61812e8fe942a8db26e -->
 # 체크리스트
 
 ## 항목
@@ -5,10 +7,10 @@
 - [o] S-0 작성자 `min-median-max`로 로컬 Git 저장소를 초기화하고 `AGENTS.md`, 이 체크리스트, 변경 기록,
   `.gitignore`를 둔다. 의존: 없음. 증거: 첫 커밋, `git remote -v` 출력 없음.
 - [o] S-0-1 ssr의 렌더·빌드·엔진 요구 사항과 검증 항목을 명세한다. 의존: S-0. 증거:
-  [요구 사항](requirements.ko.md)의 요구 사항과 S-3·S-4의 빌드·엔진 완료 기준이 커밋됨.
+  [요구 사항](../requirements.ko.md)의 요구 사항과 S-3·S-4의 빌드·엔진 완료 기준이 커밋됨.
 - [o] S-0-2 절차와 체크리스트의 두 언어 파일에 일시 우회 상태를 정의하고 체크리스트 상태 검사에 포함한다.
   의존: S-0-1. 증거: 문서 검사가 두 언어 파일을 검증하고 이 변경이 커밋됨.
-- [o] S-1 [AGENTS.ko.md](../AGENTS.ko.md)의 크레이트로 Cargo 워크스페이스(`rust-toolchain.toml`: Rust 1.98.1,
+- [o] S-1 [AGENTS.ko.md](../../AGENTS.ko.md)의 크레이트로 Cargo 워크스페이스(`rust-toolchain.toml`: Rust 1.98.1,
   edition 2024)와 Makefile 목표 `check`(rustfmt, clippy `-D warnings`, `cargo deny check`, 기록·용어·문서 검사,
   테스트별 타임아웃을 가진 cargo-nextest 0.9.146 단위 테스트), `bench`를 만든다. 의존: S-0-1. 증거: `make check`
   종료 코드 0. 완료 기준: 매니페스트에는 AGENTS.md의 여덟 크레이트만 있고 모든 크레이트가 edition 2024로
@@ -35,7 +37,7 @@
   포함하지 않는다. 의존: S-1. 증거: JSON fixture가 ordered-json으로 왕복. 완료 기준: 필수 필드가
   정확히 다섯 개이고 `render`는 `ssr` 또는 `csr`, `title`과 `language`는 문자열, `props`는 객체,
   `state`는 모든 JSON 값이다. 필드 누락·추가, 잘못된 타입과 JSON은 오류를 반환한다.
-  [렌더 계약](core.ko.md)을 따른다.
+  [렌더 계약](../core.ko.md)을 따른다.
 - [o] S-2-1 페이지 JSON 요청의 모든 깊이에서 해석된 객체 키가 반복되면 거부한다.
   같은 키를 만드는 이스케이프 표기도 포함한다. 의존: S-2. 증거: 추적되는 중복 키
   사례가 ordered-json 파싱에서 실패하고 고유 키 fixture는 왕복하며 `make check` 종료 코드가 0이다.
@@ -91,7 +93,7 @@
   같은 클라이언트 URL을 사용한다. SSR은 입력 상태를 컴포넌트에 전달하고 출력 상태를 반환하고 문서에 담는다.
   CSR은 root를 비워 두고 입력 상태를 변경하지 않고 담으며 런타임 풀을 사용하지 않는다. 정적 CSR 셸은 빈 props와
   null 상태를 담고 서로 다른 요청 경로에 재사용할 수 있다. HTML의 JSON은 script 요소를 닫을 수 없으며 잘못된
-  로컬 클라이언트·스타일 URL과 정적 셸 값은 오류다. 증거: [React 어댑터](react.ko.md)에 계약을 기록하고,
+  로컬 클라이언트·스타일 URL과 정적 셸 값은 오류다. 증거: [React 어댑터](../react.ko.md)에 계약을 기록하고,
   실제 Chrome 브라우저에서 SSR hydration, CSR 렌더, script 입력과 두 경로의 정적 셸 재사용을 검증한다.
 - [o] S-8 게시와 제공을 구현한다: 빌드의 공개 파일을 디렉터리에 원자적으로 쓰고, 같은 내용의 기존 파일은 유지하며,
   다른 내용의 기존 파일은 오류다. 빌드 파일을 콘텐츠 타입과 함께 제공한다. 의존: S-5. 완료 기준: 공개 URL이
@@ -113,7 +115,7 @@
   거부하고 UTF-8 JSON 콘텐츠 타입을 허용하며 SSR과 CSR의 HTML 문서를 반환한다. 렌더 실패는 명시적
   오류로 반환한다. 서버 스크립트 이름의 JavaScript 스택 프레임을 소스 위치로 역매핑하고,
   소스맵이 없거나 잘못되면 서버 생성이 실패한다.
-  [HTTP 서버 계약](server.ko.md)을 따른다. 증거: 일정한 빌드 출력, 런타임 메트릭, HTTP 사례,
+  [HTTP 서버 계약](../server.ko.md)을 따른다. 증거: 일정한 빌드 출력, 런타임 메트릭, HTTP 사례,
   역매핑 스택과 `make check`.
 - [o] S-9-1 개발 빌드와 렌더 서버를 별도 Rust 프로세스에서 실행하며 준비·종료·재시작 횟수·이벤트 용량·검증 본문 바이트의 `ProcessOptions`를 명시한다. 우선순위: 렌더 프로세스의 불변 스냅샷에 필수. 의존: S-9, S-14, S-8-1. 완료 기준: 빌드 명령은 검증된 불변 빌드 디렉터리를 생성하며 렌더 명령은 해당 디렉터리를 제공하고 실제 SSR 요청을 완료한 뒤 트래픽을 받는다. 교체는 이전 프로세스를 사용하는 응답을 유지하고 해당 응답 종료 후 이전 프로세스를 중지하고 종료를 확인한다. 빌드 또는 준비 실패 시 새 요청은 명시적으로 실패한다. 예상하지 않은 렌더 프로세스 종료를 폴링 없이 관측하고 같은 완료 빌드에서 대체 프로세스를 시작한다. 종료는 자식 프로세스를 중지하고 종료를 확인하며 강제 종료를 보고한다. 증거: 추적되는 프로세스·준비·재빌드 실패·스트림 종료·프로세스 종료·재시작·정리 테스트, `make check` 통과.
 - [o] S-9-1-1 감독되는 렌더러 요청에 비공개 Unix 소켓을 사용한다. 우선순위: 서비스 DNS 없이 프로세스 준비를 완료하는 데 필요하다. 의존: S-9-1. 감독 프로세스가 자식을 실행하기 전에 소켓 디렉터리를 생성하고 소유하며 명령 생성 함수에 정확한 소켓 경로를 전달한다. 다른 선언 경로는 거부하고 프로세스 종료를 수집한 뒤 자신이 소유한 디렉터리만 제거한다. 수용 기준: 추적 RED·GREEN이 절대 비공개 소켓, 요청·응답 스트림, 준비·교체·배출·취소·종료 및 소켓 정리를 검증한다. 준비는 네트워크 주소, 상대 경로나 다른 선언 경로, 소켓이 아닌 선언 경로, 다른 사용자에게 열린 소켓 디렉터리, 다른 항목이 있는 소켓 디렉터리를 거부하고, 감독 프로세스는 그 항목을 남긴다. Unix 소켓 주소보다 긴 소켓 경로는 디렉터리를 만들기 전에 거부한다. `crates/ssr-server/tests/development.rs`의 재시작 사례는 공개 `Development` API로 실제 자식을 소켓 위에서 실행하고, 프로세스 종료 뒤 모든 소켓 디렉터리가 제거되었음을 요구한다. Red: 경로 길이 사례는 `Socket::create`가 디렉터리를 만들고 오류를 반환하지 않아 실패했다. 소켓이 아닌 경로와 열린 디렉터리 사례는 둘 다 `render socket requires a private directory`를 반환해 실패했다. 나머지 새 사례는 첫 실행에서 통과했고, 각각 commit하지 않은 mutation에 대해 실패했다. 경로 비교를 없애면 네트워크 주소, 상대 경로, 다른 경로 사례가 `render socket path must be absolute and canonical`이나 준비 시간 초과로 실패했다. `remove_dir_all`을 쓰면 다른 항목 사례가 `the supervisor removed a file it did not create`로 실패했다. 디렉터리 mode를 0755로 하면 절대 소켓 사례가 실패했다. 프로세스 종료 뒤 소켓 제거를 없애면 development 사례 7개가 `socket directory remains`로 실패했고, 준비 실패 뒤 제거를 없애면 준비 사례가 실패했다. 응답 본문을 버리지 않으면 취소 사례가 `shutdown timed out; forced termination`으로 실패했다. Green: `ssr-server` 단위 사례 19개와 `process` 사례가 통과하고, `development` 사례 16개 중 15개가 통과한다. 나머지 사례는 소스 감시 때문에 main에서도 간헐적으로 실패하며 S-9-1-2다. `cargo clippy -p ssr-server --all-targets -- -D warnings`와 `cargo fmt --all -- --check`가 통과한다.
@@ -362,3 +364,4 @@
 - [ ] S-50 package `@polyspec/kit`의 공유 도구를 실행한다. 우선순위: 다음 pull request 전에 필요하다. 의존: S-48. 수용 기준: S-50의 모든 하위 항목이 완료된다. `make kit-check`, `make toolchain-check`, `make layout-check`, `make documents-check`, `make owner-validate`가 통과하거나, 각 실패가 그 command와 첫 finding을 적은 항목이다. `make check`를 한 번 실행했고, 실패한 각 target은 그 command와 첫 finding을 적은 항목이다.
 - [o] S-50-1 kit의 toolchain을 고정한다. 우선순위: S-50의 일부. 의존: 없음. 원인: kit는 Rust 1.99.0과 Node.js 26.11.1을 고정하고 모든 Cargo package의 `rust-version`과 모든 `package.json`의 `engines.node`를 요구한다. `rust-toolchain.toml`은 1.98.1을 적었고, 어떤 Cargo package도 `rust-version`을 선언하지 않았고, `tools/build-probe/tests/fixtures/package.json`은 `engines.node`를 선언하지 않았고, Node.js는 `tools/tool-versions.json`에만 v26.8.1로 선언되었다. 수용 기준: `rust-toolchain.toml`은 1.99.0을 적는다. `Cargo.toml`의 `[workspace.package]`는 `rust-version = "1.99.0"`을 선언하고 모든 crate가 이를 상속하며, `verification/engine/Cargo.toml`과 `tools/build-probe/Cargo.toml`도 이를 선언한다. `.node-version`은 26.11.1이다. fixture manifest와 그 lock의 root package는 `engines.node` `>=26.11.1`을 선언한다. `make ci-setup`은 Rust 1.99.0을 설치하고, `ci.yml`은 `.node-version`을 읽고, `tools/tool-versions.json`은 rustc 1.99.0과 node v26.11.1을 선언한다. Red: kit의 toolchain 검사(`check-toolchain`)가 channel 1.98.1, `engines.node`가 없는 fixture manifest, `rust-version`이 없는 Cargo package 14개에서 실패했다. `test_toolchain_and_targets`가 channel 1.98.1에서 실패했다. Green: toolchain 검사는 `tools/license-fixtures`의 manifest 두 개만 적는다(S-50-2). `tools.test_workspace`의 사례가 통과한다.
 - [o] S-50-2 license fixture를 Cargo package가 아닌 lock으로 추적한다. 우선순위: S-50의 일부. 의존: S-50-1. 원인: `tools/license-fixtures/xxhash-0.8.17`과 `xxhash-0.8.18`은 이 저장소의 어떤 build도 build하지 않는 추적된 Cargo package(`Cargo.toml`, `Cargo.lock`, `src/lib.rs`)였고, `test_license_exceptions_are_exact_versions`는 `cargo deny`로 읽기만 한다. kit의 toolchain 검사는 추적된 모든 Cargo package를 읽고 `rust-version`이 없는 두 package에서 실패했으며, Cargo manifest와 lock의 모든 검사가 이를 이 저장소의 package로 읽게 된다. 수용 기준: tree는 lock `tools/license-fixtures/xxhash-0.8.17.lock`과 `xxhash-0.8.18.lock`만 추적한다. license 사례는 각 version의 manifest, 빈 `src/lib.rs`, 추적된 lock을 임시 directory에 쓰고 거기서 `cargo deny --locked --offline check licenses`를 실행한다. 생성한 manifest는 제거한 manifest와 같다. `tools/release.py`는 license fixture를 나열하지 않는다. Red: kit의 toolchain 검사가 두 fixture manifest를 적었다. package가 추적되는 동안 `test_the_license_fixtures_are_no_tracked_cargo_packages`가 실패했다. Green: toolchain 검사가 node 26.11.1과 rust 1.99.0에서 통과한다. `tools.test_workspace`의 사례 18개와 `tools.test_release`의 사례가 통과한다.
+- [o] S-50-3 kit을 설치하고, 같은 일을 하는 이 저장소의 도구 대신 kit의 도구를 실행한다. 우선순위: S-50의 일부. 의존: S-50-2. 원인: `tools/push_gate.py`, `tools/full_run.py`, `tools/holder_lock.py`, `tools/ci_run.py`, `tools/release.py`, `tools/test-owners.json`과 `tools/owning_tests.py`, `tools/check.py`의 문서·체크리스트·hook 검사는 kit의 push 검사, 전체 실행의 guard, CI 보고, `ci-passed`, 릴리스, owner 검사, 문서 검사와 같은 일을 했고, 그 make target은 kit target과 이름이 같다. 수용 기준: `package.json`은 `@polyspec/kit`을 release asset의 URL과 integrity로 고정하고, `packageManager`는 sha512와 함께 npm 12.2.0을 적으며, `package-lock.json`이 이를 담는다. Makefile은 `scripts/kit/kit-bootstrap.mk`를 include하고, `make kit-sync`가 `kit.copies`의 사본을 썼다. `config/checklist.json`, `config/commits.json`, `config/documents.json`, `config/owner-checks.json`, `config/release.json`은 체크리스트, commit 규칙, 문서, 모든 추적 경로의 owner, 릴리스를 선언한다. 체크리스트는 한국어 짝과 함께 `docs/plans/execution-checklist.md`다. 모든 문서 쌍은 `doc-id`를 하나 가지고, 모든 한국어 문서는 `source-sha256`을 가진다. `make check`는 `kit-check`, `toolchain-check`, `documents-check`, `owner-validate`, `hooks-check`와 이 저장소의 검사에 대해 kit의 `full-run`을 실행한다. `.githooks/pre-push`는 kit의 hook이다. `ci.yml`과 `push-gate.yml`은 package를 설치하고 target을 `make ci-targets`로 실행하며, `ci-passed`는 kit의 target이다. `.github/workflows/release.yml`은 kit의 사본이다. `tools/run_tests.py`는 지정한 테스트 file을 실행하고, owner target `tool-test-<name>`과 `nextest-<crate>`가 있다. `tools/check.py`는 kit의 사본을 읽지 않는다. `tools/tool-versions.json`은 kit이 검사하는 도구(node, npm, rustc)를 선언하지 않는다. 대체된 도구와 그 테스트는 제거된다. AGENTS, `docs/workspace.md`, `docs/test-ownership.md`가 kit을 설명한다. Red: 설정, doc-id와 source-sha256 표시, owner 규칙이 없을 때 `make kit-check`, `make documents-check`, `make owner-validate`가 실패했다. `SelectionTest`의 두 사례가 `test_ids() takes 0 positional arguments`로 실패했다. `test_the_copies_of_kit_are_no_records_of_this_repository`가 `PRINCIPLES.md`의 단어에서 실패했다. Green: `make kit-check`, `make documents-check`, `make owner-validate`, `make hooks-check`, `make release-coverage`가 통과한다. `tools.test_ci`, `tools.test_workspace`, `tools.test_run_tests`, `tools.test_tool_versions`, `tools.test_check_features`, `tools.test_verify_archive`, `tools.test_github_ruleset`, `tools.test_browser_launch`의 사례가 통과한다. `python3 tools/check.py`가 통과한다.

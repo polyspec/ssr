@@ -1,3 +1,4 @@
+<!-- doc-id: core -->
 [Korean](core.ko.md)
 
 # Render contract

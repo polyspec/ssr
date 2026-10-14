@@ -1,3 +1,5 @@
+<!-- doc-id: vanilla -->
+<!-- source-sha256: c2d1b2d13df06a101053a0e0992ea2a15aeb36389559550acbc0e52258e38d45 -->
 [English](vanilla.md)
 
 # Vanilla 어댑터

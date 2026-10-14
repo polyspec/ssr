@@ -1,3 +1,5 @@
+<!-- doc-id: features -->
+<!-- source-sha256: 5bb4666bcd211cb01d7bd9557a83c1b1eb59b10bd1a76cf48316dc1132157561 -->
 # 지원 기능
 
 [English](features.md).

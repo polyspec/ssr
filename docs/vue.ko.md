@@ -1,3 +1,5 @@
+<!-- doc-id: vue -->
+<!-- source-sha256: 1d65e5cdadf4f00755a87342499cabbde42bb42634d6b271a82aee931085ead9 -->
 [English](vue.md)
 
 # Vue 어댑터

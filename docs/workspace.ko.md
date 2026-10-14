@@ -1,3 +1,5 @@
+<!-- doc-id: workspace -->
+<!-- source-sha256: 0225409d5bb2164be3036929cc619f7781eeedf1a4699951ab306874390ac7a1 -->
 [English](workspace.md)
 
 # 워크스페이스
@@ -11,9 +13,10 @@ Rust 1.99.0 워크스페이스는 AGENTS.md에 적힌 여덟 크레이트로 구
 읽지 않고, `make review-advisories`가 workspace, engine 검증, build 검증의 보안 공지를 검토한다.
 `tools/tool-versions.json`은 검사, build, test가 실행하는 모든 도구를 version 보고의 정확한 첫 줄로, 그것이 없는 도구는
 실행 파일의 SHA-256으로 적는다. Python은
-minor version 3.9로 고정하고, 검사는 실행 중인 patch release를 출력한다. `tools/tool_versions.py`는 설치된 도구를 `make check`와 `make rerun-failed`의 어떤 단계보다
-먼저, `tools/check.py`에서, 다른 make target의 첫 command로, 그리고 Python은 pre-push hook에서 비교하고, 기대 보고와 실제
-보고를 적고 실패한다. 모든 make 호출은 `RUSTUP_AUTO_INSTALL=0`을 설정하므로 없는 toolchain은 설치되지 않고 실패한다. Rust 테스트는 cargo-nextest 0.9.146으로 실행한다. nextest 설정은
+minor version 3.9로 고정하고, 검사는 실행 중인 patch release를 출력한다. `tools/tool_versions.py`는 설치된 도구를 그
+도구를 실행하는 make target의 첫 command로 비교하고, 기대 보고와 실제 보고를 적고 실패한다. Node.js, npm, Rust는
+`.node-version`, `package.json`의 `packageManager`, `rust-toolchain.toml`에 kit의 pin으로 선언되고, `make toolchain-check`가
+이를 비교한다. 모든 make 호출은 `RUSTUP_AUTO_INSTALL=0`을 설정하므로 없는 toolchain은 설치되지 않고 실패한다. Rust 테스트는 cargo-nextest 0.9.146으로 실행한다. nextest 설정은
 각 테스트를 30초 뒤 종료하고 시작 및 결과와 경과 시간을 출력한다. 테스트 도구가 없으면 명령은 실패한다.
 Python 도구 테스트는 `tools/run_tests.py`로 각자 자기 process group에서 30초 제한으로 실행한다. 제한을 넘은
 사례는 출력과 함께 보고하고 그 process group 전체를 죽이므로 사례가 시작한 process가 계속 실행되지 않는다.
@@ -22,19 +25,18 @@ nextest setup script `build-programs`(`tools/build_programs.py`, 고정된 nexte
 socket 테스트가 실행하는 `development_process`와 `socket_process` 예제를 빌드하고 `SSR_DEVELOPMENT_PROCESS`와
 `SSR_SOCKET_PROCESS`로 알린다. 테스트는 이 변수에서만 프로그램을 실행하므로 test target 하나의 실행이 이전
 소스로 빌드된 프로그램을 실행하지 않는다. 빌드 검증 workspace `tools/build-probe`는 자기 nextest 설정을 가진다.
-`make check`는 `tools/full_run.py`로 전체 묶음을 실행한다: setup 단계 `CHECK_SETUP`(archive 검사와
-fixture 설치) 다음에 `CHECK_TARGETS`의 각 target을 자기 make target으로 실행한다. 어떤 단계보다 먼저, `docs/checklist.md`의
-항목(하위 항목 포함)이 `[~]`인 동안(각 항목을 ID와 제목으로 적는다), 추적하는 file에 commit하지 않은 변경이 있는
-동안, 추적되지도 무시되지도 않는 file이 있는 동안(각 file을 적는다. 단계는 tree에 없는 그런 file을 읽을 수 있다), pre-push hook이 설치되지 않은 동안(아래 참고), 그리고 `var/full-run.json`이 같은 tree(`git rev-parse HEAD^{tree}`)의 전체 실행을 기록하고 있을 때(그 실행을
-적는다) 이유와 0이 아닌 종료 상태로 실행을 거부한다. 기록은 tree, commit, 결과, 통과하지 못한 target과 각 단계의
-시각을 담는다. 첫 단계 전과 각 단계의 시작과 끝마다 쓰므로 강제 종료된 실행은 `incomplete`로 남는다. 실패한
-target이 있어도 실행은 멈추지 않는다. 모든 setup 단계는 앞선 단계가 실패해도 실행된다. `CHECK_NEEDS`는
-각 target이 읽는 setup 단계를 적고, setup 단계가 실패한 target은 그 단계와 함께 `skipped`로 기록되며 다른 모든
-target은 실행된다. `make verify-build`는 각 검사를 실행하고 실패한 검사마다 이름을 적는다. `make rerun-failed`는 setup 단계와 그 기록에서 통과하지 못한 target만 다시
-실행하며, 현재 tree의 기록이 없거나 모든 target이 통과했으면 거부된다. 새 checkout에는 기록이
-없다. 두 진입점 모두 테스트가 읽는 build-probe fixture를 설치하므로, `python3 -m tools.holder_lock run check`가
-모든 단계 동안 checkout lock `var/locks/check.lock`을 잡는다. 같은 checkout의 두 번째 실행은 holder의 checkout,
-pid, process 시작 시각과 함께 거부된다. target 없는 make는 `make check`를 실행한다. 테스트는 checkout의 build-probe fixture에 쓰지 않는다. 설치본을 읽는 테스트보다 먼저 nextest setup script
+`make check`는 kit의 guard(package `@polyspec/kit`의 `full-run`)로 전체 묶음을 실행한다. `CHECK_TARGETS`의 각
+target(kit 검사 `kit-check`, `toolchain-check`, `documents-check`, `hooks-check`, 그다음 이 저장소의 target)은
+`make -k <target>`로 끝까지 실행된다. 어떤 target보다 먼저, `docs/plans/execution-checklist.md`의 항목(하위 항목
+포함)이 `[~]`인 동안, 추적하는 file에 commit하지 않은 변경이 있는 동안, 추적되지도 무시되지도 않는 file이 있는 동안,
+pre-push hook이 설치되지 않은 동안(아래 참고), checkout의 다른 실행이 lock `var/full-run.lock`을 잡고 있는 동안, 그리고
+`var/full-run.json`이 같은 tree(`git rev-parse HEAD^{tree}`)의 전체 실행을 기록하고 있을 때 이유와 0이 아닌 종료
+상태로 실행을 거부한다. 기록은 tree, 결과, 각 target의 상태와 시각을 담고, 각 target 전후에 쓰므로 멈춘 실행은
+`incomplete`로 남는다. 실패한 target이 있어도 실행은 멈추지 않는다. V8 입력이나 build-probe fixture를 읽는 target은
+그 setup 단계 `verify-archive`나 `check-fixtures`를 선행 조건으로 적으므로, 실패한 setup 단계는 그것을 읽는 target만
+실패시킨다. `make verify-build`는 각 검사를 실행하고 실패한 검사마다 이름을 적는다. `make rerun-failed`는 그 기록에서
+통과하지 못한 target만 다시 실행하며, 현재 tree의 기록이 없거나 모든 target이 통과했으면 거부된다. 새 checkout에는
+기록이 없다. target 없는 make는 `make check`를 실행한다. 테스트는 checkout의 build-probe fixture에 쓰지 않는다. 설치본을 읽는 테스트보다 먼저 nextest setup script
 `install-packages`(`tools/install_packages.py`)가 `tools/build-probe/tests/fixtures`의 package를 잠금 파일마다 한 번
 불변의 `var/packages/<package.json과 package-lock.json의 SHA-256>`에 설치해 이름 바꾸기 한 번으로 게시하고, 그것을
 `SSR_PACKAGES`로, 소스를 `SSR_FIXTURES`로 알린다. 각 테스트는 소스를 자기만의 새 임시 루트로 복사하고
@@ -43,35 +45,35 @@ pid, process 시작 시각과 함께 거부된다. target 없는 make는 `make c
 `playwright-core`가 고정한 chromium build를 같은 directory에 설치해 `SSR_BROWSER`로 알린 것으로 실행한다. script의 filter는 설치본을
 읽는 test binary를 정확히 적고, `tools/check.py`가 이를 검사한다.
 
-push는 `docs/checklist.md`의 항목(하위 항목 포함)이 `[~]`가 아닐 때만 한다. 추적되는 pre-push hook
-`.githooks/pre-push`는 `python3 -m tools.push_gate hook`을 실행한다. 이것은 push되는 각 ref의 tip commit과 작업 트리의
-체크리스트를 `tools/full_run.py`의 parser로 읽고, 진행 중인 각 항목을 원격 ref, commit, ID, 제목과 함께 적고
-종료 상태 1로 push를 거부한다. 항목은 한 commit에서 진행 중으로 기록되고 다음 commit에서 완료되므로
-push의 앞선 commit은 읽지 않는다. push되는 tip commit에 `docs/checklist.md`가 없거나 Git 오류가 나도 push를 거부한다.
-원격 branch를 지우는 push는 commit을 보내지 않으므로 작업 트리만 읽는다. 모든 make 실행은 `core.hooksPath`가
-`.githooks`와 다르면 그것으로 설정하므로, make를 실행한 모든 checkout에서 hook이 실행된다. `make hooks`는 그것을
-설정하고 `make hooks-check`를 실행하며, 이것은 `core.hooksPath`가 `.githooks`이고 hook이 실행 가능하지 않으면
-실패한다. `tools/check.py`와 `make check`의 guard도 같은 검사를 실행한다. workflow
-`.github/workflows/push-gate.yml`은 모든 push의 push된 tip commit과 모든 pull request의 head commit(merge commit이 아님)에서 job
-`push-gate`로 `python3 -m tools.push_gate commit HEAD`를 실행한다. 진행 중인 각 항목을 error annotation과 job
-summary에 적고 실패하며, commit이 hook을 mode 100755로 추적하지 않을 때도 실패한다.
-job은 `actions/setup-python`의 Python 3.9로 `ubuntu-24.04-arm`에서 실행되고, action은 commit에 고정되며, push 검사 전에
-선언된 Python을 검사한다. 이것은 `make push-records`(`python3 tools/check.py records`)도 실행한다. 이는 추적되는 파일만
-읽는 `tools/check.py`의 검사로, 문서 쌍과 link, checklist 표시와 문장과 ID, 기록 단어, React 문서, home directory로의
-경로, 시간 assertion이다. ruleset이 `main`에 이 job을 요구하므로 기록 검사가 실패하는 commit은 `main`에 오르지 않는다.
-CI는 `make ci-records`(`python3 tools/check.py ci`)를 실행한다. 이는 runner가 선언된 version으로 설치하는 도구인
-Python과 rustc의 version으로 `tools/check.py`의 모든 검사를 실행한다.
+push는 `docs/plans/execution-checklist.md`의 항목(하위 항목 포함)이 `[~]`가 아닐 때만 한다. kit의 `make hooks`가 쓰는
+추적되는 pre-push hook `.githooks/pre-push`는 `make push-gate-hook`을 실행한다. kit의 push 검사는 push되는 각 ref의 tip
+commit과 작업 트리의 체크리스트를 `config/checklist.json`으로 읽고 진행 중인 각 항목을 적고 push를 거부하며, push되는
+commit의 message를 `config/commits.json`과 비교한다. 모든 make 실행은 `core.hooksPath`가 `.githooks`와 다르면 그것으로
+설정하므로, make를 실행한 모든 checkout에서 hook이 실행된다. `make hooks-check`는 `core.hooksPath`가 `.githooks`이고
+hook이 kit의 것이며 실행 가능하지 않으면 실패하고, `make check`의 guard도 같은 검사를 실행한다. workflow
+`.github/workflows/push-gate.yml`은 모든 push의 push된 tip commit과 모든 pull request의 head commit(merge commit이 아님)에서
+job `push-gate`로 `make ci-push`를 실행한다. 이는 kit의 `make ci-targets`로 target `CI_PUSH_TARGETS`를 실행한다:
+`toolchain-check`, `ci-python`(선언된 Python), `push-gate-commit`(`HEAD`에 대한 kit의 push 검사로, 진행 중인 각 항목을
+error annotation과 job summary에 적고 실패하며 commit이 hook을 mode 100755로 추적하지 않을 때도 실패한다),
+`push-records`(`python3 tools/check.py records`, 추적되는 파일만 읽는 `tools/check.py`의 검사: 기록 단어, React 문서, home
+directory로의 경로, 시간 assertion). job은 `actions/setup-python`의 Python 3.9와 `.node-version`의 Node.js로
+`ubuntu-24.04-arm`에서 실행되고, action은 commit에 고정된다. ruleset이 `main`에 이 job을 요구하므로 기록 검사가 실패하는
+commit은 `main`에 오르지 않는다. CI는 `tools/check.py`의 모든 검사인 `make ci-records`(`python3 tools/check.py`)를
+실행한다. kit의 `make documents-check`가 문서 쌍, revision, link와 체크리스트를 검사한다.
 
-`.github/workflows/ci.yml`은 `ubuntu-24.04-arm`과 `ubuntu-24.04` 각각에서 job 두 개를 실행한다. job `lint`는
+`.github/workflows/ci.yml`은 `ubuntu-24.04-arm`과 `ubuntu-24.04` 각각에서 job 두 개를 실행한다. 각 job은 먼저
+`packageManager`의 npm과 `@polyspec/kit`을 포함한 `package-lock.json`의 package를 설치한다(`make install-tools TOOLS=npm`,
+`make install-packages`). job `lint`는
 `make ci-setup`과 `make ci-lint`, 즉 target `CI_LINT_TARGETS`(`ci-records`, `check-fmt`, `check-clippy`, `check-deny`)를
 실행하고, job `test`는 `make ci-setup`과 `make ci-test`, 즉 target `CI_TEST_TARGETS`(`check-examples`, `ci-nextest`)를
-실행한다. 따라서 모든 CI target은 각 architecture에서 정확히 한 job에서 실행되고 두 job은 동시에 실행된다. 각 job은
-log와 요약을 `ci-<job>-<runner>`로 올린다.
-`make ci-setup`은 고정된 toolchain, host target의 공식 V8 입력(`tools/fetch_v8.py`), host target용 cargo-nextest 0.9.146과
+실행한다. 따라서 모든 CI target은 각 architecture에서 정확히 한 job에서 실행되고 두 job은 동시에 실행된다. 두 job은
+kit의 `make ci-targets`로 실패와 관계없이 target을 실행하고, 각 job은 target별 log와 요약인 `var/report/ci-targets`를
+`ci-<job>-<runner>`로 올린다.
+`make ci-setup`은 `rust-toolchain.toml`의 Rust toolchain, host target의 공식 V8 입력(`tools/fetch_v8.py`), host target용 cargo-nextest 0.9.146과
 cargo-deny 0.20.2의 release binary를 설치한다. `tools/tool-versions.json`은 `releases`에 각 release archive의 URL, 그
 SHA-256, 그 안의 실행 파일 경로를 선언하고, `tools/fetch_tools.py`는 각 archive를 내려받아 SHA-256이 다르면 아무것도
-설치하지 않고 실패하며, 실행 파일을 한 번의 rename으로 `$CARGO_HOME/bin`에 설치한다. `make ci-lint`와 `make ci-test`는 먼저 Python, rustc,
-cargo-nextest, cargo-deny의 version 보고를 `tools/tool-versions.json`과 비교한다. Cargo는
+설치하지 않고 실패하며, 실행 파일을 한 번의 rename으로 `$CARGO_HOME/bin`에 설치한다. `make ci-lint`와 `make ci-test`는 먼저 `make toolchain-check`를 실행하고
+Python, cargo-nextest, cargo-deny의 version 보고를 `tools/tool-versions.json`과 비교한다. Cargo는
 check target을 `BUILD_JOBS`개의 job으로 빌드한다. 기본값은 1이므로 로컬 빌드는 host의 다른 processor를 다른 작업에
 남기고, `make ci-lint`와 `make ci-test`는 `BUILD_JOBS`를 runner의 processor 수(`nproc`)로 설정한다.
 이 job들이 AArch64와 x86_64에서 저장소의 Linux 검증이다. `check-clippy`는 workspace의 모든 target을 lint하고,
@@ -96,8 +98,8 @@ method `REBASE`와 grouping strategy `ALLGREEN`으로 merge하고, 한 번에 �
 app(integration 15368)의 check `push-gate`와 `ci-passed`, 즉 `.github/workflows/push-gate.yml`의 job과
 `.github/workflows/ci.yml`의 마지막 job이다. job `ci-passed`는 `ci.yml`의 다른 모든 job을 need로 가지고, 그중 하나가
 실패하거나 skip되거나 취소되어도 그 모든 job 뒤에 실행되며(`if: ${{ always() }}`), `make ci-passed
-RESULTS='${{ toJSON(needs) }}'`를 실행한다. `python3 -m tools.ci_run --passed`는 need로 가진 모든 job의 결과를 출력하고,
-하나라도 `success`가 아니면 실패한다. `ci.yml`에 추가한 job은 `needs`에 넣으므로 필수 check가 그 job을 포함한다.
+RESULTS='${{ toJSON(needs) }}'`를 실행한다. kit의 이 target은 need로 가진 모든 job의 결과를 출력하고, 하나라도
+`success`가 아니면 실패한다. `ci.yml`에 추가한 job은 `needs`에 넣으므로 필수 check가 그 job을 포함한다.
 `tools/test_ci.py`는 `ci-passed`가 마지막 job이 아니거나, `if: ${{ always() }}`가 없거나, 다른 모든 job을 need로 가지지
 않거나, `push-gate`와 다른 runner에서 실행되거나, 다른 step을 실행하면 실패한다. `git push origin <commit>:main`의 직접 push는 `GH013: Repository
 rule violations found`로 거부된다. `gh pr merge --auto`는 pull request의 필수 check가 통과하면 pull request를 merge
@@ -114,22 +116,16 @@ check가 실패하면 pull request는 queue에서 빠지고 `main`은 움직이�
 
 릴리스는 `main`의 commit에 붙인 tag `vX.Y.Z`이고([릴리스 절차](../AGENTS.ko.md)), `crates/`의 crate를 버전 X.Y.Z로
 릴리스한다. crate는 archive로 릴리스하지 않고 git tag로 사용한다. `cargo package`는 `polyspec-ordered-json` 같은 git
-의존성을 해석되지 않는 crates.io 요구로 바꾸기 때문이다. tag의 push는 `.github/workflows/release.yml`(`on: push: tags:
-['v*', '**/v*']`, 권한 `contents: write`, 환경 변수 `TAG`의 tag. tag filter에서 `*`는 `/`와 맞지 않으므로 `**/v*`가
-어느 깊이의 tag `<directory>/vX.Y.Z`든 포함한다)을 실행한다. 그 step은 Python을 `tools/tool-versions.json`과 비교하는
-`make release-setup`을
-실행한 뒤, 다음 순서로 `tools/release.py`를 실행하고 첫 실패에서 멈춘다. `make release-verify`는 tag된 commit이
-`origin/main`의 조상이고 그 commit의 최신 check run `push-gate`와 `ci-passed`(`gh api
-repos/<repository>/commits/<sha>/check-runs`)가 결론 `success`로 완료되었는지 확인하며 테스트를 다시 실행하지 않는다.
-`make release-versions`는 `Cargo.toml`의 `[workspace.package]`, 자기 버전을 선언한 모든 crate manifest, workspace
-crate에 대한 모든 요구에 X.Y.Z가 있고 `docs/changelog.md`에 section `## X.Y.Z`가 있는지 확인하며, 파일마다 두 값을
-적는다. `make release-assets`는 릴리스 asset인 npm tarball과 Composer zip만 비어 있는 `var/release/assets`에 만들며,
-저장소에는 그런 패키지가 없다. `make release-publish`는 archive 없이 `gh release create <tag> --verify-tag --title <tag>
---notes-file <notes>`를 실행한다. notes는 section X.Y.Z가 GitHub release body의 한도인 125000자 이하이면 그 section이고,
-아니면 한 줄 `The changes of X.Y.Z are listed in
-[CHANGELOG.md](https://github.com/polyspec/ssr/blob/<tag>/docs/changelog.md#<점을 뺀 version>).`이다. 저장소에는 Go 모듈이 없으므로 tag `<directory>/vX.Y.Z`는 실패한다.
-`tools/test_release.py`는 `gh`의 fake로
-각 step을 실행하고, `tools/test_ci.py`는 trigger, 권한, step의 순서를 요구한다.
+의존성을 해석되지 않는 crates.io 요구로 바꾸기 때문이다. tag의 push는 kit의 release workflow인 `.github/workflows/release.yml`을 실행한다. `make kit-sync`가 이를 복사하고 `make
+kit-check`가 비교한다. 그 step은 kit의 package를 설치한 뒤 다음 순서로 실행하고 첫 실패에서 멈춘다: `make
+release-tools`, `make release-verify`(tag된 commit이 `origin/main`의 조상이고 그 commit의 최신 check run `push-gate`와
+`ci-passed`가 `success`로 끝났다), `make release-versions`(`config/release.json`의 모든 manifest에 X.Y.Z가 있고
+`docs/changelog.md`와 `docs/changelog.ko.md`에 section `## X.Y.Z`가 있다), `make release-assets`(`config/release.json`이
+package를 선언하지 않으므로 archive가 없다), `make release-publish`(section을 notes로 한 GitHub Release 초안), `make
+release-proof`(각 crate를 tag에서 새 crate의 git 의존성으로 해석하고 `cargo check`가 통과한다, `config/release.json`의
+`proof.gitTag`), `make release-undraft`. `config/release.json`은 workspace manifest를 version으로, 각 crate manifest를
+git tag로 릴리스되는 것으로, 다른 모든 추적 manifest를 이유와 함께 릴리스되지 않는 것으로 선언한다. `make
+release-coverage`는 분류되지 않은 manifest에서 실패한다.
 
 `make bench`는 Cargo 벤치마크를 실행한다. 유지할 측정과 한도는 S-11에 명시한다.
 

@@ -1,3 +1,4 @@
+<!-- doc-id: vue -->
 [Korean](vue.ko.md)
 
 # Vue adapter

@@ -1,3 +1,5 @@
+<!-- doc-id: build -->
+<!-- source-sha256: 2979bcce2ebb8989fe7fcb7d359a57d83f7bfae042525a3d970a36ef1e6c60ae -->
 [English](build.md)
 
 # 빌드 검증

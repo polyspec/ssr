@@ -1,3 +1,5 @@
+<!-- doc-id: benchmarks -->
+<!-- source-sha256: 5e36ce7ae93a063549a5e7624d3f1655d4216e6c5de6b4607f308dd1bcf751a7 -->
 # 렌더 벤치마크
 
 `make bench`는 16개 워커의 스냅샷 런타임에서 고정 SSR 페이지 하나를 렌더한다. 각 호출은 HTML과

@@ -1,3 +1,4 @@
+<!-- doc-id: build -->
 [Korean](build.ko.md)
 
 # Build verification

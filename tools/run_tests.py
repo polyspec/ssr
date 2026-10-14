@@ -1,4 +1,9 @@
-"""Run every tool test case in its own process with its own time limit.
+"""Run the tool test cases, each in its own process with its own time limit.
+
+    python3 tools/run_tests.py [tools/test_<name>.py...]
+
+Without arguments every test module of ``tools`` runs; with arguments only the cases of the named
+test files, which make owner-check passes for the changed test files (config/owner-checks.json).
 
 Each case runs in a new process group. A case that exceeds its limit is reported with the output
 it wrote, and its whole process group is killed and waited for, so no process that the case
@@ -18,11 +23,22 @@ import unittest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 
-def test_ids():
+def test_ids(files=None):
+    """The ids of the cases of the test files ``files``, paths ``tools/test_<name>.py``, or of every
+    test module of ``tools`` when ``files`` is None; a name that is no tool test file is an error."""
+    directory = pathlib.Path(__file__).parent
+    modules = sorted(module.name for module in pkgutil.iter_modules([str(directory)]) if module.name.startswith("test_"))
+    if files is not None:
+        selected = []
+        for name in files:
+            path = pathlib.PurePosixPath(name)
+            if path.parent != pathlib.PurePosixPath("tools") or path.suffix != ".py" or path.stem not in modules:
+                raise ValueError(f"{name}: not a tool test file; name a file tools/test_<name>.py")
+            selected.append(path.stem)
+        modules = selected
     suite = unittest.TestSuite()
-    for module in pkgutil.iter_modules([str(pathlib.Path(__file__).parent)]):
-        if module.name.startswith("test_"):
-            suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(importlib.import_module(f"tools.{module.name}")))
+    for module in modules:
+        suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(importlib.import_module(f"tools.{module}")))
 
     def walk(tests):
         for test in tests:
@@ -58,8 +74,12 @@ def run_case(command, timeout, cwd=None, env=None):
     return "PASS", process.returncode, stdout, stderr
 
 
-def main():
-    ids = test_ids()
+def main(argv=()):
+    try:
+        ids = test_ids(list(argv) if argv else None)
+    except ValueError as error:
+        print(f"FAIL {error}")
+        return 2
     if not ids:
         print("FAIL no tool tests")
         return 1
@@ -81,4 +101,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

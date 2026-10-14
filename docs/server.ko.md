@@ -1,3 +1,5 @@
+<!-- doc-id: server -->
+<!-- source-sha256: d23b2c205470975a3987888a6fb79117e4136948e84046534e56995e8914a2ab -->
 [English](server.md)
 
 # HTTP 서버

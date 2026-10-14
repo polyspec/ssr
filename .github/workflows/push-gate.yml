@@ -1,12 +1,12 @@
-# The push check of AGENTS.md on GitHub: a push happens only when no item of docs/checklist.md is
-# in progress. The pre-push hook .githooks/pre-push refuses such a push in a checkout where make has
-# set core.hooksPath; this job checks the pushed tip commit of every push, the head commit of every
-# pull request, not a merge commit, and every merge group of the merge queue, the commit that main
-# receives, with the same tool, also when a push did not run the hook. The branches of the merge
-# queue run it as merge groups, so their pushes are ignored.
-# Earlier commits of a push are not read: an item is recorded in progress in one commit and
-# completed in a later one. It fails naming each item in progress as an error annotation and in the
-# job summary, and when the commit does not track the hook with mode 100755.
+# The push check of AGENTS.md on GitHub: a push happens only when no item of docs/plans/execution-checklist.md is in
+# progress. The pre-push hook .githooks/pre-push, which make hooks of kit writes, refuses such a push in a checkout where
+# make has set core.hooksPath; this job checks the pushed tip commit of every push, the head commit of every pull request,
+# not a merge commit, and every merge group of the merge queue, the commit that main receives, with make
+# push-gate-commit of kit, also when a push did not run the hook. The branches of the merge queue run it as merge groups,
+# so their pushes are ignored.
+# Earlier commits of a push are not read: an item is recorded in progress in one commit and completed in a later one. It
+# fails naming each item in progress as an error annotation and in the job summary, and when the commit does not track
+# the hook with mode 100755.
 name: push-gate
 
 on:
@@ -30,12 +30,22 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.9"
-      - name: declared Python and no checklist item in progress
+      # The Node.js of .node-version runs the tools of kit; the npm of packageManager installs the packages, so the cache
+      # of setup-node is off.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+      - name: install npm
+        run: make install-tools TOOLS=npm
+      - name: install packages
+        run: make install-packages
+      - name: declared tools and no checklist item in progress
         run: make ci-push
       - name: upload the logs and the summary
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: push-gate
-          path: var/ci/
+          path: var/report/ci-targets/
           if-no-files-found: error

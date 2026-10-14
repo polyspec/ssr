@@ -1,3 +1,5 @@
+<!-- doc-id: changelog -->
+<!-- source-sha256: 9a43a9260078397dcd018bdf353587855763efde018435c2679d649f8f959e3c -->
 [English](changelog.md)
 
 # 변경 기록
@@ -8,6 +10,9 @@
   `.node-version`과 build fixture manifest의 `engines.node`에 Node.js 26.11.1을 고정한다.
 - license fixture를 lock `tools/license-fixtures/xxhash-0.8.17.lock`과 `xxhash-0.8.18.lock`으로
   추적한다. license 사례는 각 package를 임시 directory에 쓴다.
+- package `@polyspec/kit`의 공유 도구를 실행한다: Git hook과 push 검사, `make check`의 guard,
+  문서·owner·commit 검사, CI 보고, `ci-passed`, 릴리스이며 `config/*.json`에 선언한다. 체크리스트는
+  `docs/plans/execution-checklist.md`다. 같은 일을 하던 이 저장소의 도구는 제거한다.
 
 ## 0.0.2
 

@@ -1,3 +1,4 @@
+<!-- doc-id: workspace -->
 [Korean](workspace.ko.md)
 
 # Workspace
@@ -13,9 +14,9 @@ them; `make review-advisories` reviews them for the workspace, the engine verifi
 build verification. `tools/tool-versions.json` names every tool that the checks, builds and tests
 run with the exact first line of its version report, or the SHA-256 of a tool without one;
 Python is pinned to its minor version 3.9, and the check prints the running patch release;
-`tools/tool_versions.py` compares the installed tools before any step of `make check` and
-`make rerun-failed`, in `tools/check.py`, as the first command of the other make targets and,
-for Python, in the pre-push hook, and fails naming the expected and the actual report. Every make
+`tools/tool_versions.py` compares the installed tools as the first command of the make targets that run them and fails
+naming the expected and the actual report. Node.js, npm and Rust are declared in `.node-version`, `packageManager` of
+`package.json` and `rust-toolchain.toml`, at the pins of kit, and `make toolchain-check` compares them. Every make
 invocation sets `RUSTUP_AUTO_INSTALL=0`, so a missing toolchain fails instead of being installed.
 Rust tests run with cargo-nextest 0.9.146. The nextest configuration terminates each test after
 30 seconds and prints its start and result with elapsed time. A missing test tool fails the command.
@@ -29,26 +30,19 @@ development and socket tests run and names them in `SSR_DEVELOPMENT_PROCESS` and
 `SSR_SOCKET_PROCESS`; the tests run the programs only from these variables, so a run of one test
 target never runs a program built from older sources. The build verification workspace
 `tools/build-probe` has its own nextest configuration.
-`make check` runs the full suite through `tools/full_run.py`: the setup steps `CHECK_SETUP`
-(the archive check and the fixture installs), then each target of `CHECK_TARGETS` as its own make
-target. Before any step it refuses the run, with the reasons and a nonzero exit status, while an
-item of `docs/checklist.md`, sub-items included, is `[~]` (each is named with its ID and title),
-while tracked files have uncommitted changes, while files that are neither tracked nor ignored exist
-(each is named; a step would read such a file although the tree does not hold it), while the
-pre-push hook is not installed (see below),
-and when `var/full-run.json` records a full run of
-the same tree (`git rev-parse HEAD^{tree}`), which it names. The record holds the tree, the commit,
-the result, the targets that did not pass and the times of each step; it is written before the
-first step and after each step starts and ends, so a killed run stays recorded as `incomplete`.
-A failed target does not stop the run. Every setup step runs, also after a failed one; `CHECK_NEEDS`
-names the setup steps that each target reads, a target whose setup step failed is recorded as
-`skipped` with that step, and every other target runs. `make verify-build` runs each of its checks
-and names each failed one. `make rerun-failed` reruns the setup steps and only the
-targets of that record that did not pass, and is refused without a record of the current tree or
-when every target passed. A fresh checkout has no record. Both entries install
-the build-probe fixture that the tests read, so `python3 -m tools.holder_lock run check` holds the
-checkout lock `var/locks/check.lock` for all of their steps: a second run of the same checkout is
-refused with the holder's checkout, pid and process start time. A make without a target runs
+`make check` runs the full suite through the guard of kit (`full-run` of the package `@polyspec/kit`): each target
+of `CHECK_TARGETS` (the kit checks `kit-check`, `toolchain-check`, `documents-check` and `hooks-check`, then the targets
+of this repository) runs as `make -k <target>` to its end. Before any target it refuses the run, with the reasons and a
+nonzero exit status, while an item of `docs/plans/execution-checklist.md`, sub-items included, is `[~]`, while tracked
+files have uncommitted changes, while files that are neither tracked nor ignored exist, while the pre-push hook is not
+installed (see below), while another run of the checkout holds the lock `var/full-run.lock`, and when
+`var/full-run.json` records a full run of the same tree (`git rev-parse HEAD^{tree}`). The record holds the tree, the
+result and each target with its status and times, and is written before and after each target, so a stopped run stays
+recorded as `incomplete`. A failed target does not stop the run. A target that reads the V8 inputs or the build-probe
+fixture names its setup step, `verify-archive` or `check-fixtures`, as a prerequisite, so a failed setup step fails
+only the targets that read it. `make verify-build` runs each of its checks and names each failed one. `make
+rerun-failed` reruns only the targets of that record that did not pass, and is refused without a record of the current
+tree or when every target passed. A fresh checkout has no record. A make without a target runs
 `make check`. The tests never write into the checkout's build-probe fixture: before the tests
 that read them, the nextest setup script `install-packages` (`tools/install_packages.py`) installs
 the packages of `tools/build-probe/tests/fixtures` once per lock into the immutable
@@ -61,40 +55,38 @@ chromium build that this `playwright-core` pins, installed into the same directo
 `SSR_BROWSER`, never a browser of the host. The filter of the script
 names exactly the test binaries that read the installation, which `tools/check.py` checks.
 
-A push happens only when no item of `docs/checklist.md`, sub-items included, is `[~]`. The tracked
-pre-push hook `.githooks/pre-push` runs `python3 -m tools.push_gate hook`: it reads the checklist of
-the tip commit of each pushed ref and of the working tree with the parser of `tools/full_run.py` and refuses the
-push with exit status 1, naming each item in progress with the remote ref, the commit, the ID and
-the title. Earlier commits of a push are not read, because an item is recorded in progress in
-one commit and completed in a later one. A pushed tip commit without `docs/checklist.md` and a Git error also refuse the push. A push
-that deletes a remote branch pushes no commit, so only the working tree is read. Every make
-invocation sets `core.hooksPath` to `.githooks` when it differs, so the hook runs in every checkout
-where make has run; `make hooks` sets it and runs `make hooks-check`, which fails unless
-`core.hooksPath` is `.githooks` and the hook is executable. `tools/check.py` and the guard of
-`make check` run the same check. The workflow `.github/workflows/push-gate.yml` runs
-`python3 -m tools.push_gate commit HEAD` in the job `push-gate` on the pushed tip commit of every push
-and on the head commit of every pull request, not on a merge commit: it fails with each item in progress as an error
-annotation and in the job summary, and when the commit does not track the hook with mode 100755.
-The job runs on `ubuntu-24.04-arm` with Python 3.9 from `actions/setup-python`, the actions pinned
-to commits, and checks the declared Python before the push check. It also runs `make push-records`
-(`python3 tools/check.py records`), the checks of `tools/check.py` that read only tracked files: the
-document pairs and links, the checklist markers, texts and IDs, the record words, the React document,
-the paths into a home directory and the timed assertions. The ruleset requires this job on `main`, so a
-commit whose records fail never reaches `main`. CI runs `make ci-records` (`python3 tools/check.py ci`):
-every check of `tools/check.py`, with the versions of the tools that a runner installs at their declared
-versions, Python and rustc.
+A push happens only when no item of `docs/plans/execution-checklist.md`, sub-items included, is `[~]`. The tracked
+pre-push hook `.githooks/pre-push`, which `make hooks` of kit writes, runs `make push-gate-hook`: the push check of kit
+reads the checklist of the tip commit of each pushed ref and of the working tree with `config/checklist.json` and
+refuses the push, naming each item in progress, and it checks the messages of the pushed commits against
+`config/commits.json`. Every make invocation sets `core.hooksPath` to `.githooks` when it differs, so the hook runs in
+every checkout where make has run; `make hooks-check` fails unless `core.hooksPath` is `.githooks` and the hook is the
+one of kit and executable, and the guard of `make check` runs the same check. The workflow
+`.github/workflows/push-gate.yml` runs `make ci-push` in the job `push-gate` on the pushed tip commit of every push and
+on the head commit of every pull request, not on a merge commit: the targets `CI_PUSH_TARGETS` through `make
+ci-targets` of kit, which are `toolchain-check`, `ci-python` (the declared Python), `push-gate-commit` (the push check
+of kit on `HEAD`, which fails with each item in progress as an error annotation and in the job summary, and when the
+commit does not track the hook with mode 100755) and `push-records` (`python3 tools/check.py records`), the checks of
+`tools/check.py` that read only tracked files: the record words, the React document, the paths into a home directory
+and the timed assertions. The job runs on `ubuntu-24.04-arm` with Python 3.9 from `actions/setup-python` and the
+Node.js of `.node-version`, the actions pinned to commits. The ruleset requires this job on `main`, so a commit whose
+records fail never reaches `main`. CI runs `make ci-records` (`python3 tools/check.py`), every check of
+`tools/check.py`. `make documents-check` of kit checks the document pairs, revisions and links and the checklists.
 
-`.github/workflows/ci.yml` runs two jobs on each of `ubuntu-24.04-arm` and `ubuntu-24.04`: the job `lint` runs
+`.github/workflows/ci.yml` runs two jobs on each of `ubuntu-24.04-arm` and `ubuntu-24.04`. Each job first installs
+the npm of `packageManager` and the packages of `package-lock.json` with `@polyspec/kit` (`make install-tools
+TOOLS=npm`, `make install-packages`). The job `lint` runs
 `make ci-setup` and `make ci-lint`, the targets `CI_LINT_TARGETS` (`ci-records`, `check-fmt`, `check-clippy` and
 `check-deny`), and the job `test` runs `make ci-setup` and `make ci-test`, the targets `CI_TEST_TARGETS`
 (`check-examples` and `ci-nextest`), so every CI target runs in exactly one job of each architecture and the two jobs
-run at the same time; each job uploads its logs and summary as `ci-<job>-<runner>`. `make ci-setup`
-installs the pinned toolchain, the official V8 inputs of the host target (`tools/fetch_v8.py`) and the release binaries
+run at the same time; both run their targets through `make ci-targets` of kit, past failures, and each job uploads
+`var/report/ci-targets`, the log of each target and the summary, as `ci-<job>-<runner>`. `make ci-setup`
+installs the Rust toolchain of `rust-toolchain.toml`, the official V8 inputs of the host target (`tools/fetch_v8.py`) and the release binaries
 of cargo-nextest 0.9.146 and cargo-deny 0.20.2 for the host target: `tools/tool-versions.json` declares under
 `releases` the URL of each release archive, its SHA-256 and the path of the executable in it, and
 `tools/fetch_tools.py` downloads each archive, fails for another SHA-256 without installing anything and installs the
-executable into `$CARGO_HOME/bin` by one rename. `make ci-lint` and `make ci-test` first check the version report of Python, rustc,
-cargo-nextest and cargo-deny against `tools/tool-versions.json`. Cargo builds
+executable into `$CARGO_HOME/bin` by one rename. `make ci-lint` and `make ci-test` first run `make toolchain-check` and check the version report of
+Python, cargo-nextest and cargo-deny against `tools/tool-versions.json`. Cargo builds
 the check targets with `BUILD_JOBS` jobs: 1 by default, so a local build leaves the other processors of the host to
 other work, and `make ci-lint` and `make ci-test` set `BUILD_JOBS` to the processor count of the runner (`nproc`).
 These jobs are the Linux verification of the repository on AArch64 and x86_64: `check-clippy` lints every target of the
@@ -119,8 +111,8 @@ of GitHub; `required_linear_history`, `non_fast_forward` and `deletion`, no merg
 of `main`; `required_status_checks`, exactly the checks `push-gate` and `ci-passed` of the GitHub Actions app
 (integration 15368), the job of `.github/workflows/push-gate.yml` and the last job of `.github/workflows/ci.yml`. The
 job `ci-passed` needs every other job of `ci.yml`, runs after each of them also when one failed, was skipped or was
-cancelled (`if: ${{ always() }}`), and runs `make ci-passed RESULTS='${{ toJSON(needs) }}'`: `python3 -m tools.ci_run
---passed` prints the result of every needed job and fails unless each one is `success`. A job added to `ci.yml` is
+cancelled (`if: ${{ always() }}`), and runs `make ci-passed RESULTS='${{ toJSON(needs) }}'` of kit, which prints the result of every needed job and
+fails unless each one is `success`. A job added to `ci.yml` is
 listed in `needs`, so the required check covers it; `tools/test_ci.py` fails when `ci-passed` is not the last job,
 lacks `if: ${{ always() }}`, does not need every other job, runs on another runner than `push-gate` or runs another
 step. A direct `git push origin <commit>:main` is refused with `GH013: Repository
@@ -140,22 +132,17 @@ administration access to the repository. `tools/test_github_ruleset.py` runs the
 A release is a tag `vX.Y.Z` of a commit of `main` ([release procedure](../AGENTS.md)); it releases the crates of
 `crates/` at version X.Y.Z. A crate is not released as an archive; it is consumed by git tag, because `cargo package`
 rewrites git dependencies, such as `polyspec-ordered-json`, into crates.io requirements that do not resolve. The push of
-the tag runs `.github/workflows/release.yml` (`on: push: tags: ['v*', '**/v*']`, permission `contents: write`, the tag
-in the environment variable `TAG`; in a tag filter `*` does not match `/`, so `**/v*` covers a tag `<directory>/vX.Y.Z`
-at any depth). Its steps run `make release-setup`, which checks Python against `tools/tool-versions.json`, and then
-`tools/release.py` in this order,
-stopping at the first failure: `make release-verify` requires the tagged commit to be an ancestor of `origin/main` and
-the latest check runs `push-gate` and `ci-passed` of that commit (`gh api repos/<repository>/commits/<sha>/check-runs`)
-to be completed with the conclusion `success`, without running the tests again; `make release-versions` requires X.Y.Z
-in `[workspace.package]` of `Cargo.toml`, in every crate manifest that declares its own version and in every
-requirement on a crate of the workspace, and the section `## X.Y.Z` in `docs/changelog.md`, naming each file with both
-values; `make release-assets` builds the release assets, npm tarballs and Composer zips only, into an empty
-`var/release/assets`, and the repository has none; `make release-publish` runs `gh release create <tag> --verify-tag
---title <tag> --notes-file <the notes>` without archives; the notes are the section X.Y.Z when it has at most 125000
-characters, the limit of a GitHub release body, and otherwise the one line `The changes of X.Y.Z are listed in
-[CHANGELOG.md](https://github.com/polyspec/ssr/blob/<tag>/docs/changelog.md#<version without dots>).` The repository has no Go module, so a tag
-`<directory>/vX.Y.Z` fails. `tools/test_release.py` runs each step against a fake of `gh`, and `tools/test_ci.py` requires the trigger, the permission and the order of the
-steps.
+the tag runs `.github/workflows/release.yml`, the release workflow of kit, which `make kit-sync` copies and `make
+kit-check` compares. Its steps install the package of kit and run, in this order and stopping at the first failure,
+`make release-tools`, `make release-verify` (the tagged commit is an ancestor of `origin/main`, and the latest check
+runs `push-gate` and `ci-passed` of that commit concluded `success`), `make release-versions` (X.Y.Z in every manifest
+of `config/release.json` and the section `## X.Y.Z` in `docs/changelog.md` and `docs/changelog.ko.md`), `make
+release-assets` (no archive, since `config/release.json` declares no package), `make release-publish` (the GitHub
+Release as a draft with the section as notes), `make release-proof` (each crate is resolved from the tag as a git
+dependency of a new crate and `cargo check` passes, `proof.gitTag` of `config/release.json`) and `make
+release-undraft`. `config/release.json` declares the workspace manifest by its version, each crate manifest as
+released by git tag, and every other tracked manifest as not released, with the reason; `make release-coverage` fails
+for a manifest that it does not classify.
 
 Run `make bench` to execute Cargo benchmarks. The maintained measurements and limits are specified
 in S-11.

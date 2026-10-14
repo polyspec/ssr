@@ -1,3 +1,4 @@
+<!-- doc-id: requirements -->
 [Korean](requirements.ko.md)
 
 # Requirements

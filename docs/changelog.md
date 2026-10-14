@@ -1,3 +1,4 @@
+<!-- doc-id: changelog -->
 [Korean](changelog.ko.md)
 
 # Changelog
@@ -10,6 +11,11 @@
 - Track the license fixtures as the locks `tools/license-fixtures/xxhash-0.8.17.lock`
   and `xxhash-0.8.18.lock`; the license case writes each package into a temporary
   directory.
+- Run the shared tools of the package `@polyspec/kit`: the Git hooks and the push check,
+  the guard of `make check`, the document, owner and commit checks, the CI report,
+  `ci-passed` and the release, declared in `config/*.json`. The checklist is
+  `docs/plans/execution-checklist.md`. The tools of this repository that did the same work
+  are removed.
 
 ## 0.0.2
 

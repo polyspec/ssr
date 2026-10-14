@@ -1,3 +1,4 @@
+<!-- doc-id: features -->
 # Supported features
 
 [한국어](features.ko.md).
