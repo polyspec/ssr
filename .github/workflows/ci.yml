@@ -1,8 +1,9 @@
 # Build and test ssr on Linux. Each job runs only make targets: install-tools TOOLS=npm and install-packages install the
-# npm of packageManager and the packages of package-lock.json with @polyspec/kit, ci-setup prepares the runner, and on each
-# architecture ci-lint runs the lint targets and ci-test the test targets, every target past failures (make ci-targets of
-# kit), so every CI target runs in exactly one job of each architecture. The per-target logs and the summary with the first
-# failure lines are uploaded, and the summary is the job summary, also after a failure.
+# npm of packageManager and the packages of package-lock.json with @polyspec/kit, install-tools the tools of mise.lock,
+# ci-setup prepares the runner, and on each architecture ci-lint runs the lint targets and ci-test the test targets, every
+# target past failures (make ci-targets of kit), so every CI target runs in exactly one job of each architecture. The
+# per-target logs and the summary with the first failure lines are uploaded, and the summary is the job summary, also after
+# a failure.
 name: ci
 
 # Every pull request, every merge group of the merge queue and every manual run (workflow_dispatch): the ruleset of
@@ -35,10 +36,6 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      # Python runs the tool version check of tools/ until mise installs cargo-nextest and cargo-deny (S-50-8).
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: "3.9"
       # The Node.js of .node-version runs the tools of kit; the npm of packageManager installs the packages, so the cache
       # of setup-node is off.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -49,6 +46,9 @@ jobs:
         run: make install-tools TOOLS=npm
       - name: install packages
         run: make install-packages
+      # The tools of mise.lock: cargo-nextest and cargo-deny among them.
+      - name: install tools
+        run: make install-tools
       - name: prepare the runner
         run: make ci-setup
       - name: lint
@@ -72,10 +72,6 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      # Python runs the tool version check of tools/ until mise installs cargo-nextest and cargo-deny (S-50-8).
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: "3.9"
       # The Node.js of .node-version runs the tools of kit; the npm of packageManager installs the packages, so the cache
       # of setup-node is off.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -86,6 +82,9 @@ jobs:
         run: make install-tools TOOLS=npm
       - name: install packages
         run: make install-packages
+      # The tools of mise.lock: cargo-nextest and cargo-deny among them.
+      - name: install tools
+        run: make install-tools
       - name: prepare the runner
         run: make ci-setup
       - name: build and test

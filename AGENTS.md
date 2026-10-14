@@ -210,9 +210,8 @@ repository are in [PRINCIPLES.md](PRINCIPLES.md); this file states the rules of 
    `make check` and `make bench` verify the target, SHA-256, binding and Cargo features of the
    official local archive before linking. Missing or changed inputs fail; no build downloads V8 or
    substitutes a V8 source build. A CI runner fetches the official archive and binding only through
-   `make ci-setup` (`scripts/fetch-v8.mts`), which verifies their SHA-256 before any build, and installs
-   cargo-nextest and cargo-deny only from the release archives that `tools/tool-versions.json` declares
-   with their SHA-256 (`tools/fetch_tools.py`). Long builds report their commands and progress without a total
+   `make ci-setup` (`scripts/fetch-v8.mts`), which verifies their SHA-256 before any build; cargo-nextest and cargo-deny
+   come only from mise (`make install-tools`), at the digests that `mise.lock` pins. Long builds report their commands and progress without a total
    duration limit; test cases retain individual time limits.
 7. Performance claims are measured by the maintained benchmark (`make bench`) with recorded limits.
    Performance is measured and never fails a test or check: a measurement beyond its limit prints a
@@ -256,7 +255,7 @@ is a class: check every tool, test and recipe of this repository for it and fix 
    (`npm outdated`, `npm audit`, `npm view`, a lock resolved at run time, a security advisory
    database), install no tool at run time (`@latest`, rustup auto-install) and run every tool at
    the version that `.node-version`, `packageManager` of `package.json`, `rust-toolchain.toml` and
-   `tools/tool-versions.json` declare, the same way on this host and in CI.
+   `mise.toml` with `mise.lock` declare, the same way on this host and in CI.
    Advisories are reviewed separately (`make review-advisories`).
 2. A test reads only what it creates or what its run installs and verifies: no build output,
    installed package copy or target directory left by another run, no untracked file, no path

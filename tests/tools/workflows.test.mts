@@ -141,7 +141,7 @@ await test('each architecture runs every CI target in exactly one job', () => {
     const body = jobs[job]!;
     assert.deepEqual(body.strategy?.matrix?.runner, ['ubuntu-24.04-arm', 'ubuntu-24.04'], job);
     assert.equal(body['runs-on'], '${{ matrix.runner }}', job);
-    assert.deepEqual(runs(body), [...INSTALL_KIT, 'make ci-setup', `make ${target}`], job);
+    assert.deepEqual(runs(body), [...INSTALL_KIT, 'make install-tools', 'make ci-setup', `make ${target}`], job);
     const upload = body.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
     assert.equal(upload?.with?.name, `ci-${job}-\${{ matrix.runner }}`, job);
     assert.equal(recipe(target).at(-1), `BUILD_JOBS=$$(nproc) $(MAKE) --no-print-directory ci-targets TARGETS="$(${name})"`, job);
@@ -149,6 +149,19 @@ await test('each architecture runs every CI target in exactly one job', () => {
   }
   assert.deepEqual(targets.sort(), [...CI_TARGETS].sort());
   assert.doesNotMatch(makefile, /^ci:/m);
+});
+
+await test('the CI jobs take cargo-nextest and cargo-deny from mise and run no Python', () => {
+  // make install-tools installs the tools of mise.lock, cargo-nextest and cargo-deny among them, and make toolchain-check
+  // checks their versions; no step sets up Python and no target of the CI jobs runs it.
+  for (const job of Object.keys(CI_JOBS)) {
+    assert.ok(!workflow('ci.yml').jobs[job]!.steps.some(step => step.uses?.startsWith('actions/setup-python@')), job);
+  }
+  for (const target of ['ci-setup', 'ci-lint', 'ci-test']) {
+    assert.ok(!recipe(target).some(command => command.includes('python')), target);
+  }
+  assert.match(read('mise.toml'), /^"github:nextest-rs\/nextest" = \{ version = "0\.9\.146", version_prefix = "cargo-nextest-" \}$/m);
+  assert.match(read('mise.toml'), /^cargo-deny = "0\.20\.2"$/m);
 });
 
 /** The CARGO_BUILD_JOBS that a run of make ci-nextest gives cargo, with a cargo on PATH that prints it. */

@@ -1,5 +1,5 @@
 <!-- doc-id: agents -->
-<!-- source-sha256: a1f6eb48613563f54f76f86c07ceaa3b0aed7e634cbe1476c5f69e901d81ab88 -->
+<!-- source-sha256: 0fb0f9f2bc48cdcdf282663d2ae281060eaecf6231b2fcafca14a5598094b459 -->
 # 개발 절차
 
 사용자의 지시가 우선한다. [English](AGENTS.md). 모든 polyspec 저장소의 작업 원칙은
@@ -180,8 +180,8 @@
    고정된 로컬 V8 입력을 확인한다. `make check`와 `make bench`는 공식 로컬 archive의 target,
    SHA-256, binding과 Cargo feature를 검증한 뒤 연결한다. 입력 누락이나 변경은 실패이며 어떤 build도 V8을
    다운로드하거나 V8 소스 빌드로 대체하지 않는다. CI runner는 `make ci-setup`(`scripts/fetch-v8.mts`)으로만 공식
-   archive와 binding을 받고, 어떤 build보다 먼저 그 SHA-256을 검증하며, cargo-nextest와 cargo-deny는
-   `tools/tool-versions.json`이 SHA-256과 함께 선언한 release archive에서만 설치한다(`tools/fetch_tools.py`). 긴 빌드는 전체 경과 시간 제한 없이 명령과 진행을
+   archive와 binding을 받고, 어떤 build보다 먼저 그 SHA-256을 검증한다. cargo-nextest와 cargo-deny는
+   `mise.lock`이 고정한 digest로 mise에서만 설치한다(`make install-tools`). 긴 빌드는 전체 경과 시간 제한 없이 명령과 진행을
    기록하고 테스트 사례에는 개별 제한 시간을 유지한다.
 7. 성능 주장은 유지되는 벤치마크(`make bench`)로 측정하고 한도를 기록한다.
    성능은 측정하며 test나 check를 실패시키지 않는다. 한도를 넘은 측정은 경고를 출력하고 CI에서는
@@ -222,7 +222,7 @@ tag는 pull request로 올리지 않는다.
 
 1. 어떤 결과도 시간이나 외부 세계에 따라 달라지지 않는다. 검사는 live registry 조회(`npm outdated`, `npm audit`,
    `npm view`, 실행 시점에 정해지는 잠금 파일, 보안 공지 database)를 하지 않고, 실행 중에 도구를 설치하지 않으며
-   (`@latest`, rustup 자동 설치), 모든 도구를 `.node-version`, `package.json`의 `packageManager`, `rust-toolchain.toml`, `tools/tool-versions.json`이 선언한 version으로 이 host와 CI에서 같은
+   (`@latest`, rustup 자동 설치), 모든 도구를 `.node-version`, `package.json`의 `packageManager`, `rust-toolchain.toml`, `mise.lock`과 함께 `mise.toml`이 선언한 version으로 이 host와 CI에서 같은
    방식으로 실행한다. 보안 공지는 따로 검토한다(`make review-advisories`).
 2. 테스트는 자기가 만든 것이나 자기 실행이 설치하고 검증한 것만 읽는다. 다른 실행이 남긴 build 출력, 설치된 package
    사본, target directory, 추적되지 않는 file, 다른 checkout을 가리키는 컴파일 시점 고정 경로, checkout 사이에 공유한

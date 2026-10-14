@@ -22,7 +22,7 @@ V8_BINDING := $(CURDIR)/var/v8/src_binding_simdutf_release_$(V8_TARGET).rs
 # and nextest-<package> below.
 TOOL_TESTS := $(patsubst tests/tools/%.test.mts,%,$(wildcard tests/tools/*.test.mts))
 PACKAGES := $(patsubst packages/%/Cargo.toml,%,$(wildcard packages/*/Cargo.toml))
-SSR_TARGETS = typecheck lint-ts check-tools tool-test-tool_versions tool-test-test-ownership check-ownership check-records check-fixture-filter check-fmt check-clippy check-deny check-examples check-nextest check-bench
+SSR_TARGETS = typecheck lint-ts check-tools tool-test-test-ownership check-ownership check-records check-fixture-filter check-fmt check-clippy check-deny check-examples check-nextest check-bench
 CHECK_TARGETS = kit-check toolchain-check layout-check documents-check owner-validate hooks-check dependency-policy-check $(SSR_TARGETS)
 # The number of Cargo build jobs of the check targets: 1 by default, so a local build leaves the
 # other processors of the host to the other work; the CI targets set it to the processor count of
@@ -31,7 +31,7 @@ BUILD_JOBS ?= 1
 
 # A make without a target runs the full suite, so no command runs its steps without the guard.
 .DEFAULT_GOAL := check
-.PHONY: check review-advisories ci-setup ci-lint ci-test ci-nextest ci-push github-ruleset github-ruleset-check tool-versions-check check-fixtures $(SSR_TARGETS) bench verify-archive
+.PHONY: check review-advisories ci-setup ci-lint ci-test ci-nextest ci-push github-ruleset github-ruleset-check check-fixtures $(SSR_TARGETS) bench verify-archive
 
 check:
 	node $(KIT)/full-run.$(KIT_EXT) run $(CHECK_TARGETS)
@@ -65,15 +65,6 @@ check-tools:
 $(foreach test,$(TOOL_TESTS),$(eval tool-test-$(test): ; node $$(KIT)/run-tests.$$(KIT_EXT) node -- tests/tools/$(test).test.mts))
 $(foreach package,$(PACKAGES),$(eval nextest-$(package): verify-archive ; cargo nextest run -p polyspec-ssr-$(package) --locked --no-tests fail))
 .PHONY: $(addprefix tool-test-,$(TOOL_TESTS)) $(addprefix nextest-,$(PACKAGES))
-
-# The versions of the test tools of tools/tool-versions.json and their release archives (tools/tool_versions.py,
-# tools/fetch_tools.py), until mise installs cargo-nextest and cargo-deny (S-50-8). tool-versions-check compares every
-# tool of tools/tool-versions.json with its declaration.
-tool-test-tool_versions:
-	python3 -m unittest tools.test_tool_versions tools.test_fetch_tools
-
-tool-versions-check:
-	python3 -m tools.tool_versions check
 
 # The test ownership of config/test-ownership.json (docs/test-ownership.md): the standalone package tests/test-ownership,
 # built into the target directory of the workspace.
@@ -130,10 +121,10 @@ bench:
 
 # GitHub CI (.github/workflows/ci.yml and push-gate.yml) runs only make targets. A job installs the npm of packageManager
 # (make install-tools TOOLS=npm), the packages of package-lock.json with @polyspec/kit (make install-packages) and the
-# tools of config/toolchain.json (make install-tools). ci-setup then prepares a fresh Linux runner: the Rust toolchain of
-# rust-toolchain.toml, the release binaries of the test tools (tools/fetch_tools.py, until S-50-8) and the official V8
-# inputs of the host target (scripts/fetch-v8.mts), each verified by its SHA-256, and the locked dependencies. On each
-# architecture ci-lint and ci-test, two jobs of ci.yml, check the versions of the tools and run the lint and the test
+# tools of mise.lock, cargo-nextest and cargo-deny among them (make install-tools). ci-setup then prepares a fresh Linux
+# runner: the Rust toolchain of rust-toolchain.toml and the official V8 inputs of the host target (scripts/fetch-v8.mts),
+# verified by their SHA-256, and the locked dependencies. On each architecture ci-lint and ci-test, two jobs of ci.yml,
+# check the versions of the tools (make toolchain-check) and run the lint and the test
 # targets through make ci-targets of kit, which runs every target past failures and writes var/report/ci-targets with a
 # log of each target and summary.md, the job summary; Cargo builds with one job per processor of the runner (BUILD_JOBS).
 # The job push-gate runs the checks that need no Rust: the toolchain, the checklist, the records and the TypeScript.
@@ -143,18 +134,15 @@ CI_PUSH_TARGETS = toolchain-check push-gate-commit check-records typecheck lint-
 
 ci-setup:
 	rustup toolchain install --no-self-update
-	python3 -m tools.fetch_tools "$$(RUSTUP_AUTO_INSTALL=0 rustc -vV | sed -n 's/^host: //p')"
 	node scripts/fetch-v8.mts "$$(RUSTUP_AUTO_INSTALL=0 rustc -vV | sed -n 's/^host: //p')"
 	cargo fetch --locked
 
 ci-lint:
 	$(MAKE) --no-print-directory toolchain-check
-	python3 -m tools.tool_versions check python3 cargo-nextest cargo-deny
 	BUILD_JOBS=$$(nproc) $(MAKE) --no-print-directory ci-targets TARGETS="$(CI_LINT_TARGETS)"
 
 ci-test:
 	$(MAKE) --no-print-directory toolchain-check
-	python3 -m tools.tool_versions check python3 cargo-nextest cargo-deny
 	BUILD_JOBS=$$(nproc) $(MAKE) --no-print-directory ci-targets TARGETS="$(CI_TEST_TARGETS)"
 
 ci-nextest:

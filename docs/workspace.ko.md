@@ -1,5 +1,5 @@
 <!-- doc-id: workspace -->
-<!-- source-sha256: 8b297666e50ea8ac3f85ec1bf9dff911fe64bd325a2ca664e8f9551fccce5009 -->
+<!-- source-sha256: 268fac1176d628d7d61c48d4be932a27c2f57cb4b35fba99aac41896b79b78cb -->
 [English](workspace.md)
 
 # 워크스페이스
@@ -14,10 +14,8 @@ deny하고, 모든 패키지는 `[lints] workspace = true`로 이 lint를 따른
 `make typecheck`, kit의 `make lint-ts`), 도구 테스트, 테스트 소유권, Rust 형식, Clippy 경고, 의존성 금지 목록과
 라이선스·출처, Rust 테스트를 검사한다. 보안 공지는 시간에 따라 바뀌는 database에서 오므로 `make check`는 이를
 읽지 않고, `make review-advisories`(`cargo deny check advisories`)가 workspace의 보안 공지를 검토한다.
-`tools/tool-versions.json`은 도구 python3, make, cargo-nextest, cargo-deny를 version 보고의 정확한 첫 줄로 적는다. Python은
-minor version 3.9로 고정하고, 검사는 실행 중인 patch release를 출력한다. `tools/tool_versions.py`는 설치된 도구를
-비교하고, 기대 보고와 실제 보고를 적고 실패한다. Python 도구 `tools/tool_versions.py`, `tools/fetch_tools.py`와 그 선언은 mise가 cargo-nextest와
-cargo-deny를 설치할 때까지(S-50-8) 남고, `make tool-test-tool_versions`가 그 테스트를 실행한다. Node.js, npm, Rust는
+`mise.toml`은 cargo-nextest 0.9.146과 cargo-deny 0.20.2를 선언하고, `mise.lock`은 모든 platform의 release binary를
+고정하며, `make install-tools`가 mise로 이를 설치하고 `make toolchain-check`가 version 보고를 선언과 비교한다. Node.js, npm, Rust는
 `.node-version`, `package.json`의 `packageManager`, `rust-toolchain.toml`에 kit의 pin으로 선언되고, `make toolchain-check`가
 이를 비교한다. 모든 make 호출은 `RUSTUP_AUTO_INSTALL=0`을 설정하므로 없는 toolchain은 설치되지 않고 실패한다. Rust 테스트는 cargo-nextest 0.9.146으로 실행한다. nextest 설정
 `.config/nextest.toml`은 각 테스트를 30초 뒤 종료하고 시작 및 결과와 경과 시간을 출력한다. 테스트 도구가 없으면 명령은
@@ -76,18 +74,14 @@ commit은 `main`에 오르지 않는다. kit의 `make documents-check`가 문서
 
 `.github/workflows/ci.yml`은 `ubuntu-24.04-arm`과 `ubuntu-24.04` 각각에서 job 두 개를 실행한다. 각 job은 먼저
 `packageManager`의 npm과 `@polyspec/kit`을 포함한 `package-lock.json`의 package를 설치한다(`make install-tools TOOLS=npm`,
-`make install-packages`). job `lint`는
+`make install-packages`), 이어서 `mise.lock`의 도구를 설치한다(`make install-tools`). job `lint`는
 `make ci-setup`과 `make ci-lint`, 즉 target `CI_LINT_TARGETS`(`check-fixture-filter`, `check-fmt`, `check-clippy`, `check-deny`)를
 실행하고, job `test`는 `make ci-setup`과 `make ci-test`, 즉 target `CI_TEST_TARGETS`(`check-examples`, `ci-nextest`)를
 실행한다. 따라서 모든 CI target은 각 architecture에서 정확히 한 job에서 실행되고 두 job은 동시에 실행된다. 두 job은
 kit의 `make ci-targets`로 실패와 관계없이 target을 실행하고, 각 job은 target별 log와 요약인 `var/report/ci-targets`를
 `ci-<job>-<runner>`로 올린다.
-`make ci-setup`은 `rust-toolchain.toml`의 Rust toolchain, host target의 공식 V8 입력(`scripts/fetch-v8.mts`), host target용 cargo-nextest 0.9.146과
-cargo-deny 0.20.2의 release binary를 설치한다. `tools/tool-versions.json`은 `releases`에 각 release archive의 URL, 그
-SHA-256, 그 안의 실행 파일 경로를 선언하고, `tools/fetch_tools.py`는 각 archive를 내려받아 SHA-256이 다르면 아무것도
-설치하지 않고 실패하며, 실행 파일을 한 번의 rename으로 `$CARGO_HOME/bin`에 설치한다. `make ci-lint`와 `make ci-test`는 먼저 `make toolchain-check`를 실행하고
-Python, cargo-nextest, cargo-deny의 version 보고를 `tools/tool-versions.json`과 비교한다. 두 job은 `tools/`의 이 도구를
-위해 `actions/setup-python`으로 Python 3.9를 준비한다. Cargo는
+`make ci-setup`은 `rust-toolchain.toml`의 Rust toolchain과 host target의 공식 V8 입력(`scripts/fetch-v8.mts`)을 설치한다.
+`make ci-lint`와 `make ci-test`는 먼저 `make toolchain-check`를 실행하며, 이 검사는 cargo-nextest와 cargo-deny도 확인한다. Cargo는
 check target을 `BUILD_JOBS`개의 job으로 빌드한다. 기본값은 1이므로 로컬 빌드는 host의 다른 processor를 다른 작업에
 남기고, `make ci-lint`와 `make ci-test`는 `BUILD_JOBS`를 runner의 processor 수(`nproc`)로 설정한다.
 이 job들이 AArch64와 x86_64에서 저장소의 Linux 검증이다. `check-clippy`는 workspace의 모든 target을 lint하고,

@@ -200,22 +200,7 @@
         "tool-test-workflows",
         "tool-test-verify-archive",
         "tool-test-github-ruleset",
-        "tool-test-tool_versions",
         "owner-validate"
-      ]
-    },
-    {
-      "paths": [
-        "tools/__init__.py",
-        "tools/tool_versions.py",
-        "tools/fetch_tools.py",
-        "tools/tool-versions.json",
-        "tools/test_tool_versions.py",
-        "tools/test_fetch_tools.py"
-      ],
-      "targets": [
-        "tool-test-tool_versions",
-        "tool-versions-check"
       ]
     },
     {

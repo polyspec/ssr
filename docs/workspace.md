@@ -15,11 +15,9 @@ of `scripts/` and `tests/` (`make typecheck` with `tsconfig.json`, `make lint-ts
 ownership, Rust formatting, Clippy warnings, dependency bans, licenses and sources, and the Rust tests.
 Security advisories come from a database that changes over time, so `make check` does not read
 them; `make review-advisories` (`cargo deny check advisories`) reviews them for the workspace.
-`tools/tool-versions.json` names the tools python3, make, cargo-nextest and cargo-deny with the exact first line of their
-version report; Python is pinned to its minor version 3.9, and the check prints the running patch release;
-`tools/tool_versions.py` compares the installed tools and fails naming the expected and the actual report. The Python
-tools `tools/tool_versions.py` and `tools/fetch_tools.py` and their declaration stay until mise installs cargo-nextest and cargo-deny (S-50-8), and `make
-tool-test-tool_versions` runs their tests. Node.js, npm and Rust are declared in `.node-version`, `packageManager` of
+`mise.toml` declares cargo-nextest 0.9.146 and cargo-deny 0.20.2, `mise.lock` pins their release binaries for every
+platform, `make install-tools` installs them with mise and `make toolchain-check` compares their version reports with the
+declaration. Node.js, npm and Rust are declared in `.node-version`, `packageManager` of
 `package.json` and `rust-toolchain.toml`, at the pins of kit, and `make toolchain-check` compares them. Every make
 invocation sets `RUSTUP_AUTO_INSTALL=0`, so a missing toolchain fails instead of being installed.
 Rust tests run with cargo-nextest 0.9.146. The nextest configuration `.config/nextest.toml` terminates each test after
@@ -89,19 +87,15 @@ records fail never reaches `main`. `make documents-check` of kit checks the docu
 
 `.github/workflows/ci.yml` runs two jobs on each of `ubuntu-24.04-arm` and `ubuntu-24.04`. Each job first installs
 the npm of `packageManager` and the packages of `package-lock.json` with `@polyspec/kit` (`make install-tools
-TOOLS=npm`, `make install-packages`). The job `lint` runs
+TOOLS=npm`, `make install-packages`) and the tools of `mise.lock` (`make install-tools`). The job `lint` runs
 `make ci-setup` and `make ci-lint`, the targets `CI_LINT_TARGETS` (`check-fixture-filter`, `check-fmt`,
 `check-clippy` and `check-deny`), and the job `test` runs `make ci-setup` and `make ci-test`, the targets `CI_TEST_TARGETS`
 (`check-examples` and `ci-nextest`), so every CI target runs in exactly one job of each architecture and the two jobs
 run at the same time; both run their targets through `make ci-targets` of kit, past failures, and each job uploads
 `var/report/ci-targets`, the log of each target and the summary, as `ci-<job>-<runner>`. `make ci-setup`
-installs the Rust toolchain of `rust-toolchain.toml`, the official V8 inputs of the host target (`scripts/fetch-v8.mts`) and the release binaries
-of cargo-nextest 0.9.146 and cargo-deny 0.20.2 for the host target: `tools/tool-versions.json` declares under
-`releases` the URL of each release archive, its SHA-256 and the path of the executable in it, and
-`tools/fetch_tools.py` downloads each archive, fails for another SHA-256 without installing anything and installs the
-executable into `$CARGO_HOME/bin` by one rename. `make ci-lint` and `make ci-test` first run `make toolchain-check` and check the version report of
-Python, cargo-nextest and cargo-deny against `tools/tool-versions.json`; both jobs set up Python 3.9 with
-`actions/setup-python` for these tools of `tools/`. Cargo builds
+installs the Rust toolchain of `rust-toolchain.toml` and the official V8 inputs of the host target
+(`scripts/fetch-v8.mts`). `make ci-lint` and `make ci-test` first run `make toolchain-check`, which checks
+cargo-nextest and cargo-deny too. Cargo builds
 the check targets with `BUILD_JOBS` jobs: 1 by default, so a local build leaves the other processors of the host to
 other work, and `make ci-lint` and `make ci-test` set `BUILD_JOBS` to the processor count of the runner (`nproc`).
 These jobs are the Linux verification of the repository on AArch64 and x86_64: `check-clippy` lints every target of the
