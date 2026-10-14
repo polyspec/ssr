@@ -12,15 +12,15 @@
   "packages": [],
   "manifests": {
     "Cargo.toml": "version",
-    "crates/polyspec-ssr-core/Cargo.toml": "git-tag",
-    "crates/polyspec-ssr-build/Cargo.toml": "git-tag",
-    "crates/polyspec-ssr-runtime/Cargo.toml": "git-tag",
-    "crates/polyspec-ssr-adapter-react/Cargo.toml": "git-tag",
-    "crates/polyspec-ssr-adapter-vue/Cargo.toml": "git-tag",
-    "crates/polyspec-ssr-adapter-svelte/Cargo.toml": "git-tag",
-    "crates/polyspec-ssr-adapter-vanilla/Cargo.toml": "git-tag",
-    "crates/polyspec-ssr-nonce/Cargo.toml": "git-tag",
-    "crates/polyspec-ssr-server/Cargo.toml": "git-tag"
+    "packages/core/Cargo.toml": "git-tag",
+    "packages/build/Cargo.toml": "git-tag",
+    "packages/runtime/Cargo.toml": "git-tag",
+    "packages/adapter-react/Cargo.toml": "git-tag",
+    "packages/adapter-vue/Cargo.toml": "git-tag",
+    "packages/adapter-svelte/Cargo.toml": "git-tag",
+    "packages/adapter-vanilla/Cargo.toml": "git-tag",
+    "packages/nonce/Cargo.toml": "git-tag",
+    "packages/server/Cargo.toml": "git-tag"
   },
   "notReleased": {
     "config/php-lint/composer.json": "the Composer project of the PHP lint that kit copies into every repository",
@@ -32,7 +32,7 @@
   "goModules": {},
   "proof": {
     "gitTag": {
-      "crates/polyspec-ssr-core/Cargo.toml": {
+      "packages/core/Cargo.toml": {
         "kind": "rust",
         "name": "polyspec-ssr-core",
         "smoke": [
@@ -40,7 +40,7 @@
           "check"
         ]
       },
-      "crates/polyspec-ssr-build/Cargo.toml": {
+      "packages/build/Cargo.toml": {
         "kind": "rust",
         "name": "polyspec-ssr-build",
         "smoke": [
@@ -48,7 +48,7 @@
           "check"
         ]
       },
-      "crates/polyspec-ssr-runtime/Cargo.toml": {
+      "packages/runtime/Cargo.toml": {
         "kind": "rust",
         "name": "polyspec-ssr-runtime",
         "smoke": [
@@ -56,7 +56,7 @@
           "check"
         ]
       },
-      "crates/polyspec-ssr-adapter-react/Cargo.toml": {
+      "packages/adapter-react/Cargo.toml": {
         "kind": "rust",
         "name": "polyspec-ssr-adapter-react",
         "smoke": [
@@ -64,7 +64,7 @@
           "check"
         ]
       },
-      "crates/polyspec-ssr-adapter-vue/Cargo.toml": {
+      "packages/adapter-vue/Cargo.toml": {
         "kind": "rust",
         "name": "polyspec-ssr-adapter-vue",
         "smoke": [
@@ -72,7 +72,7 @@
           "check"
         ]
       },
-      "crates/polyspec-ssr-adapter-svelte/Cargo.toml": {
+      "packages/adapter-svelte/Cargo.toml": {
         "kind": "rust",
         "name": "polyspec-ssr-adapter-svelte",
         "smoke": [
@@ -80,7 +80,7 @@
           "check"
         ]
       },
-      "crates/polyspec-ssr-adapter-vanilla/Cargo.toml": {
+      "packages/adapter-vanilla/Cargo.toml": {
         "kind": "rust",
         "name": "polyspec-ssr-adapter-vanilla",
         "smoke": [
@@ -88,7 +88,7 @@
           "check"
         ]
       },
-      "crates/polyspec-ssr-nonce/Cargo.toml": {
+      "packages/nonce/Cargo.toml": {
         "kind": "rust",
         "name": "polyspec-ssr-nonce",
         "smoke": [
@@ -96,7 +96,7 @@
           "check"
         ]
       },
-      "crates/polyspec-ssr-server/Cargo.toml": {
+      "packages/server/Cargo.toml": {
         "kind": "rust",
         "name": "polyspec-ssr-server",
         "smoke": [

@@ -10,8 +10,8 @@ workspace = true
 
 
 [dependencies]
-polyspec-ssr-core = { path = "../../crates/polyspec-ssr-core", version = "=0.0.2" }
-polyspec-ssr-runtime = { path = "../../crates/polyspec-ssr-runtime", version = "=0.0.2" }
+polyspec-ssr-core = { path = "../../packages/core", version = "=0.0.2" }
+polyspec-ssr-runtime = { path = "../../packages/runtime", version = "=0.0.2" }
 
 [workspace]
 

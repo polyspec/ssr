@@ -1,5 +1,5 @@
 <!-- doc-id: core -->
-<!-- source-sha256: 212e7aaa6eca70605c6e34ef330ad08111efa68259395ec3ec1b238b2c4338e5 -->
+<!-- source-sha256: 7120a72d1e9d27c17ed659d6ed7713fd238943950cacd2312f31f654351df0b6 -->
 [English](core.md)
 
 # 렌더 계약
@@ -21,8 +21,8 @@ core 의존성을 통해 페이지 계약을 사용할 수 있다.
 캐시 헤더나 HTTP 상태 코드를 결정하지 않는다. HTTP 서버가 잘못된 요청 및 렌더 실패를
 응답으로 변환한다. `CALL_PATH`는 `/_render`다.
 
-완료 기준: [SSR 페이지 fixture](../crates/polyspec-ssr-core/tests/fixtures/ssr.json)와
-[CSR fixture](../crates/polyspec-ssr-core/tests/fixtures/csr.json)는 파싱, 인코딩, 재파싱 후에도
+완료 기준: [SSR 페이지 fixture](../packages/core/tests/fixtures/ssr.json)와
+[CSR fixture](../packages/core/tests/fixtures/csr.json)는 파싱, 인코딩, 재파싱 후에도
 값과 객체 순서를 유지한다. 잘못된 사례는 오류를 반환한다. 렌더 결과는 HTML, head, 출력 상태를
 유지한다.
 

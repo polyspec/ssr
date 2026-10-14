@@ -31,11 +31,13 @@ CRATES = (
 class WorkspaceTest(unittest.TestCase):
     def test_workspace_members_and_edition(self):
         manifest = (ROOT / "Cargo.toml").read_text()
+        self.assertIn('members = ["packages/*"]', manifest)
+        folders = sorted(path.name for path in (ROOT / "packages").iterdir())
+        self.assertEqual(folders, sorted(crate.removeprefix("polyspec-ssr-") for crate in CRATES))
         for crate in CRATES:
-            self.assertTrue((ROOT / "crates" / crate / "Cargo.toml").is_file())
-            self.assertIn(f'"crates/{crate}"', manifest)
-            self.assertIn('edition = "2024"', (ROOT / "crates" / crate / "Cargo.toml").read_text())
-        self.assertEqual(manifest.count('"crates/polyspec-ssr-'), len(CRATES))
+            text = (ROOT / "packages" / crate.removeprefix("polyspec-ssr-") / "Cargo.toml").read_text()
+            self.assertIn(f'name = "{crate}"', text)
+            self.assertIn('edition = "2024"', text)
 
     def test_node_is_pinned_in_node_version(self):
         self.assertEqual((ROOT / ".node-version").read_text(), "26.11.1\n")

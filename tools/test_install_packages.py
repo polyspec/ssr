@@ -110,10 +110,10 @@ class FilterTest(TestCase):
         terms = " | ".join(f"binary_id(={binary})" for binary in binaries)
         (root / ".config/nextest.toml").write_text(
             f"[[profile.default.scripts]]\nfilter = '{terms}'\nsetup = \"install-packages\"\n")
-        for path, text in (("crates/a/tests/reads.rs", "mod fixture;\nfn x() {}\n"),
-                           ("crates/a/tests/plain.rs", "fn x() {}\n"),
-                           ("crates/a/src/lib.rs", "#[cfg(test)]\nmod fixture;\n"),
-                           ("crates/b/tests/env.rs", "fn x() { std::env::var(\"SSR_PACKAGES\"); }\n")):
+        for path, text in (("packages/a/tests/reads.rs", "mod fixture;\nfn x() {}\n"),
+                           ("packages/a/tests/plain.rs", "fn x() {}\n"),
+                           ("packages/a/src/lib.rs", "#[cfg(test)]\nmod fixture;\n"),
+                           ("packages/b/tests/env.rs", "fn x() { std::env::var(\"SSR_PACKAGES\"); }\n")):
             (root / path).parent.mkdir(parents=True, exist_ok=True)
             (root / path).write_text(text)
         subprocess.run(["git", "init", "-q"], cwd=root, check=True)
@@ -122,21 +122,21 @@ class FilterTest(TestCase):
 
     def test_the_filter_names_exactly_the_readers(self):
         with TemporaryDirectory() as directory:
-            root = self.checkout(directory, ["a", "a::reads", "b::env"])
+            root = self.checkout(directory, ["polyspec-ssr-a", "polyspec-ssr-a::reads", "polyspec-ssr-b::env"])
             self.assertEqual(install_packages.filter_errors(root), [])
 
     def test_a_reader_outside_the_filter_and_a_stale_entry_fail(self):
         with TemporaryDirectory() as directory:
-            root = self.checkout(directory, ["a", "a::plain", "b::env"])
+            root = self.checkout(directory, ["polyspec-ssr-a", "polyspec-ssr-a::plain", "polyspec-ssr-b::env"])
             self.assertEqual(install_packages.filter_errors(root), [
-                "a::reads reads SSR_PACKAGES or SSR_FIXTURES but is outside the install-packages filter",
-                "a::plain is in the install-packages filter but reads no installation"])
+                "polyspec-ssr-a::reads reads SSR_PACKAGES or SSR_FIXTURES but is outside the install-packages filter",
+                "polyspec-ssr-a::plain is in the install-packages filter but reads no installation"])
 
     def test_a_filter_that_is_not_a_list_of_binaries_fails(self):
         with TemporaryDirectory() as directory:
-            root = self.checkout(directory, ["a"])
+            root = self.checkout(directory, ["polyspec-ssr-a"])
             config = root / ".config/nextest.toml"
-            config.write_text(config.read_text().replace("binary_id(=a)", "all()"))
+            config.write_text(config.read_text().replace("binary_id(=polyspec-ssr-a)", "all()"))
             self.assertIn(".config/nextest.toml: install-packages filter term 'all()' is not binary_id(=<id>)",
                           install_packages.filter_errors(root))
 

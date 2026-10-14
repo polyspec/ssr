@@ -298,7 +298,7 @@
     },
     {
       "paths": [
-        "crates/polyspec-ssr-adapter-react/**"
+        "packages/adapter-react/**"
       ],
       "targets": [
         "nextest-adapter-react",
@@ -307,7 +307,7 @@
     },
     {
       "paths": [
-        "crates/polyspec-ssr-adapter-svelte/**"
+        "packages/adapter-svelte/**"
       ],
       "targets": [
         "nextest-adapter-svelte",
@@ -316,7 +316,7 @@
     },
     {
       "paths": [
-        "crates/polyspec-ssr-adapter-vanilla/**"
+        "packages/adapter-vanilla/**"
       ],
       "targets": [
         "nextest-adapter-vanilla",
@@ -325,7 +325,7 @@
     },
     {
       "paths": [
-        "crates/polyspec-ssr-adapter-vue/**"
+        "packages/adapter-vue/**"
       ],
       "targets": [
         "nextest-adapter-vue",
@@ -334,7 +334,7 @@
     },
     {
       "paths": [
-        "crates/polyspec-ssr-build/**"
+        "packages/build/**"
       ],
       "targets": [
         "nextest-build",
@@ -343,7 +343,7 @@
     },
     {
       "paths": [
-        "crates/polyspec-ssr-core/**"
+        "packages/core/**"
       ],
       "targets": [
         "nextest-core",
@@ -352,7 +352,7 @@
     },
     {
       "paths": [
-        "crates/polyspec-ssr-nonce/**"
+        "packages/nonce/**"
       ],
       "targets": [
         "nextest-nonce",
@@ -361,7 +361,7 @@
     },
     {
       "paths": [
-        "crates/polyspec-ssr-runtime/**"
+        "packages/runtime/**"
       ],
       "targets": [
         "nextest-runtime",
@@ -370,7 +370,7 @@
     },
     {
       "paths": [
-        "crates/polyspec-ssr-server/**"
+        "packages/server/**"
       ],
       "targets": [
         "nextest-server",
@@ -389,7 +389,7 @@
     },
     {
       "paths": [
-        "crates/polyspec-ssr-build/tests/fixture/**"
+        "packages/build/tests/fixture/**"
       ],
       "targets": [
         "check-nextest",

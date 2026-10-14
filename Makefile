@@ -19,10 +19,10 @@ V8_BINDING := $(CURDIR)/var/v8/src_binding_simdutf_release_$(V8_TARGET).rs
 # fixture packages or the V8 inputs names their setup step as a prerequisite, so a failed setup step fails only the
 # targets that read it.
 # The tool test modules of tools/test_*.py (tools/test_ownership.py is the ownership check, no test module) and the
-# crates of crates/, which name the owner targets tool-test-<name> and
-# nextest-<crate> below.
+# packages of packages/, which name the owner targets tool-test-<name> and
+# nextest-<package> below.
 TOOL_TESTS := $(filter-out ownership,$(patsubst tools/test_%.py,%,$(wildcard tools/test_*.py)))
-CRATES := $(patsubst crates/polyspec-ssr-%/Cargo.toml,%,$(wildcard crates/polyspec-ssr-*/Cargo.toml))
+CRATES := $(patsubst packages/%/Cargo.toml,%,$(wildcard packages/*/Cargo.toml))
 SSR_TARGETS = check-tools check-ownership check-records check-fmt check-clippy check-deny check-engine-deps check-examples check-nextest check-features check-bench
 CHECK_TARGETS = kit-check toolchain-check documents-check owner-validate hooks-check $(SSR_TARGETS)
 # The number of Cargo build jobs of the check targets: 1 by default, so a local build leaves the

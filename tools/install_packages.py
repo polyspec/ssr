@@ -127,8 +127,9 @@ READERS = re.compile(r"^mod fixture;$|SSR_PACKAGES|SSR_FIXTURES", re.MULTILINE)
 
 def readers(root=ROOT):
     """The nextest binary IDs whose tests read the installation: an integration test target that
-    includes the fixture module or names its variables, and a library whose root includes it."""
-    tracked = subprocess.run(["git", "ls-files", "-z", "--", "crates"], cwd=root, capture_output=True,
+    includes the fixture module or names its variables, and a library whose root includes it. The
+    package of packages/<name> is polyspec-ssr-<name>."""
+    tracked = subprocess.run(["git", "ls-files", "-z", "--", "packages"], cwd=root, capture_output=True,
                              text=True, check=True).stdout.split("\0")
     binaries = set()
     for path in tracked:
@@ -136,9 +137,9 @@ def readers(root=ROOT):
         if len(parts) != 4 or not path.endswith(".rs") or not READERS.search((root / path).read_text()):
             continue
         if parts[2] == "tests":
-            binaries.add(f"{parts[1]}::{Path(parts[3]).stem}")
+            binaries.add(f"polyspec-ssr-{parts[1]}::{Path(parts[3]).stem}")
         elif parts[2:] == ("src", "lib.rs"):
-            binaries.add(parts[1])
+            binaries.add(f"polyspec-ssr-{parts[1]}")
     return binaries
 
 

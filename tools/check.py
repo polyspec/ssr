@@ -63,7 +63,7 @@ def check_words(root):
         for word in TERM_WORDS:
             if re.search(r"(?<![\w-])" + re.escape(word) + r"(?![\w-])", content, re.IGNORECASE):
                 errors.append(f"{path}: unapproved term {word}")
-    for path in tracked(root, "crates/*.rs"):
+    for path in tracked(root, "packages/*.rs"):
         for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if line.lstrip().startswith("//") and found(line):
                 errors.append(f"{path}:{number}: prohibited record word")

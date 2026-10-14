@@ -411,6 +411,11 @@ def substantive(source, start):
     return False
 
 
+def crate_folder(root, crate):
+    """The folder of a crate of the workspace: polyspec-ssr-<name> is packages/<name>."""
+    return root / "packages" / crate.removeprefix("polyspec-ssr-")
+
+
 def case(root, behavior, value, members):
     if not isinstance(value, dict) or set(value) != {"crate", "target", "test"}:
         raise OwnershipError(f"{behavior}: each case must name crate, target and test")
@@ -418,7 +423,7 @@ def case(root, behavior, value, members):
     if crate not in members or any(not isinstance(item, str) or not IDENTIFIER.fullmatch(item)
                                    for item in (target, test)):
         raise OwnershipError(f"{behavior}: invalid crate, target or test")
-    path = root / "crates" / crate / "tests" / f"{target}.rs"
+    path = crate_folder(root, crate) / "tests" / f"{target}.rs"
     if path.is_symlink() or not path.is_file():
         raise OwnershipError(f"{behavior}: missing test target in {crate}: {path}")
     source = path.read_text()
@@ -491,7 +496,7 @@ def validate(root, declaration):
     for behavior in valid:
         owner_name = behavior["owner"]["crate"]
         try:
-            owner_exports.setdefault(owner_name, public_root_exports(root / "crates" / owner_name))
+            owner_exports.setdefault(owner_name, public_root_exports(crate_folder(root, owner_name)))
         except OwnershipError as error:
             errors.append(str(error))
             continue
@@ -516,7 +521,7 @@ def validate(root, declaration):
         aliases = {alias: target for alias, target in aliases.items() if target in owner_exports}
         if not aliases:
             continue
-        for path in source_files(root / "crates" / crate_name):
+        for path in source_files(crate_folder(root, crate_name)):
             try:
                 found = references(rust_tokens(path.read_text()), aliases, owner_exports)
             except OwnershipError as error:
