@@ -1,11 +1,21 @@
 // The oxlint configuration of every polyspec repository, copied by kit; change it in kit, never in a copy. make lint-ts runs
 // oxlint with -c of this file, --type-aware (oxlint-tsgolint, which reads the TypeScript 7 project) and --deny-warnings. The
 // correctness rules fail, and so does a promise that is neither awaited nor handled: it lets a test end before its work does.
+// allowForKnownSafeCalls is the option of typescript-eslint for node:test (K138): test, describe, it and suite, with skip,
+// only and todo, return a promise that the runner itself awaits, so a top-level registration is no floating promise. The
+// subtest t.test of a TestContext shares the name test; the runner of Node 26 waits for an unawaited one and reports it.
 {
   "categories": {
     "correctness": "error"
   },
   "rules": {
-    "typescript/no-floating-promises": "error"
+    "typescript/no-floating-promises": [
+      "error",
+      {
+        "allowForKnownSafeCalls": [
+          { "from": "package", "package": "node:test", "name": ["test", "describe", "it", "suite", "skip", "only", "todo"] }
+        ]
+      }
+    ]
   }
 }

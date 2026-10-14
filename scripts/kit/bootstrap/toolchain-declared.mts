@@ -27,7 +27,7 @@ const read = (root: string, file: string): string => readFileSync(path.join(root
 export type Declared = { version: string; source: string };
 
 /** A release with the sha256 of its file for each platform key. */
-export type PlatformRelease = { version: string; sha256: Record<string, unknown>; source: string };
+export type PlatformRelease = { version: string; sha256: Record<string, string>; source: string };
 
 /** The declared toolchains of a checkout; an undeclared tool is absent. */
 export type DeclaredToolchain = {
@@ -80,10 +80,12 @@ function platformRelease(key: string, value: unknown): PlatformRelease {
   // Object.keys and Object.entries read any value: a text fails the digest check on its characters and a number has no keys.
   const digests = (field(value, 'sha256') ?? {}) as Record<string, unknown>;
   if (Object.keys(digests).length === 0) throw new Error(`${file} must record the sha256 of the ${key} archive of each platform, for example linux-x64; it records none`);
+  const sha256: Record<string, string> = {};
   for (const [platform, digest] of Object.entries(digests)) {
     if (!matches(/^[0-9a-f]{64}$/, digest)) throw new Error(`${file} must record the sha256 of ${platform} as 64 lowercase hexadecimal digits; it records ${JSON.stringify(digest)}`);
+    sha256[platform] = digest;
   }
-  return { version, sha256: digests, source: file };
+  return { version, sha256, source: file };
 }
 
 // The PHPUnit release of the PHP tests of kit: its exact version; the Composer project that installs it is config/phpunit.
