@@ -36,6 +36,11 @@ jobs:
         run: make install-tools TOOLS=npm
       - name: install packages
         run: make install-packages
+      # make toolchain-check of ci-push reads the tools of mise.lock and the Rust toolchain of rust-toolchain.toml.
+      - name: install tools
+        run: make install-tools
+      - name: install the Rust toolchain
+        run: make install-rust
       - name: declared tools, no checklist item in progress, the records and the TypeScript
         run: make ci-push
       - name: upload the logs and the summary

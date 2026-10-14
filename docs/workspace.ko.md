@@ -1,5 +1,5 @@
 <!-- doc-id: workspace -->
-<!-- source-sha256: 268fac1176d628d7d61c48d4be932a27c2f57cb4b35fba99aac41896b79b78cb -->
+<!-- source-sha256: 8c4652567baaafe96e6c9901c12aa389485607fe61a4ed1e51403475e7ede9da -->
 [English](workspace.md)
 
 # 워크스페이스
@@ -64,7 +64,8 @@ commit의 message를 `config/commits.json`과 비교한다. 모든 make 실행�
 설정하므로, make를 실행한 모든 checkout에서 hook이 실행된다. `make hooks-check`는 `core.hooksPath`가 `.githooks`이고
 hook이 kit의 것이며 실행 가능하지 않으면 실패하고, `make check`의 guard도 같은 검사를 실행한다. workflow
 `.github/workflows/push-gate.yml`은 모든 push의 push된 tip commit과 모든 pull request의 head commit(merge commit이 아님)에서
-job `push-gate`로 `make ci-push`를 실행한다. 이는 kit의 `make ci-targets`로 target `CI_PUSH_TARGETS`를 실행한다:
+job `push-gate`로 `mise.lock`의 도구(`make install-tools`)와 `make toolchain-check`가 읽는 `rust-toolchain.toml`의 Rust
+toolchain(`make install-rust`)을 설치하고 `make ci-push`를 실행한다. 이는 kit의 `make ci-targets`로 target `CI_PUSH_TARGETS`를 실행한다:
 `toolchain-check`, `push-gate-commit`(`HEAD`에 대한 kit의 push 검사로, 진행 중인 각 항목을
 error annotation과 job summary에 적고 실패하며 commit이 hook을 mode 100755로 추적하지 않을 때도 실패한다),
 `check-records`(`node scripts/check-records.mts`, 추적되는 파일의 검사: 기록 단어, React 문서, home directory로의 경로,

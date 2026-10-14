@@ -117,7 +117,11 @@ test('each workflow declares exactly its triggers', () => {
 test('the push check runs the record checks and the TypeScript checks', () => {
   assert.deepEqual(variable('CI_PUSH_TARGETS'), ['toolchain-check', 'push-gate-commit', 'check-records', 'typecheck', 'lint-ts']);
   assert.deepEqual(recipe('check-records'), ['node scripts/check-records.mts']);
-  assert.deepEqual(runs(workflow('push-gate.yml').jobs['push-gate']!), [...INSTALL_KIT, 'make ci-push']);
+  // make toolchain-check of ci-push reads the Rust of rust-toolchain.toml and the tools of mise.lock, so the job installs
+  // both first, the Rust through the target that make ci-setup runs too.
+  assert.deepEqual(runs(workflow('push-gate.yml').jobs['push-gate']!), [...INSTALL_KIT, 'make install-tools', 'make install-rust', 'make ci-push']);
+  assert.deepEqual(recipe('install-rust'), ['rustup toolchain install --no-self-update']);
+  assert.equal(recipe('ci-setup')[0], '$(MAKE) --no-print-directory install-rust');
 });
 
 test('ci-passed is the last job and needs every other job', () => {
