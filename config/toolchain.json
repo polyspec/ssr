@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "comment": "The toolchains that no other file of the checkout declares. alint is the release that make layout-check runs on config/layout.yml and make install-tools installs, with the sha256 of its archive of each platform.",
-  "alint": {
-    "version": "0.18.2",
+  "comment": "The toolchains that no other file of the checkout declares: the release of mise, which make install-tools TOOLS=npm installs with the sha256 of its archive of each platform. mise.toml declares alint, which make layout-check runs, and mise.lock locks it.",
+  "mise": {
+    "version": "2026.10.8",
     "sha256": {
-      "darwin-arm64": "ccfb4d13c6001b6ee5d31f2e139ce3e9710df54ba75c5601ef2a96be9ad8d4b2",
-      "darwin-x64": "23dc62149aacc8168f922e35e067a244d3c715725182322dcc3564129968dd8c",
-      "linux-arm64": "133ae54580b1c84d6aa1641d72448267241064ee9c5be119bb649f6acad9e005",
-      "linux-x64": "ce1f182bf3205aceab62fad40dbdd7502de638ed89cbb4fef10320803384ff9b"
+      "darwin-arm64": "8228699f316dc17931beb86f7a1aac70e4685535430441492ff4e857c72535ad",
+      "darwin-x64": "28c924c5703c6344489bc73227c59da2194eaf7fd962c5f3d233b9524b7419e9",
+      "linux-x64": "e908ea27810ae358c9a9a7d897ea10197bdc38d39839243e1b36acc31cbef868",
+      "linux-arm64": "88aea77e41c2a3c45a9cbd64df9516ba887017442846213b3de178acbd3c9a46"
     }
   }
 }

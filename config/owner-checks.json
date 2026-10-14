@@ -485,7 +485,9 @@
     },
     {
       "paths": [
-        "config/toolchain.json"
+        "config/toolchain.json",
+        "mise.toml",
+        "mise.lock"
       ],
       "targets": [
         "toolchain-check",

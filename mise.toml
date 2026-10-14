@@ -1,0 +1,4 @@
+# The tools that mise installs into var/tools/mise: `make toolchain-lock` writes their digests into mise.lock and
+# `make install-tools` installs them with `mise install --locked`. go and python are at the pins of kit.
+[tools]
+"github:asamarts/alint" = "0.18.2"
