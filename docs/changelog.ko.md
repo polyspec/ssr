@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 877fbdabec6f0d0559e4aa3fe5407ca12966a78820bb5cff52d77ed0743a77f7 -->
+<!-- source-sha256: c65cdc8c31db8257ca5d84436d4abb0a296f32a457095eb8389a9aa98ca6c3c6 -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- kit 0.0.45를 실행한다. 그 `config/knip-entries.json`은 중첩 npm project를 knip workspace로 선언하고,
+  그 knip은 고정된 runtime의 binary를 무시한다.
 - `config/knip-entries.json`은 `include_str!`이 포함하는 source와 테스트가 경로로 읽는
   `packages/build/tests/fixtures`의 공유 npm fixture를 knip의 entry로 선언한다.
 - kit 0.0.44를 실행한다. `config/layout.yml`은 `layout-root-files`의 `vars.root_files`에 `deny.toml`을 적고,
