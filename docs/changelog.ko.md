@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 9d04f2e9f99887fd6cfb7ca14079582587c34db93db90d20a790b5029f6fe1ed -->
+<!-- source-sha256: 877fbdabec6f0d0559e4aa3fe5407ca12966a78820bb5cff52d77ed0743a77f7 -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- `config/knip-entries.json`은 `include_str!`이 포함하는 source와 테스트가 경로로 읽는
+  `packages/build/tests/fixtures`의 공유 npm fixture를 knip의 entry로 선언한다.
 - kit 0.0.44를 실행한다. `config/layout.yml`은 `layout-root-files`의 `vars.root_files`에 `deny.toml`을 적고,
   제거된 `make install-rust` 대신 `make install-tools`가 `rust-toolchain.toml`의 Rust toolchain을 설치한다.
 - `make lint-ts`의 oxlint가 finding 없이 통과한다. `TextEncoder`의 brand 검사는 `#brand`를 읽고,

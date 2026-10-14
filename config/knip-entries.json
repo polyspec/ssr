@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "entries": {
+    "packages/runtime/src/*.js": "include_str! of packages/runtime/src/web.rs embeds each source into the runtime, which V8 evaluates; no import reaches it, and make test runs it through the Rust tests of packages/runtime",
+    "packages/build/tests/fixtures/*.{ts,tsx,js,mjs}": "the shared npm fixture that the Rust tests of the packages build and run by path, the browser scripts browser*.mjs through the adapter tests and tests/tools/browser-launch.test.mts; no import reaches them"
+  }
+}

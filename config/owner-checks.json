@@ -166,6 +166,15 @@
     },
     {
       "paths": [
+        "config/knip-entries.json"
+      ],
+      "targets": [
+        "kit-check",
+        "lint-ts"
+      ]
+    },
+    {
+      "paths": [
         "tsconfig.json"
       ],
       "targets": [
