@@ -5,6 +5,7 @@
 
 ## Unreleased
 
+- ssr runs the shared tools of `@polyspec/kit`: every sub-item of S-50 is complete.
 - Run kit 0.0.45, whose `config/knip-entries.json` declares a nested npm project as a knip workspace
   and whose knip ignores the binaries of the pinned runtimes.
 - `config/knip-entries.json` declares the sources that `include_str!` embeds as entries of knip and

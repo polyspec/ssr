@@ -1,11 +1,12 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 6fe53fb2bc3fe5317f193c33d9af7f4b4d8fabec796cdda6cacb229753fbea2d -->
+<!-- source-sha256: fe49aea7686b0b3658ee7a16465e5c9309c4855dcaf168eb85333c18c9a0029e -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- ssr은 `@polyspec/kit`의 공유 도구를 실행한다. S-50의 모든 하위 항목이 완료되었다.
 - kit 0.0.45를 실행한다. 그 `config/knip-entries.json`은 중첩 npm project를 knip workspace로 선언하고,
   그 knip은 고정된 runtime의 binary를 무시한다.
 - `config/knip-entries.json`은 `include_str!`이 포함하는 source를 knip의 entry로, 테스트가 경로로 읽는
