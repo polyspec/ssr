@@ -8,7 +8,6 @@ license.workspace = true
 [lints]
 workspace = true
 
-
 [dependencies]
 http.workspace = true
 polyspec-ssr-build = { path = "../build", version = "=0.0.2" }
