@@ -1,5 +1,5 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: c65cdc8c31db8257ca5d84436d4abb0a296f32a457095eb8389a9aa98ca6c3c6 -->
+<!-- source-sha256: 6fe53fb2bc3fe5317f193c33d9af7f4b4d8fabec796cdda6cacb229753fbea2d -->
 [English](changelog.md)
 
 # 변경 기록
@@ -8,8 +8,9 @@
 
 - kit 0.0.45를 실행한다. 그 `config/knip-entries.json`은 중첩 npm project를 knip workspace로 선언하고,
   그 knip은 고정된 runtime의 binary를 무시한다.
-- `config/knip-entries.json`은 `include_str!`이 포함하는 source와 테스트가 경로로 읽는
-  `packages/build/tests/fixtures`의 공유 npm fixture를 knip의 entry로 선언한다.
+- `config/knip-entries.json`은 `include_str!`이 포함하는 source를 knip의 entry로, 테스트가 경로로 읽는
+  `packages/build/tests/fixtures`의 공유 npm fixture를 그 entry와 Rust 테스트만 읽는 의존성과 함께 knip
+  workspace로 선언하므로 `make lint-ts`가 통과한다.
 - kit 0.0.44를 실행한다. `config/layout.yml`은 `layout-root-files`의 `vars.root_files`에 `deny.toml`을 적고,
   제거된 `make install-rust` 대신 `make install-tools`가 `rust-toolchain.toml`의 Rust toolchain을 설치한다.
 - `make lint-ts`의 oxlint가 finding 없이 통과한다. `TextEncoder`의 brand 검사는 `#brand`를 읽고,

@@ -7,8 +7,10 @@
 
 - Run kit 0.0.45, whose `config/knip-entries.json` declares a nested npm project as a knip workspace
   and whose knip ignores the binaries of the pinned runtimes.
-- `config/knip-entries.json` declares the sources that `include_str!` embeds and the shared npm fixture
-  of `packages/build/tests/fixtures`, which the tests read by path, as entries of knip.
+- `config/knip-entries.json` declares the sources that `include_str!` embeds as entries of knip and
+  the shared npm fixture of `packages/build/tests/fixtures`, which the tests read by path, as a knip
+  workspace with its entries and the dependencies that only the Rust tests load, so `make lint-ts`
+  passes.
 - Run kit 0.0.44: `config/layout.yml` names `deny.toml` in `vars.root_files` of `layout-root-files`,
   and `make install-tools` installs the Rust toolchain of `rust-toolchain.toml` in place of
   `make install-rust`, which is removed.
