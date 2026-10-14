@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: fd6cbcca510139751da5b97d12d3e37acb45bae4299cab3083dbec7688fe936d -->
+<!-- source-sha256: f0d02846992c0dffe7dfc2942501d7e487741a1fa93dd6ba41c8f499f2dc6ebc -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- `make lint-ts`의 oxlint가 finding 없이 통과한다. `TextEncoder`의 brand 검사는 `#brand`를 읽고,
+  fixture `ReactStreamApp.tsx`는 microtask에서 reject한다.
 - job push-gate는 `make toolchain-check` 전에 `mise.lock`의 도구와 `rust-toolchain.toml`의 Rust toolchain을
   설치한다(`make install-rust`).
 - packages/의 Rust를 rustfmt로 정리한다.

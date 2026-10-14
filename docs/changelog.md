@@ -5,6 +5,8 @@
 
 ## Unreleased
 
+- `make lint-ts` runs oxlint without findings: the brand check of `TextEncoder` reads `#brand`
+  and the fixture `ReactStreamApp.tsx` rejects in a microtask.
 - The job push-gate installs the tools of `mise.lock` and the Rust toolchain of
   `rust-toolchain.toml` (`make install-rust`) before `make toolchain-check`.
 - Format the Rust of packages/ with rustfmt.
