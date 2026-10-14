@@ -5,6 +5,8 @@
 
 ## Unreleased
 
+- Install cargo-nextest 0.9.146 and cargo-deny 0.20.2 with mise from `mise.toml` and
+  `mise.lock`; `tools/` and its Python tools are removed, and CI sets up no Python.
 - Run kit 0.0.43, whose oxlint allows the registrations of node:test and whose knip
   takes its entries from the layout.
 - Review the dependencies with the dependency review of kit: `config/dependency-policy.json`

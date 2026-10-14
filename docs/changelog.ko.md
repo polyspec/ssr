@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 7f09ea5a22ee34adfd588d19bc9325082c346533e74bf33f7e2f5d0de4e534d7 -->
+<!-- source-sha256: 848cfbd2ac1e3a8518a6421b0b623c5cdc0e627b33e6e37ec5da908af5bf6552 -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- cargo-nextest 0.9.146과 cargo-deny 0.20.2를 `mise.toml`과 `mise.lock`에서 mise로 설치한다. `tools/`와 그
+  Python 도구를 제거하고, CI는 Python을 준비하지 않는다.
 - kit 0.0.43을 실행한다. 그 oxlint는 node:test의 등록을 허용하고, knip은 entry를 layout에서 얻는다.
 - kit의 dependency review로 의존성을 검토한다. `config/dependency-policy.json`은 npm lock을
   선언하고 sprintf-js와 paste의 advisory를 이유와 함께 받아들이며, `config/dependency-review.json`은
