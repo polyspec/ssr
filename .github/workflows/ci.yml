@@ -59,7 +59,8 @@ jobs:
           name: ci-lint-${{ matrix.runner }}
           path: var/report/ci-targets/
           if-no-files-found: error
-  # The example builds and the workspace tests (CI_TEST_TARGETS); the tests install the build-probe fixture with npm.
+  # The example builds and the workspace tests (CI_TEST_TARGETS); the tests install the fixture packages of
+  # packages/build/tests/fixtures with npm.
   test:
     strategy:
       fail-fast: false

@@ -11,7 +11,7 @@ from tools import install_packages, run_tests
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-FIXTURES = ROOT / "tools/build-probe/tests/fixtures"
+FIXTURES = ROOT / "packages/build/tests/fixtures"
 # The fake browser launch takes this many seconds.
 DELAY = 3
 # Each script runs with its arguments and fails at its first page step because nothing listens.

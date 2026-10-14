@@ -89,12 +89,12 @@ class ToolVersionsTest(TestCase):
     def test_the_repository_declares_every_tool_it_runs(self):
         # Node.js, npm and Rust are declared in .node-version, packageManager of package.json and rust-toolchain.toml,
         # which make toolchain-check of kit checks.
-        self.assertEqual(set(tool_versions.declared()), {"python3", "make", "cargo-nextest", "cargo-deny", "zig"})
+        self.assertEqual(set(tool_versions.declared()), {"python3", "make", "cargo-nextest", "cargo-deny"})
 
 
 class EntryTest(TestCase):
     def test_every_make_entry_outside_the_guard_checks_the_tools_first(self):
-        for target in ("bench", "verify-build", "review-advisories"):
+        for target in ("bench", "review-advisories"):
             self.assertEqual(recipe(target)[0], "python3 -m tools.tool_versions check", target)
 
     def test_no_target_or_tool_runs_a_container_tool_of_the_host(self):
@@ -113,25 +113,7 @@ class EntryTest(TestCase):
     def test_the_full_suite_checks_no_advisory_and_the_review_does(self):
         self.assertEqual(recipe("check-deny"), ["cargo deny check $(DENY_CHECKS)"])
         self.assertIn("DENY_CHECKS = bans licenses sources", (ROOT / "Makefile").read_text().splitlines())
-        self.assertTrue(recipe("verify-engine-deps")[0].endswith("$(DENY_CHECKS)"))
-        [deny] = [command for command in recipe("verify-build") if "cargo deny" in command]
-        self.assertIn("--hide-inclusion-graph $(DENY_CHECKS) || ", deny)
-        self.assertEqual([command for command in recipe("review-advisories") if "cargo deny" in command], [
-            "cargo deny check advisories",
-            "cargo deny --manifest-path verification/engine/Cargo.toml --config deny.toml check "
-            "--hide-inclusion-graph advisories",
-            "cargo deny --manifest-path tools/build-probe/Cargo.toml --config deny.toml --locked check "
-            "--hide-inclusion-graph advisories"])
+        self.assertEqual([command for command in recipe("review-advisories") if "cargo deny" in command],
+                         ["cargo deny check advisories"])
         self.assertNotIn("review-advisories", next(line for line in (ROOT / "Makefile").read_text().splitlines()
                                                    if line.startswith("CHECK_TARGETS = ")))
-
-
-class AccumulationTest(TestCase):
-    def test_every_check_of_the_build_verification_runs(self):
-        commands = recipe("verify-build")
-        self.assertEqual(commands[:2], ["python3 -m tools.tool_versions check", "status=0; \\"])
-        self.assertEqual(commands[-1], "exit $$status")
-        checks = commands[2:-1]
-        self.assertEqual(len(checks), 5)
-        for command in checks:
-            self.assertRegex(command, r" \|\| \{ status=1; echo 'FAIL verify-build: [a-z ]+'; \}; \\$")

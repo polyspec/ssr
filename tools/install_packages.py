@@ -1,6 +1,6 @@
 """Install the packages that the tests build with, once per lock, into an immutable directory.
 
-The tests build the applications of ``tools/build-probe/tests/fixtures`` with the npm packages that
+The tests build the applications of ``packages/build/tests/fixtures`` with the npm packages that
 its ``package.json`` and ``package-lock.json`` declare. The packages are installed with ``npm ci``
 into ``var/packages/<digest>``, where the digest is the SHA-256 of both files, so a changed lock
 selects a new directory and an existing one never changes. An installation runs in a temporary
@@ -12,8 +12,8 @@ The installation also holds the chromium build that its playwright-core version 
 with ``playwright-core install chromium`` into ``browsers``, so the browser cases run the same browser
 on every machine. As the nextest setup script ``install-packages`` (``.config/nextest.toml``) the tool
 writes ``SSR_PACKAGES``, the published directory, ``SSR_FIXTURES``, the fixture source directory, and
-``SSR_BROWSER``, the chromium executable, to the file that ``NEXTEST_ENV`` names. Without ``NEXTEST_ENV`` it prints both assignments, which
-``make verify-build`` and the tool tests use.
+``SSR_BROWSER``, the chromium executable, to the file that ``NEXTEST_ENV`` names. Without ``NEXTEST_ENV`` it prints both assignments, which the
+tool tests use.
 
     python3 -m tools.install_packages
 """
@@ -30,7 +30,7 @@ import time
 
 
 ROOT = Path(__file__).resolve().parents[1]
-FIXTURES = ROOT / "tools/build-probe/tests/fixtures"
+FIXTURES = ROOT / "packages/build/tests/fixtures"
 PACKAGES = ROOT / "var/packages"
 FILES = ("package.json", "package-lock.json")
 

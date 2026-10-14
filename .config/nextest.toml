@@ -30,7 +30,7 @@ slow-timeout = { period = "60s" }
 filter = 'package(polyspec-ssr-server)'
 setup = "build-programs"
 
-# Every test builds with the packages of tools/build-probe/tests/fixtures. Before the tests, this
+# Every test builds with the packages of packages/build/tests/fixtures. Before the tests, this
 # script installs them once per lock into the immutable var/packages/<digest> and names it in
 # SSR_PACKAGES, and names the fixture sources in SSR_FIXTURES (tools/install_packages.py); each
 # test copies the sources into a temporary root of its own. The install has no time limit. The

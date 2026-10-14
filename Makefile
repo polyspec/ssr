@@ -15,15 +15,15 @@ V8_BINDING := $(CURDIR)/var/v8/src_binding_simdutf_release_$(V8_TARGET).rs
 # target while a checklist item is [~], while tracked files have uncommitted changes, while files that are neither tracked
 # nor ignored exist, while the pre-push hook is not installed, while another run of the checkout holds the lock, and when
 # var/full-run.json records a full run of the same tree; each target runs as `make -k <target>` to its end. make
-# rerun-failed (kit.mk) runs only the targets of that record that did not pass. A target that reads the build-probe
-# fixture packages or the V8 inputs names their setup step as a prerequisite, so a failed setup step fails only the
+# rerun-failed (kit.mk) runs only the targets of that record that did not pass. A target that reads the fixture
+# packages of packages/build/tests/fixtures or the V8 inputs names their setup step as a prerequisite, so a failed setup step fails only the
 # targets that read it.
 # The tool test modules of tools/test_*.py (tools/test_ownership.py is the ownership check, no test module) and the
 # packages of packages/, which name the owner targets tool-test-<name> and
 # nextest-<package> below.
 TOOL_TESTS := $(filter-out ownership,$(patsubst tools/test_%.py,%,$(wildcard tools/test_*.py)))
 CRATES := $(patsubst packages/%/Cargo.toml,%,$(wildcard packages/*/Cargo.toml))
-SSR_TARGETS = check-tools check-ownership check-records check-fmt check-clippy check-deny check-engine-deps check-examples check-nextest check-features check-bench
+SSR_TARGETS = check-tools check-ownership check-records check-fmt check-clippy check-deny check-examples check-nextest check-bench
 CHECK_TARGETS = kit-check toolchain-check documents-check owner-validate hooks-check $(SSR_TARGETS)
 # The number of Cargo build jobs of the check targets: 1 by default, so a local build leaves the
 # other processors of the host to the other work; the CI targets set it to the processor count of
@@ -32,19 +32,19 @@ BUILD_JOBS ?= 1
 
 # A make without a target runs the full suite, so no command runs its steps without the guard.
 .DEFAULT_GOAL := check
-.PHONY: check review-advisories ci-setup ci-lint ci-test ci-nextest ci-push ci-python push-records ci-records github-ruleset github-ruleset-check tool-versions-check check-fixtures $(SSR_TARGETS) bench verify-archive verify-engine-deps verify-build
+.PHONY: check review-advisories ci-setup ci-lint ci-test ci-nextest ci-push ci-python push-records ci-records github-ruleset github-ruleset-check tool-versions-check check-fixtures $(SSR_TARGETS) bench verify-archive
 
 check:
 	node $(KIT)/full-run.$(KIT_EXT) run $(CHECK_TARGETS)
 
-check-tools check-ownership check-nextest check-features: check-fixtures
-check-ownership check-clippy check-examples check-nextest check-features check-bench bench: verify-archive
+check-tools check-ownership check-nextest: check-fixtures
+check-ownership check-clippy check-examples check-nextest check-bench bench: verify-archive
 
 check-fixtures $(SSR_TARGETS) $(addprefix tool-test-,$(TOOL_TESTS)) $(addprefix nextest-,$(CRATES)) ci-nextest bench verify-archive: export RUSTY_V8_ARCHIVE := $(V8_ARCHIVE)
 check-fixtures $(SSR_TARGETS) $(addprefix tool-test-,$(TOOL_TESTS)) $(addprefix nextest-,$(CRATES)) ci-nextest bench verify-archive: export RUSTY_V8_SRC_BINDING_PATH := $(V8_BINDING)
-check-fixtures $(SSR_TARGETS) $(addprefix tool-test-,$(TOOL_TESTS)) $(addprefix nextest-,$(CRATES)) ci-nextest bench verify-build: export CARGO_INCREMENTAL := 0
-check-fixtures $(SSR_TARGETS) $(addprefix tool-test-,$(TOOL_TESTS)) $(addprefix nextest-,$(CRATES)) ci-nextest bench verify-build: export CARGO_BUILD_JOBS := $(BUILD_JOBS)
-check-fixtures $(SSR_TARGETS) $(addprefix tool-test-,$(TOOL_TESTS)) $(addprefix nextest-,$(CRATES)) ci-nextest bench verify-build: export CARGO_NET_OFFLINE := true
+check-fixtures $(SSR_TARGETS) $(addprefix tool-test-,$(TOOL_TESTS)) $(addprefix nextest-,$(CRATES)) ci-nextest bench: export CARGO_INCREMENTAL := 0
+check-fixtures $(SSR_TARGETS) $(addprefix tool-test-,$(TOOL_TESTS)) $(addprefix nextest-,$(CRATES)) ci-nextest bench: export CARGO_BUILD_JOBS := $(BUILD_JOBS)
+check-fixtures $(SSR_TARGETS) $(addprefix tool-test-,$(TOOL_TESTS)) $(addprefix nextest-,$(CRATES)) ci-nextest bench: export CARGO_NET_OFFLINE := true
 
 verify-archive:
 	python3 tools/verify_archive.py
@@ -88,10 +88,6 @@ check-deny:
 review-advisories:
 	python3 -m tools.tool_versions check
 	cargo deny check advisories
-	cargo deny --manifest-path verification/engine/Cargo.toml --config deny.toml check --hide-inclusion-graph advisories
-	cargo deny --manifest-path tools/build-probe/Cargo.toml --config deny.toml --locked check --hide-inclusion-graph advisories
-
-check-engine-deps: verify-engine-deps
 
 check-examples:
 	cargo build -p polyspec-ssr-server --example development_process --example socket_process --locked
@@ -99,30 +95,12 @@ check-examples:
 check-nextest:
 	cargo nextest run --workspace --locked --no-tests fail
 
-check-features:
-	python3 tools/check_features.py
-
 check-bench:
 	cargo nextest run -p polyspec-ssr-runtime --example bench --features bench --locked --no-tests fail
 
 bench:
 	python3 -m tools.tool_versions check
 	python3 tools/bench.py
-
-verify-engine-deps:
-	cargo deny --manifest-path verification/engine/Cargo.toml --config deny.toml check --hide-inclusion-graph $(DENY_CHECKS)
-
-# Every check of the build verification runs, also after a failed one; the recipe names each
-# failed check and fails after the last one.
-verify-build:
-	python3 -m tools.tool_versions check
-	status=0; \
-	assignments=$$(python3 -m tools.install_packages) && eval "$$assignments" && export SSR_PACKAGES SSR_FIXTURES SSR_BROWSER || { status=1; echo 'FAIL verify-build: install packages'; }; \
-	cargo fmt --manifest-path tools/build-probe/Cargo.toml -- --check || { status=1; echo 'FAIL verify-build: cargo fmt'; }; \
-	CARGO_TARGET_DIR=$(CURDIR)/target cargo clippy --manifest-path tools/build-probe/Cargo.toml --all-targets --locked -- -D warnings || { status=1; echo 'FAIL verify-build: cargo clippy'; }; \
-	CARGO_TARGET_DIR=$(CURDIR)/target cargo nextest run --manifest-path tools/build-probe/Cargo.toml --test build_verification --locked --no-tests fail || { status=1; echo 'FAIL verify-build: cargo nextest run'; }; \
-	cargo deny --manifest-path tools/build-probe/Cargo.toml --config deny.toml --locked check --hide-inclusion-graph $(DENY_CHECKS) || { status=1; echo 'FAIL verify-build: cargo deny'; }; \
-	exit $$status
 
 # GitHub CI (.github/workflows/ci.yml and push-gate.yml) runs only make targets. A job installs the npm of packageManager
 # (make install-tools TOOLS=npm), the packages of package-lock.json with @polyspec/kit (make install-packages) and the

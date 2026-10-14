@@ -12,28 +12,6 @@ from tools import verify_archive
 
 
 class ArchiveTest(TestCase):
-    def test_build_verification_does_not_require_engine_inputs(self):
-        root = Path(__file__).resolve().parents[1]
-        metadata = subprocess.run(["cargo", "metadata", "--manifest-path", "tools/build-probe/Cargo.toml",
-                                   "--no-deps", "--offline", "--format-version", "1"], cwd=root,
-                                  capture_output=True, text=True, check=False)
-        self.assertEqual(metadata.returncode, 0, metadata.stderr)
-        packages = json.loads(metadata.stdout)["packages"]
-        dependencies = {item["name"] for package in packages for item in package["dependencies"]}
-        self.assertFalse({"deno_core", "v8"} & dependencies)
-        # The recipe is read from the Makefile, not from the output of make --dry-run, whose
-        # text depends on the make version and on sub-makes.
-        lines = (root / "Makefile").read_text().splitlines()
-        self.assertIn("verify-build:", lines)
-        recipe = []
-        for line in lines[lines.index("verify-build:") + 1:]:
-            if not line.startswith("\t"):
-                break
-            recipe.append(line)
-        self.assertTrue(recipe)
-        self.assertFalse([line for line in recipe if "verify_archive" in line or "verify-archive" in line], recipe)
-        self.assertFalse([line for line in lines if line.startswith("verify-build") and "verify-archive" in line])
-
     def test_less_than_ten_gib_free_fails(self):
         with patch.object(verify_archive.shutil, "disk_usage", return_value=SimpleNamespace(free=10 * 1024**3 - 1)):
             with self.assertRaises(ValueError):
@@ -90,7 +68,7 @@ class ArchiveTest(TestCase):
         root = Path(__file__).resolve().parents[1]
         makefile = (root / "Makefile").read_text()
         # Every target that links V8 verifies the archive first.
-        self.assertIn("\ncheck-ownership check-clippy check-examples check-nextest check-features check-bench bench: verify-archive\n",
+        self.assertIn("\ncheck-ownership check-clippy check-examples check-nextest check-bench bench: verify-archive\n",
                       makefile)
         self.assertIn("$(eval nextest-$(crate): verify-archive ;", makefile)
         self.assertIn("librusty_v8_simdutf_release_", makefile)

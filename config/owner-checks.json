@@ -8,7 +8,6 @@
         "tools/test_browser_launch.py",
         "tools/test_build_programs.py",
         "tools/test_cargo_case.py",
-        "tools/test_check_features.py",
         "tools/test_ci.py",
         "tools/test_github_ruleset.py",
         "tools/test_install_packages.py",
@@ -17,7 +16,6 @@
         "tools/test_test_ownership.py",
         "tools/test_tool_versions.py",
         "tools/test_verify_archive.py",
-        "tools/test_verify_engine.py",
         "tools/test_workspace.py"
       ],
       "targets": [
@@ -31,8 +29,7 @@
       ],
       "targets": [
         "nextest-server",
-        "tool-test-build_programs",
-        "tool-test-check_features"
+        "tool-test-build_programs"
       ]
     },
     {
@@ -114,17 +111,7 @@
       ],
       "targets": [
         "check-deny",
-        "verify-engine-deps",
         "tool-test-workspace"
-      ]
-    },
-    {
-      "paths": [
-        "features.json"
-      ],
-      "targets": [
-        "check-features",
-        "tool-test-check_features"
       ]
     },
     {
@@ -134,7 +121,6 @@
       "targets": [
         "tool-test-tool_versions",
         "tool-test-verify_archive",
-        "tool-test-check_features",
         "tool-test-github_ruleset",
         "tool-test-ci",
         "tool-test-run_tests",
@@ -172,8 +158,7 @@
       ],
       "targets": [
         "tool-test-cargo_case",
-        "tool-test-test_ownership",
-        "tool-test-check_features"
+        "tool-test-test_ownership"
       ]
     },
     {
@@ -183,14 +168,6 @@
       "targets": [
         "tool-test-workspace",
         "tool-test-react_document"
-      ]
-    },
-    {
-      "paths": [
-        "tools/check_features.py"
-      ],
-      "targets": [
-        "tool-test-check_features"
       ]
     },
     {
@@ -224,16 +201,7 @@
         "tools/verify_archive.py"
       ],
       "targets": [
-        "tool-test-verify_archive",
-        "tool-test-verify_engine"
-      ]
-    },
-    {
-      "paths": [
-        "tools/verify_engine.py"
-      ],
-      "targets": [
-        "tool-test-verify_engine"
+        "tool-test-verify_archive"
       ]
     },
     {
@@ -256,14 +224,6 @@
     },
     {
       "paths": [
-        "tools/zig-linker-x86_64"
-      ],
-      "targets": [
-        "tool-test-verify_engine"
-      ]
-    },
-    {
-      "paths": [
         "tools/license-fixtures/**"
       ],
       "targets": [
@@ -272,28 +232,11 @@
     },
     {
       "paths": [
-        "tools/build-probe/**"
-      ],
-      "targets": [
-        "verify-build"
-      ]
-    },
-    {
-      "paths": [
-        "tools/build-probe/tests/fixtures/**"
+        "packages/build/tests/fixtures/**"
       ],
       "targets": [
         "check-nextest",
         "tool-test-browser_launch"
-      ]
-    },
-    {
-      "paths": [
-        "verification/engine/**"
-      ],
-      "targets": [
-        "verify-engine-deps",
-        "tool-test-verify_engine"
       ]
     },
     {
@@ -392,8 +335,7 @@
         "packages/build/tests/fixture/**"
       ],
       "targets": [
-        "check-nextest",
-        "verify-build"
+        "check-nextest"
       ]
     },
     {
