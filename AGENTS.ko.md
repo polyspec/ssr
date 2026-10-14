@@ -1,5 +1,5 @@
 <!-- doc-id: agents -->
-<!-- source-sha256: f9a2db794e4cc1e574e64a8831805065e68a5b4d56357afe8d8f840145ce3a6c -->
+<!-- source-sha256: a1f6eb48613563f54f76f86c07ceaa3b0aed7e634cbe1476c5f69e901d81ab88 -->
 # 개발 절차
 
 사용자의 지시가 우선한다. [English](AGENTS.md). 모든 polyspec 저장소의 작업 원칙은
@@ -36,8 +36,9 @@
   검사하며, 설정되지 않은 동안 `make hooks-check`와 `make check`의 guard가 실패한다. workflow
   `.github/workflows/push-gate.yml`은 모든 push, pull request, merge group에서 job `push-gate`로 `make ci-push`를
   실행한다. `make push-gate-commit`은 같은 방식으로 실패하며 hook을 실행하지 않은 push에도 그렇고, `make
-  push-records`는 `tools/check.py`의 기록 검사(단어, React 문서, 경로, 시간 assertion)를 실행하므로 기록 검사가
-  실패하는 commit은 `main`에 오르지 않는다. CI는 `tools/check.py`의 모든 검사를 실행한다(`make ci-records`).
+  check-records`는 `scripts/check-records.mts`의 기록 검사(단어, React 문서, 경로, 시간 assertion)를 실행하므로 기록
+  검사가 실패하는 commit은 `main`에 오르지 않는다. 이 job은 `scripts/`와 `tests/`의 TypeScript의 type과 lint인
+  `make typecheck`와 `make lint-ts`도 실행한다.
 - 모든 변경은 pull request와 merge queue를 거쳐 `main`에 들어간다. 이 저장소의 어떤 명령도 `main`을 push하지 않는다.
   branch는 GitHub의 표준 명령이나 GitHub UI로 게시한다.
 
@@ -67,7 +68,8 @@
 - `0.0.2` 라이브러리 하나를 개발한다. 크레이트는 `polyspec-ssr-core`, `polyspec-ssr-build`,
   `polyspec-ssr-runtime`, `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`,
   `polyspec-ssr-adapter-svelte`, `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-nonce`,
-  `polyspec-ssr-server`이며 각각 `crates/<crate>`에 있고 라이브러리 이름은 `polyspec_ssr_core` 등이다.
+  `polyspec-ssr-server`이며 각각 접두사 `polyspec-ssr-`를 뺀 `packages/<name>`(`packages/core` 등)에 있고 라이브러리
+  이름은 `polyspec_ssr_core` 등이다.
 - 라이브러리는 Node 프로세스를 실행하지 않는다. 운영 빌드 명령과 렌더 서버는 별도 Rust 프로세스에서 실행한다.
   렌더 프로세스는 생존 기간 동안 불변 번들·스냅샷 키 하나를 선택한다. 새 번들은 새 렌더 프로세스를
   사용하며 동시 요청과 여러 서비스는 선택한 전체 앱 번들을 공유한다.
@@ -141,7 +143,7 @@
   feat, fix, docs, style, refactor, test, chore 중 하나다. `make commits-check`는 message를 `config/commits.json`과
   비교하고, pre-push hook은 push되는 commit을 검사한다.
 - 개발 중에는 변경을 소유한 unit 수준의 Red·Green 테스트만 실행한다. 전체 검사와 end-to-end 검사(`make check`의
-  target, `make verify-build`, ownership 검사)와 Linux build와 test는 모든 pull request,
+  target, 그중 ownership 검사)와 Linux build와 test는 모든 pull request,
   merge group, 수동 실행의 GitHub CI(`.github/workflows/ci.yml`)에서 실행한다. 그 job `lint`와 `test`는 각
   architecture에서 lint target과 test target을 실행하고, 각 CI target은 정확히 한 job에서 실행된다. 어떤 규칙도 push 전에 이것들을 로컬에서 실행하기를 요구하지 않으며,
   pre-push hook은 진행 중 항목이 있는 push만 거부한다. 로컬 전체 실행은 요청이 있을 때만, 활성 체크리스트 항목이 모두
@@ -177,14 +179,14 @@
    타임아웃을 경과 시간과 함께 보고한다. 종료 코드를 확인하고 파이프 뒤에 숨기지 않는다. 긴 실행 전에 10 GiB 이상의 디스크 여유 공간과
    고정된 로컬 V8 입력을 확인한다. `make check`와 `make bench`는 공식 로컬 archive의 target,
    SHA-256, binding과 Cargo feature를 검증한 뒤 연결한다. 입력 누락이나 변경은 실패이며 어떤 build도 V8을
-   다운로드하거나 V8 소스 빌드로 대체하지 않는다. CI runner는 `make ci-setup`(`tools/fetch_v8.py`)으로만 공식
+   다운로드하거나 V8 소스 빌드로 대체하지 않는다. CI runner는 `make ci-setup`(`scripts/fetch-v8.mts`)으로만 공식
    archive와 binding을 받고, 어떤 build보다 먼저 그 SHA-256을 검증하며, cargo-nextest와 cargo-deny는
    `tools/tool-versions.json`이 SHA-256과 함께 선언한 release archive에서만 설치한다(`tools/fetch_tools.py`). 긴 빌드는 전체 경과 시간 제한 없이 명령과 진행을
    기록하고 테스트 사례에는 개별 제한 시간을 유지한다.
 7. 성능 주장은 유지되는 벤치마크(`make bench`)로 측정하고 한도를 기록한다.
    성능은 측정하며 test나 check를 실패시키지 않는다. 한도를 넘은 측정은 경고를 출력하고 CI에서는
    `::warning::` annotation도 출력한다. test는 동작(작업이 끝났는지, event가 일어났는지)을 assert하고
-   걸린 시간을 출력한다. `tools/check.py`는 측정한 시간에 대한 assertion을 거부한다.
+   걸린 시간을 출력한다. `scripts/check-records.mts`는 측정한 시간에 대한 assertion을 거부한다.
 8. 이벤트가 있으면 폴링하지 않고, 심볼릭 링크와 설정의 상대 경로를 쓰지 않으며, 반복 작업에 임시 스크립트를 쓰지
    않는다. 반복 명령은 Git에 있는 make 목표나 도구다.
 9. Linux는 GitHub CI의 Linux runner에서 검증한다. `.github/workflows/ci.yml`의 job `lint`와 `test`가
@@ -236,7 +238,7 @@ tag는 pull request로 올리지 않는다.
 8. version이나 맥락마다 형식이 다른 출력에서 결과를 읽지 않는다. 도구 결과는 고정된 형식의 기계용 보고에서 읽고,
    recipe는 `make -n`이 아니라 Makefile에서 읽는다.
 9. 추적되는 모든 file은 `config/owner-checks.json`에 소유 검사를 가지고, 다른 crate가 의존하는 모든 crate는
-   `tools/test-ownership.json`에 선언된 동작을 가진다.
+   `config/test-ownership.json`에 선언된 동작을 가진다.
 10. 공유 상태는 한 번에 한 소유자만 가진다. 동시 실행은 자기 directory, holder lock, 내용 주소의 불변 경로를 쓰고,
     lease 없는 공유 임시·출력 directory, database, port를 쓰지 않는다.
 
@@ -254,5 +256,5 @@ tag는 pull request로 올리지 않는다.
   없는 문장은 지운다. 그런 맥락은 Git 밖의 로컬 메모리에 둔다.
 - 영어가 원본이다. `.ko.md` 파일을 같은 변경에서 같은 정보로 갱신한다.
 - 커밋 전에 변경을 소유한 Red·Green 검사인 `make owner-check`를 실행한다. 이는 `config/owner-checks.json`에서 바뀐
-  file의 소유자를 실행한다. `make owner-validate`는 소유자가 없는 추적 file에서 실패하고, 추적되는 file에 기록 검사와
-  용어 검사를 실행하는 `tools/check.py`는 추적되지도 무시되지도 않는 file마다 실패한다.
+  file의 소유자를 실행한다. `make owner-validate`는 소유자가 없는 추적 file에서 실패하고, `make
+  check-records`(`scripts/check-records.mts`)는 추적되는 file에 기록 검사와 용어 검사를 실행한다.

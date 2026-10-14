@@ -56,7 +56,7 @@ The runtime cases verify React hooks and application timer isolation. The browse
 verifies that Suspense fallback and React's client recovery instructions remain usable after a
 server error and that a failed client retry reaches the application error boundary.
 
-The form rows case builds `tools/build-probe/tests/fixtures/FormRowsApp.tsx`, a form with a
+The form rows case builds `packages/build/tests/fixtures/FormRowsApp.tsx`, a form with a
 repeated row group that holds a repeated child group; the fixture creates each row key, `row-` and
 eight hexadecimal digits, during the render from `crypto.getRandomValues` and names each control
 `rows.<key>.<field>`. Two server renders from one pool verify that a nested

@@ -3,7 +3,7 @@
 
 # Test ownership
 
-`tools/test-ownership.json` declares the behavior of every crate that another workspace crate
+`config/test-ownership.json` declares the behavior of every crate that another workspace crate
 depends on: page, build, process, runtime, nonce and the React, Svelte and vanilla adapters; a
 dependency without a declared behavior fails. Each behavior maps
 public names at its owner's crate root to one integration test in that crate and one actual use
@@ -11,9 +11,12 @@ test in every consuming crate. All public root names of a declared owner belong 
 behavior. A declaration gives the crate, integration test target and exact test function. A file
 name alone does not identify an executable case.
 
-`tools/test_ownership.py` derives consumers from Rust imports and qualified paths in source,
-integration tests, examples and benchmarks, including development dependencies. It matches
-dependency names and renamed dependencies from workspace metadata. A dependency on one behavior
+The checker is the Rust package `tests/test-ownership`, which is not a member of the workspace; `make
+check-ownership` runs it (`cargo run --locked --manifest-path tests/test-ownership/Cargo.toml -- <root>`), and `make
+tool-test-test-ownership` runs its tests, formatting and Clippy. It reads the Rust sources with syn, the Rust parser,
+and derives consumers from Rust imports and qualified paths in source,
+integration tests, examples and benchmarks, including development dependencies. It takes the
+packages, their source paths, dependency names and renamed dependencies from `cargo metadata`. A dependency on one behavior
 does not require a test of another behavior from the same crate. Comments and string literals
 do not count as imports. Grouped imports and renamed symbols are supported; wildcard imports
 and crate aliases for declared owners fail because they do not identify a public root name.
@@ -35,12 +38,11 @@ limit; nextest enforces the configured deadline for each test. An interrupted ru
 Cargo process group and waits for the child. A zero exit code without the exact declared case's pass
 result is a failure. The result of each case is read from the machine-readable report of nextest
 (`--message-format libtest-json` at `--message-format-version 0.1`), never from its human output,
-whose text differs between nextest versions; the feature check (`tools/check_features.py`) reads
-its cases the same way.
+whose text differs between nextest versions.
 
 `config/owner-checks.json` maps every tracked file to the make targets of its owning checks: path globs and
-targets, such as `tool-test-<name>` for the Python test module `tools/test_<name>.py`, `nextest-<crate>` for the tests
-of `crates/polyspec-ssr-<crate>`, and `check-tools`, which runs the changed tool test files that it receives in
+targets, such as `tool-test-<name>` for the tool test file `tests/tools/<name>.test.mts`, `nextest-<package>` for the
+tests of `packages/<package>`, and `check-tools`, which runs the changed tool test files that it receives in
 `TESTS`. `make owner-validate` of kit fails for a tracked file without an owner and for a target that does not exist.
 `make owner-check` runs the owners of the files changed against `HEAD` (or of `PATHS`), once each; these are the Red
 and Green tests to run before a commit.

@@ -1,16 +1,14 @@
 <!-- doc-id: engine -->
-<!-- source-sha256: d52cb176b3fce634104193aba7ba12d1cbce451f2c059b62106eea69becf4f11 -->
+<!-- source-sha256: 9f07ca763a2b9ea03743e4591f97aa3793cf745496a43cc7991c614d15071bd2 -->
 [English](engine.md)
 
 # 엔진 검증
 
 ## 버전과 로컬 입력
 
-`verification/engine`의 검증 프로그램은 `deno_core =0.412.0`,
-`deno_webidl =0.259.0`, `deno_web =0.290.0`을 고정한다. 커밋한 잠금 파일은
-`deno_v8 0.4.0`과 `v8 150.4.0`을 선택한다. 이 프로그램은 `deno_webidl` 및
-`deno_web` 확장을 사용하여 `JsRuntime`을 생성하므로 최종 링크에 필요한 세
-크레이트가 모두 포함된다.
+워크스페이스는 `Cargo.toml`의 `[workspace.dependencies]`에서 `deno_core =0.412.0`과 `v8 =150.4.0`을
+고정하고, `polyspec-ssr-runtime`과 `polyspec-ssr-build`가 `deno_core`를 쓴다. 커밋한 잠금 파일은
+`deno_v8 0.4.0`과 `v8 150.4.0`을 선택한다.
 
 `deno_v8 0.4.0`의 기본 `v8` 기능은 `v8 150.4.0`을 선택한다.
 [`v8` 빌드 스크립트](https://docs.rs/crate/v8/150.4.0/source/build.rs)는
@@ -18,13 +16,13 @@
 사전 빌드 아카이브를 받는다. 선택된 기능에 `simdutf`가 포함되므로 아카이브
 이름은 `librusty_v8_simdutf_release_<target>.a.gz`이다. 환경 변수
 `RUSTY_V8_ARCHIVE`로 절대 경로의 로컬 아카이브를 선택한다. 빌드 스크립트는
-이 경로의 SHA-256을 검사하지 않으므로, `tools/verify_archive.py`가 압축된 archive와 일치하는
+이 경로의 SHA-256을 검사하지 않으므로, `scripts/verify-archive.mts`가 압축된 archive와 일치하는
 binding을 검증한 뒤 Cargo를 실행한다. 선택한 대상의 오프라인 잠금 Cargo metadata에서 정확한
-V8 버전과 feature 구성을 검사한다. `make check`, `make bench`와 엔진 검증
-명령은 소스 빌드 설정을 거부하고 검증한 로컬 입력만 선택한다. Cargo 명령을 직접 실행할 때도 같은
+V8 버전과 feature 구성을 검사한다. `make check`, `make bench`처럼 V8을 연결하는 make target은
+소스 빌드 설정을 거부하고 검증한 로컬 입력만 선택한다. Cargo 명령을 직접 실행할 때도 같은
 입력 검증을 먼저 수행하고 archive와 binding 환경 변수를 명시해야 한다.
 
-워크스페이스와 엔진 검증은 crates.io의 `v8 150.4.0` crate를 공식 사전 빌드 아카이브와 함께 쓴다.
+워크스페이스는 crates.io의 `v8 150.4.0` crate를 공식 사전 빌드 아카이브와 함께 쓴다.
 컴파일 시 매크로 의존성 `paste 1.0.15`에는 유지보수 종료 권고 RUSTSEC-2024-0436이 있고 수정 릴리스가 없다.
 `deny.toml`은 그 권고를 이유와 함께 무시한다. `paste`는 runtime 코드가 없는 컴파일 시 proc-macro이고 권고는
 취약점을 보고하지 않는다. `paste`의 취약점 권고가 나오거나 `v8`이 그것을 바꾸면 다시 검토한다.
@@ -50,16 +48,13 @@ V8 버전과 feature 구성을 검사한다. `make check`, `make bench`와 엔�
 | macOS AArch64 및 x86_64 | `ca5adf0cf89c9a70ad460ae73648b2fe89b74aa113b3cb7f757b6a02b758394f` |
 | Linux AArch64 및 x86_64 | `7727826ae479bdb645e807239fb12d1f8e2e23de7a6cf16f5ee592690d1d8506` |
 
-`python3 tools/verify_engine.py <target>`는 이미 있는 검증한 입력을 요구하고 Cargo 네트워크
-접근 없이 빌드한다. 전체 빌드 경과 시간 제한을 적용하지 않고 Cargo 명령과 컴파일러 진행을
-기록한다. 네이티브 대상 실행에는 개별 테스트 제한 시간을 적용한다.
-
 Linux는 GitHub CI의 Linux runner에서 검증한다([workspace](workspace.ko.md)).
 `ubuntu-24.04-arm`과 `ubuntu-24.04`에서 `make ci-setup`이 runner 대상의 공식 archive와 binding을
-가져와 SHA-256을 검증하고(`tools/fetch_v8.py`), `.github/workflows/ci.yml`의 job `lint`와 `test`가
+가져와 SHA-256을 검증하고(`scripts/fetch-v8.mts`), `.github/workflows/ci.yml`의 job `lint`와 `test`가
 workspace의 모든 target에 Clippy를 실행하고(`check-clippy`), `development_process`와
 `socket_process` 예제를 빌드하며(`check-examples`), workspace의 모든 테스트를 실행한다(`ci-nextest`).
-이 테스트는 `v8 150.4.0`을 링크하고 AArch64와 x86_64 Linux에서 엔진을 실행한다.
+이 테스트는 `v8 150.4.0`을 링크하고 AArch64와 x86_64 Linux에서 엔진을 실행한다. macOS는 host에서 실행하는
+workspace의 테스트(`make check`)로 검증한다.
 
 ## 렌더 스냅샷
 
@@ -78,25 +73,4 @@ workspace의 모든 target에 Clippy를 실행하고(`check-clippy`), `developme
 macOS AArch64의 공식 archive 네이티브 테스트는 프로세스 키 변경 거부와 같은 초기화 난수를
 유지하는 워커 4개의 병렬 렌더 80회, 요청 변경값 격리를 검증한다. React 스트림 테스트는 반복
 요청 context에서 실제 `renderToReadableStream` 출력을 검증한다. 다중 프로세스 테스트는
-애플리케이션 번들 3개와 모듈 하나를 별도 프로세스에서 동시에 렌더한다. 이 테스트는 다른 대상의
-빌드 증거와 별개다.
-
-## 빌드 증거
-
-macOS와 Linux x86_64 빌드는 Rust 1.98.1과 Zig 0.16.0을 사용하는 macOS
-arm64에서 실행했다. Linux AArch64 빌드는 Rust 1.98.1을 사용하는 ARM64
-Linux 컨테이너에서 실행했다. 다음 결과는 대상별 전체 빌드·링크와 대상
-운영체제에서의 실행을 구분한다.
-
-| 대상 | 전체 빌드·링크 | 실행 | 증거 |
-| --- | --- | --- | --- |
-| `aarch64-apple-darwin` | 통과 | 호스트에서 통과 | Mach-O arm64, SHA-256 `39cd07f5f6a87f16cda29737753b8936244435ff391e5d8a3faff4dc0bdc3ad3` |
-| `x86_64-apple-darwin` | 통과 | Rosetta에서 통과 | Mach-O x86_64, SHA-256 `acb98063a9b95ed015a289918ecfd956d26b5085ab9ef6a78d4536a2a769eb1b` |
-| `x86_64-unknown-linux-gnu` | Zig 교차 링커로 통과 | Linux에서는 실행하지 않음 | ELF x86-64, SHA-256 `7d6be12196b0baea76a2118948f914eebe807ca4e0b5e0d7c31bad87e938f40a` |
-| `aarch64-unknown-linux-gnu` | ARM64 Linux 컨테이너에서 통과 | 같은 컨테이너에서 통과 | ELF AArch64, SHA-256 `c4687edd8619e2e9cb04cf639d86e1b8532485f9c29e08bdfc3ec10866282258` |
-
-네 빌드는 관리 중인 매크로 패키지를 선택하는 V8 150.4.0을 사용했다. 네이티브
-AArch64 Linux 빌드는 Rust 1.98.1과 위 아카이브 해시로 완료됐다.
-`make verify-engine-deps`는
-권고, 라이선스, 소스 및 금지 의존성 오류를 보고하지 않는다. Linux x86_64는 macOS에서 교차 링커로 전체 링크했다. Linux
-x86_64에서의 실행은 이 빌드 기준에 포함되지 않는다.
+애플리케이션 번들 3개와 모듈 하나를 별도 프로세스에서 동시에 렌더한다.

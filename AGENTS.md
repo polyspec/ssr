@@ -37,9 +37,9 @@ repository are in [PRINCIPLES.md](PRINCIPLES.md); this file states the rules of 
   `.githooks` when it differs; `make hooks` sets and checks it, and `make hooks-check` and the guard of `make check` fail
   while it is not set. The workflow `.github/workflows/push-gate.yml` runs `make ci-push` in the job `push-gate` on every
   push, pull request and merge group: `make push-gate-commit` fails the same way, also for a push that did not run the
-  hook, and `make push-records` runs the record checks of `tools/check.py` (the words, the React document, the paths and
-  the timed assertions), so a commit whose records fail never reaches `main`; CI runs every check of `tools/check.py`
-  (`make ci-records`).
+  hook, and `make check-records` runs the record checks of `scripts/check-records.mts` (the words, the React document,
+  the paths and the timed assertions), so a commit whose records fail never reaches `main`; the job also runs `make
+  typecheck` and `make lint-ts`, the types and the lint of the TypeScript of `scripts/` and `tests/`.
 - Every change reaches `main` through a pull request and the merge queue; no command of this
   repository pushes `main`. Publish a branch with the standard commands of GitHub, or with the
   GitHub UI:
@@ -75,7 +75,8 @@ repository are in [PRINCIPLES.md](PRINCIPLES.md); this file states the rules of 
 - Develop one `0.0.2` library. The crates are `polyspec-ssr-core`, `polyspec-ssr-build`,
   `polyspec-ssr-runtime`, `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`,
   `polyspec-ssr-adapter-svelte`, `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-nonce` and
-  `polyspec-ssr-server`, each in `crates/<crate>`, with the libraries `polyspec_ssr_core` and so on.
+  `polyspec-ssr-server`, each in `packages/<name>` without the prefix `polyspec-ssr-` (`packages/core` and so on), with
+  the libraries `polyspec_ssr_core` and so on.
 - The library runs no Node process. Production build commands and render servers run in separate Rust processes.
   A renderer process selects one immutable bundle and snapshot key for its lifetime. New bundles
   use new renderer processes; request concurrency and services share the selected full application bundle.
@@ -164,7 +165,7 @@ repository are in [PRINCIPLES.md](PRINCIPLES.md); this file states the rules of 
   type is one of feat, fix, docs, style, refactor, test or chore. `make commits-check` checks the
   messages against `config/commits.json`, and the pre-push hook checks the pushed commits.
 - During development run only the unit-level Red and Green tests that own the change. The full
-  and end-to-end checks (the targets of `make check`, `make verify-build` and the ownership check) and the
+  and end-to-end checks (the targets of `make check`, the ownership check among them) and the
   Linux build and tests run in GitHub CI on every pull request,
   merge group and manual run (`.github/workflows/ci.yml`, whose jobs `lint` and `test` run on each architecture
   the lint targets and the test targets, each CI target in exactly one job); no rule requires a local run of them before a push, and the
@@ -209,14 +210,14 @@ repository are in [PRINCIPLES.md](PRINCIPLES.md); this file states the rules of 
    `make check` and `make bench` verify the target, SHA-256, binding and Cargo features of the
    official local archive before linking. Missing or changed inputs fail; no build downloads V8 or
    substitutes a V8 source build. A CI runner fetches the official archive and binding only through
-   `make ci-setup` (`tools/fetch_v8.py`), which verifies their SHA-256 before any build, and installs
+   `make ci-setup` (`scripts/fetch-v8.mts`), which verifies their SHA-256 before any build, and installs
    cargo-nextest and cargo-deny only from the release archives that `tools/tool-versions.json` declares
    with their SHA-256 (`tools/fetch_tools.py`). Long builds report their commands and progress without a total
    duration limit; test cases retain individual time limits.
 7. Performance claims are measured by the maintained benchmark (`make bench`) with recorded limits.
    Performance is measured and never fails a test or check: a measurement beyond its limit prints a
    warning, with a `::warning::` annotation in CI. A test asserts the behaviour (the work finished,
-   the event happened) and prints the time it took; `tools/check.py` rejects an assertion on a
+   the event happened) and prints the time it took; `scripts/check-records.mts` rejects an assertion on a
    measured time.
 8. No polling where an event exists, no symbolic links, no relative paths in configuration and no
    temporary scripts for repeatable work: repeatable commands are make targets or tools in Git.
@@ -276,7 +277,7 @@ is a class: check every tool, test and recipe of this repository for it and fix 
    come from machine-readable reports at a pinned format, and recipes are read from the Makefile,
    not from `make -n`.
 9. Every tracked file has owning checks in `config/owner-checks.json`, and every crate that another
-   crate depends on has a declared behavior in `tools/test-ownership.json`.
+   crate depends on has a declared behavior in `config/test-ownership.json`.
 10. Shared state has one owner at a time: concurrent runs use their own directories, a holder lock
     or a content-addressed immutable path, never a shared temporary or output directory, database
     or port without a lease.
@@ -297,5 +298,5 @@ is a class: check every tool, test and recipe of this repository for it and fix 
 - English is canonical. Update the `.ko.md` file in the same change with equal information.
 - Before each commit, run the Red and Green checks that own the change, `make owner-check`, which
   runs the owners of the changed files from `config/owner-checks.json`; `make owner-validate` fails
-  for a tracked file without an owner, and `tools/check.py`, which runs the record and terminology
-  checks on tracked files, fails for each file that is neither tracked nor ignored.
+  for a tracked file without an owner, and `make check-records` (`scripts/check-records.mts`) runs the record and
+  terminology checks on the tracked files.

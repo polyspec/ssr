@@ -1,5 +1,5 @@
 <!-- doc-id: react -->
-<!-- source-sha256: 37e57d46e6b36d5f6e7b241aa4b4ebc161fe7c070243d902308b74c9e857ce33 -->
+<!-- source-sha256: d282ad06855ecccc498a857599706292248f788bfdfbde26220c4a73fc6b08a6 -->
 [English](react.md)
 
 # React 어댑터
@@ -56,7 +56,7 @@ style에 동일한 nonce 적용, 요청 사이의 서로 다른 nonce 및 나뉜
 Suspense fallback과 React 클라이언트 복구 지시를 사용할 수 있고 클라이언트 재시도가 실패하면
 애플리케이션 오류 경계가 처리하는지 검증한다.
 
-폼 행 사례는 반복 행 그룹이 반복 자식 그룹을 담는 폼인 `tools/build-probe/tests/fixtures/FormRowsApp.tsx`를
+폼 행 사례는 반복 행 그룹이 반복 자식 그룹을 담는 폼인 `packages/build/tests/fixtures/FormRowsApp.tsx`를
 빌드한다. fixture는 렌더 중에 `crypto.getRandomValues`로 `row-`와 16진수 여덟 자리인 각 행 키를 만들고
 각 control 이름을 `rows.<key>.<field>`로 짓는다. 한 풀의 서버 렌더 두 번으로
 중첩 반복 행이 부모 키를 사용하고 두 행 키가 다르며 다음 렌더가 새 부모 키를 만드는지 검증한다.

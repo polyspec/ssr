@@ -5,12 +5,39 @@
 
 ## Unreleased
 
+- Place the packages in `packages/<name>` (`members = ["packages/*"]`), with
+  the package names `polyspec-ssr-<name>`, and the fixture application of the
+  build tests in `packages/build/tests/fixtures`. `[workspace.lints]` denies
+  `unsafe_code` and `clippy::allow_attributes_without_reason`, and every
+  package takes them with `[lints] workspace = true`. `config/layout.yml`
+  declares the folders, checked by `make layout-check`.
+- Run the tools of the repository with Node.js: `scripts/check-records.mts`
+  (`make check-records`), `scripts/install-packages.mts` (the setup script
+  `install-packages`, `make check-fixtures` and `make check-fixture-filter`),
+  `scripts/build-programs.mts`, `scripts/github-ruleset.mts`,
+  `scripts/verify-archive.mts` and `scripts/fetch-v8.mts`, typed by
+  `tsconfig.json` (`make typecheck`), linted by `make lint-ts` and tested by
+  `tests/tools/*.test.mts` through the test runner of kit (`make check-tools`).
+  The job `push-gate` runs `toolchain-check`, `push-gate-commit`,
+  `check-records`, `typecheck` and `lint-ts` and needs no Python.
+- Check the test ownership of `config/test-ownership.json` with the Rust
+  package `tests/test-ownership`, which reads the sources with syn and the
+  workspace with `cargo metadata` (`make check-ownership`).
+- Remove `tools/build-probe` and `make verify-build`, whose checks the tests of
+  `polyspec-ssr-build` make; the engine verification program
+  `verification/engine` with its targets and its build table in
+  `docs/engine.md`, since the CI runners test Linux and the workspace tests
+  test macOS; and `features.json`, `make check-features` and
+  `docs/features.md`, since the document and the tests of each package state
+  its features. `make bench` runs `cargo run --locked -p polyspec-ssr-runtime
+  --example bench --features bench`, and `make review-advisories` runs
+  `cargo deny check advisories`.
 - Run kit 0.0.40, whose tools mise installs from `mise.toml` and `mise.lock`.
 - `make toolchain-check` checks no PHP lint, since ssr declares no PHP (kit 0.0.39).
 - Pin Rust 1.99.0 in `rust-toolchain.toml` and as `rust-version` of every Cargo
   package, and Node.js 26.11.1 in `.node-version` and as `engines.node` of the
   build fixture manifest.
-- Track the license fixtures as the locks `tools/license-fixtures/xxhash-0.8.17.lock`
+- Track the license fixtures as the locks `tests/tools/license-fixtures/xxhash-0.8.17.lock`
   and `xxhash-0.8.18.lock`; the license case writes each package into a temporary
   directory.
 - Run the shared tools of the package `@polyspec/kit`: the Git hooks and the push check,

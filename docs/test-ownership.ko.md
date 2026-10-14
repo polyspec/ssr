@@ -1,18 +1,20 @@
 <!-- doc-id: test-ownership -->
-<!-- source-sha256: 18d5b0d17a63b5f91a6f5670c04d3e5b9075ed65b345c7cbb50481be079ecb41 -->
+<!-- source-sha256: 6460c221881f6298e419e9a627868888df76f7f186c1421f3c5070f047d6323d -->
 [English](test-ownership.md)
 
 # 테스트 소유 위치
 
-`tools/test-ownership.json`은 다른 워크스페이스 크레이트가 의존하는 모든 크레이트의 동작을 선언한다:
+`config/test-ownership.json`은 다른 워크스페이스 크레이트가 의존하는 모든 크레이트의 동작을 선언한다:
 페이지, 빌드, 프로세스, 런타임, nonce, React·Svelte·vanilla 어댑터. 선언된 동작이 없는 의존성은 실패한다. 각 동작은 소유 크레이트
 루트의 공개 이름을 해당 크레이트의 통합 테스트 하나와 각 소비 크레이트의 실제 사용 테스트 하나에
 대응시킨다. 선언된 소유 크레이트의 모든 공개 루트 이름은 정확히 한 동작에 속한다. 선언에는 크레이트,
 통합 테스트 대상, 정확한 테스트 함수가 들어간다. 파일 이름만으로는 실행할 사례를 식별할 수 없다.
 
-`tools/test_ownership.py`는 개발 의존성을 포함해 소스·통합 테스트·예제·벤치마크의 Rust import와
-완전 경로 참조에서 소비자를 계산한다. 워크스페이스 메타데이터의 의존성 이름과 변경된 의존성 이름을
-대조한다. 같은 크레이트의 한 동작에 의존한다고 다른 동작의 테스트를 요구하지 않는다. 주석과 문자열은
+검사기는 워크스페이스의 member가 아닌 Rust 패키지 `tests/test-ownership`이다. `make check-ownership`이 이를
+실행하고(`cargo run --locked --manifest-path tests/test-ownership/Cargo.toml -- <root>`), `make
+tool-test-test-ownership`이 그 테스트, 형식, Clippy를 실행한다. 검사기는 Rust 파서 syn으로 Rust 소스를 읽고, 개발
+의존성을 포함해 소스·통합 테스트·예제·벤치마크의 Rust import와 완전 경로 참조에서 소비자를 계산한다. 패키지, 그
+소스 경로, 의존성 이름과 변경된 의존성 이름은 `cargo metadata`에서 가져온다. 같은 크레이트의 한 동작에 의존한다고 다른 동작의 테스트를 요구하지 않는다. 주석과 문자열은
 import로 계산하지 않는다. 그룹 import와 기호 이름 변경을 지원하며, 선언된 소유자의 wildcard import와
 크레이트 별칭은 공개 루트 이름을 식별하지 않으므로 오류다. 공개 이름 선언 누락·중복, 인식하지 못한
 소유자 export, 소비자 누락, 실제 소스 사용이 없는 소비자 선언은 실패한다. 지정한 함수가 해당
@@ -30,10 +32,10 @@ import로 계산하지 않는다. 그룹 import와 기호 이름 변경을 지�
 설정된 기한을 적용한다. 실행기가 중단되면 Cargo 프로세스 그룹을 종료하고 하위 프로세스를 기다린다.
 정확히 선언한 사례의 통과 결과가 없으면 종료 코드가 0이어도 실패다. 각 사례의 결과는 nextest의 기계용 보고
 (`--message-format-version 0.1`의 `--message-format libtest-json`)에서 읽고, nextest version마다 문구가 다른 사람용
-출력에서는 읽지 않는다. feature 검사(`tools/check_features.py`)도 같은 방식으로 사례를 읽는다.
+출력에서는 읽지 않는다.
 
 `config/owner-checks.json`은 추적되는 모든 파일을 그 소유 검사의 make target에 대응시킨다: 경로 glob과 target이며,
-Python 테스트 모듈 `tools/test_<name>.py`의 `tool-test-<name>`, `crates/polyspec-ssr-<crate>` 테스트의
-`nextest-<crate>`, `TESTS`로 받은 바뀐 도구 테스트 파일을 실행하는 `check-tools` 같은 것이다. kit의 `make
+도구 테스트 파일 `tests/tools/<name>.test.mts`의 `tool-test-<name>`, `packages/<package>` 테스트의
+`nextest-<package>`, `TESTS`로 받은 바뀐 도구 테스트 파일을 실행하는 `check-tools` 같은 것이다. kit의 `make
 owner-validate`는 소유자가 없는 추적 파일과 존재하지 않는 target에서 실패한다. `make owner-check`는 `HEAD`와 비교해
 바뀐 파일(또는 `PATHS`)의 소유자를 한 번씩 실행한다. 이것이 커밋 전에 실행할 Red·Green 테스트다.

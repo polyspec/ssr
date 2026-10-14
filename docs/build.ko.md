@@ -1,5 +1,5 @@
 <!-- doc-id: build -->
-<!-- source-sha256: 2979bcce2ebb8989fe7fcb7d359a57d83f7bfae042525a3d970a36ef1e6c60ae -->
+<!-- source-sha256: 2acfb429d7683e9d8c350c618025b518f63140dc192f8cda7fe19708675fdd8c -->
 [English](build.md)
 
 # 빌드 검증
@@ -91,23 +91,23 @@ React 렌더링 코드가 있어야 하며 동적 import는 별도 청크를 출
 샘플은 png, svg, jpg, gif, webp, avif, ico, woff, woff2, ttf 파일의 출력 내용과 해시 이름을
 검증한다. 해석되지 않는 import나 자산은 빌드 실패여야 한다.
 
-`make verify-build`는 버전이 고정된 샘플 패키지를 설치하고 검증 테스트와 검증 도구의
-의존성 검사를 실행한다. 검증 도구는 `tools/build-probe`의 별도 Cargo 워크스페이스에 있다.
-검증 도구는 `github.com/min-median-max/lightningcss`의 branch `ssr/bundler-without-sourcemap`의 `ddead301`에서
+`packages/build/tests/build.rs`의 `polyspec-ssr-build` 테스트는 이 샘플, 즉 `packages/build/tests/fixtures`의
+애플리케이션을 nextest setup script `install-packages`가 설치한 잠금 파일의 고정 패키지로 빌드한다
+([워크스페이스](workspace.ko.md)). `make check`와 CI가 이 테스트를 실행한다.
+워크스페이스는 `github.com/min-median-max/lightningcss`의 branch `ssr/bundler-without-sourcemap`의 `ddead301`에서
 CSS 라이브러리를 쓴다. 이것은 crates.io `1.0.0-alpha.72` 소스에서 소스맵 feature를 번들러에서 명령줄로 옮긴 것이므로
-번들러는 `parcel_sourcemap`과 `rkyv 0.7`(RUSTSEC-2026-0235)에 의존하지 않는다. 루트와 검증 도구 매니페스트는 같은
-commit을 가리키고 `deny.toml`은 그 Git 소스를 허용한다. `tools/check.py`는 추적되는 어떤 파일이든 home directory로
-가는 절대 경로에서 실패하므로 어떤 매니페스트도 한 machine의 체크아웃을 가리키지 않는다. 제품 워크스페이스에는 S-5 전까지 빌드 의존성이 없으며 S-5에서
-해당 크레이트를 제품 빌드에 연결해야 한다.
+번들러는 `parcel_sourcemap`과 `rkyv 0.7`(RUSTSEC-2026-0235)에 의존하지 않는다. 워크스페이스 매니페스트는 그
+commit을 적고 `deny.toml`은 그 Git 소스를 허용한다. `scripts/check-records.mts`는 추적되는 어떤 파일이든 home directory로
+가는 절대 경로에서 실패하므로 어떤 매니페스트도 한 machine의 체크아웃을 적지 않는다.
 
 ## 결과와 API
 
-Rust 1.98.1을 사용하는 macOS aarch64에서 샘플이 통과했다. `Bundler::new(BundlerOptions)`와
+`Bundler::new(BundlerOptions)`와
 `Bundler::generate().await`로 React TSX의 두 진입점을 빌드한다. 각 진입점에 `InputItem`을 지정하고,
 `platform`은 `Browser`, `format`은 `Esm`, `code_splitting`은 `Bool(true)`,
 `entry_filenames`와 `chunk_filenames`는 `[name]-[hash].js`로 지정한다. `asset_filenames`는
 `assets/[name]-[hash][extname]`으로 지정하고 열 가지 확장자를 `ModuleType::Asset`에 대응시킨다.
-검증은 진입 청크의 React 클라이언트·서버 렌더링 코드, 동적 import의 별도 청크, 열 가지 자산의
+테스트는 진입 청크의 React 클라이언트·서버 렌더링 코드, 동적 import의 별도 청크, 열 가지 자산의
 소스 바이트 보존을 확인한다. 누락된 JavaScript 자산의 실패도 확인한다. 자산 샘플은 빌드의
 파일 처리를 확인하기 위한 불투명한 바이트이며 이미지나 글꼴 디코딩은 확인하지 않는다.
 
@@ -120,22 +120,21 @@ Rust 1.98.1을 사용하는 macOS aarch64에서 샘플이 통과했다. `Bundler
 Lightning CSS는 파일을 출력하거나 치환 표시를 최종 URL로 바꾸지 않으므로 이 명시적 자산
 처리가 필요한 대체 방법이다.
 
-`make verify-build`는 Rust 테스트 전에 `npm ci`를 실행한다. 이후 번들링과 CSS 처리는 Node
+setup script `install-packages`는 Rust 테스트 전에 `npm ci`를 실행한다. 이후 번들링과 CSS 처리는 Node
 프로세스 없이 Rust에서 실행된다. 샘플은 브라우저의 이미지·글꼴 디코딩을 검증하지 않으며
-자산 바이트는 미디어 샘플이 아니다. 샘플 테스트 두 개와 의존성 검사가 모두 통과한다.
+자산 바이트는 미디어 샘플이 아니다.
 
 ## 의존성 결과
 
 기존 CSS 번들러 API는 소스맵 지원을 필수로 포함하여 rkyv 0.7.46을 통해
 [RUSTSEC-2026-0235](https://rustsec.org/advisories/RUSTSEC-2026-0235)에 연결됐다.
 CSS 라이브러리는 이제 번들링의 소스맵 지원을 선택적으로 제공한다. 소스 위치는 CSS 모듈
-이름과 `url()` 참조에 해당 스타일시트를 계속 제공한다. 검증 도구는 `sourcemap` 없이
-`bundler`를 사용하며 잠금 파일에는 parcel_sourcemap과 rkyv가 없다. CSS 라이브러리 테스트는
-소스맵 사용 시 120개, 사용하지 않을 때 117개가 통과했다. `make verify-build`의 샘플
-테스트 두 개와 cargo-deny 검사도 모두 통과한다. 필요한 Rolldown 의존성의 정확한 버전인
+이름과 `url()` 참조에 해당 스타일시트를 계속 제공한다. 워크스페이스는 `sourcemap` 없이
+`bundler`를 사용하며 `Cargo.lock`에는 parcel_sourcemap과 rkyv가 없다. CSS 라이브러리 테스트는
+소스맵 사용 시 120개, 사용하지 않을 때 117개가 통과했다. `make check-deny`는 워크스페이스의
+금지 목록, 라이선스, 출처를 검사한다. 필요한 Rolldown 의존성의 정확한 버전인
 xxhash-rust 0.8.18과 dragonbox_ecma 0.1.12의 라이선스 예외는
 [workspace.ko.md](workspace.ko.md)에 기록했다.
-검증 도구의 Cargo 빌드 파일을 제거하고 샘플 패키지를 다시 설치한 클린 빌드도 통과했다.
 
 rolldown 1.2.11은 CSS 모듈에 명시적인 미지원 오류를 반환한다. 선택한 CSS 대체 방법은
 패키지를 해석하는 `SourceProvider`와 명시적인 자산 URL 치환을 포함한 Lightning CSS

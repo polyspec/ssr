@@ -1,16 +1,37 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 85ea7248061a0b580845dee8b7109bc2a96aa54517f5d22d1c95c90b9fded1c3 -->
+<!-- source-sha256: a998cbefb2a6132354bb64911e15cc2f44ce569adc06886b022bb7817897230c -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- package를 `packages/<name>`에 두고(`members = ["packages/*"]`) package 이름은
+  `polyspec-ssr-<name>`이며, build 테스트의 fixture 애플리케이션은
+  `packages/build/tests/fixtures`에 둔다. `[workspace.lints]`는 `unsafe_code`와
+  `clippy::allow_attributes_without_reason`을 deny하고, 모든 package는 `[lints] workspace = true`로
+  이를 따른다. `config/layout.yml`이 folder를 선언하고 `make layout-check`가 검사한다.
+- 저장소의 도구를 Node.js로 실행한다: `scripts/check-records.mts`(`make check-records`),
+  `scripts/install-packages.mts`(setup script `install-packages`, `make check-fixtures`,
+  `make check-fixture-filter`), `scripts/build-programs.mts`, `scripts/github-ruleset.mts`,
+  `scripts/verify-archive.mts`, `scripts/fetch-v8.mts`이며, `tsconfig.json`으로 type을
+  검사하고(`make typecheck`), `make lint-ts`로 lint하며, kit의 test runner로
+  `tests/tools/*.test.mts`를 실행해 테스트한다(`make check-tools`). job `push-gate`는
+  `toolchain-check`, `push-gate-commit`, `check-records`, `typecheck`, `lint-ts`를 실행하며
+  Python이 필요 없다.
+- `config/test-ownership.json`의 테스트 소유권을 소스를 syn으로, workspace를 `cargo metadata`로
+  읽는 Rust package `tests/test-ownership`으로 검사한다(`make check-ownership`).
+- `polyspec-ssr-build`의 테스트가 같은 검사를 하므로 `tools/build-probe`와 `make verify-build`를
+  제거한다. CI runner가 Linux를, workspace 테스트가 macOS를 테스트하므로 엔진 검증 프로그램
+  `verification/engine`과 그 target, `docs/engine.md`의 build 표를 제거한다. 각 package의 문서와
+  테스트가 그 기능을 적으므로 `features.json`, `make check-features`, `docs/features.md`를 제거한다.
+  `make bench`는 `cargo run --locked -p polyspec-ssr-runtime --example bench --features bench`를,
+  `make review-advisories`는 `cargo deny check advisories`를 실행한다.
 - kit 0.0.40을 실행한다. 그 도구는 mise가 `mise.toml`과 `mise.lock`에서 설치한다.
 - ssr은 PHP를 선언하지 않으므로 `make toolchain-check`가 PHP lint를 검사하지 않는다(kit 0.0.39).
 - `rust-toolchain.toml`과 모든 Cargo package의 `rust-version`에 Rust 1.99.0을,
   `.node-version`과 build fixture manifest의 `engines.node`에 Node.js 26.11.1을 고정한다.
-- license fixture를 lock `tools/license-fixtures/xxhash-0.8.17.lock`과 `xxhash-0.8.18.lock`으로
+- license fixture를 lock `tests/tools/license-fixtures/xxhash-0.8.17.lock`과 `xxhash-0.8.18.lock`으로
   추적한다. license 사례는 각 package를 임시 directory에 쓴다.
 - package `@polyspec/kit`의 공유 도구를 실행한다: Git hook과 push 검사, `make check`의 guard,
   문서·owner·commit 검사, CI 보고, `ci-passed`, 릴리스이며 `config/*.json`에 선언한다. 체크리스트는

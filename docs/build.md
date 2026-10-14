@@ -103,24 +103,24 @@ source files and refer to emitted hashed assets. The sample must verify emitted 
 jpg, gif, webp, avif, ico, woff, woff2 and ttf with their source bytes and content-hashed names.
 An unresolved import or asset must fail the build.
 
-Run `make verify-build` to install the pinned sample packages, run the verification tests and
-check the probe dependencies. The probe is a separate Cargo workspace under `tools/build-probe`.
-It uses the CSS library from the branch `ssr/bundler-without-sourcemap` of
+The tests of `polyspec-ssr-build` in `packages/build/tests/build.rs` build this sample, the
+application of `packages/build/tests/fixtures`, with the pinned packages of its lock, which the nextest setup
+script `install-packages` installs ([workspace](workspace.md)); `make check` and CI run them.
+The workspace uses the CSS library from the branch `ssr/bundler-without-sourcemap` of
 `github.com/min-median-max/lightningcss` at `ddead301`, the crates.io `1.0.0-alpha.72` source with
 the source-map feature moved from the bundler to the command line, so the bundler does not depend
-on `parcel_sourcemap` and `rkyv 0.7` (RUSTSEC-2026-0235). The root and probe manifests name the
-same commit, and `deny.toml` allows that Git source. `tools/check.py` fails for an absolute path
-into a home directory in any tracked file, so no manifest names a checkout of one machine. The product workspace has no
-build dependency until S-5, when that crate must be connected to the product build.
+on `parcel_sourcemap` and `rkyv 0.7` (RUSTSEC-2026-0235). The workspace manifest names that
+commit, and `deny.toml` allows that Git source. `scripts/check-records.mts` fails for an absolute path
+into a home directory in any tracked file, so no manifest names a checkout of one machine.
 
 ## Result and API
 
-The sample passed on macOS aarch64 with Rust 1.98.1. `Bundler::new(BundlerOptions)` and
+`Bundler::new(BundlerOptions)` and
 `Bundler::generate().await` build both React TSX entries. Set `input` to an `InputItem` for each
 entry, `platform` to `Browser`, `format` to `Esm`, `code_splitting` to `Bool(true)`, and
 `entry_filenames` and `chunk_filenames` to `[name]-[hash].js`. Set `asset_filenames` to
 `assets/[name]-[hash][extname]` and map each listed extension to `ModuleType::Asset`. The
-verification checks the entry chunks contain React client or server rendering code, the dynamic
+test checks that the entry chunks contain React client or server rendering code, the dynamic
 import emits a separate chunk, and all ten asset types retain their source bytes. The test also
 checks that missing JavaScript assets fail. Asset samples use opaque bytes because this check
 verifies the build's file handling, not image or font decoding.
@@ -134,23 +134,21 @@ and replaces its placeholder with the public URL. The sample verifies the local 
 WOFF2 references and checks that a missing CSS import fails. Lightning CSS does not emit files or
 replace placeholders with final URLs; this explicit asset step is the required replacement.
 
-`make verify-build` runs `npm ci` before the Rust tests. Bundling and CSS processing then run in
+The setup script `install-packages` runs `npm ci` before the Rust tests. Bundling and CSS processing then run in
 Rust with no Node process. The sample does not test browser image or font decoding, and its asset
-bytes are not media fixtures. Both sample tests and the dependency check pass.
+bytes are not media fixtures.
 
 ## Dependency result
 
 The bundled CSS API originally required source-map support and thus
 [RUSTSEC-2026-0235](https://rustsec.org/advisories/RUSTSEC-2026-0235) through rkyv 0.7.46.
 The CSS library now makes source-map support optional for bundling. Its source locations still
-identify the original stylesheet for CSS module names and `url()` references. The probe enables
-`bundler` without `sourcemap`; its lockfile contains neither parcel_sourcemap nor rkyv. The CSS
+identify the original stylesheet for CSS module names and `url()` references. The workspace enables
+`bundler` without `sourcemap`; `Cargo.lock` contains neither parcel_sourcemap nor rkyv. The CSS
 library's tests pass with and without source-map support (120 and 117 tests respectively).
-`make verify-build` passes both sample tests and all cargo-deny checks. The required Rolldown
+`make check-deny` checks the bans, licenses and sources of the workspace. The required Rolldown
 graph uses xxhash-rust 0.8.18 and dragonbox_ecma 0.1.12; exact-version license exceptions are
 recorded in [workspace.md](workspace.md).
-The clean build also passes after removing the probe's Cargo target files and reinstalling the
-sample packages.
 
 Rolldown 1.2.11 rejects CSS modules with an explicit unsupported feature error. The selected
 replacement for CSS is Lightning CSS's bundler with a package-aware `SourceProvider` and explicit
