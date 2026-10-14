@@ -1,4 +1,3 @@
-#![forbid(unsafe_code)]
 
 mod asset_url;
 mod css;

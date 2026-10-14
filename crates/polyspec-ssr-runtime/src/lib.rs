@@ -1,4 +1,3 @@
-#![forbid(unsafe_code)]
 
 mod construct;
 #[cfg(feature = "bench")]

@@ -83,7 +83,6 @@ fn compile_all<'s>(
     Ok(())
 }
 
-#[allow(clippy::unnecessary_wraps)]
 fn resolve_static<'s>(
     context: v8::Local<'s, v8::Context>,
     specifier: v8::Local<'s, v8::String>,

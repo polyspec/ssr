@@ -1,4 +1,3 @@
-#![forbid(unsafe_code)]
 
 mod body;
 mod development;

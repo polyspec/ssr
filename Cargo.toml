@@ -17,6 +17,13 @@ version = "0.0.2"
 rust-version = "1.99.0"
 license = "MIT"
 
+# The lints of every package (S8, config/cargo.schema.json): no unsafe code, and no allow attribute without its reason.
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+allow_attributes_without_reason = "deny"
+
 [workspace.dependencies]
 ordered-json = { package = "polyspec-ordered-json", git = "https://github.com/polyspec/ordered-json", tag = "v0.0.2", version = "=0.0.2" }
 rolldown = "=1.2.11"

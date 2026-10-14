@@ -5,7 +5,17 @@ edition = "2024"
 rust-version = "1.99.0"
 license = "MIT"
 
+[lints]
+workspace = true
+
+
 [workspace]
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+allow_attributes_without_reason = "deny"
 
 [dependencies]
 rolldown = "=1.2.11"

@@ -5,9 +5,19 @@ edition = "2024"
 rust-version = "1.99.0"
 publish = false
 
+[lints]
+workspace = true
+
+
 [dependencies]
 polyspec-ssr-core = { path = "../../crates/polyspec-ssr-core", version = "=0.0.2" }
 polyspec-ssr-runtime = { path = "../../crates/polyspec-ssr-runtime", version = "=0.0.2" }
 
 [workspace]
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+allow_attributes_without_reason = "deny"
 

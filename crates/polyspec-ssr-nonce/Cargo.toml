@@ -5,6 +5,10 @@ license.workspace = true
 edition = "2024"
 rust-version.workspace = true
 
+[lints]
+workspace = true
+
+
 [dependencies]
 lol_html.workspace = true
 

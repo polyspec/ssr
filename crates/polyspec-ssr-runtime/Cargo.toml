@@ -5,6 +5,10 @@ edition = "2024"
 rust-version.workspace = true
 license.workspace = true
 
+[lints]
+workspace = true
+
+
 [dependencies]
 polyspec-ssr-core = { path = "../polyspec-ssr-core", version = "=0.0.2" }
 deno_core.workspace = true

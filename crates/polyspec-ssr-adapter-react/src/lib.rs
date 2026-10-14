@@ -1,4 +1,3 @@
-#![forbid(unsafe_code)]
 
 use polyspec_ssr_core::{Page, Render, RenderResult, Value};
 use std::fmt;
