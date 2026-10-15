@@ -21,6 +21,8 @@ repository are in [PRINCIPLES.md](PRINCIPLES.md); this file states the rules of 
   schemas. A copy is changed in kit and copied again, never edited here; `make kit-check` fails on a changed or missing
   copy. A newer kit is taken by updating `@polyspec/kit` in `package.json` and `package-lock.json`, then `make
   install-packages` and `make kit-sync`.
+- While polyspec versions are 0.0.x, development checkouts link installed polyspec packages to their source as kit
+  `docs/plans/local-links.md` describes; links are never committed.
 - kit pins Node.js 26.12.0 (`node` of `mise.toml`, `engines.node` `>=26.12.0`) and Rust 1.99.0 (`rust-toolchain.toml`,
   `rust-version` of every Cargo package); `make toolchain-check` fails on another declaration. A Korean document holds
   `<!-- source-sha256: ... -->`, the sha256 of its English document, which `make documents-stamp` writes once the

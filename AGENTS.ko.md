@@ -1,5 +1,5 @@
 <!-- doc-id: agents -->
-<!-- source-sha256: 35966b4be309f8eb67f067c5c77db831ffd3e0d05eabb36cca81fa3870322b5b -->
+<!-- source-sha256: ebda16eb92f6cbe807d1307fbb6ee4d3eed7a79b5bb4812b8cfa9d72463f4bd3 -->
 # 개발 절차
 
 사용자의 지시가 우선한다. [English](AGENTS.md). 모든 polyspec 저장소의 작업 원칙은
@@ -22,6 +22,8 @@
   바꾸고 다시 복사하며 여기서 고치지 않는다. 바뀌거나 없는 사본에서 `make kit-check`가 실패한다. 새 kit은
   `package.json`과 `package-lock.json`의 `@polyspec/kit`을 갱신하고 `make install-packages`와 `make kit-sync`를 실행해
   받는다.
+- polyspec version이 0.0.x인 동안 개발 checkout은 kit `docs/plans/local-links.md`가 설명하듯 설치된 polyspec package를
+  그 source에 link하며, link는 commit하지 않는다.
 - kit은 Node.js 26.12.0(`mise.toml`의 `node`, `engines.node` `>=26.12.0`)과 Rust 1.99.0(`rust-toolchain.toml`, 모든 Cargo
   package의 `rust-version`)을 고정하며, 다른 선언에서 `make toolchain-check`가 실패한다. 한국어 문서는 영어 문서의
   sha256인 `<!-- source-sha256: ... -->`를 가지며, 번역이 같은 정보를 담으면 `make documents-stamp`가 이를 쓴다.
