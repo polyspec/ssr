@@ -11,8 +11,10 @@ ifneq ($(wildcard $(KIT)/kit.mk),)
 include $(KIT)/kit.mk
 else
 # The tools of the two steps, as kit.mk names them: the node of the machine starts the bootstrap, and the npm that it installs
-# runs npm ci, by its absolute path (K171).
+# runs npm ci, by its absolute path (K171). The bootstrap also installs the node of the checkout, which a recipe of the
+# repository that install-packages needs starts as $(NODE), as under kit.mk (K185); the other tools come with install-tools.
 BOOTSTRAP_NODE := node
+NODE := $(CURDIR)/var/tools/bin/node
 NPM := $(CURDIR)/var/tools/bin/npm
 ifneq ($(filter-out install-tools install-packages,$(or $(MAKECMDGOALS),the default goal)),)
 $(error $(KIT)/kit.mk is missing; run make install-tools TOOLS=npm, then make install-packages)
