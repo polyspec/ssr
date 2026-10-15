@@ -5,6 +5,9 @@
 
 ## Unreleased
 
+- Run kit 0.0.50: the bootstrap defines `$(NODE)` before kit is installed, kit-check splits the
+  recipe lines with shell-quote, and the dependency policy checks every Composer manifest of the
+  checkout.
 - Run kit 0.0.49: the checkout runs the Node.js 26.12.0 of `mise.toml` from var/tools, `.node-version`
   is gone, the recipes start node by `$(NODE)` and the workflows pin each action by its SHA with its
   version. The tools read JSON through the schemas of `scripts/schema`, and the fixtures of

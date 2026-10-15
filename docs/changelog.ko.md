@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 7907203bb7eff072b640d5bc839c38e96414632832aa25b33be7e11e78c42264 -->
+<!-- source-sha256: 36b8af4cbd5a732360ba3a88e6350d6e9d8dd7e0501a29070ad83adf11deae1c -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- kit 0.0.50을 실행한다. bootstrap은 kit이 설치되기 전에 `$(NODE)`를 정의하고, kit-check는 recipe 줄을
+  shell-quote로 나누며, 의존성 policy는 checkout의 모든 Composer manifest를 검사한다.
 - kit 0.0.49를 실행한다. checkout은 `mise.toml`의 Node.js 26.12.0을 var/tools에서 실행하고, `.node-version`은
   없어졌으며, recipe는 node를 `$(NODE)`로 시작하고, workflow는 각 action을 SHA와 version으로 고정한다. 도구는
   JSON을 `scripts/schema`의 schema로 읽고, build 테스트의 입력 데이터인 `packages/build/tests/fixtures`의
