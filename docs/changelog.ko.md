@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: a01580b2604fda8e96c4b228aea5a9e245ad659c9744d8cdb447883006cb035d -->
+<!-- source-sha256: 547fd598868a5f4293cde6de33123f1c3e0f9543c8bea11fe494b216e442a22b -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- AGENTS 규칙 8은 PRINCIPLES의 S1이 제한하듯 이 저장소가 만드는 것에 대해 심볼릭 링크와 설정의 상대
+  경로를 금지한다.
 - commit message의 기록 단어는 전체 history 대신 push되는 commit에서만 읽는다. `make check-commit-records`는
   `RANGE`를 요구하고 job push-gate에서 실행되며, job은 `RANGE`를 event가 가져오는 commit으로 정한다. 비었거나
   해석되지 않는 range는 실패하고 push된 commit은 다시 읽지 않는다. `make check-records`는 추적되는 파일만 검사하므로

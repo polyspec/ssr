@@ -5,6 +5,8 @@
 
 ## Unreleased
 
+- Rule 8 of AGENTS bans symbolic links and relative paths in configuration for what this
+  repository creates, as S1 of PRINCIPLES limits it.
 - The record words of the commit messages are read for the commits being pushed only, in place of
   the whole history: `make check-commit-records` requires `RANGE` and runs in the job push-gate,
   which sets `RANGE` to the commits that its event brings; an empty or unresolvable range fails, and
