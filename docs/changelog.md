@@ -5,6 +5,8 @@
 
 ## Unreleased
 
+- Run kit 0.0.52: the bootstrap gives allow-remote to npm through `npm_config_allow_remote`, and
+  the release workflow runs kit-check before any release step.
 - Run kit 0.0.50: the bootstrap defines `$(NODE)` before kit is installed, kit-check splits the
   recipe lines with shell-quote, and the dependency policy checks every Composer manifest of the
   checkout.

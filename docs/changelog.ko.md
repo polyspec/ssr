@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 36b8af4cbd5a732360ba3a88e6350d6e9d8dd7e0501a29070ad83adf11deae1c -->
+<!-- source-sha256: e77aece7f32e0891806c2f1884fac29b02fc22681da0ac4ad5d788a963cd6e8c -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- kit 0.0.52를 실행한다. bootstrap은 `npm_config_allow_remote`로 npm에 allow-remote를 주고, release
+  workflow는 모든 release 단계 앞에서 kit-check를 실행한다.
 - kit 0.0.50을 실행한다. bootstrap은 kit이 설치되기 전에 `$(NODE)`를 정의하고, kit-check는 recipe 줄을
   shell-quote로 나누며, 의존성 policy는 checkout의 모든 Composer manifest를 검사한다.
 - kit 0.0.49를 실행한다. checkout은 `mise.toml`의 Node.js 26.12.0을 var/tools에서 실행하고, `.node-version`은
