@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 59254ffe6fd1e76945624f77f544ff9a48cded1b61938c857a2c8a5c48382247 -->
+<!-- source-sha256: 3701a3bb82886b21324109d7d4671e3fe3a22b3ec797cd479dac1a753a0be6d7 -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- AGENTS는 kit `docs/plans/local-links.md`를 가리킨다. polyspec version이 0.0.x인 동안 개발 checkout은 설치된
+  polyspec package를 그 source에 link하며, link는 commit하지 않는다.
 - kit 0.0.53을 실행한다. release-proof는 release가 각 sibling wheel을 나열하는지 검사하며, 옮길 것은 없다.
 - AGENTS 규칙 8은 PRINCIPLES의 S1이 제한하듯 이 저장소가 만드는 것에 대해 심볼릭 링크와 설정의 상대
   경로를 금지한다.

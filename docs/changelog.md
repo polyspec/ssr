@@ -5,6 +5,8 @@
 
 ## Unreleased
 
+- AGENTS points to kit `docs/plans/local-links.md`: while polyspec versions are 0.0.x, development
+  checkouts link installed polyspec packages to their source, and links are never committed.
 - Run kit 0.0.53, whose release-proof checks that the release lists each sibling wheel; nothing
   migrates.
 - Rule 8 of AGENTS bans symbolic links and relative paths in configuration for what this
