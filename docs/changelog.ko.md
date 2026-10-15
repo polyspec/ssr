@@ -1,11 +1,15 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: fe49aea7686b0b3658ee7a16465e5c9309c4855dcaf168eb85333c18c9a0029e -->
+<!-- source-sha256: 7907203bb7eff072b640d5bc839c38e96414632832aa25b33be7e11e78c42264 -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- kit 0.0.49를 실행한다. checkout은 `mise.toml`의 Node.js 26.12.0을 var/tools에서 실행하고, `.node-version`은
+  없어졌으며, recipe는 node를 `$(NODE)`로 시작하고, workflow는 각 action을 SHA와 version으로 고정한다. 도구는
+  JSON을 `scripts/schema`의 schema로 읽고, build 테스트의 입력 데이터인 `packages/build/tests/fixtures`의
+  fixture는 lint에서 빠진다.
 - ssr은 `@polyspec/kit`의 공유 도구를 실행한다. S-50의 모든 하위 항목이 완료되었다.
 - kit 0.0.45를 실행한다. 그 `config/knip-entries.json`은 중첩 npm project를 knip workspace로 선언하고,
   그 knip은 고정된 runtime의 binary를 무시한다.

@@ -5,6 +5,10 @@
 
 ## Unreleased
 
+- Run kit 0.0.49: the checkout runs the Node.js 26.12.0 of `mise.toml` from var/tools, `.node-version`
+  is gone, the recipes start node by `$(NODE)` and the workflows pin each action by its SHA with its
+  version. The tools read JSON through the schemas of `scripts/schema`, and the fixtures of
+  `packages/build/tests/fixtures`, input data of the build tests, are out of the lint.
 - ssr runs the shared tools of `@polyspec/kit`: every sub-item of S-50 is complete.
 - Run kit 0.0.45, whose `config/knip-entries.json` declares a nested npm project as a knip workspace
   and whose knip ignores the binaries of the pinned runtimes.
