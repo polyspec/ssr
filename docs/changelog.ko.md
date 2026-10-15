@@ -1,11 +1,12 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 547fd598868a5f4293cde6de33123f1c3e0f9543c8bea11fe494b216e442a22b -->
+<!-- source-sha256: 59254ffe6fd1e76945624f77f544ff9a48cded1b61938c857a2c8a5c48382247 -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- kit 0.0.53을 실행한다. release-proof는 release가 각 sibling wheel을 나열하는지 검사하며, 옮길 것은 없다.
 - AGENTS 규칙 8은 PRINCIPLES의 S1이 제한하듯 이 저장소가 만드는 것에 대해 심볼릭 링크와 설정의 상대
   경로를 금지한다.
 - commit message의 기록 단어는 전체 history 대신 push되는 commit에서만 읽는다. `make check-commit-records`는

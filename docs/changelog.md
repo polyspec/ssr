@@ -5,6 +5,8 @@
 
 ## Unreleased
 
+- Run kit 0.0.53, whose release-proof checks that the release lists each sibling wheel; nothing
+  migrates.
 - Rule 8 of AGENTS bans symbolic links and relative paths in configuration for what this
   repository creates, as S1 of PRINCIPLES limits it.
 - The record words of the commit messages are read for the commits being pushed only, in place of
