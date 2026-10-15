@@ -1,5 +1,5 @@
 <!-- doc-id: agents -->
-<!-- source-sha256: 07489dd40c880176c9994f5609cf13232521f0f240747572b360eb44d2599c2b -->
+<!-- source-sha256: 35966b4be309f8eb67f067c5c77db831ffd3e0d05eabb36cca81fa3870322b5b -->
 # 개발 절차
 
 사용자의 지시가 우선한다. [English](AGENTS.md). 모든 polyspec 저장소의 작업 원칙은
@@ -189,7 +189,8 @@
    `::warning::` annotation도 출력한다. test는 동작(작업이 끝났는지, event가 일어났는지)을 assert하고
    걸린 시간을 출력한다. `scripts/check-records.mts`는 측정한 시간에 대한 assertion을 거부한다.
 8. 이벤트가 있으면 폴링하지 않고, 심볼릭 링크와 설정의 상대 경로를 쓰지 않으며, 반복 작업에 임시 스크립트를 쓰지
-   않는다. 반복 명령은 Git에 있는 make 목표나 도구다.
+   않는다. 반복 명령은 Git에 있는 make 목표나 도구다. 심볼릭 링크와 상대 경로의 금지는
+   [PRINCIPLES.ko.md](PRINCIPLES.ko.md#repository-기준)의 S1이 제한하듯 이 저장소가 만드는 것에 적용된다.
 9. Linux는 GitHub CI의 Linux runner에서 검증한다. `.github/workflows/ci.yml`의 job `lint`와 `test`가
    `ubuntu-24.04-arm`과 `ubuntu-24.04`에서 workspace를 lint, build, test한다. 어떤 검사도 개발 machine의
    container 도구를 실행하지 않는다.

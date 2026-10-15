@@ -220,7 +220,9 @@ repository are in [PRINCIPLES.md](PRINCIPLES.md); this file states the rules of 
    the event happened) and prints the time it took; `scripts/check-records.mts` rejects an assertion on a
    measured time.
 8. No polling where an event exists, no symbolic links, no relative paths in configuration and no
-   temporary scripts for repeatable work: repeatable commands are make targets or tools in Git.
+   temporary scripts for repeatable work: repeatable commands are make targets or tools in Git. The
+   ban on symbolic links and relative paths covers what this repository creates, as S1 of
+   [PRINCIPLES.md](PRINCIPLES.md#repository-standards) limits it.
 9. Linux is verified on the Linux runners of GitHub CI: the jobs `lint` and `test` of
    `.github/workflows/ci.yml` lint, build and test the workspace on `ubuntu-24.04-arm` and
    `ubuntu-24.04`. No check runs a container tool of a development machine.
