@@ -166,7 +166,7 @@ test('the required checks are the push gate and the job ci-passed', () => {
 test('the Makefile runs the script for each target and publishes nothing', () => {
   const makefile = readFileSync(path.join(ROOT, 'Makefile'), 'utf8');
   for (const [target, mode] of [['github-ruleset', 'apply'], ['github-ruleset-check', 'check']] as const) {
-    assert.match(makefile, new RegExp(`^${target}:\\n\\tnode scripts/github-ruleset\\.mts ${mode}$`, 'm'));
+    assert.match(makefile, new RegExp(`^${target}:\\n\\t\\$\\(NODE\\) scripts/github-ruleset\\.mts ${mode}$`, 'm'));
   }
   assert.doesNotMatch(makefile, /^push:/m);
   const phony = /^\.PHONY:(.*(?:\\\n.*)*)/m.exec(makefile);

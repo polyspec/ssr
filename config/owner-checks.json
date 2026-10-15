@@ -239,14 +239,6 @@
     },
     {
       "paths": [
-        ".node-version"
-      ],
-      "targets": [
-        "toolchain-check"
-      ]
-    },
-    {
-      "paths": [
         "package.json",
         "package-lock.json"
       ],

@@ -16,7 +16,7 @@ deny하고, 모든 패키지는 `[lints] workspace = true`로 이 lint를 따른
 읽지 않고, `make review-advisories`(`cargo deny check advisories`)가 workspace의 보안 공지를 검토한다.
 `mise.toml`은 cargo-nextest 0.9.146과 cargo-deny 0.20.2를 선언하고, `mise.lock`은 모든 platform의 release binary를
 고정하며, `make install-tools`가 mise로 이를 설치하고 `make toolchain-check`가 version 보고를 선언과 비교한다. Node.js, npm, Rust는
-`.node-version`, `package.json`의 `packageManager`, `rust-toolchain.toml`에 kit의 pin으로 선언되고, `make toolchain-check`가
+`mise.toml`, `package.json`의 `packageManager`, `rust-toolchain.toml`에 kit의 pin으로 선언되고, `make toolchain-check`가
 이를 비교한다. 모든 make 호출은 `RUSTUP_AUTO_INSTALL=0`을 설정하므로 없는 toolchain은 설치되지 않고 실패한다. Rust 테스트는 cargo-nextest 0.9.146으로 실행한다. nextest 설정
 `.config/nextest.toml`은 각 테스트를 30초 뒤 종료하고 시작 및 결과와 경과 시간을 출력한다. 테스트 도구가 없으면 명령은
 실패한다. 도구 테스트 `tests/tools/<name>.test.mts`는 `scripts/`의 TypeScript 도구와 저장소 설정(workflow, Makefile,
@@ -69,8 +69,8 @@ job `push-gate`로 `make toolchain-check`가 읽는 `mise.lock`의 도구와 `ru
 `toolchain-check`, `push-gate-commit`(`HEAD`에 대한 kit의 push 검사로, 진행 중인 각 항목을
 error annotation과 job summary에 적고 실패하며 commit이 hook을 mode 100755로 추적하지 않을 때도 실패한다),
 `check-records`(`node scripts/check-records.mts`, 추적되는 파일의 검사: 기록 단어, React 문서, home directory로의 경로,
-시간 assertion), `typecheck`, `lint-ts`. job은 `.node-version`의 Node.js로 `ubuntu-24.04-arm`에서 실행되고, action은
-commit에 고정되며, Python이나 Rust가 필요 없다. ruleset이 `main`에 이 job을 요구하므로 기록 검사가 실패하는
+시간 assertion), `typecheck`, `lint-ts`. job은 `mise.toml`의 Node.js로 `ubuntu-24.04-arm`에서 실행되고, action은
+commit에 고정되어 주석에 version을 적으며, Python이나 Rust가 필요 없다. ruleset이 `main`에 이 job을 요구하므로 기록 검사가 실패하는
 commit은 `main`에 오르지 않는다. kit의 `make documents-check`가 문서 쌍, revision, link와 체크리스트를 검사한다.
 
 `.github/workflows/ci.yml`은 `ubuntu-24.04-arm`과 `ubuntu-24.04` 각각에서 job 두 개를 실행한다. 각 job은 먼저
@@ -140,7 +140,7 @@ release-coverage`는 분류되지 않은 manifest에서 실패한다.
 `make bench`는 렌더 벤치마크를 실행한다. `cargo run --locked -p polyspec-ssr-runtime --example bench --features bench`가
 example `bench`를 빌드해 실행하고, `make check-bench`가 그 테스트를 실행한다. 유지할 측정과 한도는 S-11에 명시한다.
 
-Rust 1.99.0은 고정한 [Rust 배포](https://github.com/rust-lang/rust/releases/tag/1.99.0)이고, Node.js 26.11.1은 `.node-version`이 고정한 Node.js 배포다. 모든 Cargo 패키지는 `rust-version = "1.99.0"`을 선언한다.
+Rust 1.99.0은 고정한 [Rust 배포](https://github.com/rust-lang/rust/releases/tag/1.99.0)이고, Node.js 26.12.0은 `mise.toml`이 고정하고 `make install-tools TOOLS=npm`이 var/tools에 설치하는 Node.js 배포다. 모든 Cargo 패키지는 `rust-version = "1.99.0"`을 선언한다.
 cargo-nextest 0.9.146은 고정한 [테스트 실행기 배포](https://github.com/nextest-rs/nextest/releases/tag/cargo-nextest-0.9.146)다.
 의존성 검사는 MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Unicode-3.0, Zlib,
 MPL-2.0을 허용한다. 다른 라이선스는 검사에서 실패한다.

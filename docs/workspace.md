@@ -17,7 +17,7 @@ Security advisories come from a database that changes over time, so `make check`
 them; `make review-advisories` (`cargo deny check advisories`) reviews them for the workspace.
 `mise.toml` declares cargo-nextest 0.9.146 and cargo-deny 0.20.2, `mise.lock` pins their release binaries for every
 platform, `make install-tools` installs them with mise and `make toolchain-check` compares their version reports with the
-declaration. Node.js, npm and Rust are declared in `.node-version`, `packageManager` of
+declaration. Node.js, npm and Rust are declared in `mise.toml`, `packageManager` of
 `package.json` and `rust-toolchain.toml`, at the pins of kit, and `make toolchain-check` compares them. Every make
 invocation sets `RUSTUP_AUTO_INSTALL=0`, so a missing toolchain fails instead of being installed.
 Rust tests run with cargo-nextest 0.9.146. The nextest configuration `.config/nextest.toml` terminates each test after
@@ -82,8 +82,8 @@ ci-targets` of kit, which are `toolchain-check`, `push-gate-commit` (the push ch
 of kit on `HEAD`, which fails with each item in progress as an error annotation and in the job summary, and when the
 commit does not track the hook with mode 100755), `check-records` (`node scripts/check-records.mts`, the checks of the
 tracked files: the record words, the React document, the paths into a home directory and the timed assertions),
-`typecheck` and `lint-ts`. The job runs on `ubuntu-24.04-arm` with the Node.js of `.node-version`, the actions pinned
-to commits, and needs no Python or Rust. The ruleset requires this job on `main`, so a commit whose
+`typecheck` and `lint-ts`. The job runs on `ubuntu-24.04-arm` with the Node.js of `mise.toml`, the actions pinned
+to commits with their versions in comments, and needs no Python or Rust. The ruleset requires this job on `main`, so a commit whose
 records fail never reaches `main`. `make documents-check` of kit checks the document pairs, revisions and links and the checklists.
 
 `.github/workflows/ci.yml` runs two jobs on each of `ubuntu-24.04-arm` and `ubuntu-24.04`. Each job first installs
@@ -159,7 +159,7 @@ for a manifest that it does not classify.
 builds the example `bench` and runs it, and `make check-bench` runs its tests. The maintained measurements and limits
 are specified in S-11.
 
-Rust 1.99.0 is the pinned [Rust release](https://github.com/rust-lang/rust/releases/tag/1.99.0), and Node.js 26.11.1 is the pinned Node.js release of `.node-version`. Every Cargo package declares `rust-version = "1.99.0"`.
+Rust 1.99.0 is the pinned [Rust release](https://github.com/rust-lang/rust/releases/tag/1.99.0), and Node.js 26.12.0 is the pinned Node.js release of `mise.toml`, which `make install-tools TOOLS=npm` installs into var/tools. Every Cargo package declares `rust-version = "1.99.0"`.
 cargo-nextest 0.9.146 is the pinned [test runner release](https://github.com/nextest-rs/nextest/releases/tag/cargo-nextest-0.9.146).
 The dependency check allows MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Unicode-3.0,
 Zlib and MPL-2.0. Other licenses fail the check.

@@ -22,7 +22,7 @@
   바꾸고 다시 복사하며 여기서 고치지 않는다. 바뀌거나 없는 사본에서 `make kit-check`가 실패한다. 새 kit은
   `package.json`과 `package-lock.json`의 `@polyspec/kit`을 갱신하고 `make install-packages`와 `make kit-sync`를 실행해
   받는다.
-- kit은 Node.js 26.11.1(`.node-version`, `engines.node` `>=26.11.1`)과 Rust 1.99.0(`rust-toolchain.toml`, 모든 Cargo
+- kit은 Node.js 26.12.0(`mise.toml`의 `node`, `engines.node` `>=26.12.0`)과 Rust 1.99.0(`rust-toolchain.toml`, 모든 Cargo
   package의 `rust-version`)을 고정하며, 다른 선언에서 `make toolchain-check`가 실패한다. 한국어 문서는 영어 문서의
   sha256인 `<!-- source-sha256: ... -->`를 가지며, 번역이 같은 정보를 담으면 `make documents-stamp`가 이를 쓴다.
 
@@ -222,7 +222,7 @@ tag는 pull request로 올리지 않는다.
 
 1. 어떤 결과도 시간이나 외부 세계에 따라 달라지지 않는다. 검사는 live registry 조회(`npm outdated`, `npm audit`,
    `npm view`, 실행 시점에 정해지는 잠금 파일, 보안 공지 database)를 하지 않고, 실행 중에 도구를 설치하지 않으며
-   (`@latest`, rustup 자동 설치), 모든 도구를 `.node-version`, `package.json`의 `packageManager`, `rust-toolchain.toml`, `mise.lock`과 함께 `mise.toml`이 선언한 version으로 이 host와 CI에서 같은
+   (`@latest`, rustup 자동 설치), 모든 도구를 `package.json`의 `packageManager`, `rust-toolchain.toml`, `mise.lock`과 함께 `mise.toml`이 선언한 version으로 이 host와 CI에서 같은
    방식으로 실행한다. 보안 공지는 따로 검토한다(`make review-advisories`).
 2. 테스트는 자기가 만든 것이나 자기 실행이 설치하고 검증한 것만 읽는다. 다른 실행이 남긴 build 출력, 설치된 package
    사본, target directory, 추적되지 않는 file, 다른 checkout을 가리키는 컴파일 시점 고정 경로, checkout 사이에 공유한

@@ -21,7 +21,7 @@ repository are in [PRINCIPLES.md](PRINCIPLES.md); this file states the rules of 
   schemas. A copy is changed in kit and copied again, never edited here; `make kit-check` fails on a changed or missing
   copy. A newer kit is taken by updating `@polyspec/kit` in `package.json` and `package-lock.json`, then `make
   install-packages` and `make kit-sync`.
-- kit pins Node.js 26.11.1 (`.node-version`, `engines.node` `>=26.11.1`) and Rust 1.99.0 (`rust-toolchain.toml`,
+- kit pins Node.js 26.12.0 (`node` of `mise.toml`, `engines.node` `>=26.12.0`) and Rust 1.99.0 (`rust-toolchain.toml`,
   `rust-version` of every Cargo package); `make toolchain-check` fails on another declaration. A Korean document holds
   `<!-- source-sha256: ... -->`, the sha256 of its English document, which `make documents-stamp` writes once the
   translation holds the same information.
@@ -254,8 +254,8 @@ is a class: check every tool, test and recipe of this repository for it and fix 
 1. No result depends on the time or the outside world. Checks make no live registry query
    (`npm outdated`, `npm audit`, `npm view`, a lock resolved at run time, a security advisory
    database), install no tool at run time (`@latest`, rustup auto-install) and run every tool at
-   the version that `.node-version`, `packageManager` of `package.json`, `rust-toolchain.toml` and
-   `mise.toml` with `mise.lock` declare, the same way on this host and in CI.
+   the version that `packageManager` of `package.json`, `rust-toolchain.toml` and `mise.toml` with
+   `mise.lock` declare, the same way on this host and in CI.
    Advisories are reviewed separately (`make review-advisories`).
 2. A test reads only what it creates or what its run installs and verifies: no build output,
    installed package copy or target directory left by another run, no untracked file, no path

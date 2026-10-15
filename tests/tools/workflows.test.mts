@@ -90,7 +90,7 @@ test('every job uploads its logs and summary also after a failure', () => {
 test('every action is pinned to a commit', () => {
   for (const name of WORKFLOWS) {
     for (const line of read(`.github/workflows/${name}`).split('\n')) {
-      if (line.includes('uses: ')) assert.match(line, /uses: [a-z-]+\/[a-z-]+@[0-9a-f]{40} # v\d+$/, name);
+      if (line.includes('uses: ')) assert.match(line, /uses: [a-z-]+\/[a-z-]+@[0-9a-f]{40} # v\d+\.\d+\.\d+$/, name);
     }
   }
 });
@@ -116,7 +116,7 @@ test('each workflow declares exactly its triggers', () => {
 
 test('the push check runs the record checks and the TypeScript checks', () => {
   assert.deepEqual(variable('CI_PUSH_TARGETS'), ['toolchain-check', 'push-gate-commit', 'check-records', 'typecheck', 'lint-ts']);
-  assert.deepEqual(recipe('check-records'), ['node scripts/check-records.mts']);
+  assert.deepEqual(recipe('check-records'), ['$(NODE) scripts/check-records.mts']);
   // make toolchain-check of ci-push reads the Rust of rust-toolchain.toml and the tools of mise.lock, so the job installs
   // both first: make install-tools of kit installs the Rust toolchain too (kit K151), so no target of ssr runs rustup.
   assert.deepEqual(runs(workflow('push-gate.yml').jobs['push-gate']!), [...INSTALL_KIT, 'make install-tools', 'make ci-push']);

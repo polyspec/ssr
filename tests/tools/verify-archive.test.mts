@@ -61,7 +61,7 @@ test('the environment rejects source and debug builds, bypasses and another sele
 test('the default commands require the official local inputs', () => {
   const makefile = fs.readFileSync(path.join(ROOT, 'Makefile'), 'utf8');
   // Every target that links V8 verifies the archive first.
-  assert.match(makefile, /\nverify-archive:\n\tnode scripts\/verify-archive\.mts\n/);
+  assert.match(makefile, /\nverify-archive:\n\t\$\(NODE\) scripts\/verify-archive\.mts\n/);
   assert.match(makefile, /\ncheck-ownership check-clippy check-examples check-nextest check-bench bench: verify-archive\n/);
   assert.ok(makefile.includes('$(eval nextest-$(package): verify-archive ;'));
   assert.ok(makefile.includes('librusty_v8_simdutf_release_'));

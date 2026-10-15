@@ -34,7 +34,7 @@ BUILD_JOBS ?= 1
 .PHONY: check review-advisories ci-setup ci-lint ci-test ci-nextest ci-push github-ruleset github-ruleset-check check-fixtures $(SSR_TARGETS) bench verify-archive
 
 check:
-	node $(KIT)/full-run.$(KIT_EXT) run $(CHECK_TARGETS)
+	$(NODE) $(KIT)/full-run.$(KIT_EXT) run $(CHECK_TARGETS)
 
 check-ownership check-nextest: check-fixtures
 check-ownership check-clippy check-examples check-nextest check-bench bench: verify-archive
@@ -46,10 +46,10 @@ check-fixtures $(SSR_TARGETS) $(addprefix tool-test-,$(TOOL_TESTS)) $(addprefix 
 check-fixtures $(SSR_TARGETS) $(addprefix tool-test-,$(TOOL_TESTS)) $(addprefix nextest-,$(PACKAGES)) ci-nextest bench: export CARGO_NET_OFFLINE := true
 
 verify-archive:
-	node scripts/verify-archive.mts
+	$(NODE) scripts/verify-archive.mts
 
 check-fixtures:
-	node scripts/install-packages.mts
+	$(NODE) scripts/install-packages.mts
 
 # The TypeScript of scripts/ and tests/ (tsconfig.json): its types, and the lint of kit (lint-ts of kit.mk).
 typecheck:
@@ -60,9 +60,9 @@ typecheck:
 # tool-test-<name>, and each package the target nextest-<package>, which the owner rules of config/owner-checks.json name
 # for the files they own.
 check-tools:
-	node $(KIT)/run-tests.$(KIT_EXT) node -- $(or $(TESTS),tests/tools)
+	$(NODE) $(KIT)/run-tests.$(KIT_EXT) node -- $(or $(TESTS),tests/tools)
 
-$(foreach test,$(TOOL_TESTS),$(eval tool-test-$(test): ; node $$(KIT)/run-tests.$$(KIT_EXT) node -- tests/tools/$(test).test.mts))
+$(foreach test,$(TOOL_TESTS),$(eval tool-test-$(test): ; $$(NODE) $$(KIT)/run-tests.$$(KIT_EXT) node -- tests/tools/$(test).test.mts))
 $(foreach package,$(PACKAGES),$(eval nextest-$(package): verify-archive ; cargo nextest run -p polyspec-ssr-$(package) --locked --no-tests fail))
 .PHONY: $(addprefix tool-test-,$(TOOL_TESTS)) $(addprefix nextest-,$(PACKAGES))
 
@@ -82,12 +82,12 @@ tool-test-test-ownership:
 # The checks of the tracked files (scripts/check-records.mts); the job push-gate runs them, so a commit whose records fail
 # never reaches main.
 check-records:
-	node scripts/check-records.mts
+	$(NODE) scripts/check-records.mts
 
 # The filter of the setup script install-packages of .config/nextest.toml names exactly the test binaries that read the
 # fixture packages (scripts/install-packages.mts check-filter).
 check-fixture-filter:
-	node scripts/install-packages.mts check-filter
+	$(NODE) scripts/install-packages.mts check-filter
 
 check-fmt:
 	cargo fmt --all -- --check
@@ -135,7 +135,7 @@ CI_TEST_TARGETS = check-examples ci-nextest
 CI_PUSH_TARGETS = toolchain-check push-gate-commit check-records typecheck lint-ts
 
 ci-setup:
-	node scripts/fetch-v8.mts "$$(RUSTUP_AUTO_INSTALL=0 rustc -vV | sed -n 's/^host: //p')"
+	$(NODE) scripts/fetch-v8.mts "$$(RUSTUP_AUTO_INSTALL=0 rustc -vV | sed -n 's/^host: //p')"
 	cargo fetch --locked
 
 ci-lint:
@@ -157,7 +157,7 @@ ci-push:
 # push-gate and ci-passed. github-ruleset creates or updates the ruleset of the declared name and the
 # settings; github-ruleset-check fails when the live ruleset or a setting differs from the declaration.
 github-ruleset:
-	node scripts/github-ruleset.mts apply
+	$(NODE) scripts/github-ruleset.mts apply
 
 github-ruleset-check:
-	node scripts/github-ruleset.mts check
+	$(NODE) scripts/github-ruleset.mts check
