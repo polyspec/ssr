@@ -3,6 +3,9 @@
   "entries": {
     "packages/runtime/src/*.js": "include_str! of packages/runtime/src/web.rs embeds each source into the runtime, which V8 evaluates; no import reaches it, and make test runs it through the Rust tests of packages/runtime"
   },
+  "binaries": {
+    "make": "tests/tools/workflows.test.mts runs make ci-nextest of the Makefile to read the build jobs that it passes to Cargo; make is a system tool that no npm package provides"
+  },
   "ignore": {
     "packages/build/tests/fixtures/**": "input data of the build tests, some deliberately invalid; the Rust tests compile them"
   }

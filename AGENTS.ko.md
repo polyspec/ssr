@@ -1,5 +1,5 @@
 <!-- doc-id: agents -->
-<!-- source-sha256: 0fb0f9f2bc48cdcdf282663d2ae281060eaecf6231b2fcafca14a5598094b459 -->
+<!-- source-sha256: 8a060a4cd448e8420f8902babcbf499305a985196acd13f1fb34f6f50e697d00 -->
 # 개발 절차
 
 사용자의 지시가 우선한다. [English](AGENTS.md). 모든 polyspec 저장소의 작업 원칙은

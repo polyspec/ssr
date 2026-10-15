@@ -1,5 +1,5 @@
 <!-- doc-id: workspace -->
-<!-- source-sha256: f025e6686e221ae3cb72871c71d4b51bfa0a5ea6d90cd84cd5f71b54ae3a7cbd -->
+<!-- source-sha256: 6fd01184491bba412c13ea4d38df0c92d59e29a4518fcbc7d1a82cd5396586b3 -->
 [English](workspace.md)
 
 # 워크스페이스
