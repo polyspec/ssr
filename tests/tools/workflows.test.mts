@@ -25,7 +25,7 @@ const REPORTING_JOBS: Record<string, string[]> = { 'ci.yml': ['lint', 'test'], '
 const CI_JOBS = { lint: ['ci-lint', 'CI_LINT_TARGETS'], test: ['ci-test', 'CI_TEST_TARGETS'] } as const;
 const CI_TARGETS = ['check-fixture-filter', 'check-fmt', 'check-clippy', 'check-deny', 'check-examples', 'ci-nextest'];
 
-type Step = { uses?: string; run?: string; if?: string; with?: Record<string, unknown> };
+type Step = { uses?: string; run?: string; if?: string; with?: Record<string, unknown>; env?: Record<string, string> };
 type Job = { if?: string; needs?: string[]; 'runs-on'?: string; strategy?: { 'fail-fast'?: boolean; matrix?: { runner?: string[] } }; steps: Step[] };
 type Workflow = { on: Record<string, unknown>; jobs: Record<string, Job>; concurrency?: Record<string, unknown> };
 
@@ -123,9 +123,27 @@ test('each workflow declares exactly its triggers', () => {
   });
 });
 
+test('the push check reads the commit messages of the commits that its event brings', () => {
+  // make check-records reads the messages of RANGE only: the commits of a push after the tip it replaced (after the default
+  // branch for a new branch), of a pull request and of a merge group after their base. The checkout holds the whole
+  // history, so the base resolves.
+  const job = known(workflow('push-gate.yml').jobs['push-gate'], 'the job push-gate');
+  assert.equal(known(job.steps[0], 'the checkout step').with?.['fetch-depth'], 0);
+  const step = known(job.steps.find(each => each.run === 'make ci-push'), 'the step make ci-push');
+  assert.deepEqual(step.env, {
+    RANGE: "${{ github.event_name == 'pull_request'"
+      + " && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha)"
+      + " || github.event_name == 'merge_group'"
+      + " && format('{0}..{1}', github.event.merge_group.base_sha, github.event.merge_group.head_sha)"
+      + ' || github.event.created'
+      + " && format('origin/{0}..{1}', github.event.repository.default_branch, github.sha)"
+      + " || format('{0}..{1}', github.event.before, github.sha) }}",
+  });
+});
+
 test('the push check runs the record checks and the TypeScript checks', () => {
   assert.deepEqual(variable('CI_PUSH_TARGETS'), ['toolchain-check', 'push-gate-commit', 'check-records', 'typecheck', 'lint-ts']);
-  assert.deepEqual(recipe('check-records'), ['$(NODE) scripts/check-records.mts']);
+  assert.deepEqual(recipe('check-records'), ['$(NODE) scripts/check-records.mts --range $(or $(RANGE),origin/main..HEAD)']);
   // make toolchain-check of ci-push reads the Rust of rust-toolchain.toml and the tools of mise.lock, so the job installs
   // both first: make install-tools of kit installs the Rust toolchain too (kit K151), so no target of ssr runs rustup.
   assert.deepEqual(runs(known(workflow('push-gate.yml').jobs['push-gate'], 'the job push-gate')), [...INSTALL_KIT, 'make install-tools', 'make ci-push']);

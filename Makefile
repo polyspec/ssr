@@ -79,10 +79,11 @@ tool-test-test-ownership:
 	CARGO_TARGET_DIR=$(CURDIR)/target cargo clippy --locked --manifest-path tests/test-ownership/Cargo.toml --all-targets -- -D warnings
 	cargo deny --manifest-path tests/test-ownership/Cargo.toml --config deny.toml --locked check --hide-inclusion-graph $(DENY_CHECKS)
 
-# The checks of the tracked files (scripts/check-records.mts); the job push-gate runs them, so a commit whose records fail
-# never reaches main.
+# The checks of the tracked files and of the messages of the commits being pushed (scripts/check-records.mts): RANGE is
+# <base>..<head>, as for commits-check of kit, by default origin/main..HEAD; the job push-gate passes the range of its event,
+# so a commit whose records fail never reaches main. A pushed commit is not read again, and an empty range is an error.
 check-records:
-	$(NODE) scripts/check-records.mts
+	$(NODE) scripts/check-records.mts --range $(or $(RANGE),origin/main..HEAD)
 
 # The filter of the setup script install-packages of .config/nextest.toml names exactly the test binaries that read the
 # fixture packages (scripts/install-packages.mts check-filter).

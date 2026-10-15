@@ -1,5 +1,5 @@
 <!-- doc-id: agents -->
-<!-- source-sha256: 8a060a4cd448e8420f8902babcbf499305a985196acd13f1fb34f6f50e697d00 -->
+<!-- source-sha256: 5c211220dffe1df3fbea010c0bca0ca794b5d20c835870b6fd34ba76bedb522b -->
 # 개발 절차
 
 사용자의 지시가 우선한다. [English](AGENTS.md). 모든 polyspec 저장소의 작업 원칙은
@@ -36,7 +36,8 @@
   검사하며, 설정되지 않은 동안 `make hooks-check`와 `make check`의 guard가 실패한다. workflow
   `.github/workflows/push-gate.yml`은 모든 push, pull request, merge group에서 job `push-gate`로 `make ci-push`를
   실행한다. `make push-gate-commit`은 같은 방식으로 실패하며 hook을 실행하지 않은 push에도 그렇고, `make
-  check-records`는 `scripts/check-records.mts`의 기록 검사(단어, React 문서, 경로, 시간 assertion)를 실행하므로 기록
+  check-records`는 `scripts/check-records.mts`의 기록 검사(단어, React 문서, 경로, 시간 assertion, 그리고 push되는
+  commit인 `RANGE`(기본 `origin/main..HEAD`)의 commit message의 단어)를 실행하므로 기록
   검사가 실패하는 commit은 `main`에 오르지 않는다. 이 job은 `scripts/`와 `tests/`의 TypeScript의 type과 lint인
   `make typecheck`와 `make lint-ts`도 실행한다.
 - 모든 변경은 pull request와 merge queue를 거쳐 `main`에 들어간다. 이 저장소의 어떤 명령도 `main`을 push하지 않는다.

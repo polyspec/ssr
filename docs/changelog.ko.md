@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: c7743ec4553f6ec58683e27065db5df692c2948dc5779e821880f1af87ac5a7b -->
+<!-- source-sha256: 1a2d434aeade90933c2d902aa6e3299385122d12a8c4a93bfcc331c79efbf310 -->
 [English](changelog.md)
 
 # 변경 기록
 
 ## Unreleased
 
+- `make check-records`는 전체 history 대신 기본 `origin/main..HEAD`인 `RANGE`의 commit message를 읽고,
+  job push-gate는 `RANGE`를 event가 가져오는 commit으로 정한다. 비었거나 해석되지 않는 range는 실패한다.
 - kit 0.0.52를 실행한다. bootstrap은 `npm_config_allow_remote`로 npm에 allow-remote를 주고, release
   workflow는 모든 release 단계 앞에서 kit-check를 실행한다. checkout은 PHP가 필요 없으므로
   `.php-version`을 선언하지 않는다.

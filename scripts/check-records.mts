@@ -1,13 +1,16 @@
 // Checks the records of ssr: the tracked files of the checkout name no absolute path into a home directory, the documents and
-// the Rust comments use no record word and the documents no unapproved term, the commit messages use no record word, the React
-// documents state the current stream contract, and no test judges a measured time.
+// the Rust comments use no record word and the documents no unapproved term, the messages of the commits being pushed use no
+// record word, the React documents state the current stream contract, and no test judges a measured time.
 //
 // Only tracked files are read, without the copies of kit (the keys of kit.copies of the installed @polyspec/kit, which make
 // kit-check of kit compares with the package), so the result is the same in every checkout of the tree. Files that are neither
 // tracked nor ignored are refused by the guard of the full run of kit (make check), and the push gate runs on clean checkouts.
-// The document pairs, links and checklists are checked by make documents-check of kit.
+// The commit messages are those of the range <base>..<head>, the commits being pushed, as make commits-check of kit reads its
+// RANGE: make check-records passes RANGE, by default origin/main..HEAD, and the job push-gate the range of its event. A pushed
+// commit is not read again, since Git history is not rewritten. The document pairs, links and checklists are checked by make
+// documents-check of kit.
 //
-//   node scripts/check-records.mts
+//   node scripts/check-records.mts --range <base>..<head>
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
@@ -104,8 +107,8 @@ export function markdownFiles(root: string): string[] {
   return tracked(root, '*.md');
 }
 
-/** The record words of the documents, the Rust comments of packages/ and the commit messages, and the unapproved terms of the
- * documents. AGENTS.md names the words and is not read; the execution checklists may name the terms. */
+/** The record words of the documents and the Rust comments of packages/, and the unapproved terms of the documents. AGENTS.md
+ * names the words and is not read; the execution checklists may name the terms. */
 export function checkWords(root: string): string[] {
   const errors: string[] = [];
   for (const file of markdownFiles(root)) {
@@ -125,13 +128,34 @@ export function checkWords(root: string): string[] {
       if (line.trimStart().startsWith('//') && recordWords(line).length) errors.push(`${full}:${index + 1}: prohibited record word`);
     });
   }
-  if (existsSync(path.join(root, '.git'))) {
-    const result = spawnSync('git', ['log', '--format=%B'], { cwd: root, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
-    if (result.error) errors.push(`git log could not start: ${result.error.message}`);
-    else if (result.status !== 0) errors.push(`git log exited with ${result.status ?? result.signal}: ${result.stderr.trim()}`);
-    else if (recordWords(result.stdout).length) errors.push('git log: prohibited record word');
-  }
   return errors;
+}
+
+/** The commits of `range` (`<base>..<head>`, the commits being pushed) in `root`, without merge commits, whose message Git
+ * writes, as `{ id, message }`; the range is read as make commits-check of kit reads RANGE. A range that is not
+ * `<base>..<head>`, that the checkout cannot resolve or that holds no commit is an error: no commit message would be read. */
+export function rangeMessages(root: string, range: string): { id: string; message: string }[] {
+  if (!/^[^\s.]+\.\.[^\s.]+$/.test(range)) {
+    throw new CheckoutError(`the range "${range}" is not <base>..<head>; give the commits being pushed, such as origin/main..HEAD`);
+  }
+  const result = spawnSync('git', ['log', '--no-merges', '--format=%h%x1f%B%x1e', range],
+    { cwd: root, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
+  if (result.error) throw new CheckoutError(`git log ${range} in ${root} could not start: ${result.error.message}`);
+  if (result.status !== 0) {
+    throw new CheckoutError(`the range ${range} does not resolve in ${root}: ${result.stderr.trim().split('\n')[0]}; fetch its commits`);
+  }
+  const commits = result.stdout.split('\x1e').map(entry => entry.replace(/^\n/, '')).filter(Boolean).map(entry => {
+    const separator = entry.indexOf('\x1f');
+    return { id: entry.slice(0, separator), message: entry.slice(separator + 1) };
+  });
+  if (!commits.length) throw new CheckoutError(`the range ${range} holds no commit; give the commits being pushed`);
+  return commits;
+}
+
+/** The record words of the commit messages of `range`, the commits being pushed; a pushed commit is not read again. */
+export function checkCommitMessages(root: string, range: string): string[] {
+  return rangeMessages(root, range).flatMap(({ id, message }) =>
+    recordWords(message).map(word => `commit ${id}: prohibited record word ${word}`));
 }
 
 const REACT_CONTRACT = ['`framework_entry`', '`server_entry`', '`client_entry`', '`Pool::new_react`', '`Pool::render_stream`',
@@ -250,19 +274,23 @@ export function checkTimedAssertions(root: string): string[] {
   return errors;
 }
 
-/** The checks of the tracked files: the paths, the words of the records, the React document and the timed assertions. */
-export function checkRecords(root: string): string[] {
-  return [...checkOutsidePaths(root), ...checkWords(root), ...checkReactDocument(root), ...checkTimedAssertions(root)];
+/** The checks of the tracked files and of the commit messages of `range`: the paths, the words of the records, the React
+ * document and the timed assertions. */
+export function checkRecords(root: string, range: string): string[] {
+  return [...checkOutsidePaths(root), ...checkWords(root), ...checkCommitMessages(root, range), ...checkReactDocument(root),
+    ...checkTimedAssertions(root)];
 }
 
+const USAGE = 'usage: node scripts/check-records.mts --range <base>..<head>\n';
+
 function main(args: string[]): number {
-  if (args.length) {
-    process.stderr.write('usage: node scripts/check-records.mts\n');
+  if (args.length !== 2 || args[0] !== '--range' || !args[1]) {
+    process.stderr.write(USAGE);
     return 2;
   }
   let errors: string[];
   try {
-    errors = checkRecords(ROOT);
+    errors = checkRecords(ROOT, args[1]);
   } catch (error) {
     // The checkout cannot be read: Git fails, the kit package is missing, or a tracked file cannot be opened.
     if (error instanceof CheckoutError || (error instanceof Error && errorCode(error) !== undefined)) {

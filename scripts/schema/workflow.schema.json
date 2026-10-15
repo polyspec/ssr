@@ -30,7 +30,8 @@
                 "uses": { "type": "string" },
                 "run": { "type": "string" },
                 "if": { "type": "string" },
-                "with": { "type": "object" }
+                "with": { "type": "object" },
+                "env": { "type": "object", "additionalProperties": { "type": "string" } }
               }
             }
           }

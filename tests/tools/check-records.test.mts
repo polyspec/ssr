@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test, { type TestContext } from 'node:test';
 import {
-  CheckoutError, checkOutsidePaths, checkReactDocument, checkTimedAssertions, checkWords, markdownFiles,
+  CheckoutError, checkCommitMessages, checkOutsidePaths, checkReactDocument, checkTimedAssertions, checkWords, markdownFiles,
 } from '../../scripts/check-records.mts';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
@@ -33,6 +33,46 @@ function commitAll(root: string): void {
     execFileSync('git', args, { cwd: root, stdio: 'pipe' });
   }
 }
+
+/** Commits the files of the checkout root with the message, also when nothing changed, and returns the short id. */
+function commit(root: string, message: string): string {
+  const user = ['-c', 'user.name=test', '-c', 'user.email=test@example.com', '-c', 'commit.gpgsign=false'];
+  execFileSync('git', [...user, 'commit', '-q', '--allow-empty', '-m', message], { cwd: root, stdio: 'pipe' });
+  return execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+}
+
+test('a record word in a commit message before the range is not read', t => {
+  // A pushed commit is not rewritten, so only the commits being pushed are read; the whole history named the old commit.
+  const root = temporary(t);
+  write(root, { 'example.md': 'text\n' });
+  commitAll(root);
+  commit(root, 'The server answers');
+  commit(root, 'A later change');
+  assert.deepEqual(checkWords(root), []);
+  assert.deepEqual(checkCommitMessages(root, 'HEAD~1..HEAD'), []);
+});
+
+test('a record word in a commit message of the range is named', t => {
+  const root = temporary(t);
+  write(root, { 'example.md': 'text\n' });
+  commitAll(root);
+  commit(root, 'The server answers');
+  const id = commit(root, 'An orphan process');
+  commit(root, 'A later change');
+  assert.deepEqual(checkCommitMessages(root, 'HEAD~2..HEAD'), [`commit ${id}: prohibited record word orphan`]);
+});
+
+test('an empty, unresolvable or malformed range is an error', t => {
+  const root = temporary(t);
+  write(root, { 'example.md': 'text\n' });
+  commitAll(root);
+  const fails = (range: string, pattern: RegExp): void => {
+    assert.throws(() => checkCommitMessages(root, range), (error: unknown) => error instanceof CheckoutError && pattern.test(error.message));
+  };
+  fails('HEAD..HEAD', /^the range HEAD\.\.HEAD holds no commit/);
+  fails('missing..HEAD', /^the range missing\.\.HEAD does not resolve in /);
+  fails('HEAD', /^the range "HEAD" is not <base>\.\.<head>/);
+});
 
 test('the record and term checks report prohibited words', t => {
   const root = temporary(t);
@@ -147,10 +187,12 @@ test('a checkout that git cannot read fails', t => {
       && /^git ls-files -- \*\.md in .* exited with 128: fatal: not a git repository/.test(error.message));
 });
 
-test('the tool takes no argument', () => {
-  const result = spawnSync(process.execPath, ['scripts/check-records.mts', 'records'], { cwd: ROOT, encoding: 'utf8' });
-  assert.equal(result.status, 2);
-  assert.equal(result.stderr, 'usage: node scripts/check-records.mts\n');
+test('the tool takes the range of the commits being pushed and no other argument', () => {
+  for (const args of [[], ['records'], ['--range'], ['--range', 'HEAD~1..HEAD', 'records']]) {
+    const result = spawnSync(process.execPath, ['scripts/check-records.mts', ...args], { cwd: ROOT, encoding: 'utf8' });
+    assert.equal(result.status, 2);
+    assert.equal(result.stderr, 'usage: node scripts/check-records.mts --range <base>..<head>\n');
+  }
 });
 
 const CONTRACT = '`framework_entry` `server_entry` `client_entry` `Pool::new_react` `Pool::render_stream` `ReactAdapter::stream_parts`';
