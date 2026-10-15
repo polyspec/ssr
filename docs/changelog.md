@@ -5,9 +5,11 @@
 
 ## Unreleased
 
-- `make check-records` reads the messages of the commits of `RANGE`, by default `origin/main..HEAD`,
-  in place of the whole history, and the job push-gate sets `RANGE` to the commits that its event
-  brings; an empty or unresolvable range fails. A pushed commit is not read again.
+- The record words of the commit messages are read for the commits being pushed only, in place of
+  the whole history: `make check-commit-records` requires `RANGE` and runs in the job push-gate,
+  which sets `RANGE` to the commits that its event brings; an empty or unresolvable range fails, and
+  a pushed commit is not read again. `make check-records` checks the tracked files only, so
+  `make check` passes on a checkout that matches `origin/main`.
 - Run kit 0.0.52: the bootstrap gives allow-remote to npm through `npm_config_allow_remote`, and
   the release workflow runs kit-check before any release step; the checkout needs no PHP, so it
   declares no `.php-version`.

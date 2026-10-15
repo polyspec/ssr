@@ -31,7 +31,7 @@ BUILD_JOBS ?= 1
 
 # A make without a target runs the full suite, so no command runs its steps without the guard.
 .DEFAULT_GOAL := check
-.PHONY: check review-advisories ci-setup ci-lint ci-test ci-nextest ci-push github-ruleset github-ruleset-check check-fixtures $(SSR_TARGETS) bench verify-archive
+.PHONY: check-commit-records check review-advisories ci-setup ci-lint ci-test ci-nextest ci-push github-ruleset github-ruleset-check check-fixtures $(SSR_TARGETS) bench verify-archive
 
 check:
 	$(NODE) $(KIT)/full-run.$(KIT_EXT) run $(CHECK_TARGETS)
@@ -79,11 +79,16 @@ tool-test-test-ownership:
 	CARGO_TARGET_DIR=$(CURDIR)/target cargo clippy --locked --manifest-path tests/test-ownership/Cargo.toml --all-targets -- -D warnings
 	cargo deny --manifest-path tests/test-ownership/Cargo.toml --config deny.toml --locked check --hide-inclusion-graph $(DENY_CHECKS)
 
-# The checks of the tracked files and of the messages of the commits being pushed (scripts/check-records.mts): RANGE is
-# <base>..<head>, as for commits-check of kit, by default origin/main..HEAD; the job push-gate passes the range of its event,
-# so a commit whose records fail never reaches main. A pushed commit is not read again, and an empty range is an error.
+# The checks of the tracked files (scripts/check-records.mts). check-commit-records checks the messages of the commits of
+# RANGE, <base>..<head> as for commits-check of kit: the commits being pushed, so it has no default, fails with the usage
+# without RANGE and is no target of make check, where no pushed range exists. The job push-gate runs both with the range of
+# its event, so a commit whose records fail never reaches main. A pushed commit is not read again, and an empty or
+# unresolvable range is an error.
 check-records:
-	$(NODE) scripts/check-records.mts --range $(or $(RANGE),origin/main..HEAD)
+	$(NODE) scripts/check-records.mts
+
+check-commit-records:
+	$(NODE) scripts/check-records.mts --range $(RANGE)
 
 # The filter of the setup script install-packages of .config/nextest.toml names exactly the test binaries that read the
 # fixture packages (scripts/install-packages.mts check-filter).
@@ -133,7 +138,7 @@ bench:
 # TypeScript.
 CI_LINT_TARGETS = check-fixture-filter check-fmt check-clippy check-deny
 CI_TEST_TARGETS = check-examples ci-nextest
-CI_PUSH_TARGETS = toolchain-check push-gate-commit check-records typecheck lint-ts
+CI_PUSH_TARGETS = toolchain-check push-gate-commit check-records check-commit-records typecheck lint-ts
 
 ci-setup:
 	$(NODE) scripts/fetch-v8.mts "$$(RUSTUP_AUTO_INSTALL=0 rustc -vV | sed -n 's/^host: //p')"

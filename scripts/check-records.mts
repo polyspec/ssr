@@ -1,16 +1,17 @@
 // Checks the records of ssr: the tracked files of the checkout name no absolute path into a home directory, the documents and
-// the Rust comments use no record word and the documents no unapproved term, the messages of the commits being pushed use no
-// record word, the React documents state the current stream contract, and no test judges a measured time.
+// the Rust comments use no record word and the documents no unapproved term, the React documents state the current stream
+// contract, and no test judges a measured time; with --range, the messages of the commits being pushed use no record word.
 //
 // Only tracked files are read, without the copies of kit (the keys of kit.copies of the installed @polyspec/kit, which make
 // kit-check of kit compares with the package), so the result is the same in every checkout of the tree. Files that are neither
 // tracked nor ignored are refused by the guard of the full run of kit (make check), and the push gate runs on clean checkouts.
 // The commit messages are those of the range <base>..<head>, the commits being pushed, as make commits-check of kit reads its
-// RANGE: make check-records passes RANGE, by default origin/main..HEAD, and the job push-gate the range of its event. A pushed
-// commit is not read again, since Git history is not rewritten. The document pairs, links and checklists are checked by make
-// documents-check of kit.
+// RANGE: make check-commit-records requires RANGE, and the job push-gate passes the range of its event. A pushed commit is not
+// read again, since Git history is not rewritten, so a checkout without a pushed range runs only the checks of the files. The
+// document pairs, links and checklists are checked by make documents-check of kit.
 //
-//   node scripts/check-records.mts --range <base>..<head>
+//   node scripts/check-records.mts                          the checks of the tracked files (make check-records)
+//   node scripts/check-records.mts --range <base>..<head>   the messages of the commits of the range (make check-commit-records)
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
@@ -274,23 +275,22 @@ export function checkTimedAssertions(root: string): string[] {
   return errors;
 }
 
-/** The checks of the tracked files and of the commit messages of `range`: the paths, the words of the records, the React
- * document and the timed assertions. */
-export function checkRecords(root: string, range: string): string[] {
-  return [...checkOutsidePaths(root), ...checkWords(root), ...checkCommitMessages(root, range), ...checkReactDocument(root),
-    ...checkTimedAssertions(root)];
+/** The checks of the tracked files: the paths, the words of the records, the React document and the timed assertions. */
+export function checkRecords(root: string): string[] {
+  return [...checkOutsidePaths(root), ...checkWords(root), ...checkReactDocument(root), ...checkTimedAssertions(root)];
 }
 
-const USAGE = 'usage: node scripts/check-records.mts --range <base>..<head>\n';
+const USAGE = 'usage: node scripts/check-records.mts [--range <base>..<head>]\n';
 
 function main(args: string[]): number {
-  if (args.length !== 2 || args[0] !== '--range' || !args[1]) {
+  const range = args.length === 2 && args[0] === '--range' && args[1] ? args[1] : undefined;
+  if (args.length && range === undefined) {
     process.stderr.write(USAGE);
     return 2;
   }
   let errors: string[];
   try {
-    errors = checkRecords(ROOT, args[1]);
+    errors = range === undefined ? checkRecords(ROOT) : checkCommitMessages(ROOT, range);
   } catch (error) {
     // The checkout cannot be read: Git fails, the kit package is missing, or a tracked file cannot be opened.
     if (error instanceof CheckoutError || (error instanceof Error && errorCode(error) !== undefined)) {

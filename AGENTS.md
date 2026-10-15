@@ -38,8 +38,8 @@ repository are in [PRINCIPLES.md](PRINCIPLES.md); this file states the rules of 
   while it is not set. The workflow `.github/workflows/push-gate.yml` runs `make ci-push` in the job `push-gate` on every
   push, pull request and merge group: `make push-gate-commit` fails the same way, also for a push that did not run the
   hook, and `make check-records` runs the record checks of `scripts/check-records.mts` (the words, the React document,
-  the paths and the timed assertions, and the words of the messages of the commits of `RANGE`, the commits being pushed,
-  by default `origin/main..HEAD`), so a commit whose records fail never reaches `main`; the job also runs `make
+  the paths and the timed assertions) and `make check-commit-records` the words of the messages of the commits of `RANGE`,
+  the commits being pushed, which it requires, so a commit whose records fail never reaches `main`; the job also runs `make
   typecheck` and `make lint-ts`, the types and the lint of the TypeScript of `scripts/` and `tests/`.
 - Every change reaches `main` through a pull request and the merge queue; no command of this
   repository pushes `main`. Publish a branch with the standard commands of GitHub, or with the

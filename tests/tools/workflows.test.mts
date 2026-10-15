@@ -142,8 +142,15 @@ test('the push check reads the commit messages of the commits that its event bri
 });
 
 test('the push check runs the record checks and the TypeScript checks', () => {
-  assert.deepEqual(variable('CI_PUSH_TARGETS'), ['toolchain-check', 'push-gate-commit', 'check-records', 'typecheck', 'lint-ts']);
-  assert.deepEqual(recipe('check-records'), ['$(NODE) scripts/check-records.mts --range $(or $(RANGE),origin/main..HEAD)']);
+  assert.deepEqual(variable('CI_PUSH_TARGETS'),
+    ['toolchain-check', 'push-gate-commit', 'check-records', 'check-commit-records', 'typecheck', 'lint-ts']);
+  assert.deepEqual(recipe('check-records'), ['$(NODE) scripts/check-records.mts']);
+  assert.deepEqual(recipe('check-commit-records'), ['$(NODE) scripts/check-records.mts --range $(RANGE)']);
+  // The commits being pushed exist only in the push check: make check, on a checkout that may match origin/main, runs the
+  // checks of the files and no check of a range.
+  assert.ok(!variable('CHECK_TARGETS').includes('check-commit-records'));
+  assert.ok(!variable('SSR_TARGETS').includes('check-commit-records'));
+  assert.ok(variable('SSR_TARGETS').includes('check-records'));
   // make toolchain-check of ci-push reads the Rust of rust-toolchain.toml and the tools of mise.lock, so the job installs
   // both first: make install-tools of kit installs the Rust toolchain too (kit K151), so no target of ssr runs rustup.
   assert.deepEqual(runs(known(workflow('push-gate.yml').jobs['push-gate'], 'the job push-gate')), [...INSTALL_KIT, 'make install-tools', 'make ci-push']);

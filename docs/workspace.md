@@ -80,12 +80,14 @@ kit K151), which `make toolchain-check` reads, and runs `make ci-push` in the jo
 on the head commit of every pull request, not on a merge commit: the targets `CI_PUSH_TARGETS` through `make
 ci-targets` of kit, which are `toolchain-check`, `push-gate-commit` (the push check
 of kit on `HEAD`, which fails with each item in progress as an error annotation and in the job summary, and when the
-commit does not track the hook with mode 100755), `check-records` (`node scripts/check-records.mts --range <base>..<head>`, the
-checks of the tracked files: the record words, the React document, the paths into a home directory and the timed assertions,
-and the record words of the messages of the commits of `RANGE`, which the job sets to the commits that its event brings: of a
-push after the tip it replaced, or after the default branch for a new branch, and of a pull request or merge group after its
-base; the checkout fetches the whole history so the range resolves, `make check-records` reads `origin/main..HEAD` by default,
-a pushed commit is not read again, and an empty or unresolvable range fails),
+commit does not track the hook with mode 100755), `check-records` (`node scripts/check-records.mts`, the
+checks of the tracked files: the record words, the React document, the paths into a home directory and the timed assertions),
+`check-commit-records` (`node scripts/check-records.mts --range $(RANGE)`, the record words of the messages of the commits of
+`RANGE`, which the job sets to the commits that its event brings: of a push after the tip it replaced, or after the default
+branch for a new branch, and of a pull request or merge group after its base; the checkout fetches the whole history so the
+range resolves, a pushed commit is not read again, and a missing `RANGE` fails with the usage and an empty or unresolvable
+range fails; it is no target of `make check`, where no pushed range exists, and the pre-push hook, a file of kit, does not
+run it yet),
 `typecheck` and `lint-ts`. The job runs on `ubuntu-24.04-arm` with the Node.js of `mise.toml`, the actions pinned
 to commits with their versions in comments, and needs no Python or Rust. The ruleset requires this job on `main`, so a commit whose
 records fail never reaches `main`. `make documents-check` of kit checks the document pairs, revisions and links and the checklists.

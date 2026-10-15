@@ -6,7 +6,7 @@
 # so their pushes are ignored.
 # Earlier commits of a push are not read: an item is recorded in progress in one commit and completed in a later one. It
 # fails naming each item in progress as an error annotation and in the job summary, and when the commit does not track
-# the hook with mode 100755. make check-records reads the messages of the commits of RANGE, the commits that the event
+# the hook with mode 100755. make check-commit-records reads the messages of the commits of RANGE, the commits that the event
 # brings: the commits of a push after the tip it replaced (after the default branch for a new branch), of a pull request
 # after its base and of a merge group after its base. The checkout holds the whole history, so the range resolves.
 name: push-gate

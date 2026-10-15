@@ -187,12 +187,25 @@ test('a checkout that git cannot read fails', t => {
       && /^git ls-files -- \*\.md in .* exited with 128: fatal: not a git repository/.test(error.message));
 });
 
-test('the tool takes the range of the commits being pushed and no other argument', () => {
-  for (const args of [[], ['records'], ['--range'], ['--range', 'HEAD~1..HEAD', 'records']]) {
+test('the tool takes no argument or the range of the commits being pushed', () => {
+  for (const args of [['records'], ['--range'], ['--range', ''], ['--range', 'HEAD~1..HEAD', 'records']]) {
     const result = spawnSync(process.execPath, ['scripts/check-records.mts', ...args], { cwd: ROOT, encoding: 'utf8' });
     assert.equal(result.status, 2);
-    assert.equal(result.stderr, 'usage: node scripts/check-records.mts --range <base>..<head>\n');
+    assert.equal(result.stderr, 'usage: node scripts/check-records.mts [--range <base>..<head>]\n');
   }
+});
+
+test('make check-commit-records requires RANGE and make check-records reads no commit', () => {
+  // A checkout without a pushed range, such as a main that matches origin/main, runs the checks of the files only.
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  for (const name of ['RANGE', 'MAKEFLAGS', 'MFLAGS', 'MAKELEVEL']) delete env[name];
+  const commits = spawnSync('make', ['--no-print-directory', '-n', 'check-commit-records'], { cwd: ROOT, env, encoding: 'utf8' });
+  assert.equal(commits.status, 0);
+  assert.match(commits.stdout, /scripts\/check-records\.mts --range\s*$/m);
+  const result = spawnSync(process.execPath, ['scripts/check-records.mts', '--range'], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(result.status, 2);
+  const files = spawnSync('make', ['--no-print-directory', '-n', 'check-records'], { cwd: ROOT, env, encoding: 'utf8' });
+  assert.match(files.stdout, /scripts\/check-records\.mts$/m);
 });
 
 const CONTRACT = '`framework_entry` `server_entry` `client_entry` `Pool::new_react` `Pool::render_stream` `ReactAdapter::stream_parts`';

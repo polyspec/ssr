@@ -1,5 +1,5 @@
 <!-- doc-id: workspace -->
-<!-- source-sha256: 32069c6a2c74fc6987488b321f989252ac5d958f33b0d30ccfb219e345139342 -->
+<!-- source-sha256: 834a37f3dbdf9948682b0f9639768a99e977a3ad84ab74e9ab131ae85a8c267b -->
 [English](workspace.md)
 
 # 워크스페이스
@@ -68,11 +68,12 @@ job `push-gate`로 `make toolchain-check`가 읽는 `mise.lock`의 도구와 `ru
 설치하고(`make install-tools`, kit K151) `make ci-push`를 실행한다. 이는 kit의 `make ci-targets`로 target `CI_PUSH_TARGETS`를 실행한다:
 `toolchain-check`, `push-gate-commit`(`HEAD`에 대한 kit의 push 검사로, 진행 중인 각 항목을
 error annotation과 job summary에 적고 실패하며 commit이 hook을 mode 100755로 추적하지 않을 때도 실패한다),
-`check-records`(`node scripts/check-records.mts --range <base>..<head>`, 추적되는 파일의 검사: 기록 단어, React 문서,
-home directory로의 경로, 시간 assertion, 그리고 `RANGE`의 commit message의 기록 단어. job은 `RANGE`를 event가 가져오는
-commit으로 정한다: push는 그것이 대체한 tip 뒤, 새 branch면 default branch 뒤의 commit, pull request와 merge group은 base 뒤의
-commit이다. checkout은 range가 해석되도록 전체 history를 가져오고, `make check-records`는 기본으로 `origin/main..HEAD`를
-읽으며, push된 commit은 다시 읽지 않고, 비었거나 해석되지 않는 range는 실패한다), `typecheck`, `lint-ts`. job은 `mise.toml`의 Node.js로 `ubuntu-24.04-arm`에서 실행되고, action은
+`check-records`(`node scripts/check-records.mts`, 추적되는 파일의 검사: 기록 단어, React 문서, home directory로의 경로,
+시간 assertion), `check-commit-records`(`node scripts/check-records.mts --range $(RANGE)`, `RANGE`의 commit message의 기록
+단어. job은 `RANGE`를 event가 가져오는 commit으로 정한다: push는 그것이 대체한 tip 뒤, 새 branch면 default branch 뒤의
+commit, pull request와 merge group은 base 뒤의 commit이다. checkout은 range가 해석되도록 전체 history를 가져오고, push된
+commit은 다시 읽지 않으며, `RANGE`가 없으면 usage와 함께 실패하고 비었거나 해석되지 않는 range는 실패한다. push되는 range가
+없는 `make check`의 target이 아니며, kit의 파일인 pre-push hook은 아직 이를 실행하지 않는다), `typecheck`, `lint-ts`. job은 `mise.toml`의 Node.js로 `ubuntu-24.04-arm`에서 실행되고, action은
 commit에 고정되어 주석에 version을 적으며, Python이나 Rust가 필요 없다. ruleset이 `main`에 이 job을 요구하므로 기록 검사가 실패하는
 commit은 `main`에 오르지 않는다. kit의 `make documents-check`가 문서 쌍, revision, link와 체크리스트를 검사한다.
 
