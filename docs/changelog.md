@@ -9,7 +9,8 @@
   the whole history: `make check-commit-records` requires `RANGE` and runs in the job push-gate,
   which sets `RANGE` to the commits that its event brings; an empty or unresolvable range fails, and
   a pushed commit is not read again. `make check-records` checks the tracked files only, so
-  `make check` passes on a checkout that matches `origin/main`.
+  `make check` passes on a checkout that matches `origin/main`. The pre-push hook of kit does not
+  run `make check-commit-records` yet.
 - Run kit 0.0.52: the bootstrap gives allow-remote to npm through `npm_config_allow_remote`, and
   the release workflow runs kit-check before any release step; the checkout needs no PHP, so it
   declares no `.php-version`.
