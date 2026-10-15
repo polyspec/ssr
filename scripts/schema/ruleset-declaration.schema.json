@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": ".github/ruleset.json, the declaration of the repository settings and the ruleset of main, as tests/tools/github-ruleset.test.mts reads it.",
+  "type": "object",
+  "required": ["repository", "settings", "ruleset"],
+  "properties": {
+    "repository": { "type": "string" },
+    "settings": { "type": "object" },
+    "ruleset": {
+      "type": "object",
+      "required": ["name", "rules", "conditions"],
+      "properties": {
+        "name": { "type": "string" },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type"],
+            "properties": { "type": { "type": "string" }, "parameters": { "type": "object" } }
+          }
+        },
+        "conditions": {
+          "type": "object",
+          "required": ["ref_name"],
+          "properties": {
+            "ref_name": {
+              "type": "object",
+              "required": ["include"],
+              "properties": {
+                "include": { "type": "array", "items": { "type": "string" } },
+                "exclude": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { parse } from 'yaml';
+import { checkJson } from '../../scripts/json.mts';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const WORKFLOWS = ['ci.yml', 'push-gate.yml'];
@@ -29,13 +30,21 @@ type Job = { if?: string; needs?: string[]; 'runs-on'?: string; strategy?: { 'fa
 type Workflow = { on: Record<string, unknown>; jobs: Record<string, Job>; concurrency?: Record<string, unknown> };
 
 const read = (file: string): string => readFileSync(path.join(ROOT, file), 'utf8');
-const workflow = (name: string): Workflow => parse(read(`.github/workflows/${name}`)) as Workflow;
+const workflow = (name: string): Workflow => {
+  const value: unknown = parse(read(`.github/workflows/${name}`));
+  return checkJson<Workflow>(value, 'workflow.schema.json', `.github/workflows/${name}`);
+};
+/** The value that a test expects to be there: a job of a workflow or a group of a match. */
+function known<T>(value: T | undefined, what: string): T {
+  assert.ok(value !== undefined, `${what} is missing`);
+  return value;
+}
 const runs = (job: Job): string[] => job.steps.flatMap(step => (step.run === undefined ? [] : [step.run]));
 const makefile = read('Makefile');
 
 /** The targets of the make files. */
 function makeTargets(): Set<string> {
-  return new Set(MAKE_FILES.flatMap(file => [...read(file).matchAll(/^([A-Za-z0-9_.-]+):/gm)].map(match => match[1]!)));
+  return new Set(MAKE_FILES.flatMap(file => [...read(file).matchAll(/^([A-Za-z0-9_.-]+):/gm)].map(match => known(match[1], `the target name of ${file}`))));
 }
 
 /** The commands of a target of the Makefile, as written. */
@@ -55,7 +64,7 @@ function recipe(target: string): string[] {
 function variable(name: string): string[] {
   const found = new RegExp(`^${name} = (.*)$`, 'm').exec(makefile);
   assert.ok(found, `the Makefile has no variable ${name}`);
-  return found[1]!.split(/\s+/);
+  return known(found[1], `the value of ${name}`).split(/\s+/);
 }
 
 test('every step runs a make target', () => {
@@ -66,7 +75,7 @@ test('every step runs a make target', () => {
     for (const command of commands) {
       const found = /^make ([a-z0-9-]+)(?: [A-Z_]+='\$\{\{ [^}]+ \}\}'| TOOLS=[a-z]+)*$/.exec(command);
       assert.ok(found, `${name}: ${command} is not a make target`);
-      assert.ok(targets.has(found[1]!), `${name}: ${command}`);
+      assert.ok(targets.has(known(found[1], command)), `${name}: ${command}`);
     }
   }
 });
@@ -77,7 +86,7 @@ test('every job uploads its logs and summary also after a failure', () => {
     const reporting = REPORTING_JOBS[name] ?? [];
     assert.deepEqual(Object.keys(jobs).filter(job => !reporting.includes(job)), name === 'ci.yml' ? ['ci-passed'] : [], name);
     for (const job of reporting) {
-      const body = jobs[job]!;
+      const body = known(jobs[job], `the job ${job}`);
       const upload = body.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
       assert.ok(upload, `${name}: ${job}`);
       assert.equal(upload.if, '${{ !cancelled() }}', `${name}: ${job}`);
@@ -119,7 +128,7 @@ test('the push check runs the record checks and the TypeScript checks', () => {
   assert.deepEqual(recipe('check-records'), ['$(NODE) scripts/check-records.mts']);
   // make toolchain-check of ci-push reads the Rust of rust-toolchain.toml and the tools of mise.lock, so the job installs
   // both first: make install-tools of kit installs the Rust toolchain too (kit K151), so no target of ssr runs rustup.
-  assert.deepEqual(runs(workflow('push-gate.yml').jobs['push-gate']!), [...INSTALL_KIT, 'make install-tools', 'make ci-push']);
+  assert.deepEqual(runs(known(workflow('push-gate.yml').jobs['push-gate'], 'the job push-gate')), [...INSTALL_KIT, 'make install-tools', 'make ci-push']);
   assert.equal(makeTargets().has('install-rust'), false);
   assert.ok(!recipe('ci-setup').some((line) => line.includes('rustup') || line.includes('install-rust')));
 });
@@ -128,11 +137,11 @@ test('ci-passed is the last job and needs every other job', () => {
   const { jobs } = workflow('ci.yml');
   const names = Object.keys(jobs);
   assert.equal(names.at(-1), 'ci-passed');
-  const body = jobs['ci-passed']!;
+  const body = known(jobs['ci-passed'], 'the job ci-passed');
   assert.equal(body.if, '${{ always() }}');
   assert.deepEqual([...(body.needs ?? [])].sort(), names.filter(job => job !== 'ci-passed').sort());
   // The runner of the job push-gate; make ci-passed needs only Node.js and the package of kit.
-  assert.equal(body['runs-on'], workflow('push-gate.yml').jobs['push-gate']!['runs-on']);
+  assert.equal(body['runs-on'], known(workflow('push-gate.yml').jobs['push-gate'], 'the job push-gate')['runs-on']);
   assert.deepEqual(runs(body), [...INSTALL_KIT, CI_PASSED_RUN]);
   assert.equal(body.steps.at(-1)?.run, CI_PASSED_RUN);
 });
@@ -142,7 +151,7 @@ test('each architecture runs every CI target in exactly one job', () => {
   assert.deepEqual(Object.keys(jobs).sort(), [...Object.keys(CI_JOBS), 'ci-passed'].sort());
   const targets: string[] = [];
   for (const [job, [target, name]] of Object.entries(CI_JOBS)) {
-    const body = jobs[job]!;
+    const body = known(jobs[job], `the job ${job}`);
     assert.deepEqual(body.strategy?.matrix?.runner, ['ubuntu-24.04-arm', 'ubuntu-24.04'], job);
     assert.equal(body['runs-on'], '${{ matrix.runner }}', job);
     assert.deepEqual(runs(body), [...INSTALL_KIT, 'make install-tools', 'make ci-setup', `make ${target}`], job);
@@ -159,7 +168,7 @@ test('the CI jobs take cargo-nextest and cargo-deny from mise and run no Python'
   // make install-tools installs the tools of mise.lock, cargo-nextest and cargo-deny among them, and make toolchain-check
   // checks their versions; no step sets up Python and no target of the CI jobs runs it.
   for (const job of Object.keys(CI_JOBS)) {
-    assert.ok(!workflow('ci.yml').jobs[job]!.steps.some(step => step.uses?.startsWith('actions/setup-python@')), job);
+    assert.ok(!known(workflow('ci.yml').jobs[job], `the job ${job}`).steps.some(step => step.uses?.startsWith('actions/setup-python@')), job);
   }
   for (const target of ['ci-setup', 'ci-lint', 'ci-test']) {
     assert.ok(!recipe(target).some(command => command.includes('python')), target);
@@ -180,7 +189,7 @@ function buildJobs(t: test.TestContext, environment: Record<string, string>): st
   env.PATH = `${directory}${path.delimiter}${env.PATH ?? ''}`;
   const ran = spawnSync('make', ['--no-print-directory', 'ci-nextest'], { cwd: ROOT, env: { ...env, ...environment }, encoding: 'utf8' });
   assert.equal(ran.status, 0, ran.stdout + ran.stderr);
-  return [...ran.stdout.matchAll(/^CARGO_BUILD_JOBS=(.*)$/gm)].map(match => match[1]!);
+  return [...ran.stdout.matchAll(/^CARGO_BUILD_JOBS=(.*)$/gm)].map(match => known(match[1], 'the value of CARGO_BUILD_JOBS'));
 }
 
 test('a local build runs one job and BUILD_JOBS sets the count', t => {

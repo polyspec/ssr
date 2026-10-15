@@ -71,13 +71,18 @@ export function kitCopies(root: string): Set<string> {
   return new Set(Object.keys(copies));
 }
 
+/** The errno code of an error of node, such as ENOENT; undefined for any other value. */
+function errorCode(error: unknown): string | undefined {
+  return error instanceof Error && 'code' in error && typeof error.code === 'string' ? error.code : undefined;
+}
+
 /** Compares two relative paths part by part, as Python orders paths. */
 function comparePaths(left: string, right: string): number {
   const a = left.split('/');
   const b = right.split('/');
-  for (let index = 0; index < Math.min(a.length, b.length); index++) {
-    const x = a[index] as string;
-    const y = b[index] as string;
+  for (const [index, x] of a.entries()) {
+    const y = b[index];
+    if (y === undefined) break;
     if (x !== y) return x < y ? -1 : 1;
   }
   return a.length - b.length;
@@ -172,7 +177,7 @@ export function checkOutsidePaths(root: string): string[] {
     try {
       text = readText(path.join(root, file));
     } catch (error) {
-      if (error instanceof TypeError || (error as NodeJS.ErrnoException).code === 'EISDIR') continue;
+      if (error instanceof TypeError || errorCode(error) === 'EISDIR') continue;
       throw error;
     }
     lines(text).forEach((line, index) => {
@@ -211,7 +216,7 @@ export function assertionText(text: string, match: RegExpExecArray, quotes: stri
   let depth = 1;
   let quote: string | undefined;
   for (let index = start; index < text.length; index++) {
-    const character = text[index] as string;
+    const character = text.charAt(index);
     if (quote) {
       if (character === '\\') index++;
       else if (character === quote) quote = undefined;
@@ -260,8 +265,8 @@ function main(args: string[]): number {
     errors = checkRecords(ROOT);
   } catch (error) {
     // The checkout cannot be read: Git fails, the kit package is missing, or a tracked file cannot be opened.
-    if (error instanceof CheckoutError || typeof (error as NodeJS.ErrnoException).code === 'string') {
-      process.stderr.write(`${(error as Error).message}\n`);
+    if (error instanceof CheckoutError || (error instanceof Error && errorCode(error) !== undefined)) {
+      process.stderr.write(`${error.message}\n`);
       return 1;
     }
     throw error;

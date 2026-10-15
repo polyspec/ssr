@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { pathToFileURL } from 'node:url';
+import { parseJson } from '../../scripts/json.mts';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const FIXTURES = path.join(ROOT, 'packages/build/tests/fixtures');
@@ -156,7 +157,7 @@ async function runScript(t: test.TestContext, name: string, scripts = FIXTURES):
     path.join(scripts, name), await closedBase(), '/browser/of/the/case', ...(SCRIPTS[name] ?? []),
   ], scripts, { ...process.env, SSR_PACKAGES: packages });
   const launches = existsSync(launchesFile)
-    ? readFileSync(launchesFile, 'utf8').split('\n').filter((line) => line !== '').map((line) => JSON.parse(line) as Launch)
+    ? readFileSync(launchesFile, 'utf8').split('\n').filter((line) => line !== '').map((line) => parseJson<Launch>(line, 'browser-launch.schema.json', launchesFile))
     : [];
   return { result, launches };
 }

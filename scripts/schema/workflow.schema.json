@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "A parsed workflow of .github/workflows (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax): the fields that tests/tools/workflows.test.mts reads.",
+  "type": "object",
+  "required": ["on", "jobs"],
+  "properties": {
+    "on": { "type": "object" },
+    "concurrency": { "type": "object" },
+    "jobs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["steps"],
+        "properties": {
+          "if": { "type": "string" },
+          "needs": { "type": "array", "items": { "type": "string" } },
+          "runs-on": { "type": "string" },
+          "strategy": {
+            "type": "object",
+            "properties": {
+              "fail-fast": { "type": "boolean" },
+              "matrix": { "type": "object", "properties": { "runner": { "type": "array", "items": { "type": "string" } } } }
+            }
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "uses": { "type": "string" },
+                "run": { "type": "string" },
+                "if": { "type": "string" },
+                "with": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

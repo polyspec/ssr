@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "One JSON message of cargo build --message-format json (https://doc.rust-lang.org/cargo/reference/external-tools.html#json-messages): the fields that scripts/build-programs.mts reads.",
+  "type": "object",
+  "required": ["reason"],
+  "properties": {
+    "reason": { "type": "string" },
+    "target": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "kind": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "executable": { "type": ["string", "null"] }
+  }
+}

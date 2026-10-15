@@ -1,0 +1,4 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Any JSON value: the answer of the GitHub API and .github/ruleset.json, whose fields scripts/github-ruleset.mts checks one by one."
+}

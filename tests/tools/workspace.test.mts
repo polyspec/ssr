@@ -8,6 +8,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { parseJson } from '../../scripts/json.mts';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const FIXTURES = path.join(ROOT, 'tests/tools/license-fixtures');
@@ -19,10 +20,10 @@ test('every folder of packages/ is a member named polyspec-ssr-<folder> of editi
   const result = spawnSync('cargo', ['metadata', '--no-deps', '--offline', '--locked', '--format-version', '1'],
     { cwd: ROOT, env: OFFLINE, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   assert.equal(result.status, 0, result.stderr);
-  const metadata = JSON.parse(result.stdout) as Metadata;
-  const members = metadata.packages.map(item => [path.relative(ROOT, path.dirname(item.manifest_path)), item.name, item.edition]);
+  const metadata = parseJson<Metadata>(result.stdout, 'cargo-metadata.schema.json', 'cargo metadata');
+  const members = metadata.packages.map((item): [string, string, string] => [path.relative(ROOT, path.dirname(item.manifest_path)), item.name, item.edition]);
   const folders = readdirSync(path.join(ROOT, 'packages')).sort();
-  assert.deepEqual(members.sort((a, b) => a[0]!.localeCompare(b[0]!)), folders.map(folder => [`packages/${folder}`, `polyspec-ssr-${folder}`, '2024']));
+  assert.deepEqual(members.sort((a, b) => a[0].localeCompare(b[0])), folders.map(folder => [`packages/${folder}`, `polyspec-ssr-${folder}`, '2024']));
   assert.equal(metadata.workspace_members.length, folders.length);
 });
 

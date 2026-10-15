@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The output of cargo metadata --format-version 1 (https://doc.rust-lang.org/cargo/commands/cargo-metadata.html#json-format): the fields that the tools and the tool tests read. resolve is null with --no-deps.",
+  "type": "object",
+  "required": ["packages", "workspace_members", "resolve"],
+  "properties": {
+    "packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "version", "id", "edition", "manifest_path", "targets"],
+        "properties": {
+          "name": { "type": "string" },
+          "version": { "type": "string" },
+          "id": { "type": "string" },
+          "edition": { "type": "string" },
+          "manifest_path": { "type": "string" },
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "kind", "src_path"],
+              "properties": {
+                "name": { "type": "string" },
+                "kind": { "type": "array", "items": { "type": "string" } },
+                "src_path": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "workspace_members": { "type": "array", "items": { "type": "string" } },
+    "resolve": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["nodes"],
+          "properties": {
+            "nodes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "features"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "features": { "type": "array", "items": { "type": "string" } }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

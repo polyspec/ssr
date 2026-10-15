@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { createServer } from 'node:http';
-import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -16,7 +15,9 @@ test('the files are verified and published, a verified file is kept and another 
   const directory = mkdtempSync(path.join(tmpdir(), 'ssr-fetch-v8-'));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const target = 'x86_64-unknown-linux-gnu';
-  const names = files(target).map(([name]) => name) as [string, string];
+  const [archive, binding, ...rest] = files(target).map(([name]) => name);
+  assert.ok(archive !== undefined && binding !== undefined && rest.length === 0, 'the target has an archive and a binding');
+  const names = [archive, binding];
   const release = new Map(names.map(name => [name, `content of ${name}`]));
   const requested: string[] = [];
   const server = createServer((request, response) => {
@@ -27,25 +28,27 @@ test('the files are verified and published, a verified file is kept and another 
   });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(() => server.close());
-  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/release`;
-  const archives = { [target]: [sha256(`content of ${names[0]}`), sha256(`content of ${names[1]}`)] as const };
+  const address = server.address();
+  assert.ok(address !== null && typeof address !== 'string', 'the server listens on a TCP port');
+  const url = `http://127.0.0.1:${address.port}/release`;
+  const archives = { [target]: [sha256(`content of ${archive}`), sha256(`content of ${binding}`)] as const };
   const destination = path.join(directory, 'v8');
 
   await fetchInputs(target, destination, url, archives);
   assert.deepEqual(readdirSync(destination).sort(), [...names].sort());
   assert.deepEqual(requested, names);
 
-  release.set(names[0], 'changed');
-  rmSync(path.join(destination, names[0]));
+  release.set(archive, 'changed');
+  rmSync(path.join(destination, archive));
   await assert.rejects(fetchInputs(target, destination, url, archives),
     new RegExp(`expected SHA-256 ${archives[target][0]}, actual ${sha256('changed')}`));
   // The changed file is not kept, and the verified binding was not fetched again.
-  assert.deepEqual(readdirSync(destination), [names[1]]);
-  assert.deepEqual(requested, [...names, names[0]]);
+  assert.deepEqual(readdirSync(destination), [binding]);
+  assert.deepEqual(requested, [...names, archive]);
 
-  release.delete(names[0]);
+  release.delete(archive);
   await assert.rejects(fetchInputs(target, destination, url, archives), /: HTTP 404 Not Found$/);
-  assert.deepEqual(readdirSync(destination), [names[1]]);
+  assert.deepEqual(readdirSync(destination), [binding]);
 });
 
 test('an undeclared target fails', () => {

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The state file of the fake gh of tests/tools/github-ruleset.test.mts: the repository, the calls of gh, the rulesets and the settings that the fake holds.",
+  "type": "object",
+  "required": ["repository", "calls", "rulesets", "settings"],
+  "properties": {
+    "repository": { "type": "string" },
+    "calls": { "type": "array", "items": { "type": "array" } },
+    "rulesets": { "type": "array", "items": { "type": "object" } },
+    "settings": { "type": "object" }
+  }
+}

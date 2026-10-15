@@ -13,6 +13,7 @@ import fs from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
+import { parseJson } from './json.mts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 
@@ -83,7 +84,7 @@ export function checkEnvironment(archive: string, binding: string, env: NodeJS.P
 /** The part of `cargo metadata --format-version 1` that checkFeatures reads. */
 export interface Metadata {
   packages: { name: string; version: string; id: string }[];
-  resolve: { nodes: { id: string; features: string[] }[] };
+  resolve: { nodes: { id: string; features: string[] }[] } | null;
 }
 
 const FEATURES = ['simdutf', 'use_custom_libcxx'];
@@ -96,6 +97,7 @@ export function checkFeatures(metadata: Metadata): void {
     throw new Error(`exactly V8 150.4.0 must be selected; selected versions: ${JSON.stringify(versions)}`);
   }
   const id = packages[0]?.id;
+  if (metadata.resolve === null) throw new Error('the Cargo metadata holds no resolve graph');
   const features = metadata.resolve.nodes.filter(node => node.id === id)
     .map(node => [...new Set(node.features)].filter(feature => feature !== 'default').sort());
   if (JSON.stringify(features) !== JSON.stringify([FEATURES])) {
@@ -114,7 +116,7 @@ export function checkMetadata(root: string, target: string): void {
     { cwd: root, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
   if (result.error) throw new Error(`Cargo metadata could not start: ${result.error.message}`);
   if (result.status !== 0) throw new Error(`Cargo metadata failed: ${result.stderr}`);
-  checkFeatures(JSON.parse(result.stdout) as Metadata);
+  checkFeatures(parseJson<Metadata>(result.stdout, 'cargo-metadata.schema.json', 'cargo metadata'));
 }
 
 /** The archive and binding of `target` in var/v8, checked against the environment and the declared digests. */
@@ -147,7 +149,7 @@ function main(args: string[]): number {
     } });
     if (parsed.positionals.length > 1) throw new Error(`unexpected arguments: ${parsed.positionals.slice(1).join(' ')}`);
   } catch (error) {
-    process.stderr.write(`usage: node scripts/verify-archive.mts [target] [--archive <path> --binding <path>] [--metadata-root <dir>] [--files-only]\n${(error as Error).message}\n`);
+    process.stderr.write(`usage: node scripts/verify-archive.mts [target] [--archive <path> --binding <path>] [--metadata-root <dir>] [--files-only]\n${error instanceof Error ? error.message : String(error)}\n`);
     return 2;
   }
   const { values, positionals } = parsed;
@@ -165,7 +167,7 @@ function main(args: string[]): number {
     }
     if (!values['files-only']) checkMetadata(values['metadata-root'], target);
   } catch (error) {
-    process.stderr.write(`FAIL V8 archive verification ${elapsed()}: ${(error as Error).message}\n`);
+    process.stderr.write(`FAIL V8 archive verification ${elapsed()}: ${error instanceof Error ? error.message : String(error)}\n`);
     return 1;
   }
   const [archiveHash, bindingHash] = declared(target);

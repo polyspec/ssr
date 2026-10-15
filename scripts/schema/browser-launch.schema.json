@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "One line of the launch record of tests/tools/browser-launch.test.mts: the options that a browser script passed to chromium.launch of the stub of playwright-core.",
+  "type": "object",
+  "required": ["executablePath", "timeout"],
+  "properties": {
+    "executablePath": { "type": "string" },
+    "timeout": { "type": "number" }
+  }
+}

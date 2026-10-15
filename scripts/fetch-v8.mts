@@ -11,7 +11,6 @@ import { createWriteStream, existsSync, mkdirSync, renameSync, rmSync, statSync 
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import type { ReadableStream } from 'node:stream/web';
 import { ARCHIVES, declared, digest } from './verify-archive.mts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -45,11 +44,12 @@ export async function fetchInputs(target: string, destination = path.join(ROOT, 
       try {
         response = await fetch(url);
       } catch (error) {
-        const cause = (error as Error).cause;
-        throw new Error(`${url}: ${(error as Error).message}${cause instanceof Error ? `: ${cause.message}` : ''}`, { cause: error });
+        if (!(error instanceof Error)) throw error;
+        const cause = error.cause;
+        throw new Error(`${url}: ${error.message}${cause instanceof Error ? `: ${cause.message}` : ''}`, { cause: error });
       }
       if (!response.ok || response.body === null) throw new Error(`${url}: HTTP ${response.status} ${response.statusText}`);
-      await pipeline(Readable.fromWeb(response.body as ReadableStream<Uint8Array>), createWriteStream(temporary, { flags: 'wx' }));
+      await pipeline(Readable.fromWeb(response.body), createWriteStream(temporary, { flags: 'wx' }));
       const actual = digest(temporary);
       if (actual !== expected) throw new Error(`${url}: expected SHA-256 ${expected}, actual ${actual}`);
       renameSync(temporary, file);
@@ -68,7 +68,7 @@ async function main(args: string[]): Promise<number> {
   try {
     await fetchInputs(args[0]);
   } catch (error) {
-    process.stderr.write(`FAIL fetch V8 inputs: ${(error as Error).message}\n`);
+    process.stderr.write(`FAIL fetch V8 inputs: ${error instanceof Error ? error.message : String(error)}\n`);
     return 1;
   }
   return 0;

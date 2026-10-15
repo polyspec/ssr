@@ -93,6 +93,84 @@
     },
     {
       "paths": [
+        "scripts/json.mts"
+      ],
+      "targets": [
+        "tool-test-json",
+        "tool-test-build-programs",
+        "tool-test-install-packages",
+        "tool-test-github-ruleset",
+        "tool-test-verify-archive",
+        "tool-test-browser-launch",
+        "tool-test-workflows",
+        "tool-test-workspace"
+      ]
+    },
+    {
+      "paths": [
+        "scripts/schema/browser-launch.schema.json"
+      ],
+      "targets": [
+        "tool-test-json",
+        "tool-test-browser-launch"
+      ]
+    },
+    {
+      "paths": [
+        "scripts/schema/cargo-message.schema.json"
+      ],
+      "targets": [
+        "tool-test-build-programs"
+      ]
+    },
+    {
+      "paths": [
+        "scripts/schema/cargo-metadata.schema.json"
+      ],
+      "targets": [
+        "tool-test-verify-archive",
+        "tool-test-install-packages",
+        "check-fixture-filter",
+        "tool-test-workspace"
+      ]
+    },
+    {
+      "paths": [
+        "scripts/schema/json-value.schema.json"
+      ],
+      "targets": [
+        "tool-test-json",
+        "tool-test-github-ruleset"
+      ]
+    },
+    {
+      "paths": [
+        "scripts/schema/nextest-config.schema.json"
+      ],
+      "targets": [
+        "tool-test-install-packages",
+        "check-fixture-filter"
+      ]
+    },
+    {
+      "paths": [
+        "scripts/schema/ruleset-declaration.schema.json",
+        "scripts/schema/ruleset-state.schema.json"
+      ],
+      "targets": [
+        "tool-test-github-ruleset"
+      ]
+    },
+    {
+      "paths": [
+        "scripts/schema/workflow.schema.json"
+      ],
+      "targets": [
+        "tool-test-workflows"
+      ]
+    },
+    {
+      "paths": [
         "scripts/build-programs.mts"
       ],
       "targets": [

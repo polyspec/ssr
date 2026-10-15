@@ -27,6 +27,7 @@ import {
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parse } from 'smol-toml';
+import { checkJson, parseJson } from './json.mts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 export const FIXTURES = path.join(ROOT, 'packages/build/tests/fixtures');
@@ -78,8 +79,8 @@ export function browser(directory: string, env: NodeJS.ProcessEnv = process.env)
   return executable;
 }
 
-function run(command: string[], cwd: string, env: NodeJS.ProcessEnv): void {
-  const [program, ...args] = command as [string, ...string[]];
+function run(command: [string, ...string[]], cwd: string, env: NodeJS.ProcessEnv): void {
+  const [program, ...args] = command;
   // The output of the command reaches standard error, so that standard output holds only the assignments.
   const result = spawnSync(program, args, { cwd, env, stdio: ['inherit', 2, 'inherit'] });
   if (result.error) throw new Error(`${command.join(' ')} could not start in ${cwd}: ${result.error.message}`);
@@ -107,7 +108,7 @@ export function install(fixtures: string = FIXTURES, packages: string = PACKAGES
   const temporary = mkdtempSync(path.join(packages, '.install-'));
   try {
     for (const name of FILES) copyFileSync(path.join(fixtures, name), path.join(temporary, name));
-    let command = ['npm', 'ci', '--install-links', '--no-bin-links', '--ignore-scripts', '--no-audit', '--no-fund'];
+    let command: [string, ...string[]] = ['npm', 'ci', '--install-links', '--no-bin-links', '--ignore-scripts', '--no-audit', '--no-fund'];
     process.stderr.write(`RUN ${command.join(' ')} in ${temporary}\n`);
     const started = performance.now();
     run(command, temporary, env);
@@ -134,7 +135,10 @@ export function install(fixtures: string = FIXTURES, packages: string = PACKAGES
 const READERS = /^mod fixture;$|SSR_PACKAGES|SSR_FIXTURES/m;
 const LIBRARY_KINDS = new Set(['lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']);
 
+/** The output of cargo metadata, the fields of scripts/schema/cargo-metadata.schema.json that this tool reads. */
 interface Metadata { packages: { name: string; targets: { name: string; kind: string[]; src_path: string }[] }[] }
+/** The parsed .config/nextest.toml, scripts/schema/nextest-config.schema.json. */
+interface NextestConfig { profile?: { default?: { scripts?: { setup?: string | string[]; filter?: string }[] } } }
 
 /** The nextest binary id of a Cargo target: a library is its package, an integration test <package>::<target>, and a binary,
  * example or bench <package>::<kind>/<target>; a build script is no test binary. */
@@ -153,7 +157,7 @@ export function readers(root: string = ROOT): Set<string> {
   });
   if (result.error) throw new Error(`cargo metadata could not start: ${result.error.message}`);
   if (result.status !== 0) throw new Error(`cargo metadata exited with ${result.status ?? result.signal}: ${result.stderr.trim()}`);
-  const metadata = JSON.parse(result.stdout) as Metadata;
+  const metadata = parseJson<Metadata>(result.stdout, 'cargo-metadata.schema.json', 'cargo metadata');
   const binaries = new Set<string>();
   for (const pkg of metadata.packages) {
     for (const target of pkg.targets) {
@@ -166,17 +170,20 @@ export function readers(root: string = ROOT): Set<string> {
 
 /** The filter of the [[profile.default.scripts]] entry whose setup is install-packages, or an error. */
 function installFilter(root: string): string | { error: string } {
-  let config: unknown;
+  let value: unknown;
   try {
-    config = parse(readFileSync(path.join(root, '.config/nextest.toml'), 'utf8'));
+    value = parse(readFileSync(path.join(root, '.config/nextest.toml'), 'utf8'));
   } catch (error) {
-    return { error: `.config/nextest.toml: ${(error as Error).message}` };
+    return { error: `.config/nextest.toml: ${error instanceof Error ? error.message : String(error)}` };
   }
-  const scripts = (config as { profile?: { default?: { scripts?: unknown } } }).profile?.default?.scripts;
-  const entries = (Array.isArray(scripts) ? scripts as unknown[] : []).filter((entry): entry is { setup: unknown; filter?: unknown } => {
-    const setup = (entry as { setup?: unknown }).setup;
-    return setup === 'install-packages' || (Array.isArray(setup) && setup.includes('install-packages'));
-  });
+  let config: NextestConfig;
+  try {
+    config = checkJson<NextestConfig>(value, 'nextest-config.schema.json', '.config/nextest.toml');
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+  const entries = (config.profile?.default?.scripts ?? []).filter(({ setup }) =>
+    setup === 'install-packages' || (Array.isArray(setup) && setup.includes('install-packages')));
   if (entries.length > 1) return { error: `.config/nextest.toml: ${entries.length} entries of [[profile.default.scripts]] run the setup script install-packages` };
   const filter = entries[0]?.filter;
   if (typeof filter !== 'string') return { error: '.config/nextest.toml: no filter of the setup script install-packages' };
@@ -211,7 +218,7 @@ function checkFilter(root: string): number {
   try {
     errors = filterErrors(root);
   } catch (error) {
-    errors = [(error as Error).message];
+    errors = [error instanceof Error ? error.message : String(error)];
   }
   for (const error of errors) process.stderr.write(`FAIL install-packages filter: ${error}\n`);
   if (errors.length) return 1;
@@ -231,7 +238,7 @@ export function main(argv: string[], fixtures: string = FIXTURES, packages: stri
     target = install(fixtures, packages, { env });
     executable = browser(target, env);
   } catch (error) {
-    process.stderr.write(`FAIL packages: ${(error as Error).message}\n`);
+    process.stderr.write(`FAIL packages: ${error instanceof Error ? error.message : String(error)}\n`);
     return 1;
   }
   const assignments = `SSR_PACKAGES=${target}\nSSR_FIXTURES=${fixtures}\nSSR_BROWSER=${executable}\n`;

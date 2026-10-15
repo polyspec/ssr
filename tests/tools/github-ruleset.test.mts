@@ -5,23 +5,23 @@
 // case asserts the requests that apply sends and the result of check without reaching GitHub.
 import assert from 'node:assert/strict';
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
-import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test, { type TestContext } from 'node:test';
 import type { Json } from '../../scripts/github-ruleset.mts';
+import { readJsonFile } from '../../scripts/json.mts';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
-const SCRIPT = path.join(ROOT, 'scripts/github-ruleset.mts');
 const WORKFLOWS = path.join(ROOT, '.github/workflows');
 
 type JsonObject = { [key: string]: Json };
 type Rule = { type: string; parameters?: JsonObject };
-type Ruleset = JsonObject & { name: string; rules: Rule[] };
+type Ruleset = JsonObject & { name: string; rules: Rule[]; conditions: { ref_name: { include: string[]; exclude?: string[] } } };
 interface DeclarationFile { repository: string; settings: JsonObject; ruleset: Ruleset }
 interface State { repository: string; calls: Json[][]; rulesets: JsonObject[]; settings: JsonObject }
 
-const DECLARATION = JSON.parse(readFileSync(path.join(ROOT, '.github/ruleset.json'), 'utf8')) as DeclarationFile;
+const DECLARATION = readJsonFile<DeclarationFile>(path.join(ROOT, '.github/ruleset.json'), 'ruleset-declaration.schema.json');
 const REPOSITORY = DECLARATION.repository;
 const copy = <T,>(value: T): T => structuredClone(value);
 
@@ -80,8 +80,12 @@ class Sandbox {
   constructor(t: TestContext, state: Partial<State> = {}, declaration: DeclarationFile = DECLARATION) {
     this.root = mkdtempSync(path.join(tmpdir(), 'ssr-github-ruleset-'));
     t.after(() => { rmSync(this.root, { recursive: true, force: true }); });
-    for (const directory of ['scripts', '.github', 'bin']) mkdirSync(path.join(this.root, directory));
-    copyFileSync(SCRIPT, path.join(this.root, 'scripts/github-ruleset.mts'));
+    for (const directory of ['scripts/schema', '.github', 'bin']) mkdirSync(path.join(this.root, directory), { recursive: true });
+    // The script with the JSON boundary that it imports, its schema and the packages of the checkout, ajv among them.
+    for (const file of ['scripts/github-ruleset.mts', 'scripts/json.mts', 'scripts/schema/json-value.schema.json']) {
+      copyFileSync(path.join(ROOT, file), path.join(this.root, file));
+    }
+    symlinkSync(path.join(ROOT, 'node_modules'), path.join(this.root, 'node_modules'));
     writeFileSync(path.join(this.root, '.github/ruleset.json'), JSON.stringify(declaration));
     const fake = path.join(this.root, 'bin/gh');
     writeFileSync(fake, `#!${process.execPath}\n${FAKE_GH}`);
@@ -92,7 +96,7 @@ class Sandbox {
   }
 
   state(): State {
-    return JSON.parse(readFileSync(this.statePath, 'utf8')) as State;
+    return readJsonFile<State>(this.statePath, 'ruleset-state.schema.json');
   }
 
   run(mode: string): SpawnSyncReturns<string> {
@@ -130,7 +134,7 @@ test('main takes changes only through pull requests and the merge queue without 
   assert.equal(ruleset.enforcement, 'active');
   assert.equal(ruleset.target, 'branch');
   assert.deepEqual(ruleset.bypass_actors, []);
-  assert.deepEqual((ruleset.conditions as { ref_name: { include: string[] } }).ref_name.include, ['refs/heads/main']);
+  assert.deepEqual(ruleset.conditions.ref_name.include, ['refs/heads/main']);
   const rules = new Map(ruleset.rules.map(rule => [rule.type, rule.parameters ?? {}]));
   assert.deepEqual([...rules.keys()].sort(), ['deletion', 'merge_queue', 'non_fast_forward', 'pull_request',
     'required_linear_history', 'required_status_checks']);

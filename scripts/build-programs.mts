@@ -12,35 +12,47 @@
 import { spawnSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 import path from 'node:path';
+import { parseJson } from './json.mts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 
 /** The examples of polyspec-ssr-server and the variable that names the executable of each. */
 export const PROGRAMS = { development_process: 'SSR_DEVELOPMENT_PROCESS', socket_process: 'SSR_SOCKET_PROCESS' } as const;
 type Program = keyof typeof PROGRAMS;
+/** A JSON message of Cargo, the fields of scripts/schema/cargo-message.schema.json. */
+type CargoMessage = { reason: string; target?: { name?: string; kind?: string[] }; executable?: string | null };
+
+function isProgram(name: string): name is Program {
+  return Object.hasOwn(PROGRAMS, name);
+}
 
 /** The Cargo command that builds both examples and reports its artifacts as JSON messages. */
-export function command(): string[] {
+export function command(): [string, ...string[]] {
   return ['cargo', 'build', '--locked', '-p', 'polyspec-ssr-server', '--message-format', 'json-render-diagnostics',
     ...Object.keys(PROGRAMS).flatMap(name => ['--example', name])];
 }
 
 /** The executable of each program from the JSON messages of Cargo; a missing one is an error. */
 export function executables(messages: string): Record<Program, string> {
-  const found = new Map<string, string>();
+  const found = new Map<Program, string>();
   for (const line of messages.split('\n')) {
     if (!line) continue;
-    const message = JSON.parse(line) as { reason?: string; target?: { name?: string; kind?: string[] }; executable?: string };
+    const message = parseJson<CargoMessage>(line, 'cargo-message.schema.json', 'cargo build');
     const name = message.target?.name;
-    if (message.reason === 'compiler-artifact' && name !== undefined && name in PROGRAMS
+    if (message.reason === 'compiler-artifact' && name !== undefined && isProgram(name)
       && JSON.stringify(message.target?.kind) === '["example"]') {
       if (typeof message.executable !== 'string') throw new Error(`Cargo reported the example ${name} without an executable`);
       found.set(name, message.executable);
     }
   }
-  const missing = Object.keys(PROGRAMS).filter(name => !found.has(name)).sort();
+  const missing = Object.keys(PROGRAMS).filter(isProgram).filter(name => !found.has(name)).sort();
   if (missing.length) throw new Error(`Cargo reported no executable for ${missing.join(', ')}`);
-  return Object.fromEntries(found) as Record<Program, string>;
+  const executable = (name: Program): string => {
+    const value = found.get(name);
+    if (value === undefined) throw new Error(`Cargo reported no executable for ${name}`);
+    return value;
+  };
+  return { development_process: executable('development_process'), socket_process: executable('socket_process') };
 }
 
 function main(): number {
@@ -49,7 +61,7 @@ function main(): number {
     process.stderr.write('FAIL build programs: NEXTEST_ENV is not set; nextest runs this tool as the setup script build-programs\n');
     return 1;
   }
-  const [program, ...args] = command() as [string, ...string[]];
+  const [program, ...args] = command();
   process.stderr.write(`RUN ${[program, ...args].join(' ')}\n`);
   const started = performance.now();
   // Cargo's progress and errors reach standard error as they arrive; its JSON messages are read from standard output.
@@ -67,10 +79,10 @@ function main(): number {
   try {
     found = executables(result.stdout);
   } catch (error) {
-    process.stderr.write(`FAIL build programs ${elapsed}s: ${(error as Error).message}\n`);
+    process.stderr.write(`FAIL build programs ${elapsed}s: ${error instanceof Error ? error.message : String(error)}\n`);
     return 1;
   }
-  const entries = Object.entries(PROGRAMS) as [Program, string][];
+  const entries = Object.keys(PROGRAMS).filter(isProgram).map(name => [name, PROGRAMS[name]] as const);
   appendFileSync(destination, entries.map(([name, variable]) => `${variable}=${found[name]}\n`).join(''));
   for (const [name, variable] of entries) process.stderr.write(`PASS ${variable}=${found[name]}\n`);
   process.stderr.write(`PASS build programs ${elapsed}s\n`);

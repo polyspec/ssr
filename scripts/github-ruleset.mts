@@ -11,8 +11,8 @@
 // Requires an authenticated `gh` with administration access to the repository. The script reads nothing of the
 // repository but the declaration, so it runs unchanged in every repository that declares its own .github/ruleset.json.
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { parseJson, readJsonFile } from './json.mts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const DECLARATION = path.join(ROOT, '.github/ruleset.json');
@@ -54,7 +54,7 @@ export function ghApi(method: string, apiPath: string, body?: Json): [number, Js
     throw new Stop(`gh api ${method} ${apiPath} failed: ${result.stderr.trim() || `exit status ${result.status ?? result.signal}`}`);
   }
   const text = result.stdout.split(/\r?\n\r?\n/).slice(1).join('\n\n').trim();
-  return [Number(found[1]), text ? JSON.parse(text) as Json : null];
+  return [Number(found[1]), text ? parseJson<Json>(text, 'json-value.schema.json', `gh api ${method} ${apiPath}`) : null];
 }
 
 function expectOk(api: Api, method: string, apiPath: string, body?: Json): Json {
@@ -106,7 +106,7 @@ export function differences(declared: JsonObject, live: Json, prefix = ''): Chan
 
 /** The declaration read from `file`; a missing or malformed field is an error. */
 export function readDeclaration(file: string): Declaration {
-  const value = JSON.parse(readFileSync(file, 'utf8')) as Json;
+  const value = readJsonFile<Json>(file, 'json-value.schema.json');
   if (!isObject(value)) throw new Stop(`${file} is not a JSON object`);
   const { repository, settings, ruleset } = value;
   if (typeof repository !== 'string') throw new Stop(`${file}: repository is not a string`);
@@ -189,7 +189,7 @@ export function main(argv: string[], api: Api = ghApi, file: string = DECLARATIO
     const [, settingChanges, rulesetChanges] = plan(declaration, api);
     changes = [...settingChanges, ...rulesetChanges];
   } catch (cause) {
-    error(`[ruleset] ${(cause as Error).message}`);
+    error(`[ruleset] ${cause instanceof Error ? cause.message : String(cause)}`);
     return 1;
   }
   for (const [field, actual, wanted] of changes) {
