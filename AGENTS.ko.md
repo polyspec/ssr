@@ -1,5 +1,5 @@
 <!-- doc-id: agents -->
-<!-- source-sha256: ebda16eb92f6cbe807d1307fbb6ee4d3eed7a79b5bb4812b8cfa9d72463f4bd3 -->
+<!-- source-sha256: c3796984ad8809c99320b751fd52e975214e6ccff994f39b0384abc3a671ac35 -->
 # 개발 절차
 
 사용자의 지시가 우선한다. [English](AGENTS.md). 모든 polyspec 저장소의 작업 원칙은
@@ -113,6 +113,10 @@
   계약을 실행 가능한 사용 경로와 대조하고, API를 바꾸면 교체된 호출의 설명을 제거한다.
 - 에이전트의 결정이 틀린 것으로 드러나면 보고의 첫 문장에서 그 결정을 적는다.
 - `var/handoff/work.md`는 항목마다 명세 원천을 나열한다. 이 파일은 추적하지 않는다.
+
+## 생성 파일
+
+생성 파일은 Git에 추적하지 않습니다. 여기에는 의존성 설치(`node_modules/`, `vendor/`, 가상 환경), 빌드 산출물(`dist/`, `target/`, `*.tsbuildinfo`), 캐시(`.cache/`, `__pycache__/`, `.pytest_cache/`), 테스트 실행 산출물(`test-results/`, `playwright-report/`, PHPUnit 캐시), 도구 다운로드(`var/`)가 포함됩니다. 예외는 저장소가 의도적으로 필요로 하는 파일뿐이며 이것만 추적합니다: lock 파일(`package-lock.json`, `composer.lock`, `Cargo.lock`, uv lock, `mise.lock`), 이 문서가 밝히는 커밋된 생성 문서, 테스트 fixture. 각 `.gitignore`가 이 경로를 덮으며, 새 생성기는 같은 commit에서 ignore 항목을 추가합니다.
 
 ## 체크리스트
 

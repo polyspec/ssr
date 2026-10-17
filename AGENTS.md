@@ -126,6 +126,10 @@ repository are in [PRINCIPLES.md](PRINCIPLES.md); this file states the rules of 
 - When a decision of the agent is shown wrong, the report names that decision first.
 - `var/handoff/work.md` lists the specification sources of each item; it is not tracked.
 
+## Generated files
+
+Generated files are never tracked in Git. This covers dependency installs (`node_modules/`, `vendor/`, virtual environments), build output (`dist/`, `target/`, `*.tsbuildinfo`), caches (`.cache/`, `__pycache__/`, `.pytest_cache/`), test run artifacts (`test-results/`, `playwright-report/`, PHPUnit caches) and tool downloads (`var/`). The only exceptions are files the repository deliberately needs, and only these are tracked: lock files (`package-lock.json`, `composer.lock`, `Cargo.lock`, uv locks, `mise.lock`), committed generated documents that this file names, and test fixtures. Each `.gitignore` covers these paths; a new generator adds its ignore entry in the same commit.
+
 ## Checklist
 
 - `docs/plans/execution-checklist.md` is the only task tracker, declared in `config/checklist.json`.

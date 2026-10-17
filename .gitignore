@@ -2,3 +2,22 @@
 /var/
 node_modules/
 __pycache__/
+
+# Generated files of the install, build, cache and test runs (AGENTS.md, Generated files)
+vendor/
+dist/
+dist.next/
+dist.old/
+*.tsbuildinfo
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.cache/
+.phpunit.cache/
+.phpunit.result.cache
+test-results/
+playwright-report/
+coverage/
