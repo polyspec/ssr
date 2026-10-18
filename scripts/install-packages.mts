@@ -108,7 +108,7 @@ export function install(fixtures: string = FIXTURES, packages: string = PACKAGES
   const temporary = mkdtempSync(path.join(packages, '.install-'));
   try {
     for (const name of FILES) copyFileSync(path.join(fixtures, name), path.join(temporary, name));
-    let command: [string, ...string[]] = ['npm', 'ci', '--install-links', '--no-bin-links', '--ignore-scripts', '--no-audit', '--no-fund'];
+    let command: [string, ...string[]] = ['npm', 'ci', '--no-bin-links', '--ignore-scripts', '--no-audit', '--no-fund'];
     process.stderr.write(`RUN ${command.join(' ')} in ${temporary}\n`);
     const started = performance.now();
     run(command, temporary, env);

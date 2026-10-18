@@ -51,7 +51,7 @@ test('the lock digest names an installation that is published once', t => {
   assert.ok(readFileSync(path.join(target, 'node_modules/sample/package.json'), 'utf8'));
   assert.equal(install(fixtures, packages, { env }), target);
   assert.deepEqual(readFileSync(log, 'utf8').split('\n').filter(Boolean),
-    ['ci --install-links --no-bin-links --ignore-scripts --no-audit --no-fund']);
+    ['ci --no-bin-links --ignore-scripts --no-audit --no-fund']);
   assert.deepEqual(readdirSync(packages).sort(), [path.basename(target)]);
 });
 
