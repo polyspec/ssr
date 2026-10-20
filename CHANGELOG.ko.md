@@ -1,11 +1,15 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 740a275a86829f435368cacc5dedfa5fd66ec05247c89bfbd1346e2449ef1000 -->
+<!-- source-sha256: e45cde57413716db6c18201a4d23f84e97fbfd59d6f42d47c2259051b6d92043 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- PHP lint project 인 `config/php-lint` 는 PHP 8.5 대신 플랫폼의 PHP 인 `>=8.4` 와 platform `8.4` 를 요구한다
+  (S-59). ssr 는 `.php-version` 도, 다른 Composer manifest 도 두지 않으므로 다른 것은 바뀌지 않는다. Red:
+  `make toolchain-check` 가 종료 코드 2 와 finding 2건(`require.php is ">=8.5"`, `config.platform.php is "8.5"`)으로
+  실패했다. Green: `make toolchain-check` 가 종료 코드 0 이고 8개 도구가 선언된 version 이다.
 - 체크리스트는 계획 폴더 `docs/plans/execution/` 과 `docs/plans/kit-standard/` 의 표이고, 변경 기록은 루트의
   `CHANGELOG.md` 와 `CHANGELOG.ko.md` 이며, kit 이 commit 규칙을 직접 읽으므로 `config/commits.json` 을 제거한다
   (S-58). Red: `make docs-check` 가 종료 코드 2 와 finding 6건(`docs/plans/execution-checklist.md` 와 한국어 쌍의

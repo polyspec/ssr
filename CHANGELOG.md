@@ -5,6 +5,10 @@
 
 ## Unreleased
 
+- The PHP lint project `config/php-lint` requires PHP `>=8.4` with the platform `8.4`, the PHP of the
+  platform, in place of 8.5 (S-59). ssr declares no `.php-version` and no other Composer manifest, so
+  nothing else changes. Red: `make toolchain-check` exited with 2 and two findings (`require.php is ">=8.5"`,
+  `config.platform.php is "8.5"`). Green: `make toolchain-check` exits with 0, 8 tools at the declared versions.
 - The checklist is a table in the plan folders `docs/plans/execution/` and `docs/plans/kit-standard/`, and
   the changelog is `CHANGELOG.md` with `CHANGELOG.ko.md` in the root; `config/commits.json` is removed
   because kit reads the commit rules itself (S-58). Red: `make docs-check` exited with 2 and 6 findings
