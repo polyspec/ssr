@@ -5,6 +5,10 @@
 
 ## Unreleased
 
+- `CHECK_TARGETS` of the Makefile runs `divergence-check`, and each reason of `config/duplication.json` begins with
+  its kind, `test:` for the test folders and `harness:` for the programs that the development tests spawn (S-77). Red:
+  `make kit-check` exited with 2 and `CHECK_TARGETS runs no divergence-check`; `make divergence-check` exited with 2
+  and 5 exceptions without a kind. Green: `make divergence-check` and `make kit-check` exit with 0.
 - `PRINCIPLES.md` and `PRINCIPLES.ko.md` are taken again with `make kit-sync` after kit changed them (S-76). Red:
   `make kit-check` with the previous copies named both files as different. Green: no copy finding; one finding remains
   for the new check `divergence-check`. The kit changes K319 (`make lint-php` and `make lint-python` pass in a

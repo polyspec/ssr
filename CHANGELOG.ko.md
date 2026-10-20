@@ -1,11 +1,15 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 8c42e495dbf60de10760cf2448c844522c67b57c902d3884dc882cd4a899bf63 -->
+<!-- source-sha256: 278a1776a9ea9d78c07ec6c3a9a5e9b523520a91e91ccb4ed35b01f8b2ecf528 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- `Makefile` 의 `CHECK_TARGETS` 가 `divergence-check` 를 실행하고, `config/duplication.json` 의 각 reason 은 test 폴더에 `test:`,
+  development test 가 띄우는 program 에 `harness:` 로 그 종류로 시작한다 (S-77). Red: `make kit-check` 가 종료 코드 2 와 `CHECK_TARGETS
+  runs no divergence-check` 로, `make divergence-check` 가 종료 코드 2 와 종류 없는 예외 5건으로 실패했다. Green: `make divergence-check`
+  와 `make kit-check` 가 종료 코드 0 이다.
 - `PRINCIPLES.md` 와 `PRINCIPLES.ko.md` 를 kit 이 바꾼 뒤 `make kit-sync` 로 다시 받는다 (S-76). Red: 이전 복사본에서 `make kit-check` 가
   두 파일이 다르다고 지목했다. Green: 복사본 finding 이 없고 새 check `divergence-check` 에 대한 finding 1건이 남는다. kit 의 K319(source 가 없는
   checkout 에서 `make lint-php` 와 `make lint-python` 통과)와 K320(`make link-state-check` 가 kit 이 쓰는 Composer project 를
