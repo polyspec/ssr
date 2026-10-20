@@ -31,3 +31,4 @@
 | S-78 | Ignore every cargo target directory in .gitignore, not only the one at the root | .gitignore | `make check-records` | [o] |
 | S-79 | Take the PRINCIPLES copies that kit changed with K316 and K327 to K330 using make kit-sync | PRINCIPLES.md, PRINCIPLES.ko.md | `make kit-check` | [o] |
 | S-80 | Every copy of kit the repository holds has an owner rule | config/owner-checks.json with clippy.toml in the kit copies rule | `make owner-validate` | [o] |
+| S-81 | The suite runs lint-rust, a gate of kit-gates, for the Rust of the repository | Makefile CHECK_TARGETS with lint-rust | `make kit-check` | [o] |

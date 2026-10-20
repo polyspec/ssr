@@ -5,6 +5,7 @@
 
 ## Unreleased
 
+- S-81: the suite runs lint-rust, the Rust gate of kit-gates, through CHECK_TARGETS in Makefile; red: kit-check reported that CHECK_TARGETS runs no lint-rust, green: kit-check passes. (S-81)
 - S-80: config/owner-checks.json gives clippy.toml, the kit copy of Rust lint settings, the owner rule of the kit copies; red: owner-validate reported clippy.toml as a path that matches no owner, green: it reports every tracked path owned. (S-80)
 - `PRINCIPLES.md` and `PRINCIPLES.ko.md` follow the kit changes K316 and K327 to K330 through `make kit-sync` (S-79).
   Red: `make kit-check` with the previous copies exited with 2. Green: `make kit-check` exits with 0, and every other

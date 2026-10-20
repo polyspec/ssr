@@ -25,7 +25,7 @@ PACKAGES := $(patsubst packages/%/Cargo.toml,%,$(wildcard packages/*/Cargo.toml)
 SSR_TARGETS = typecheck check-tools tool-test-test-ownership check-ownership check-records check-fixture-filter check-fmt check-clippy check-deny check-examples check-nextest check-bench
 # Every gate of kit-gates is a word of CHECK_TARGETS itself, which make kit-check reads from the database of make without
 # expanding $(SSR_TARGETS); the targets of ssr are the words of SSR_TARGETS.
-CHECK_TARGETS = kit-check toolchain-check layout-check docs-check rules-check owner-validate rebuild-check language-check test-markers-check duplication-check dependency-policy-check parity-declarations-check parity-check commits-check link-state-check bypass-check divergence-check lint-ts hooks-check $(SSR_TARGETS)
+CHECK_TARGETS = kit-check toolchain-check layout-check docs-check rules-check owner-validate rebuild-check language-check test-markers-check duplication-check dependency-policy-check parity-declarations-check parity-check commits-check link-state-check bypass-check divergence-check lint-ts hooks-check $(SSR_TARGETS) lint-rust
 # The number of Cargo build jobs of the check targets: 1 by default, so a local build leaves the
 # other processors of the host to the other work; the CI targets set it to the processor count of
 # the runner (nproc).
