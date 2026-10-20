@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: cf7bbac32b880b5bafd78a372daf86854d6322f5af76c683e7d90c89b30e9f76 -->
+<!-- source-sha256: 62baea92abbc40f6da7ddfc55c4acb72a346c4a5242ec6073cb9b6c65ae31bfd -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -45,3 +45,4 @@
 | S-93 | CHANGELOG.md와 kit-standard checklist의 한국어 문서가 원문과 일치한다: source-sha256 스탬프가 영문 문서의 해시와 같고, 각 영문 줄에 대응하는 정확한 한국어 줄이 있다 | CHANGELOG.ko.md, docs/plans/kit-standard/checklist.ko.md | `make docs-check` | [o] |
 | S-92 | server crate는 매핑하는 각 실패의 오류를 유지한다: development process의 Result::ok와 unwrap_or_else는 match가 되고, lock과 frame 파싱 매핑은 오류 텍스트를 유지하며, 선택적 socket kind는 non-Unicode 값을 버리지 않고 읽는다 | packages/server/src/development.rs, packages/server/src/development/process.rs, packages/server/src/development/supervisor.rs, packages/server/src/stack.rs, packages/server/tests/support/socket_process.rs | `cargo clippy -p polyspec-ssr-server --all-targets --locked -- -D warnings -D unused_must_use -D clippy::let_underscore_must_use -D clippy::let_underscore_untyped -D clippy::map_err_ignore -D clippy::allow_attributes_without_reason`, `cargo nextest run -p polyspec-ssr-server --lib --test cancellation --test development --test process --test public --test react_late_reader --test react_stream --test render --test svelte --locked` | [o] |
 | S-90 | make lint-rust가 전체 workspace에서 종료 코드 0으로 끝난다: checkout의 모든 Cargo workspace가 P8 lint와 함께 clippy를 통과한다 | CHANGELOG.md, CHANGELOG.ko.md, docs/plans/kit-standard/checklist.md, docs/plans/kit-standard/checklist.ko.md | `make lint-rust` | [o] |
+| S-94 | 콜드 타깃에서 React 어댑터 테스트 바이너리의 첫 실행이 30 초 제한으로 다섯 테스트를 시간 초과시키지 않는다 | packages/adapter-react/tests, .config/nextest.toml, scripts/install-packages.mts | `cargo nextest run -p polyspec-ssr-adapter-react --test form_rows --test heap --test react --test recovery --locked` | [ ] |
