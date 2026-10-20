@@ -7,12 +7,13 @@ use std::time::Instant;
 /// The chromium build of the package installation, which the nextest setup script
 /// `install-packages` names (`scripts/install-packages.mts`): the same browser on every machine.
 pub fn browser() -> String {
-    let path = std::env::var("SSR_BROWSER").unwrap_or_else(|_| {
-        panic!(
-            "SSR_BROWSER is not set; the nextest setup script install-packages sets it, so run \
+    let path = match std::env::var("SSR_BROWSER") {
+        Ok(path) => path,
+        Err(error) => panic!(
+            "SSR_BROWSER is not set ({error}); the nextest setup script install-packages sets it, so run \
              the tests with cargo nextest"
-        )
-    });
+        ),
+    };
     assert!(
         Path::new(&path).is_absolute() && Path::new(&path).is_file(),
         "SSR_BROWSER must name the chromium executable: {path}"

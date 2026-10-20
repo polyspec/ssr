@@ -4,7 +4,7 @@ use polyspec_ssr_core::{Page, Render, RenderResult, Value};
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("invalid React adapter input: {0}")]
-    InvalidInput(&'static str),
+    InvalidInput(#[source] polyspec_ssr_adapter_support::Error),
 }
 
 pub fn server_entry(application: &str) -> Result<String, Error> {
@@ -44,7 +44,7 @@ impl ReactAdapter {
 
     pub fn render(&self, page: &Page) -> Result<RenderResult, Error> {
         if page.render != Render::Csr {
-            return Err(Error::InvalidInput("SSR requires stream rendering"));
+            return Err(Error::InvalidInput("SSR requires stream rendering".into()));
         }
         let html = self
             .assets

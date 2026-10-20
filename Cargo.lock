@@ -2612,6 +2612,7 @@ version = "0.0.2"
 dependencies = [
  "polyspec-ssr-core",
  "polyspec-ssr-runtime",
+ "thiserror",
 ]
 
 [[package]]

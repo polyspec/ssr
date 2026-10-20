@@ -5,6 +5,7 @@
 
 ## Unreleased
 
+- S-91: packages/adapter-support has its own Error with the reason and the original error as its source, and the four adapters' InvalidInput holds it; the UTF-8 error of document keeps the Utf8Error as its source; red: make lint-rust exit 2 at 9e08285, map_err_ignore at adapter-support lib.rs:139-140, green: make lint-rust exit 0 and the owner test invalid_utf8_keeps_the_utf8_error_as_source passes. (S-91)
 - S-89: packages/build/src/svelte.rs holds the rustfmt form of the style lock mapping of S-87; red: cargo fmt --check of the crate reported the difference, green: the check passes. (S-89)
 - S-88: packages/runtime keeps the original error of each error it maps: the variants InvalidConfiguration, InvalidBundle, InvalidResult, Snapshot, Canceled and WorkerStopped carry the source (a v8 conversion, a channel, a UTF-8 or integer conversion, a poisoned lock message, a thread panic message), and the server uses the new patterns; red: clippy of the crate reported map_err_ignore at 44 sites, green: the clippy run passes. (S-88)
 - S-87: packages/build keeps the message of each lock poison and of the Tokio runtime error in asset_url.rs, js.rs and svelte.rs, where a wildcard discarded it; red: clippy of the crate reported map_err_ignore at those 4 sites, green: the clippy run passes. (S-87)

@@ -47,18 +47,46 @@ fn a_rejecting_adapter_refuses_head_output_and_invalid_text() {
     let assets = Assets::new("/client.js", &[], REJECTED).unwrap();
     let page = page("ssr", "t", "{}");
     assert_eq!(
-        assets.document(&page, b"", b"<meta>", &page.state).err(),
+        assets
+            .document(&page, b"", b"<meta>", &page.state)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
         Some("head output is rejected")
     );
     assert_eq!(
-        assets.document(&page, &[0xff], b"", &page.state).err(),
+        assets
+            .document(&page, &[0xff], b"", &page.state)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
         Some("rendered HTML must be UTF-8")
     );
     assert_eq!(
-        assets.document(&page, b"", &[0xff], &page.state).err(),
+        assets
+            .document(&page, b"", &[0xff], &page.state)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
         Some("rendered head must be UTF-8")
     );
     assert!(assets.document(&page, b"<p>", b"", &page.state).is_ok());
+}
+
+#[test]
+fn invalid_utf8_keeps_the_utf8_error_as_source() {
+    use std::error::Error as _;
+    let assets = Assets::new("/client.js", &[], HeadOutput::Inserted).unwrap();
+    let page = page("ssr", "t", "{}");
+    let error = assets
+        .document(&page, &[0xff], b"", &page.state)
+        .unwrap_err();
+    assert_eq!(error.to_string(), "rendered HTML must be UTF-8");
+    assert!(
+        error
+            .source()
+            .is_some_and(|source| source.is::<std::str::Utf8Error>())
+    );
 }
 
 #[test]
@@ -72,13 +100,19 @@ fn assets_accept_only_local_javascript_and_css_urls() {
         "/a//b.js",
     ] {
         assert_eq!(
-            Assets::new(client, &[], REJECTED).err(),
+            Assets::new(client, &[], REJECTED)
+                .err()
+                .map(|error| error.to_string())
+                .as_deref(),
             Some("client URL must be a local JavaScript path"),
             "{client}"
         );
     }
     assert_eq!(
-        Assets::new("/client.js", &["/style.js"], REJECTED).err(),
+        Assets::new("/client.js", &["/style.js"], REJECTED)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
         Some("style URL must be a local CSS path")
     );
     assert!(Assets::new("/dir/client-1_2.js", &["/s.css"], REJECTED).is_ok());
@@ -90,7 +124,11 @@ fn props_must_be_an_object() {
     let mut page = page("csr", "t", "{}");
     page.props = Value::string("not an object");
     assert_eq!(
-        assets.parts(&page, &page.state, "").err(),
+        assets
+            .parts(&page, &page.state, "")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
         Some("props must be an object")
     );
 }
@@ -101,7 +139,11 @@ fn static_shell_requires_csr_empty_props_and_null_state() {
     assert!(assets.static_shell(&page("csr", "t", "{}")).is_ok());
     for rejected in [page("ssr", "t", "{}"), page("csr", "t", r#"{"a":1}"#)] {
         assert_eq!(
-            assets.static_shell(&rejected).err(),
+            assets
+                .static_shell(&rejected)
+                .err()
+                .map(|error| error.to_string())
+                .as_deref(),
             Some("static shell requires CSR, empty props and null state")
         );
     }
@@ -112,14 +154,17 @@ fn application_paths_must_be_absolute() {
     assert_eq!(app_import("/app/x.js").unwrap(), "\"/app/x.js\"");
     assert_eq!(import_specifier("a\"b"), "\"a\\\"b\"");
     assert_eq!(
-        app_import("app/x.js").err(),
+        app_import("app/x.js")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
         Some("application path must be absolute")
     );
 }
 
 #[derive(Debug)]
 enum Failure {
-    Input(&'static str),
+    Input(polyspec_ssr_adapter_support::Error),
     Runtime(polyspec_ssr_runtime::Error),
 }
 
@@ -173,7 +218,7 @@ fn render_uses_the_pool_for_ssr_and_an_empty_body_for_csr() {
     let mut broken = page("csr", "t", "{}");
     broken.props = Value::string("not an object");
     match assets.render(&broken, &pool, Failure::Input) {
-        Err(Failure::Input(message)) => assert_eq!(message, "props must be an object"),
+        Err(Failure::Input(message)) => assert_eq!(message.to_string(), "props must be an object"),
         other => panic!("{other:?}"),
     }
     if let Err(Failure::Runtime(error)) =

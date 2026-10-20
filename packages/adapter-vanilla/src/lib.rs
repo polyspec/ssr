@@ -3,7 +3,7 @@ use polyspec_ssr_adapter_support::{Assets, HeadOutput, entry};
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("invalid vanilla adapter input: {0}")]
-    InvalidInput(&'static str),
+    InvalidInput(#[source] polyspec_ssr_adapter_support::Error),
     #[error("vanilla render failed: {0}")]
     Runtime(#[from] polyspec_ssr_runtime::Error),
 }

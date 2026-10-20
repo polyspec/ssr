@@ -1,6 +1,6 @@
 //! The code that the framework adapters share: the page document around rendered HTML, the validation of the client and
 //! style URLs and of the application path, and the render of a page through a pool. Only the adapter crates of this
-//! repository use it; every error is the message of the adapter's `InvalidInput`.
+//! repository use it; every error is an `Error` of this crate, which the adapter's `InvalidInput` holds.
 
 use polyspec_ssr_core::{Page, Render, RenderResult, Value};
 use polyspec_ssr_runtime::{Pool, RenderMetrics};
@@ -14,22 +14,53 @@ pub mod macro_support {
 
 use std::path::Path;
 
+/// The error of the shared code: its reason, and the error that it keeps as its source when there is one.
+#[derive(Debug, thiserror::Error)]
+#[error("{reason}")]
+pub struct Error {
+    reason: &'static str,
+    #[source]
+    source: Option<Box<dyn std::error::Error + Send + Sync>>,
+}
+
+impl From<&'static str> for Error {
+    fn from(reason: &'static str) -> Self {
+        Self {
+            reason,
+            source: None,
+        }
+    }
+}
+
+impl Error {
+    /// The error with `reason` that keeps `source`.
+    fn with_source(
+        reason: &'static str,
+        source: impl std::error::Error + Send + Sync + 'static,
+    ) -> Self {
+        Self {
+            reason,
+            source: Some(Box::new(source)),
+        }
+    }
+}
+
 /// The JSON string of an application path, the module specifier of a generated entry.
 pub fn import_specifier(path: &str) -> String {
     Value::string(path).compact()
 }
 
 /// The module specifier of an absolute application path.
-pub fn app_import(path: &str) -> Result<String, &'static str> {
+pub fn app_import(path: &str) -> Result<String, Error> {
     if !Path::new(path).is_absolute() {
-        return Err("application path must be absolute");
+        return Err(Error::from("application path must be absolute"));
     }
     Ok(import_specifier(path))
 }
 
 /// The generated entry `template` with each `{application}` replaced by the module specifier of the absolute application
 /// path.
-pub fn entry(application: &str, template: &str) -> Result<String, &'static str> {
+pub fn entry(application: &str, template: &str) -> Result<String, Error> {
     Ok(template.replace("{application}", &app_import(application)?))
 }
 
@@ -79,15 +110,15 @@ pub struct Assets {
 
 impl Assets {
     /// The assets of local URLs: a JavaScript client and CSS styles.
-    pub fn new(client: &str, styles: &[&str], head: HeadOutput) -> Result<Self, &'static str> {
+    pub fn new(client: &str, styles: &[&str], head: HeadOutput) -> Result<Self, Error> {
         if !local_url(client) || !client.ends_with(".js") {
-            return Err("client URL must be a local JavaScript path");
+            return Err(Error::from("client URL must be a local JavaScript path"));
         }
         if styles
             .iter()
             .any(|style| !local_url(style) || !style.ends_with(".css"))
         {
-            return Err("style URL must be a local CSS path");
+            return Err(Error::from("style URL must be a local CSS path"));
         }
         Ok(Self {
             client: client.into(),
@@ -102,9 +133,9 @@ impl Assets {
         page: &Page,
         state: &Value,
         head: &str,
-    ) -> Result<(Vec<u8>, Vec<u8>), &'static str> {
+    ) -> Result<(Vec<u8>, Vec<u8>), Error> {
         if page.props.members().is_none() {
-            return Err("props must be an object");
+            return Err(Error::from("props must be an object"));
         }
         let mut prefix = format!(
             "<!doctype html><html lang=\"{}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>{}</title>",
@@ -135,13 +166,15 @@ impl Assets {
         body: &[u8],
         head: &[u8],
         state: &Value,
-    ) -> Result<Vec<u8>, &'static str> {
-        let body = std::str::from_utf8(body).map_err(|_| "rendered HTML must be UTF-8")?;
-        let head = std::str::from_utf8(head).map_err(|_| "rendered head must be UTF-8")?;
+    ) -> Result<Vec<u8>, Error> {
+        let body = std::str::from_utf8(body)
+            .map_err(|source| Error::with_source("rendered HTML must be UTF-8", source))?;
+        let head = std::str::from_utf8(head)
+            .map_err(|source| Error::with_source("rendered head must be UTF-8", source))?;
         if let HeadOutput::Rejected(message) = self.head
             && !head.is_empty()
         {
-            return Err(message);
+            return Err(Error::from(message));
         }
         let (mut document, suffix) = self.parts(page, state, head)?;
         document.extend_from_slice(body.as_bytes());
@@ -150,12 +183,14 @@ impl Assets {
     }
 
     /// The document of a static shell: client rendering with empty props and a null state.
-    pub fn static_shell(&self, page: &Page) -> Result<Vec<u8>, &'static str> {
+    pub fn static_shell(&self, page: &Page) -> Result<Vec<u8>, Error> {
         if page.render != Render::Csr
             || page.props.members().is_none_or(|props| !props.is_empty())
             || page.state.compact() != "null"
         {
-            return Err("static shell requires CSR, empty props and null state");
+            return Err(Error::from(
+                "static shell requires CSR, empty props and null state",
+            ));
         }
         self.document(page, &[], &[], &page.state)
     }
@@ -167,7 +202,7 @@ impl Assets {
         &self,
         page: &Page,
         pool: &Pool,
-        invalid: fn(&'static str) -> E,
+        invalid: fn(Error) -> E,
     ) -> Result<(RenderResult, Option<RenderMetrics>), E> {
         let (rendered, metrics) = match page.render {
             Render::Ssr => {

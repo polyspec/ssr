@@ -5,7 +5,7 @@ use std::path::Path;
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("invalid Svelte adapter input: {0}")]
-    InvalidInput(&'static str),
+    InvalidInput(#[source] polyspec_ssr_adapter_support::Error),
     #[error("Svelte render failed: {0}")]
     Runtime(#[from] polyspec_ssr_runtime::Error),
 }
@@ -13,7 +13,7 @@ pub enum Error {
 fn check_application(path: &str) -> Result<(), Error> {
     if !Path::new(path).is_absolute() || Path::new(path).extension() != Some(OsStr::new("svelte")) {
         return Err(Error::InvalidInput(
-            "application path must be an absolute .svelte file",
+            "application path must be an absolute .svelte file".into(),
         ));
     }
     Ok(())

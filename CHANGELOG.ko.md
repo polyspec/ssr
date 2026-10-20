@@ -6,6 +6,7 @@
 
 ## Unreleased
 
+- S-91: packages/adapter-support는 자체 Error를 가지며 이유와 원본 오류를 source로 담고, 네 adapter의 InvalidInput이 이를 가진다. document의 UTF-8 오류는 Utf8Error를 source로 유지한다. red: 9e08285에서 make lint-rust가 exit 2, adapter-support lib.rs:139-140의 map_err_ignore. green: make lint-rust exit 0, owner test invalid_utf8_keeps_the_utf8_error_as_source 통과. (S-91)
 - S-89: packages/build/src/svelte.rs는 S-87의 style lock 매핑을 rustfmt 형식으로 둔다. red: 크레이트의 cargo fmt --check가 차이를 보고했고, green: 검사 통과. (S-89)
 - S-88: packages/runtime은 매핑하는 각 오류의 원본을 유지한다. InvalidConfiguration, InvalidBundle, InvalidResult, Snapshot, Canceled, WorkerStopped 변형이 source(v8 변환, 채널, UTF-8 또는 정수 변환, poison된 lock 메시지, thread panic 메시지)를 가지며, server는 새 패턴을 쓴다. red: 크레이트의 clippy가 44곳에서 map_err_ignore를 보고했고, green: clippy 통과. (S-88)
 - S-87: packages/build는 asset_url.rs, js.rs, svelte.rs에서 lock poison과 Tokio runtime 오류의 메시지를 wildcard로 버리지 않고 유지한다. red: 크레이트의 clippy가 이 4곳에서 map_err_ignore를 보고했고, green: clippy 통과. (S-87)
