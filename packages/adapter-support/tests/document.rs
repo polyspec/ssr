@@ -1,5 +1,7 @@
 use polyspec_ssr_adapter_support::{Assets, HeadOutput, app_import, import_specifier};
 use polyspec_ssr_core::{Page, Value};
+use polyspec_ssr_runtime::{Pool, PoolOptions, ServerBundle};
+use std::time::Duration;
 
 const REJECTED: HeadOutput = HeadOutput::Rejected("head output is rejected");
 
@@ -113,4 +115,70 @@ fn application_paths_must_be_absolute() {
         app_import("app/x.js").err(),
         Some("application path must be absolute")
     );
+}
+
+#[derive(Debug)]
+enum Failure {
+    Input(&'static str),
+    Runtime(polyspec_ssr_runtime::Error),
+}
+
+impl From<polyspec_ssr_runtime::Error> for Failure {
+    fn from(error: polyspec_ssr_runtime::Error) -> Self {
+        Self::Runtime(error)
+    }
+}
+
+#[test]
+fn render_uses_the_pool_for_ssr_and_an_empty_body_for_csr() {
+    let bundle = ServerBundle {
+        entry_path: "server/fixture.js".into(),
+        entry_bytes: b"export function render(props, state) { return {head:'', html: '<main>ok</main>', state}; }".to_vec(),
+        chunks: Vec::new(),
+    };
+    let pool = Pool::new(
+        bundle,
+        PoolOptions {
+            worker_count: 1,
+            queue_capacity: 0,
+            timeout: Duration::from_secs(2),
+            cleanup_timeout: Duration::from_secs(2),
+            max_input_bytes: 16_777_216,
+            max_queue_bytes: 67_108_864,
+            max_chunk_bytes: 65_536,
+            max_output_bytes: 67_108_864,
+            max_heap_bytes: 134_217_728,
+        },
+    )
+    .unwrap();
+    let assets = Assets::new("/client.js", &[], HeadOutput::Rejected("rejected")).unwrap();
+    let (ssr, metrics) = assets
+        .render(&page("ssr", "t", "{}"), &pool, Failure::Input)
+        .unwrap();
+    assert!(
+        String::from_utf8(ssr.html)
+            .unwrap()
+            .contains("<main>ok</main>")
+    );
+    assert!(metrics.is_some());
+    let (csr, metrics) = assets
+        .render(&page("csr", "t", "{}"), &pool, Failure::Input)
+        .unwrap();
+    assert!(
+        String::from_utf8(csr.html)
+            .unwrap()
+            .contains("data-render=\"csr\"></div>")
+    );
+    assert!(metrics.is_none());
+    let mut broken = page("csr", "t", "{}");
+    broken.props = Value::string("not an object");
+    match assets.render(&broken, &pool, Failure::Input) {
+        Err(Failure::Input(message)) => assert_eq!(message, "props must be an object"),
+        other => panic!("{other:?}"),
+    }
+    if let Err(Failure::Runtime(error)) =
+        assets.render(&page("csr", "t", "{}"), &pool, Failure::Input)
+    {
+        panic!("{error}");
+    }
 }

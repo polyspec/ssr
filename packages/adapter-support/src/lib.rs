@@ -197,16 +197,12 @@ impl Assets {
     }
 }
 
-/// Defines the adapter type `$adapter` of the error type `$error`, which has the variant `InvalidInput(&'static str)` and
-/// converts from the error of the runtime: its `new`, `render` and `static_shell`, and `render_with_metrics` when
+/// Writes the methods of the adapter type `$adapter`, a struct with the field `assets: Assets`, of the error type `$error`,
+/// which has the variant `InvalidInput(&'static str)` and converts from the error of the runtime: `new`, `render` and `static_shell`, and `render_with_metrics` when
 /// `with_metrics` is given. `$head` is the `HeadOutput` of the adapter.
 #[macro_export]
 macro_rules! adapter {
     ($adapter:ident, $error:ident, $head:expr) => {
-        pub struct $adapter {
-            assets: $crate::Assets,
-        }
-
         impl $adapter {
             pub fn new(client: &str, styles: &[&str]) -> Result<Self, $error> {
                 $crate::Assets::new(client, styles, $head)

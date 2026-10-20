@@ -1,4 +1,4 @@
-use polyspec_ssr_adapter_support::{HeadOutput, entry};
+use polyspec_ssr_adapter_support::{Assets, HeadOutput, entry};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -22,6 +22,10 @@ pub fn client_entry(application: &str) -> Result<String, Error> {
         "import { createApp, createSSRApp } from 'vue';\nimport App from {application};\nconst props = JSON.parse(document.getElementById('__SSR_PROPS__').textContent);\nconst renderState = {input: JSON.parse(document.getElementById('__SSR_STATE__').textContent), output: null};\nconst root = document.getElementById('root');\nconst app = root.dataset.render === 'ssr' ? createSSRApp(App, {...props, renderState}) : root.dataset.render === 'csr' ? createApp(App, {...props, renderState}) : null;\nif (app === null) throw new Error('Invalid render mode');\napp.mount(root);\n",
     )
     .map_err(Error::InvalidInput)
+}
+
+pub struct VueAdapter {
+    assets: Assets,
 }
 
 polyspec_ssr_adapter_support::adapter!(

@@ -1,4 +1,4 @@
-use polyspec_ssr_adapter_support::{HeadOutput, entry};
+use polyspec_ssr_adapter_support::{Assets, HeadOutput, entry};
 use std::ffi::OsStr;
 use std::path::Path;
 
@@ -27,6 +27,10 @@ pub fn server_entry(application: &str) -> Result<String, Error> {
 pub fn client_entry(application: &str) -> Result<String, Error> {
     check_application(application)?;
     entry(application, "import { hydrate, mount } from 'svelte';\nimport App from {application};\nconst props = JSON.parse(document.getElementById('__SSR_PROPS__').textContent);\nconst renderState = {input: JSON.parse(document.getElementById('__SSR_STATE__').textContent), output: null};\nconst root = document.getElementById('root');\nif (root.dataset.render === 'ssr') hydrate(App, {target: root, props: {...props, renderState}, recover: false}); else if (root.dataset.render === 'csr') mount(App, {target: root, props: {...props, renderState}}); else throw new Error('Invalid render mode');\n").map_err(Error::InvalidInput)
+}
+
+pub struct SvelteAdapter {
+    assets: Assets,
 }
 
 polyspec_ssr_adapter_support::adapter!(SvelteAdapter, Error, HeadOutput::Inserted, with_metrics);

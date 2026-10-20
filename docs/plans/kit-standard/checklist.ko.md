@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: 4ff363b2870829d5d2eebe84af0825cb106fd2d641e2fe742f8a04cb32ec13ac -->
+<!-- source-sha256: b1a99d9fae10843281ca920371d63dd11f1bce5b10532e3abe1db4749e88d4d8 -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -26,3 +26,4 @@
 | S-72 | S-60 이후 바뀐 kit 복사본(두 언어의 PRINCIPLES 와 config/php-lint)을 make kit-sync 로 받는다 | PRINCIPLES.md, PRINCIPLES.ko.md, config/php-lint | `make kit-check` | [o] |
 | S-73 | kit-gates 의 새 check 인 bypass-check 를 Makefile 의 CHECK_TARGETS 에서 실행한다 | Makefile, config/owner-checks.json | `make kit-check` | [o] |
 | S-74 | polyspec-ssr-adapter-support 를 publish = false 로 표시하고 제품이 아닌 공유 구현으로서 config/release.json 의 release 대상 manifest 와 release proof 에서 제거한다 | packages/adapter-support/Cargo.toml, config/release.json | `make kit-check` | [o] |
+| S-75 | ownership 검사가 adapter 의 public 이름을 보게 한다: 각 adapter 가 struct 를 선언하고 support crate 의 macro 는 method 만 쓰며, support crate 에 page 와 runtime 을 쓰는 render test 를 둔다 | packages/adapter-*/src/lib.rs, packages/adapter-support, config/test-ownership.json | `make check-ownership` | [o] |

@@ -444,8 +444,21 @@ pub fn public_root_exports(lib: &Path) -> Result<BTreeSet<String>, OwnershipErro
             Item::TraitAlias(item) => (&item.vis, &item.ident),
             Item::Type(item) => (&item.vis, &item.ident),
             Item::Union(item) => (&item.vis, &item.ident),
-            // Implementations, foreign blocks and macro_rules have no visibility of their own.
-            Item::Impl(_) | Item::ForeignMod(_) | Item::Macro(_) => continue,
+            // A macro_rules item is public at the crate root through #[macro_export]; implementations and foreign blocks
+            // have no visibility of their own.
+            Item::Macro(item) => {
+                if item.mac.path.is_ident("macro_rules")
+                    && item
+                        .attrs
+                        .iter()
+                        .any(|attribute| attribute.path().is_ident("macro_export"))
+                    && let Some(name) = &item.ident
+                {
+                    exports.insert(name.to_string());
+                }
+                continue;
+            }
+            Item::Impl(_) | Item::ForeignMod(_) => continue,
             Item::Verbatim(tokens) => {
                 if matches!(tokens.clone().into_iter().next(), Some(TokenTree::Ident(word)) if word == "pub")
                 {

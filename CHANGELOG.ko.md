@@ -1,11 +1,16 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 47ff0309827e8f1e80c95bf1cd3b90d755f72ae88cae2a7ea6404613145acdde -->
+<!-- source-sha256: d83c6531ab7e4474850ab713b0b2759ec9f8f49244f9734f41f46ec3bf07c3c1 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- adapter 는 struct 를 선언하고 support crate 의 `adapter!` 는 method 만 쓰며, ownership 검사는 `#[macro_export]` macro_rules 를
+  public root 이름으로 읽고, support crate 에는 pool 과 page 를 쓰는 render test 가 있다 (S-75). Red: `make check-ownership` 이 종료 코드
+  2 와 선언 오류 5건(`owner does not export polyspec-ssr-adapter-support::adapter`, adapter 의 인식되지 않은 이름, source 와 다른
+  consumer)으로 실패했다. Green: `make check-ownership` 이 종료 코드 0 이고 ownership case 38개를 통과하며, `tests/test-ownership` 의 test
+  38개와 support crate 의 test 7개가 통과하고 `make duplication-check` 가 종료 코드 0 이다.
 - `polyspec-ssr-adapter-support` 는 `publish = false` 이며, 공유 구현이고 제품이 아니므로 `config/release.json` 에서 release manifest
   항목과 release proof 없이 release 하지 않는 것으로 분류한다 (S-74). Red: `config/release.json` 이 이를 `git-tag` manifest 와 release
   proof 에 나열했다. Green: 둘 다 나열하지 않으며 `make kit-check`, `make rules-check`, `make release-coverage` 가 종료 코드 0 이다.

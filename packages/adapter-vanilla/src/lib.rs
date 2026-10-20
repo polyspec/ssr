@@ -1,4 +1,4 @@
-use polyspec_ssr_adapter_support::{HeadOutput, entry};
+use polyspec_ssr_adapter_support::{Assets, HeadOutput, entry};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -22,6 +22,10 @@ pub fn client_entry(application: &str) -> Result<String, Error> {
         "import { hydrate, mount } from {application};\nconst props = JSON.parse(document.getElementById('__SSR_PROPS__').textContent);\nconst renderState = {input: JSON.parse(document.getElementById('__SSR_STATE__').textContent), output: null};\nconst root = document.getElementById('root');\nif (root.dataset.render === 'ssr') hydrate(root, props, renderState); else if (root.dataset.render === 'csr') mount(root, props, renderState); else throw new Error('Invalid render mode');\n",
     )
     .map_err(Error::InvalidInput)
+}
+
+pub struct VanillaAdapter {
+    assets: Assets,
 }
 
 polyspec_ssr_adapter_support::adapter!(

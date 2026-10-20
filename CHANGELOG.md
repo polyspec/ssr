@@ -5,6 +5,12 @@
 
 ## Unreleased
 
+- The adapters declare their structs and `adapter!` of the support crate writes only their methods, the ownership
+  check reads a `#[macro_export]` macro_rules as a public root name, and the support crate has a render test that uses
+  the pool and the page (S-75). Red: `make check-ownership` exited with 2 and 5 declaration errors (`owner does not
+  export polyspec-ssr-adapter-support::adapter`, unrecognized names in the adapters, consumers that differ from the
+  source). Green: `make check-ownership` exits with 0 and passes 38 ownership cases; the 38 tests of
+  `tests/test-ownership` pass, 7 tests of the support crate pass and `make duplication-check` exits with 0.
 - `polyspec-ssr-adapter-support` is marked `publish = false` and is classified as not released in
   `config/release.json`, without a release manifest entry or release proof, because it is shared implementation and no
   product (S-74). Red: `config/release.json` listed it as a `git-tag` manifest and in the release proof. Green: it

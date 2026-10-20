@@ -816,3 +816,15 @@ fn a_report_line_that_cannot_be_read_fails() {
         "{message}"
     );
 }
+
+#[test]
+fn exported_macros_are_public_root_names_and_other_macros_are_not() {
+    let fixture = Fixture::new();
+    fixture.write(
+        "packages/core/src/lib.rs",
+        "#[macro_export]\nmacro_rules! shared { () => {}; }\nmacro_rules! private { () => {}; }\npub struct Page;\n",
+    );
+    let exports =
+        public_root_exports(&fixture.root.join("packages/core/src/lib.rs")).expect("exports");
+    assert_eq!(exports.into_iter().collect::<Vec<_>>(), ["Page", "shared"]);
+}
