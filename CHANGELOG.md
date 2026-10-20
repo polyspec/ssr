@@ -5,6 +5,7 @@
 
 ## Unreleased
 
+- S-87: packages/build keeps the message of each lock poison and of the Tokio runtime error in asset_url.rs, js.rs and svelte.rs, where a wildcard discarded it; red: clippy of the crate reported map_err_ignore at those 4 sites, green: the clippy run passes. (S-87)
 - S-86: the poison case of the engine process moves from packages/core/tests/process.rs to packages/core/tests/process_poison.rs, so each runs in its own process; red: `cargo test -p polyspec-ssr-core --test process` failed with Disconnected at process.rs:16 because the poisoned lock of the other test reached the serialize test, green: both binaries pass. (S-86)
 - S-84: tests/test-ownership/src/main.rs maps an interrupted run's exit status with an explicit check and reports an out-of-range signal with its reason, instead of Result::ok turning it into FAILURE; red: the clippy run of the crate reported the disallowed method Result::ok at src/main.rs:28, green: the clippy run passes. (S-84)
 - S-85: .golangci.yml, ruff.toml, PRINCIPLES.md, PRINCIPLES.ko.md and scripts/kit/kit-bootstrap.mk take the kit 0.0.54 copies, with the P8 lint rules and the link of the siblings on install; red: kit-check reported 5 copies that differ from @polyspec/kit, green: kit-check passes. (S-85)

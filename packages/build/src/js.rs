@@ -168,7 +168,7 @@ pub(crate) async fn bundle(
     }
     styles
         .lock()
-        .map_err(|_| Error::JavaScript("Svelte style lock failed".into()))
+        .map_err(|poison| Error::JavaScript(format!("Svelte style lock failed: {poison}")))
         .map(|styles| styles.clone())
 }
 

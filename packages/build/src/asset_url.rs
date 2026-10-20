@@ -61,7 +61,9 @@ impl Plugin for AssetUrlPlugin {
         if let Err(error) = &result {
             self.errors
                 .lock()
-                .map_err(|_| io::Error::other("asset load error record is poisoned"))?
+                .map_err(|poison| {
+                    io::Error::other(format!("asset load error record is poisoned: {poison}"))
+                })?
                 .push(format!("{error:#}"));
         }
         result

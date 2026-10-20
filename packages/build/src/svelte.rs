@@ -65,7 +65,7 @@ fn compile_in_runtime(
     mode: &str,
 ) -> Result<Compiled, String> {
     tokio::runtime::Handle::try_current()
-        .map_err(|_| "Svelte compilation requires a Tokio runtime".to_owned())?;
+        .map_err(|error| format!("Svelte compilation requires a Tokio runtime: {error}"))?;
     let path = path
         .to_str()
         .ok_or_else(|| "Svelte source path is not UTF-8".to_owned())?;
@@ -188,7 +188,9 @@ impl Plugin for SveltePlugin {
             let mut styles = self
                 .styles
                 .lock()
-                .map_err(|_| io::Error::other("Svelte style lock failed"))?;
+                .map_err(|poison| {
+                    io::Error::other(format!("Svelte style lock failed: {poison}"))
+                })?;
             if styles.insert(path.to_path_buf(), css).is_some() {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
