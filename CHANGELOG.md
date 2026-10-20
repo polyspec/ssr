@@ -5,6 +5,9 @@
 
 ## Unreleased
 
+- `PRINCIPLES.md` and `PRINCIPLES.ko.md` follow the kit changes K316 and K327 to K330 through `make kit-sync` (S-79).
+  Red: `make kit-check` with the previous copies exited with 2. Green: `make kit-check` exits with 0, and every other
+  check of `kit-gates` that ssr runs exits with 0 with no further change.
 - `.gitignore` ignores every cargo `target/` directory, also the one that a plain `cargo test --manifest-path
   tests/test-ownership/Cargo.toml` writes beside that package, in place of only `/target/` (S-78). Red: after that
   command `git status` listed `tests/test-ownership/target/` as untracked. Green: `git status` lists nothing for it

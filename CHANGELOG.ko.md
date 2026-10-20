@@ -1,11 +1,14 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 0b617f7574b3c2ca9f6aa86f0f458c618ce7a73cb19aeeb9f36e2d14ec113b34 -->
+<!-- source-sha256: 8177aae8c88d5ccddf7d277191e30825acaeb893b1ce45a971f6b4149a413f7b -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- K316 과 K327 부터 K330 의 kit 변경에 따라 `PRINCIPLES.md` 와 `PRINCIPLES.ko.md` 를 `make kit-sync` 로 받는다 (S-79). Red: 이전 복사본에서
+  `make kit-check` 가 종료 코드 2 였다. Green: `make kit-check` 가 종료 코드 0 이고 ssr 가 실행하는 `kit-gates` 의 나머지 check 도 다른 변경 없이 종료
+  코드 0 이다.
 - `.gitignore` 는 `/target/` 만이 아니라, 그 package 옆에 `cargo test --manifest-path tests/test-ownership/Cargo.toml` 가 쓰는 것을
   포함해 모든 cargo `target/` directory 를 무시한다 (S-78). Red: 그 명령 뒤 `git status` 가 `tests/test-ownership/target/` 을 추적되지 않는
   것으로 나열했다. Green: `git status` 가 이에 대해 아무것도 나열하지 않고 `git check-ignore` 가 규칙 `target/` 을 지목한다.

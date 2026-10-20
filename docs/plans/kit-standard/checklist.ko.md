@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: b56ba9721d4e8cf1c2e21549def14af1f1591c64ee21f50202e65ffaf1b5d6b4 -->
+<!-- source-sha256: d4faf73c28b4f9633a1c4ed46bacae0a6a5dd631afc24022fe67c01f6de863d9 -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -30,3 +30,4 @@
 | S-76 | S-72 이후 kit 이 바꾼 PRINCIPLES 복사본을 make kit-sync 로 받는다 | PRINCIPLES.md, PRINCIPLES.ko.md | `make kit-check` | [o] |
 | S-77 | CHECK_TARGETS 에서 divergence-check 를 실행하고 config/duplication.json 의 각 reason 을 그 종류(test 또는 harness)로 시작한다 | Makefile, config/duplication.json, config/owner-checks.json | `make divergence-check` | [o] |
 | S-78 | 루트의 것만이 아니라 모든 cargo target directory 를 .gitignore 에서 무시한다 | .gitignore | `make check-records` | [o] |
+| S-79 | K316 과 K327 부터 K330 으로 kit 이 바꾼 PRINCIPLES 복사본을 make kit-sync 로 받는다 | PRINCIPLES.md, PRINCIPLES.ko.md | `make kit-check` | [o] |
