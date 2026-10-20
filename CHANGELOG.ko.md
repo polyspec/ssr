@@ -6,6 +6,7 @@
 
 ## Unreleased
 
+- S-89: packages/build/src/svelte.rs는 S-87의 style lock 매핑을 rustfmt 형식으로 둔다. red: 크레이트의 cargo fmt --check가 차이를 보고했고, green: 검사 통과. (S-89)
 - S-88: packages/runtime은 매핑하는 각 오류의 원본을 유지한다. InvalidConfiguration, InvalidBundle, InvalidResult, Snapshot, Canceled, WorkerStopped 변형이 source(v8 변환, 채널, UTF-8 또는 정수 변환, poison된 lock 메시지, thread panic 메시지)를 가지며, server는 새 패턴을 쓴다. red: 크레이트의 clippy가 44곳에서 map_err_ignore를 보고했고, green: clippy 통과. (S-88)
 - S-87: packages/build는 asset_url.rs, js.rs, svelte.rs에서 lock poison과 Tokio runtime 오류의 메시지를 wildcard로 버리지 않고 유지한다. red: 크레이트의 clippy가 이 4곳에서 map_err_ignore를 보고했고, green: clippy 통과. (S-87)
 - S-86: engine process의 poison 검사를 packages/core/tests/process.rs에서 packages/core/tests/process_poison.rs로 옮겨 각각 독립 프로세스에서 실행한다. red: `cargo test -p polyspec-ssr-core --test process`가 process.rs:16에서 Disconnected로 실패했다. 다른 테스트의 poison된 lock이 직렬화 테스트에 닿았기 때문이다. green: 두 binary 모두 통과. (S-86)

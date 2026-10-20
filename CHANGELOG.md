@@ -5,6 +5,7 @@
 
 ## Unreleased
 
+- S-89: packages/build/src/svelte.rs holds the rustfmt form of the style lock mapping of S-87; red: cargo fmt --check of the crate reported the difference, green: the check passes. (S-89)
 - S-88: packages/runtime keeps the original error of each error it maps: the variants InvalidConfiguration, InvalidBundle, InvalidResult, Snapshot, Canceled and WorkerStopped carry the source (a v8 conversion, a channel, a UTF-8 or integer conversion, a poisoned lock message, a thread panic message), and the server uses the new patterns; red: clippy of the crate reported map_err_ignore at 44 sites, green: the clippy run passes. (S-88)
 - S-87: packages/build keeps the message of each lock poison and of the Tokio runtime error in asset_url.rs, js.rs and svelte.rs, where a wildcard discarded it; red: clippy of the crate reported map_err_ignore at those 4 sites, green: the clippy run passes. (S-87)
 - S-86: the poison case of the engine process moves from packages/core/tests/process.rs to packages/core/tests/process_poison.rs, so each runs in its own process; red: `cargo test -p polyspec-ssr-core --test process` failed with Disconnected at process.rs:16 because the poisoned lock of the other test reached the serialize test, green: both binaries pass. (S-86)

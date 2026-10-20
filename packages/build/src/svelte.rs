@@ -185,12 +185,9 @@ impl Plugin for SveltePlugin {
         let compiled = compile(&compiler, args.code, path, self.mode)
             .map_err(|message| io::Error::new(io::ErrorKind::InvalidData, message))?;
         if let Some(css) = compiled.css {
-            let mut styles = self
-                .styles
-                .lock()
-                .map_err(|poison| {
-                    io::Error::other(format!("Svelte style lock failed: {poison}"))
-                })?;
+            let mut styles = self.styles.lock().map_err(|poison| {
+                io::Error::other(format!("Svelte style lock failed: {poison}"))
+            })?;
             if styles.insert(path.to_path_buf(), css).is_some() {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
