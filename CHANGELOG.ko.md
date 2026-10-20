@@ -1,11 +1,12 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 5eeaae173dce489ef334971eb83a757541fa656c104eb9df0d0c54334551b785 -->
+<!-- source-sha256: 048f1322b594ee71db76c601c1deaeec2fc0e9a37a72257acd10057ac809e17e -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- S-71 이 완료되었다: source clone 29건이 S-71-1 부터 S-71-5 까지에서 제거되었고 `make duplication-check` 가 종료 코드 0 이다 (S-71).
 - `Development::start` 와 `Development::from_build` 는 render process 의 supervisor 를 함수 하나 `supervise` 로 시작한다. 동작은 그대로이다
   (S-71-5). 이전: `make duplication-check` 가 clone 1건을 찾았다. 이후: clone 0건이고 `make duplication-check` 가 종료 코드 0 이며
   `polyspec-ssr-server` 의 `development` test 16개가 통과한다.

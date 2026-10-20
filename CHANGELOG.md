@@ -5,6 +5,8 @@
 
 ## Unreleased
 
+- S-71 is complete: the 29 clones of the sources are removed in S-71-1 to S-71-5, and `make duplication-check` exits
+  with 0 (S-71).
 - `Development::start` and `Development::from_build` start the supervisor of the render process through one function
   `supervise`; behavior is unchanged (S-71-5). Before: `make duplication-check` found 1 clone. After: 0 clones, `make
   duplication-check` exits with 0; the 16 tests of `polyspec-ssr-server` `development` pass.
