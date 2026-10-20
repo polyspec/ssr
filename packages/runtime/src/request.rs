@@ -156,6 +156,22 @@ pub(crate) struct Request {
     pub(crate) span: tracing::Span,
 }
 impl Request {
+    /// The error of a request whose cancellation fired.
+    pub(crate) fn interrupted<T>(&self) -> Result<T, Error> {
+        Err(self.cancellation.failure()?)
+    }
+    /// Stops the request at its deadline, and gives the error of the timeout.
+    pub(crate) fn timed_out<T>(&self) -> Result<T, Error> {
+        self.stop(Reason::Timeout)?;
+        Err(Error::Timeout)
+    }
+    /// Checks the request, and returns the timer that fires at its deadline.
+    pub(crate) fn deadline_timer(&self) -> Result<crossbeam_channel::Receiver<Instant>, Error> {
+        self.check()?;
+        Ok(crossbeam_channel::after(
+            self.deadline.saturating_duration_since(Instant::now()),
+        ))
+    }
     pub(crate) fn stop(&self, reason: Reason) -> Result<(), Error> {
         if let Err(error) = self.cancellation.stop(reason) {
             self.health.fail(2);

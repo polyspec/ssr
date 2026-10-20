@@ -5,6 +5,11 @@
 
 ## Unreleased
 
+- The runtime crate builds the origin of a classic script with `script_origin`, the waits of a request with
+  `Request::deadline_timer`, `interrupted` and `timed_out`, and the two parallel restore tests of the snapshot with
+  one helper; behavior and messages are unchanged (S-71-4). Before: `make duplication-check` found 5 clones, 4 in the
+  runtime crate. After: 1 clone, none in the runtime crate; 19 runtime tests of the snapshot, cancellation, timeout
+  and stream pass.
 - The adapters build their generated entries from a template with the shared `entry`, and define the adapter type with
   the shared macro `adapter!` of `polyspec-ssr-adapter-support`; the public types, methods, messages and the error
   types are unchanged (S-71-3). Before: `make duplication-check` found 8 clones, 3 in the adapters. After: 5 clones,

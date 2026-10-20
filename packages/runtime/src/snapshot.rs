@@ -1,3 +1,4 @@
+use crate::engine::script_origin;
 use crate::{Error, module, web};
 use deno_core::{JsRuntime, v8};
 use sha2::{Digest, Sha256};
@@ -256,19 +257,7 @@ fn run_react_framework(
     ))?;
     let name = v8::String::new(scope, script_name)
         .ok_or(Error::InvalidBundle("framework script name unavailable"))?;
-    let origin = v8::ScriptOrigin::new(
-        scope,
-        name.into(),
-        0,
-        0,
-        false,
-        0,
-        None,
-        false,
-        false,
-        false,
-        None,
-    );
+    let origin = script_origin(scope, name);
     let mut source = v8::script_compiler::Source::new(source, Some(&origin));
     let timer_name = v8::String::new(scope, "setTimeout")
         .ok_or(Error::InvalidBundle("React scheduling name unavailable"))?;
@@ -321,19 +310,7 @@ fn run_bundle(
         .ok_or(Error::InvalidBundle("bundle exceeds V8 string limit"))?;
     let name = v8::String::new(scope, script_name)
         .ok_or(Error::InvalidBundle("script name unavailable"))?;
-    let origin = v8::ScriptOrigin::new(
-        scope,
-        name.into(),
-        0,
-        0,
-        false,
-        0,
-        None,
-        false,
-        false,
-        false,
-        None,
-    );
+    let origin = script_origin(scope, name);
     let script =
         v8::Script::compile(scope, source, Some(&origin)).ok_or_else(|| script_error!(scope))?;
     script.run(scope).ok_or_else(|| script_error!(scope))?;
@@ -537,26 +514,20 @@ mod tests {
         }
     }
 
-    #[test]
-    fn same_application_snapshot_restores_in_parallel() {
-        let snapshot = get(
-            &bundle("globalThis.marker='Ada'; export function render() {}"),
-            Duration::from_secs(3),
-        )
-        .unwrap();
+    /// Restores `snapshot` in four threads at once, ten times, and requires `expression` to give "Ada" in each.
+    fn assert_restores_in_parallel(snapshot: &super::Snapshot, expression: &str) {
         for _ in 0..10 {
             let barrier = Barrier::new(4);
             std::thread::scope(|threads| {
                 for _ in 0..4 {
                     let barrier = &barrier;
-                    let snapshot = &snapshot;
                     threads.spawn(move || {
                         barrier.wait();
                         let mut isolate = snapshot.isolate(134_217_728);
                         v8::scope!(let scope, &mut isolate);
                         let context = v8::Context::new(scope, Default::default());
                         let scope = &mut v8::ContextScope::new(scope, context);
-                        let source = v8::String::new(scope, "globalThis.marker").unwrap();
+                        let source = v8::String::new(scope, expression).unwrap();
                         let value = v8::Script::compile(scope, source, None)
                             .unwrap()
                             .run(scope)
@@ -566,6 +537,16 @@ mod tests {
                 }
             });
         }
+    }
+
+    #[test]
+    fn same_application_snapshot_restores_in_parallel() {
+        let snapshot = get(
+            &bundle("globalThis.marker='Ada'; export function render() {}"),
+            Duration::from_secs(3),
+        )
+        .unwrap();
+        assert_restores_in_parallel(&snapshot, "globalThis.marker");
     }
 
     #[test]
@@ -579,27 +560,6 @@ mod tests {
             Duration::from_secs(3),
         )
         .unwrap();
-        for _ in 0..10 {
-            let barrier = Barrier::new(4);
-            std::thread::scope(|threads| {
-                for _ in 0..4 {
-                    let barrier = &barrier;
-                    let snapshot = &snapshot;
-                    threads.spawn(move || {
-                        barrier.wait();
-                        let mut isolate = snapshot.isolate(134_217_728);
-                        v8::scope!(let scope, &mut isolate);
-                        let context = v8::Context::new(scope, Default::default());
-                        let scope = &mut v8::ContextScope::new(scope, context);
-                        let source = v8::String::new(scope, "__ssrApp()").unwrap();
-                        let value = v8::Script::compile(scope, source, None)
-                            .unwrap()
-                            .run(scope)
-                            .unwrap();
-                        assert_eq!(value.to_rust_string_lossy(scope), "Ada");
-                    });
-                }
-            });
-        }
+        assert_restores_in_parallel(&snapshot, "__ssrApp()");
     }
 }

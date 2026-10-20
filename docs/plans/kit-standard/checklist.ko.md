@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: 9ffb6226c38bfd9271443f25e7e1b0d9ba7ea1b5a851aa5aa156ea19048e7bdd -->
+<!-- source-sha256: e474d7012202bc6d41b9002008eec14d80cfeeeae6c9883d5079b7555e5d346b -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -21,3 +21,4 @@
 | S-71-1 | build crate 의 error 를 thiserror 로 derive 하고 임시 경로 제거의 처리를 공유해 Error 와 PublishError 가 code 를 되풀이하지 않게 한다 | Cargo.toml, Cargo.lock, config/dependency-review.json, packages/build/src | `make nextest-build` | [o] |
 | S-71-2 | 네 adapter crate 가 공유하는 것(document, assets, render, static shell)을 private crate polyspec-ssr-adapter-support 로 옮기고 error 를 thiserror 로 derive 한다 | packages/adapter-support, packages/adapter-*/src/lib.rs, config/, AGENTS.md | `make nextest-adapter-support` | [o] |
 | S-71-3 | adapter 가 생성하는 entry 를 공유 함수 하나로 template 에서 만들어 entry 가 code 를 되풀이하지 않게 한다 | packages/adapter-support, packages/adapter-*/src/lib.rs | `make nextest-adapter-support` | [o] |
+| S-71-4 | runtime crate 의 clone 을 제거한다: classic script 의 origin 하나, request 대기의 deadline timer 와 취소·timeout 결과 하나, 병렬 복원 test 의 helper 하나 | packages/runtime/src | `make nextest-runtime` | [o] |

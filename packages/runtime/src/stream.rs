@@ -2,10 +2,10 @@ use crate::{
     Cancellation, Error,
     request::{Reason, Request},
 };
-use crossbeam_channel::{Receiver, Sender, after, select_biased};
+use crossbeam_channel::{Receiver, Sender, select_biased};
 use ordered_json::Value;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 pub(crate) enum Event {
     Shell(Value, usize),
@@ -22,17 +22,10 @@ pub(crate) struct Output {
 }
 impl Output {
     pub(crate) fn send(&self, event: Event) -> Result<(), Error> {
-        self.request.check()?;
-        let timeout = after(
-            self.request
-                .deadline
-                .saturating_duration_since(Instant::now()),
-        );
+        let timeout = self.request.deadline_timer()?;
         select_biased! {
-            recv(self.request.cancellation.canceled()) -> _ => {
-                Err(self.request.cancellation.failure()?)
-            },
-            recv(timeout) -> _ => { self.request.stop(Reason::Timeout)?; Err(Error::Timeout) },
+            recv(self.request.cancellation.canceled()) -> _ => self.request.interrupted(),
+            recv(timeout) -> _ => self.request.timed_out(),
             send(self.events, event) -> result => result.map_err(|_| Error::Canceled),
         }
     }
@@ -67,18 +60,11 @@ impl Stream {
     }
 
     pub(crate) fn receive(&self) -> Result<Event, Error> {
-        self.request.check()?;
-        let timeout = after(
-            self.request
-                .deadline
-                .saturating_duration_since(Instant::now()),
-        );
+        let timeout = self.request.deadline_timer()?;
         select_biased! {
-            recv(self.request.cancellation.canceled()) -> _ => {
-                Err(self.request.cancellation.failure()?)
-            },
+            recv(self.request.cancellation.canceled()) -> _ => self.request.interrupted(),
             recv(self.events) -> result => result.map_err(|_| Error::WorkerStopped),
-            recv(timeout) -> _ => {self.request.stop(Reason::Timeout)?; Err(Error::Timeout)},
+            recv(timeout) -> _ => self.request.timed_out(),
         }
     }
 

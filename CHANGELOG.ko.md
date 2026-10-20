@@ -1,11 +1,15 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 52efa0f6b9c60e1302bf05c9aebe96552c066010724cd76d9de7fe0dcf2417f4 -->
+<!-- source-sha256: 7ebe5371ca726251dd638fb9fe52b529c8efaf2334fbb60a6b6eced0a8350a46 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- runtime crate 는 classic script 의 origin 을 `script_origin` 으로, request 의 대기를 `Request::deadline_timer`,
+  `interrupted`, `timed_out` 으로, snapshot 의 병렬 복원 test 둘을 helper 하나로 만든다. 동작과 message 는 그대로이다 (S-71-4). 이전: `make
+  duplication-check` 가 clone 5건을 찾았고 runtime crate 에 4건이 있었다. 이후: clone 1건이고 runtime crate 에는 없으며, snapshot, 취소,
+  timeout, stream 의 runtime test 19개가 통과한다.
 - adapter 는 생성하는 entry 를 공유 `entry` 로 template 에서 만들고, adapter 타입을 `polyspec-ssr-adapter-support` 의 공유 macro
   `adapter!` 로 정의한다. public 타입, method, message, error 타입은 그대로이다 (S-71-3). 이전: `make duplication-check` 가 clone 8건을
   찾았고 adapter 에 3건이 있었다. 이후: clone 5건이고 adapter 에는 없으며, `cargo nextest run -p polyspec-ssr-adapter-support` 가 6개를 통과하고

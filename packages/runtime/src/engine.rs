@@ -178,19 +178,7 @@ pub(crate) fn compile(
         .ok_or(Error::InvalidBundle("bundle exceeds V8 string limit"))?;
     let name = v8::String::new(scope, name)
         .ok_or(Error::InvalidBundle("script name exceeds V8 string limit"))?;
-    let origin = v8::ScriptOrigin::new(
-        scope,
-        name.into(),
-        0,
-        0,
-        false,
-        0,
-        None,
-        false,
-        false,
-        false,
-        None,
-    );
+    let origin = script_origin(scope, name);
     let mut source = v8::script_compiler::Source::new(text, Some(&origin));
     let script = v8::script_compiler::compile_unbound_script(
         scope,
@@ -346,6 +334,26 @@ pub(crate) fn settle<'s>(
             Err(Error::JavaScript { message, stack })
         }
     }
+}
+
+/// The origin of a classic script of V8 with the name that its errors report.
+pub(crate) fn script_origin<'s>(
+    scope: &mut v8::PinScope<'s, '_>,
+    name: v8::Local<'s, v8::String>,
+) -> v8::ScriptOrigin<'s> {
+    v8::ScriptOrigin::new(
+        scope,
+        name.into(),
+        0,
+        0,
+        false,
+        0,
+        None,
+        false,
+        false,
+        false,
+        None,
+    )
 }
 
 pub(crate) fn parse<'s>(
