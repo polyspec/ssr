@@ -1,11 +1,16 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: e45cde57413716db6c18201a4d23f84e97fbfd59d6f42d47c2259051b6d92043 -->
+<!-- source-sha256: 51fce0a3e8d00a8c14bc5bf99d51e624b046e7244a42a5bd37ab1c00866e9e2a -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- `make kit-sync` 로 kit 0.0.54 의 복사본을 받는다: lint 설정(`.golangci.yml`, `.oxlintrc.json`, `knip.json`, `phpcs.xml.dist`,
+  `ruff.toml`), `config/layout.kit.yml`, `PRINCIPLES.md` 와 `PRINCIPLES.ko.md`, `.github/workflows/release.yml`, 새
+  `.github/workflows/gates.yml`, `scripts/kit/` 의 bootstrap, `.claude/settings.json` (S-60). Red: 이전 복사본에서 `make
+  kit-check` 가 종료 코드 2 와 복사본 finding 13건(11개 상이, 2개 누락)으로 실패했다. Green: `make kit-check` 에 복사본 finding 이 없고, Makefile
+  CHECK_TARGETS 의 11건은 S-61 에 남는다.
 - PHP lint project 인 `config/php-lint` 는 PHP 8.5 대신 플랫폼의 PHP 인 `>=8.4` 와 platform `8.4` 를 요구한다
   (S-59). ssr 는 `.php-version` 도, 다른 Composer manifest 도 두지 않으므로 다른 것은 바뀌지 않는다. Red:
   `make toolchain-check` 가 종료 코드 2 와 finding 2건(`require.php is ">=8.5"`, `config.platform.php is "8.5"`)으로

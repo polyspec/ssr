@@ -5,6 +5,12 @@
 
 ## Unreleased
 
+- The copies of kit 0.0.54 are taken with `make kit-sync`: the lint configurations (`.golangci.yml`, `.oxlintrc.json`,
+  `knip.json`, `phpcs.xml.dist`, `ruff.toml`), `config/layout.kit.yml`, `PRINCIPLES.md` with `PRINCIPLES.ko.md`,
+  `.github/workflows/release.yml`, the new `.github/workflows/gates.yml`, the bootstrap of `scripts/kit/` and
+  `.claude/settings.json` (S-60). Red: `make kit-check` with the previous copies exited with 2 and 13 copy findings
+  (11 copies differ, 2 are missing). Green: `make kit-check` reports no copy finding; the 11 findings of CHECK_TARGETS
+  in the Makefile remain for S-61.
 - The PHP lint project `config/php-lint` requires PHP `>=8.4` with the platform `8.4`, the PHP of the
   platform, in place of 8.5 (S-59). ssr declares no `.php-version` and no other Composer manifest, so
   nothing else changes. Red: `make toolchain-check` exited with 2 and two findings (`require.php is ">=8.5"`,
