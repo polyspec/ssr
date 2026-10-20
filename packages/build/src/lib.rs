@@ -15,7 +15,6 @@ pub use manifest::{BuildFile, Manifest};
 pub use public::{PublicFile, PublicFiles, PublishError};
 
 use std::collections::BTreeMap;
-use std::fmt;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -56,60 +55,52 @@ pub struct Build {
     pub files: BTreeMap<String, Vec<u8>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("invalid build input: {0}")]
     InvalidInput(String),
-    Io(io::Error),
+    #[error("build I/O failed: {0}")]
+    Io(#[from] io::Error),
+    #[error("JavaScript build failed: {0}")]
     JavaScript(String),
+    #[error("CSS build failed: {0}")]
     Css(String),
-    Manifest(ordered_json::Error),
+    #[error("manifest failed: {0}")]
+    Manifest(#[from] ordered_json::Error),
+    #[error("duplicate build output: {0}")]
     DuplicateOutput(String),
-    Random(getrandom::Error),
+    #[error("build random value failed: {0}")]
+    Random(#[source] getrandom::Error),
+    #[error("{operation}; temporary directory removal failed: {cleanup}")]
     Cleanup {
+        #[source]
         operation: Box<Self>,
         cleanup: io::Error,
     },
 }
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::InvalidInput(message) => write!(f, "invalid build input: {message}"),
-            Self::Io(error) => write!(f, "build I/O failed: {error}"),
-            Self::JavaScript(message) => write!(f, "JavaScript build failed: {message}"),
-            Self::Css(message) => write!(f, "CSS build failed: {message}"),
-            Self::Manifest(error) => write!(f, "manifest failed: {error}"),
-            Self::DuplicateOutput(path) => write!(f, "duplicate build output: {path}"),
-            Self::Random(error) => write!(f, "build random value failed: {error}"),
-            Self::Cleanup { operation, cleanup } => write!(
-                f,
-                "{operation}; temporary directory removal failed: {cleanup}"
-            ),
+/// An error type that records a failed removal of a temporary path next to the failed operation.
+pub(crate) trait Cleanup: From<io::Error> {
+    fn failed(operation: Self, cleanup: io::Error) -> Self;
+}
+
+impl Cleanup for Error {
+    fn failed(operation: Self, cleanup: io::Error) -> Self {
+        Self::Cleanup {
+            operation: Box::new(operation),
+            cleanup,
         }
     }
 }
 
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::Io(error) => Some(error),
-            Self::Manifest(error) => Some(error),
-            Self::Random(error) => Some(error),
-            Self::Cleanup { operation, .. } => Some(operation),
-            _ => None,
-        }
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Self {
-        Self::Io(error)
-    }
-}
-
-impl From<ordered_json::Error> for Error {
-    fn from(error: ordered_json::Error) -> Self {
-        Self::Manifest(error)
+/// The result of an operation after the removal of its temporary path: the operation's error when only it failed, the
+/// removal's when only it failed, and both when both failed.
+pub(crate) fn finish<T, E: Cleanup>(result: Result<T, E>, cleanup: io::Result<()>) -> Result<T, E> {
+    match (result, cleanup) {
+        (Err(operation), Err(cleanup)) => Err(E::failed(operation, cleanup)),
+        (Err(error), Ok(())) => Err(error),
+        (Ok(_), Err(error)) => Err(error.into()),
+        (Ok(value), Ok(())) => Ok(value),
     }
 }
 

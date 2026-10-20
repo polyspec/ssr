@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: 3e4a0bb63ebe18c142e1605b5a01d88d10b7e9476e63e9a72809c7c9cd29e546 -->
+<!-- source-sha256: 9a142c77c52bc250b1b1d6c43691d8c20d3f8c09845bd403bea6f27e0b1c93b9 -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -17,4 +17,5 @@
 | S-68 | tests/tools 의 도구 테스트를 CI job lint 에서 check-tools 로 실행해, 도구 테스트를 지정하는 모든 규칙이 건너뛸 수 없는 지점에서 강제되게 한다 | Makefile, tests/tools/workflows.test.mts | `make tool-test-workflows` | [o] |
 | S-69 | AGENTS.md 와 AGENTS.ko.md 를 ssr 의 규칙만으로 쓴다: 각 규칙은 Enforced by 줄을 가진 Own 이고, PRINCIPLES.md 의 되풀이와 체크리스트 절차는 제거하며, 두 언어가 같은 check 를 지목한다 | AGENTS.md, AGENTS.ko.md, config/rebuild.json, .gitignore | `make rules-check`, `make docs-check` | [o] |
 | S-70 | test 폴더를 test 는 자기 case 를 온전히 적는다는 이유로 중복 검사에서 제외한다: config/duplication.json 이 packages/*/tests/**, packages/*/src/*_tests.rs, tests/** 를 나열한다 | config/duplication.json, config/owner-checks.json | `make duplication-check` | [o] |
-| S-71 | make duplication-check 가 보고하는 adapter crate 4개, build, runtime, server 의 source clone 29건을 공유 code 로 재구성해 제거한다. 새 public 이름과 error 타입의 thiserror 사용을 사용자가 승인한 뒤 진행한다 | packages/adapter-*/src/lib.rs, packages/build/src, packages/runtime/src, packages/server/src | `make duplication-check` | [ ] |
+| S-71 | make duplication-check 가 보고하는 adapter crate 4개, build, runtime, server 의 source clone 29건을 공유 code 로 재구성해 제거한다. 새 public 이름과 error 타입의 thiserror 사용을 사용자가 승인한 뒤 진행한다 | packages/adapter-*/src/lib.rs, packages/build/src, packages/runtime/src, packages/server/src | `make duplication-check` | [~] |
+| S-71-1 | build crate 의 error 를 thiserror 로 derive 하고 임시 경로 제거의 처리를 공유해 Error 와 PublishError 가 code 를 되풀이하지 않게 한다 | Cargo.toml, Cargo.lock, config/dependency-review.json, packages/build/src | `make nextest-build` | [o] |

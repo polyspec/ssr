@@ -4,7 +4,7 @@ use std::io::{self, Write};
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 
-use crate::{Build, Error, digest, manifest_read};
+use crate::{Build, Error, digest, finish, manifest_read};
 
 fn invalid(message: impl Into<String>) -> Error {
     Error::InvalidInput(message.into())
@@ -115,15 +115,7 @@ impl Build {
             Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
             result => result,
         };
-        match (result, cleanup) {
-            (Err(operation), Err(cleanup)) => Err(Error::Cleanup {
-                operation: Box::new(operation),
-                cleanup,
-            }),
-            (Err(error), Ok(())) => Err(error),
-            (Ok(()), Err(error)) => Err(error.into()),
-            (Ok(()), Ok(())) => Ok(target),
-        }
+        finish(result.map(|()| target), cleanup)
     }
 
     fn verify(&self, path: &Path) -> Result<(), Error> {

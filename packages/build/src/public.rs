@@ -4,52 +4,32 @@ use std::io::{self, Write};
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 
-use crate::{Build, BuildFile, digest};
+use crate::{Build, BuildFile, Cleanup, digest, finish};
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum PublishError {
+    #[error("invalid public build file: {0}")]
     Invalid(String),
+    #[error("published file has different content: {}", .0.display())]
     Conflict(PathBuf),
-    Io(io::Error),
-    Random(getrandom::Error),
+    #[error("publication I/O failed: {0}")]
+    Io(#[from] io::Error),
+    #[error("publication random value failed: {0}")]
+    Random(#[source] getrandom::Error),
+    #[error("{operation}; temporary file removal failed: {cleanup}")]
     Cleanup {
+        #[source]
         operation: Box<Self>,
         cleanup: io::Error,
     },
 }
 
-impl std::fmt::Display for PublishError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Invalid(reason) => write!(f, "invalid public build file: {reason}"),
-            Self::Conflict(path) => write!(
-                f,
-                "published file has different content: {}",
-                path.display()
-            ),
-            Self::Io(error) => write!(f, "publication I/O failed: {error}"),
-            Self::Random(error) => write!(f, "publication random value failed: {error}"),
-            Self::Cleanup { operation, cleanup } => {
-                write!(f, "{operation}; temporary file removal failed: {cleanup}")
-            }
+impl Cleanup for PublishError {
+    fn failed(operation: Self, cleanup: io::Error) -> Self {
+        Self::Cleanup {
+            operation: Box::new(operation),
+            cleanup,
         }
-    }
-}
-
-impl std::error::Error for PublishError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::Io(error) => Some(error),
-            Self::Random(error) => Some(error),
-            Self::Cleanup { operation, .. } => Some(operation),
-            _ => None,
-        }
-    }
-}
-
-impl From<io::Error> for PublishError {
-    fn from(error: io::Error) -> Self {
-        Self::Io(error)
     }
 }
 
@@ -157,20 +137,7 @@ impl PublicFiles {
         for (url, file) in &self.files {
             let target = directory.join(url.trim_start_matches('/'));
             ensure_parent(directory, url, false)?;
-            match fs::symlink_metadata(&target) {
-                Ok(metadata) if !metadata.file_type().is_file() => {
-                    return Err(PublishError::Invalid(format!(
-                        "target is not a regular file: {}",
-                        target.display()
-                    )));
-                }
-                Ok(_) if fs::read(&target)? != file.bytes => {
-                    return Err(PublishError::Conflict(target));
-                }
-                Ok(_) => {}
-                Err(error) if error.kind() == io::ErrorKind::NotFound => {}
-                Err(error) => return Err(error.into()),
-            }
+            existing(&target, &file.bytes)?;
         }
         for (url, file) in &self.files {
             let target = directory.join(url.trim_start_matches('/'));
@@ -249,20 +216,24 @@ fn validate_url(file: &BuildFile, url: &str) -> Result<(), PublishError> {
     Ok(())
 }
 
-fn publish_file(target: &Path, bytes: &[u8]) -> Result<(), PublishError> {
+/// Whether `target` holds `bytes` already: true for a regular file with these bytes, false when it does not exist, and an
+/// error for another kind of path or other bytes.
+fn existing(target: &Path, bytes: &[u8]) -> Result<bool, PublishError> {
     match fs::symlink_metadata(target) {
-        Ok(metadata) if !metadata.file_type().is_file() => {
-            return Err(PublishError::Invalid(format!(
-                "target is not a regular file: {}",
-                target.display()
-            )));
-        }
-        Ok(_) if fs::read(target)? != bytes => {
-            return Err(PublishError::Conflict(target.to_path_buf()));
-        }
-        Ok(_) => return Ok(()),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
-        Err(error) => return Err(error.into()),
+        Ok(metadata) if !metadata.file_type().is_file() => Err(PublishError::Invalid(format!(
+            "target is not a regular file: {}",
+            target.display()
+        ))),
+        Ok(_) if fs::read(target)? != bytes => Err(PublishError::Conflict(target.to_path_buf())),
+        Ok(_) => Ok(true),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn publish_file(target: &Path, bytes: &[u8]) -> Result<(), PublishError> {
+    if existing(target, bytes)? {
+        return Ok(());
     }
     let parent = target.parent().ok_or_else(|| {
         PublishError::Invalid(format!("target has no parent: {}", target.display()))
@@ -303,13 +274,5 @@ fn publish_file(target: &Path, bytes: &[u8]) -> Result<(), PublishError> {
         }
     })();
     let cleanup = fs::remove_file(&temporary);
-    match (result, cleanup) {
-        (Err(operation), Err(cleanup)) => Err(PublishError::Cleanup {
-            operation: Box::new(operation),
-            cleanup,
-        }),
-        (Err(error), Ok(())) => Err(error),
-        (Ok(()), Err(error)) => Err(error.into()),
-        (Ok(()), Ok(())) => Ok(()),
-    }
+    finish(result, cleanup)
 }

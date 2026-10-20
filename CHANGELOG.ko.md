@@ -1,11 +1,16 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 1e10116cf368b5b8b7659d864a16b3e4ab4ee4d9929b1f1d5a5694ac3d31654e -->
+<!-- source-sha256: d0f783c635685e16d830b4c934b1b83420499e0defcee8f14b25544e379ffa3c -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- `Error` 와 build crate 의 `PublishError` 를 thiserror 2.0.21(workspace 의 `=2.0.21`, 다른 crate 를 통해 이미 lock 에 있음)로 derive
+  하고, `finish` 하나가 두 error 에 대해 작업 결과와 임시 경로 제거 결과를 합치며, `existing` 이 두 게시 경로의 대상 검사를 맡는다. message 와 source 는 그대로이고
+  `make dependency-review RECORD=1` 의 review 가 새 lock 을 기록한다 (S-71-1). 이전: `make duplication-check` 가 clone 29건을 찾았고
+  `make dependency-policy-check` 는 통과했다. 이후: clone 26건이고 build crate 에는 없으며, `make dependency-policy-check` 는 review 를
+  기록하기 전 `the lock changed after the review` 로 실패했다가 통과하고, `cargo nextest run -p polyspec-ssr-build` 가 33개를 통과한다.
 - `config/duplication.json` 은 test 가 자기 case 를 온전히 적고 검사는 component 의 관심사를 가른다는 이유로 test 폴더를 `make duplication-check`
   에서 제외한다: `packages/*/tests/**`, unit test 파일 `*_tests.rs` 와 `tests.rs`, development server 의 `test_programs.rs`,
   `tests/**` (S-70). Red: `make duplication-check` 가 종료 코드 2 와 clone 169건(Rust 157, JavaScript 12)으로 실패했고 그중 140건이

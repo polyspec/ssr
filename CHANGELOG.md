@@ -5,6 +5,13 @@
 
 ## Unreleased
 
+- `Error` and `PublishError` of the build crate are derived with thiserror 2.0.21 (`=2.0.21` in the workspace, already
+  locked through another crate), one `finish` joins the result of an operation with the removal of its temporary path
+  for both, and `existing` checks a target for both publication paths; messages and sources are unchanged; the review
+  of `make dependency-review RECORD=1` records the new lock (S-71-1). Before: `make duplication-check` found 29 clones
+  and `make dependency-policy-check` passed. After: 26 clones, none in the build crate; `make dependency-policy-check`
+  failed with `the lock changed after the review` until the review was recorded and passes; `cargo nextest run -p
+  polyspec-ssr-build` passes 33 tests.
 - `config/duplication.json` excludes the test folders from `make duplication-check` with the reason that a test states
   its case in full and the check separates the concerns of components: `packages/*/tests/**`, the unit test files
   `*_tests.rs` and `tests.rs`, `test_programs.rs` of the development server and `tests/**` (S-70). Red: `make
