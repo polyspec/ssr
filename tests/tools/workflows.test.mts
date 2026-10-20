@@ -23,7 +23,7 @@ const CI_PASSED_RUN = "make ci-passed RESULTS='${{ toJSON(needs) }}'";
 const REPORTING_JOBS: Record<string, string[]> = { 'ci.yml': ['lint', 'test'], 'push-gate.yml': ['push-gate'] };
 // The make target and the variable of the targets of each check job of ci.yml.
 const CI_JOBS = { lint: ['ci-lint', 'CI_LINT_TARGETS'], test: ['ci-test', 'CI_TEST_TARGETS'] } as const;
-const CI_TARGETS = ['check-fixture-filter', 'check-fmt', 'check-clippy', 'check-deny', 'check-examples', 'ci-nextest'];
+const CI_TARGETS = ['check-tools', 'check-fixture-filter', 'check-fmt', 'check-clippy', 'check-deny', 'check-examples', 'ci-nextest'];
 
 type Step = { uses?: string; run?: string; if?: string; with?: Record<string, unknown>; env?: Record<string, string> };
 type Job = { if?: string; needs?: string[]; 'runs-on'?: string; strategy?: { 'fail-fast'?: boolean; matrix?: { runner?: string[] } }; steps: Step[] };

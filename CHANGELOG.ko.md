@@ -1,11 +1,14 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: d4f54b2b065971d3b885ec0cc8600c1dc6dab93c26bc1510fd363a82afe97346 -->
+<!-- source-sha256: e3771c7f4604179f3594e5cca52a25b381c81c3ffab60e344f55adca369a0286 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- CI 의 `ci.yml` job `test` 는 각 architecture 에서 AGENTS.md 의 규칙이 지정하는 `tests/tools` 의 도구 테스트인 `make check-tools` 를 실행한다
+  (S-68). Red: `make tool-test-workflows` 가 종료 코드 2 로 실패했고 `each architecture runs every CI target in exactly one job`
+  에 `check-tools` 가 없었다. Green: `make tool-test-workflows` 가 종료 코드 0 이고 13개가 통과했다.
 - 계약과 요구사항은 `docs/spec/` (`build`, `core`, `engine`, `react`, `requirements`, `runtime`, `server`, `svelte`,
   `vanilla`, `vue`) 에, 절차는 `docs/operations/` (`benchmarks`, `test-ownership`, `workspace`) 에 한국어 쌍과 함께 두어 kit layout
   을 따르고, link, `AGENTS.md`, Makefile, owner, React 문서 검사와 그 test 가 새 경로를 가리키며, `config/layout.yml` 은 kit 이 복사하는 Claude

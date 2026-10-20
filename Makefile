@@ -139,7 +139,7 @@ bench:
 # make toolchain-check reads, and runs the checks that build no Rust: the toolchain, the checklist, the records and the
 # TypeScript.
 CI_LINT_TARGETS = check-fixture-filter check-fmt check-clippy check-deny
-CI_TEST_TARGETS = check-examples ci-nextest
+CI_TEST_TARGETS = check-tools check-examples ci-nextest
 CI_PUSH_TARGETS = toolchain-check push-gate-commit check-records check-commit-records typecheck lint-ts
 
 ci-setup:

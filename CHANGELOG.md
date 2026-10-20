@@ -5,6 +5,10 @@
 
 ## Unreleased
 
+- The job `test` of `ci.yml` runs `make check-tools`, the tool tests of `tests/tools`, on each architecture, so that
+  CI runs the tool tests that the rules of AGENTS.md name (S-68). Red: `make tool-test-workflows` exited with 2; `each
+  architecture runs every CI target in exactly one job` lacked `check-tools`. Green: `make tool-test-workflows` exits
+  with 0, 13 passed.
 - The contracts and requirements are in `docs/spec/` (`build`, `core`, `engine`, `react`, `requirements`, `runtime`,
   `server`, `svelte`, `vanilla`, `vue`) and the procedures in `docs/operations/` (`benchmarks`, `test-ownership`,
   `workspace`), with their Korean twins, as the layout of kit requires; the links, `AGENTS.md`, the Makefile, the
