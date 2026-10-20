@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "exclude": [
+    {
+      "glob": "packages/*/tests/**",
+      "reason": "a test states its case in full; the rule separates the concerns of components, not the cases of a test; the fixtures of packages/build/tests are data and programs of cases"
+    },
+    {
+      "glob": "packages/*/src/**/*_tests.rs",
+      "reason": "a test states its case in full; the rule separates the concerns of components, not the cases of a test; these files are the unit tests of one module"
+    },
+    {
+      "glob": "packages/*/src/**/tests.rs",
+      "reason": "a test states its case in full; the rule separates the concerns of components, not the cases of a test; this file is the unit tests of one module"
+    },
+    {
+      "glob": "packages/server/src/development/test_programs.rs",
+      "reason": "the programs that the development tests spawn; each states its behavior in full as a test does"
+    },
+    {
+      "glob": "tests/**",
+      "reason": "a test states its case in full; the rule separates the concerns of components, not the cases of a test"
+    }
+  ]
+}

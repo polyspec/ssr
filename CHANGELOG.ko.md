@@ -1,11 +1,15 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 53ec8898231732ae254f22f518a699b37b4611084b99ae23709e6ad8b3db0f1e -->
+<!-- source-sha256: 1e10116cf368b5b8b7659d864a16b3e4ab4ee4d9929b1f1d5a5694ac3d31654e -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- `config/duplication.json` 은 test 가 자기 case 를 온전히 적고 검사는 component 의 관심사를 가른다는 이유로 test 폴더를 `make duplication-check`
+  에서 제외한다: `packages/*/tests/**`, unit test 파일 `*_tests.rs` 와 `tests.rs`, development server 의 `test_programs.rs`,
+  `tests/**` (S-70). Red: `make duplication-check` 가 종료 코드 2 와 clone 169건(Rust 157, JavaScript 12)으로 실패했고 그중 140건이
+  test 파일에 있었다. Green: test 파일의 clone 은 0 이고, adapter, build, runtime, server crate 의 source 에 29건이 남는다.
 - AGENTS.md 와 AGENTS.ko.md 는 ssr 의 규칙만 적는다: 각 규칙은 `Enforced by:` 줄로 끝나는 `Own:` 규칙이고, 체크리스트 절차, commit message 형식,
   branch 이름, 그 밖의 PRINCIPLES.md 되풀이는 제거하며, V8 입력, test 소유권, 기록, CI 의 규칙은 해당 check 와 연결하고, 9개 규칙은 도구 없음과 그 이유를 적는다
   (S-69). Red: `make rules-check` 가 종료 코드 2 와 finding 83건(`the rule names no check`, `begins with neither Own: nor

@@ -5,6 +5,12 @@
 
 ## Unreleased
 
+- `config/duplication.json` excludes the test folders from `make duplication-check` with the reason that a test states
+  its case in full and the check separates the concerns of components: `packages/*/tests/**`, the unit test files
+  `*_tests.rs` and `tests.rs`, `test_programs.rs` of the development server and `tests/**` (S-70). Red: `make
+  duplication-check` exited with 2 and found 169 clones (157 in Rust, 12 in JavaScript); 140 of them lay in test
+  files. Green: the clones in test files are 0; 29 clones remain in the sources of the adapters, build, runtime and
+  server crates.
 - AGENTS.md and AGENTS.ko.md state the rules of ssr only: each is an `Own:` rule that ends with its `Enforced by:`
   line, the checklist protocol, the commit message format, the branch names and the other restatements of
   PRINCIPLES.md are removed, the rules of the V8 inputs, the test ownership, the records and the CI are tied to their

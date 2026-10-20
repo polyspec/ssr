@@ -81,6 +81,14 @@
     },
     {
       "paths": [
+        "config/duplication.json"
+      ],
+      "targets": [
+        "duplication-check"
+      ]
+    },
+    {
+      "paths": [
         "config/owner-checks.json"
       ],
       "targets": [

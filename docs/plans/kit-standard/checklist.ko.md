@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: 56a332f1f4ea3a970c1bd2a9c85b42ea8c008ea3bee411aca978653d378b4aa9 -->
+<!-- source-sha256: 61defc0113b9ac895ebdbc06ce2dba2ac5f34c5c7f32efe4de4a590627e4d919 -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -16,3 +16,4 @@
 | S-67 | docs/ 의 문서를 kit layout (K245) 에 따라 docs/spec/ (계약과 요구사항) 과 docs/operations/ (workspace, test ownership, benchmarks) 로 옮기고 모든 참조를 고친다 | docs/spec/, docs/operations/, references in AGENTS.md, Makefile, config/, tests/, scripts/check-records.mts | `make layout-check`, `make docs-check`, `make tool-test-check-records` | [o] |
 | S-68 | tests/tools 의 도구 테스트를 CI job lint 에서 check-tools 로 실행해, 도구 테스트를 지정하는 모든 규칙이 건너뛸 수 없는 지점에서 강제되게 한다 | Makefile, tests/tools/workflows.test.mts | `make tool-test-workflows` | [o] |
 | S-69 | AGENTS.md 와 AGENTS.ko.md 를 ssr 의 규칙만으로 쓴다: 각 규칙은 Enforced by 줄을 가진 Own 이고, PRINCIPLES.md 의 되풀이와 체크리스트 절차는 제거하며, 두 언어가 같은 check 를 지목한다 | AGENTS.md, AGENTS.ko.md, config/rebuild.json, .gitignore | `make rules-check`, `make docs-check` | [o] |
+| S-70 | test 폴더를 test 는 자기 case 를 온전히 적는다는 이유로 중복 검사에서 제외한다: config/duplication.json 이 packages/*/tests/**, packages/*/src/*_tests.rs, tests/** 를 나열한다 | config/duplication.json, config/owner-checks.json | `make duplication-check` | [o] |
