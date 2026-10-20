@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: 549250630f9fcedeadf26603f78cdb50e4a7e4a935855c33c3daa49a122397f4 -->
+<!-- source-sha256: 9ffb6226c38bfd9271443f25e7e1b0d9ba7ea1b5a851aa5aa156ea19048e7bdd -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -20,3 +20,4 @@
 | S-71 | make duplication-check 가 보고하는 adapter crate 4개, build, runtime, server 의 source clone 29건을 공유 code 로 재구성해 제거한다. 새 public 이름과 error 타입의 thiserror 사용을 사용자가 승인한 뒤 진행한다 | packages/adapter-*/src/lib.rs, packages/build/src, packages/runtime/src, packages/server/src | `make duplication-check` | [~] |
 | S-71-1 | build crate 의 error 를 thiserror 로 derive 하고 임시 경로 제거의 처리를 공유해 Error 와 PublishError 가 code 를 되풀이하지 않게 한다 | Cargo.toml, Cargo.lock, config/dependency-review.json, packages/build/src | `make nextest-build` | [o] |
 | S-71-2 | 네 adapter crate 가 공유하는 것(document, assets, render, static shell)을 private crate polyspec-ssr-adapter-support 로 옮기고 error 를 thiserror 로 derive 한다 | packages/adapter-support, packages/adapter-*/src/lib.rs, config/, AGENTS.md | `make nextest-adapter-support` | [o] |
+| S-71-3 | adapter 가 생성하는 entry 를 공유 함수 하나로 template 에서 만들어 entry 가 code 를 되풀이하지 않게 한다 | packages/adapter-support, packages/adapter-*/src/lib.rs | `make nextest-adapter-support` | [o] |

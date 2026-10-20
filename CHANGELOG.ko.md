@@ -1,11 +1,15 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 3523cb30647a1c1940aebd3bf6faca52e448767c76280cc56ff00f9cc735504f -->
+<!-- source-sha256: 52efa0f6b9c60e1302bf05c9aebe96552c066010724cd76d9de7fe0dcf2417f4 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- adapter 는 생성하는 entry 를 공유 `entry` 로 template 에서 만들고, adapter 타입을 `polyspec-ssr-adapter-support` 의 공유 macro
+  `adapter!` 로 정의한다. public 타입, method, message, error 타입은 그대로이다 (S-71-3). 이전: `make duplication-check` 가 clone 8건을
+  찾았고 adapter 에 3건이 있었다. 이후: clone 5건이고 adapter 에는 없으며, `cargo nextest run -p polyspec-ssr-adapter-support` 가 6개를 통과하고
+  네 adapter 의 entry 와 document test 가 통과한다.
 - React, Vue, Svelte, vanilla adapter 는 그들만 의존하는 crate `polyspec-ssr-adapter-support` 를 공유한다: page document, client 와
   style URL 검증, pool 을 통한 page render, static shell 을 한 번만 쓰고, 각 adapter 는 entry 와 head 정책, public 이름과 error 타입을 유지하며,
   error 는 thiserror 로 derive 한다. 이 crate 는 `config/test-ownership.json` 의 동작 `adapter_support`, owner, layout 항목,

@@ -5,6 +5,11 @@
 
 ## Unreleased
 
+- The adapters build their generated entries from a template with the shared `entry`, and define the adapter type with
+  the shared macro `adapter!` of `polyspec-ssr-adapter-support`; the public types, methods, messages and the error
+  types are unchanged (S-71-3). Before: `make duplication-check` found 8 clones, 3 in the adapters. After: 5 clones,
+  none in the adapters; `cargo nextest run -p polyspec-ssr-adapter-support` passes 6 tests and the entries and
+  document tests of the four adapters pass.
 - The React, Vue, Svelte and vanilla adapters share the crate `polyspec-ssr-adapter-support`, which only they depend
   on: the page document, the validation of the client and style URLs, the render of a page through a pool and the
   static shell are written once, each adapter keeps its entries and its head policy, its public names and its error

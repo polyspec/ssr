@@ -4,6 +4,14 @@
 
 use polyspec_ssr_core::{Page, Render, RenderResult, Value};
 use polyspec_ssr_runtime::{Pool, RenderMetrics};
+
+/// The types that the expansion of `adapter!` names.
+#[doc(hidden)]
+pub mod macro_support {
+    pub use polyspec_ssr_core::{Page, RenderResult};
+    pub use polyspec_ssr_runtime::{Pool, RenderMetrics};
+}
+
 use std::path::Path;
 
 /// The JSON string of an application path, the module specifier of a generated entry.
@@ -17,6 +25,12 @@ pub fn app_import(path: &str) -> Result<String, &'static str> {
         return Err("application path must be absolute");
     }
     Ok(import_specifier(path))
+}
+
+/// The generated entry `template` with each `{application}` replaced by the module specifier of the absolute application
+/// path.
+pub fn entry(application: &str, template: &str) -> Result<String, &'static str> {
+    Ok(template.replace("{application}", &app_import(application)?))
 }
 
 fn local_url(value: &str) -> bool {
@@ -181,4 +195,60 @@ impl Assets {
             metrics,
         ))
     }
+}
+
+/// Defines the adapter type `$adapter` of the error type `$error`, which has the variant `InvalidInput(&'static str)` and
+/// converts from the error of the runtime: its `new`, `render` and `static_shell`, and `render_with_metrics` when
+/// `with_metrics` is given. `$head` is the `HeadOutput` of the adapter.
+#[macro_export]
+macro_rules! adapter {
+    ($adapter:ident, $error:ident, $head:expr) => {
+        pub struct $adapter {
+            assets: $crate::Assets,
+        }
+
+        impl $adapter {
+            pub fn new(client: &str, styles: &[&str]) -> Result<Self, $error> {
+                $crate::Assets::new(client, styles, $head)
+                    .map(|assets| Self { assets })
+                    .map_err($error::InvalidInput)
+            }
+
+            pub fn render(
+                &self,
+                page: &$crate::macro_support::Page,
+                pool: &$crate::macro_support::Pool,
+            ) -> Result<$crate::macro_support::RenderResult, $error> {
+                self.assets
+                    .render(page, pool, $error::InvalidInput)
+                    .map(|(result, _)| result)
+            }
+
+            pub fn static_shell(
+                &self,
+                page: &$crate::macro_support::Page,
+            ) -> Result<Vec<u8>, $error> {
+                self.assets.static_shell(page).map_err($error::InvalidInput)
+            }
+        }
+    };
+    ($adapter:ident, $error:ident, $head:expr, with_metrics) => {
+        $crate::adapter!($adapter, $error, $head);
+
+        impl $adapter {
+            pub fn render_with_metrics(
+                &self,
+                page: &$crate::macro_support::Page,
+                pool: &$crate::macro_support::Pool,
+            ) -> Result<
+                (
+                    $crate::macro_support::RenderResult,
+                    Option<$crate::macro_support::RenderMetrics>,
+                ),
+                $error,
+            > {
+                self.assets.render(page, pool, $error::InvalidInput)
+            }
+        }
+    };
 }

@@ -1,4 +1,4 @@
-use polyspec_ssr_adapter_support::{Assets, HeadOutput, app_import};
+use polyspec_ssr_adapter_support::{Assets, HeadOutput, entry};
 use polyspec_ssr_core::{Page, Render, RenderResult, Value};
 
 #[derive(Debug, thiserror::Error)]
@@ -8,10 +8,11 @@ pub enum Error {
 }
 
 pub fn server_entry(application: &str) -> Result<String, Error> {
-    let application = app_import(application).map_err(Error::InvalidInput)?;
-    Ok(format!(
-        "import React from 'react';\nimport App from {application};\nglobalThis.__ssrApp = App;\n"
-    ))
+    entry(
+        application,
+        "import React from 'react';\nimport App from {application};\nglobalThis.__ssrApp = App;\n",
+    )
+    .map_err(Error::InvalidInput)
 }
 
 pub fn framework_entry() -> &'static str {
@@ -19,10 +20,11 @@ pub fn framework_entry() -> &'static str {
 }
 
 pub fn client_entry(application: &str) -> Result<String, Error> {
-    let application = app_import(application).map_err(Error::InvalidInput)?;
-    Ok(format!(
-        "import React from 'react';\nimport {{createRoot, hydrateRoot}} from 'react-dom/client';\nimport App from {application};\nconst props = JSON.parse(document.getElementById('__SSR_PROPS__').textContent);\nconst renderState = {{input: JSON.parse(document.getElementById('__SSR_STATE__').textContent), output: null}};\nconst root = document.getElementById('root');\nconst app = <App {{...props}} renderState={{renderState}} />;\nif (root.dataset.render === 'ssr') hydrateRoot(root, app); else if (root.dataset.render === 'csr') createRoot(root).render(app); else throw new Error('Invalid render mode');\n"
-    ))
+    entry(
+        application,
+        "import React from 'react';\nimport {createRoot, hydrateRoot} from 'react-dom/client';\nimport App from {application};\nconst props = JSON.parse(document.getElementById('__SSR_PROPS__').textContent);\nconst renderState = {input: JSON.parse(document.getElementById('__SSR_STATE__').textContent), output: null};\nconst root = document.getElementById('root');\nconst app = <App {...props} renderState={renderState} />;\nif (root.dataset.render === 'ssr') hydrateRoot(root, app); else if (root.dataset.render === 'csr') createRoot(root).render(app); else throw new Error('Invalid render mode');\n",
+    )
+    .map_err(Error::InvalidInput)
 }
 
 pub struct ReactAdapter {
