@@ -25,7 +25,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let directory = std::path::Path::new(&path)
         .parent()
         .ok_or("socket directory is missing")?;
-    let kind = std::env::var("SOCKET_KIND").ok();
+    let kind = match std::env::var("SOCKET_KIND") {
+        Ok(kind) => Some(kind),
+        Err(std::env::VarError::NotPresent) => None,
+        Err(error) => return Err(error.into()),
+    };
     let listener = match kind.as_deref() {
         Some("file") => None,
         _ => Some(UnixListener::bind(&path)?),

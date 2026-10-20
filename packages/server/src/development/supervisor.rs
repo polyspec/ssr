@@ -191,10 +191,9 @@ impl Supervisor {
         value: Result<Arc<process::Generation>, DevelopmentError>,
     ) -> Result<(), DevelopmentError> {
         let previous = {
-            let mut current = self
-                .current
-                .write()
-                .map_err(|_| DevelopmentError("development state lock failed".into()))?;
+            let mut current = self.current.write().map_err(|error| {
+                DevelopmentError(format!("development state lock failed: {error}"))
+            })?;
             std::mem::replace(&mut *current, value)
         };
         if let Ok(previous) = previous

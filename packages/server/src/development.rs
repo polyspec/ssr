@@ -299,7 +299,7 @@ impl Development {
         let generation = self
             .current
             .read()
-            .map_err(|_| DevelopmentError("development state lock failed".into()))?
+            .map_err(|error| DevelopmentError(format!("development state lock failed: {error}")))?
             .clone()?;
         let response = generation.request(request).await?;
         Ok(response.map(|incoming| body::Body::new(incoming, generation)))

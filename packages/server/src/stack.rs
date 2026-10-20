@@ -57,10 +57,10 @@ pub(crate) fn map_stack(stack: &str, maps: &BTreeMap<String, SourceMap>) -> Resu
         let column = column_with_suffix.trim_end_matches(')');
         let generated_line: u32 = line
             .parse()
-            .map_err(|_| Error::InvalidFrame(frame.into()))?;
+            .map_err(|error| Error::InvalidFrame(format!("{frame}: {error}")))?;
         let generated_column: u32 = column
             .parse()
-            .map_err(|_| Error::InvalidFrame(frame.into()))?;
+            .map_err(|error| Error::InvalidFrame(format!("{frame}: {error}")))?;
         if generated_line == 0 || generated_column == 0 {
             return Err(Error::InvalidFrame(frame.into()));
         }

@@ -130,8 +130,15 @@ impl Process {
                 let response = generation.request(Request::builder().method("POST").uri(polyspec_ssr_core::CALL_PATH)
                     .header(CONTENT_TYPE, "application/json").body(probe.to_vec())
                     .map_err(|e| DevelopmentError(format!("preparation request failed: {e}")))?).await?;
-                if response.status() != StatusCode::OK || response.headers().get(CONTENT_TYPE)
-                    .and_then(|value| value.to_str().ok()).and_then(|value| value.split(';').next()) != Some("text/html") {
+                let media_type = match response.headers().get(CONTENT_TYPE) {
+                    Some(value) => value
+                        .to_str()
+                        .map_err(|e| DevelopmentError(format!("render preparation content type is not text: {e}")))?
+                        .split(';')
+                        .next(),
+                    None => None,
+                };
+                if response.status() != StatusCode::OK || media_type != Some("text/html") {
                     return Err(DevelopmentError(format!("render preparation requires HTTP 200 HTML, received {}", response.status())));
                 }
                 let mut body = response.into_body();
@@ -145,7 +152,10 @@ impl Process {
                 }
                 if size == 0 { return Err(DevelopmentError("render preparation body is empty".into())); }
                 Ok(generation)
-            }) => result.unwrap_or_else(|_| Err(DevelopmentError("render preparation timed out".into()))),
+            }) => match result {
+                Ok(generation) => generation,
+                Err(elapsed) => Err(DevelopmentError(format!("render preparation timed out: {elapsed}"))),
+            },
             _ = cancel.changed() => Err(DevelopmentError("render preparation canceled".into())),
         };
         match result {
@@ -250,11 +260,9 @@ pub(super) async fn build(
     let mut bytes = Vec::new();
     let result = tokio::select! {
         result = async {
-            let (_, status) = tokio::try_join!(async {
-                stdout.read_to_end(&mut bytes).await.map_err(|e| DevelopmentError(format!("build stdout failed: {e}")))?;
-                if bytes.len() > 8192 { return Err(DevelopmentError("build path exceeds 8192 bytes".into())); }
-                Ok(())
-            }, async { child.wait().await.map_err(|e| DevelopmentError(format!("build wait failed: {e}"))) })?;
+            stdout.read_to_end(&mut bytes).await.map_err(|e| DevelopmentError(format!("build stdout failed: {e}")))?;
+            if bytes.len() > 8192 { return Err(DevelopmentError("build path exceeds 8192 bytes".into())); }
+            let status = child.wait().await.map_err(|e| DevelopmentError(format!("build wait failed: {e}")))?;
             if !status.success() { return Err(DevelopmentError(format!("build process failed: {status}"))); }
             if bytes.len() > 8192 { return Err(DevelopmentError("build path exceeds 8192 bytes".into())); }
             let line = std::str::from_utf8(&bytes).map_err(|e| DevelopmentError(format!("build path is not UTF-8: {e}")))?;
