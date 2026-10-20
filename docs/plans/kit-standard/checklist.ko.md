@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: dba7a56381e4e2c9fee603248cbd444161713847cec93be9f965af0f66791848 -->
+<!-- source-sha256: 0db965b0857e1841626607c301a7ec3eaa01f3573ed39ca34399e92d57fc9450 -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -48,3 +48,4 @@
 | S-94 | React 어댑터 테스트의 테스트당 30 초 제한은 측정된 여유를 가진다: 병렬 부하의 checkout에서 가장 긴 콜드 실행 시간은 9.19 초다 (3회 실행, JUnit은 var/s94-cold-run-1.junit.xml, var/s94-cold-run-2.junit.xml, var/s94-cold-run-3.junit.xml에 보관) | packages/adapter-react/tests, .config/nextest.toml, scripts/install-packages.mts | `cargo nextest run -p polyspec-ssr-adapter-react --test form_rows --test heap --test react --test recovery --locked` | [o] |
 | S-95 | 서버 크레이트가 매핑하는 개발 오류의 원래 오류를 source로 보관한다: DevelopmentError는 thiserror로 원래 오류를 source로 갖고 모든 메시지 문구와 공개 이름을 유지한다 | packages/server/src, packages/server/Cargo.toml, Cargo.lock | `cargo clippy -p polyspec-ssr-server --all-targets --locked -- -D warnings -D unused_must_use -D clippy::let_underscore_must_use -D clippy::let_underscore_untyped -D clippy::map_err_ignore -D clippy::allow_attributes_without_reason`, `cargo nextest run -p polyspec-ssr-server --lib --test cancellation --test development --test process --test public --test react_late_reader --test react_stream --test render --test svelte --locked` | [o] |
 | S-96 | ssr은 kit f9eb43dd의 복사본(K348 K385 K384 K360-1 K383 K380 K382 K375)을 make kit-sync, make hooks, make link-check로 받는다 | scripts/kit, config, .githooks, PRINCIPLES.md, PRINCIPLES.ko.md, .claude/settings.json | `make kit-check` | [o] |
+| S-97 | ssr은 f7c1f10c의 kit 사본을 받으며(K354 K394 K386 K348-1 K360-2 K349-2 K392-1 K393), make kit-sync와 make hooks가 쓴다 | the copies of kit, .githooks | `make kit-check` | [o] |
