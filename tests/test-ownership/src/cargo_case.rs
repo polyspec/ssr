@@ -107,6 +107,7 @@ pub fn interrupted() -> Option<i32> {
     }
 }
 
+#[allow(clippy::disallowed_methods, reason = "the slot holds one Option<Pid>, which no panic of its holder leaves half-written, so a poisoned lock still names the child that a signal must terminate")]
 fn current_child() -> MutexGuard<'static, Option<Pid>> {
     CHILD.lock().unwrap_or_else(PoisonError::into_inner)
 }
@@ -184,7 +185,9 @@ impl Drop for Supervised {
         if let Some(mut child) = self.child.take() {
             terminate(Pid::from_child(&child));
             // The child is reaped so that no zombie remains; its status no longer matters.
-            let _ = child.wait();
+            if let Err(error) = child.wait() {
+                eprintln!("reaping the Cargo child failed: {error}");
+            }
             *current_child() = None;
         }
     }

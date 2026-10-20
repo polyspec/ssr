@@ -34,3 +34,4 @@
 | S-80 | 저장소가 가진 kit 복사본마다 소유 규칙을 둔다 | config/owner-checks.json with clippy.toml in the kit copies rule | `make owner-validate` | [o] |
 | S-81 | 스위트가 저장소의 Rust를 위해 kit-gates의 gate인 lint-rust를 실행한다 | Makefile CHECK_TARGETS with lint-rust | `make kit-check` | [o] |
 | S-82 | core crate는 오류를 무시하지 않고 필드 오류로 바꾼다 | packages/core/src/lib.rs Page::from_json | `cargo clippy -p polyspec-ssr-core --all-targets --locked -- -D warnings -D unused_must_use -D clippy::let_underscore_must_use -D clippy::let_underscore_untyped -D clippy::map_err_ignore -D clippy::allow_attributes_without_reason` | [o] |
+| S-83 | test-ownership 라이브러리는 자식 수거의 오류를 보고한다 | tests/test-ownership/src/cargo_case.rs | `cargo clippy --manifest-path tests/test-ownership/Cargo.toml --lib --locked -- -D warnings`, `cargo test --manifest-path tests/test-ownership/Cargo.toml --test test_ownership --locked a_valid_declaration_names_executable_cases` | [o] |
