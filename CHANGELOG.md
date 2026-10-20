@@ -5,6 +5,12 @@
 
 ## Unreleased
 
+- The pre-commit hook of kit 0.0.54, which `make hooks` writes, is tracked beside `pre-push` and reads
+  `config/generated.json`, which declares no generated path and no exception because ssr tracks none;
+  `config/owner-checks.json` owns both (S-64). Red: `make hooks-check` exited with 2 and `.githooks/pre-commit does
+  not exist`; with the hook written, `make staged-generated-hook` failed with `config/generated.json does not exist`.
+  Green: `make hooks-check` and `make staged-generated-hook` exit with 0 and `make owner-validate` owns every tracked
+  path.
 - `CHECK_TARGETS` of the Makefile runs every gate of the `kit-gates` of kit: `docs-check` replaces `documents-check`,
   and `rules-check`, `rebuild-check`, `language-check`, `test-markers-check`, `duplication-check`,
   `parity-declarations-check`, `parity-check`, `commits-check`, `link-state-check` and `lint-ts` are words of it

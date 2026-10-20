@@ -9,3 +9,4 @@
 | S-61 | Let the workflow test accept the gates workflow of kit as a copy of kit, beside release.yml | tests/tools/workflows.test.mts | `make tool-test-workflows` | [o] |
 | S-62 | Own the paths of the copies and the documents of kit 0.0.54 in config/owner-checks.json: docs-check replaces documents-check, and gates.yml and .claude/settings.json are owned by kit-check | config/owner-checks.json | `make owner-validate` | [o] |
 | S-63 | Run every gate of kit-gates in CHECK_TARGETS of the Makefile: docs-check replaces documents-check, and rules-check, rebuild-check, language-check, test-markers-check, duplication-check, parity-declarations-check, parity-check, commits-check, link-state-check and lint-ts are added | Makefile | `make kit-check`, `make tool-test-workflows` | [o] |
+| S-64 | Track the pre-commit hook of kit 0.0.54 that make hooks writes, beside pre-push | .githooks/ | `make hooks-check` | [o] |

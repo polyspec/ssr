@@ -63,6 +63,16 @@
     },
     {
       "paths": [
+        ".githooks/pre-commit",
+        "config/generated.json"
+      ],
+      "targets": [
+        "hooks-check",
+        "staged-generated-hook"
+      ]
+    },
+    {
+      "paths": [
         "config/owner-checks.json"
       ],
       "targets": [

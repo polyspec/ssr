@@ -1,11 +1,16 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 18fbf1df9add6281077a18e8d161ab3108bbc848ad762386617a379d745402fa -->
+<!-- source-sha256: 3192f8d889f46cc0d136cdf9508f6033bc04f55196f78643070c12d910bf12ec -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- kit 0.0.54 의 pre-commit hook 을 `make hooks` 가 쓰며 `pre-push` 와 함께 추적한다. 이 hook 은 `config/generated.json` 을 읽는데, ssr 가
+  생성 파일을 추적하지 않으므로 생성 경로도 예외도 선언하지 않으며, `config/owner-checks.json` 이 둘을 소유한다 (S-64). Red: `make hooks-check` 가 종료 코드 2
+  와 `.githooks/pre-commit does not exist` 로 실패했고, hook 을 쓴 뒤 `make staged-generated-hook` 이 `config/generated.json
+  does not exist` 로 실패했다. Green: `make hooks-check` 와 `make staged-generated-hook` 이 종료 코드 0 이고 `make owner-validate`
+  가 모든 추적 경로를 소유한다.
 - `Makefile` 의 `CHECK_TARGETS` 가 kit 의 `kit-gates` 의 모든 gate 를 실행한다: `docs-check` 가 `documents-check` 를 대체하고
   `rules-check`, `rebuild-check`, `language-check`, `test-markers-check`, `duplication-check`,
   `parity-declarations-check`, `parity-check`, `commits-check`, `link-state-check`, `lint-ts` 가 단어로 들어간다 (S-63). `make
