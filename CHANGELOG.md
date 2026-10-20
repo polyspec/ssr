@@ -5,6 +5,12 @@
 
 ## Unreleased
 
+- `config/rebuild.json` classifies the seven tool sources of `scripts/` (S1): `build-programs.mts`,
+  `github-ruleset.mts` and `json.mts` use cargo, `gh` and ajv; `check-records.mts`, `fetch-v8.mts`,
+  `install-packages.mts` and `verify-archive.mts` are policy with the rule of AGENTS.md that each keeps;
+  `config/owner-checks.json` owns the file (S-65). Red: `make rebuild-check` exited with 2 and `config/rebuild.json
+  does not exist`; with an empty declaration it named all seven tools without a class. Green: `make rebuild-check`
+  exits with 0.
 - The pre-commit hook of kit 0.0.54, which `make hooks` writes, is tracked beside `pre-push` and reads
   `config/generated.json`, which declares no generated path and no exception because ssr tracks none;
   `config/owner-checks.json` owns both (S-64). Red: `make hooks-check` exited with 2 and `.githooks/pre-commit does

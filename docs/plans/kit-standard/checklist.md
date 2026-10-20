@@ -10,3 +10,4 @@
 | S-62 | Own the paths of the copies and the documents of kit 0.0.54 in config/owner-checks.json: docs-check replaces documents-check, and gates.yml and .claude/settings.json are owned by kit-check | config/owner-checks.json | `make owner-validate` | [o] |
 | S-63 | Run every gate of kit-gates in CHECK_TARGETS of the Makefile: docs-check replaces documents-check, and rules-check, rebuild-check, language-check, test-markers-check, duplication-check, parity-declarations-check, parity-check, commits-check, link-state-check and lint-ts are added | Makefile | `make kit-check`, `make tool-test-workflows` | [o] |
 | S-64 | Track the pre-commit hook of kit 0.0.54 that make hooks writes, beside pre-push | .githooks/ | `make hooks-check` | [o] |
+| S-65 | Classify the seven tool sources of scripts/ in config/rebuild.json (S1): ecosystem, or policy with the rule they keep | config/rebuild.json, config/owner-checks.json | `make rebuild-check` | [o] |

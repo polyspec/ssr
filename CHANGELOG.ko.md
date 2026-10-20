@@ -1,11 +1,16 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 3192f8d889f46cc0d136cdf9508f6033bc04f55196f78643070c12d910bf12ec -->
+<!-- source-sha256: e884b8de5ef8fbe34ae8e9552ba21a9d6e54f954d88b177b343541e3f97fb2e3 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- `config/rebuild.json` 이 `scripts/` 의 도구 소스 7개를 분류한다 (S1): `build-programs.mts`, `github-ruleset.mts`, `json.mts` 는
+  cargo, `gh`, ajv 를 쓰고, `check-records.mts`, `fetch-v8.mts`, `install-packages.mts`, `verify-archive.mts` 는 각각
+  AGENTS.md 의 규칙을 지키는 policy 이며, `config/owner-checks.json` 이 이 파일을 소유한다 (S-65). Red: `make rebuild-check` 가 종료 코드 2 와
+  `config/rebuild.json does not exist` 로 실패했고, 빈 선언에서는 class 없는 도구 7개를 모두 지적했다. Green: `make rebuild-check` 가 종료 코드 0
+  이다.
 - kit 0.0.54 의 pre-commit hook 을 `make hooks` 가 쓰며 `pre-push` 와 함께 추적한다. 이 hook 은 `config/generated.json` 을 읽는데, ssr 가
   생성 파일을 추적하지 않으므로 생성 경로도 예외도 선언하지 않으며, `config/owner-checks.json` 이 둘을 소유한다 (S-64). Red: `make hooks-check` 가 종료 코드 2
   와 `.githooks/pre-commit does not exist` 로 실패했고, hook 을 쓴 뒤 `make staged-generated-hook` 이 `config/generated.json

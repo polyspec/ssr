@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "comment": "The class of each tool of ssr that make rebuild-check checks (S1). The copies of kit under scripts/kit are not listed: kit classifies them.",
+  "tools": {
+    "scripts/build-programs.mts": {
+      "kind": "ecosystem",
+      "tool": "cargo build with its JSON messages, run as the setup script build-programs of cargo-nextest (.config/nextest.toml)"
+    },
+    "scripts/check-records.mts": {
+      "kind": "policy",
+      "reason": "the record words, the approved terms, the home paths and the timed assertions that AGENTS.md (Records) states for this repository; no ecosystem linter knows these rules"
+    },
+    "scripts/fetch-v8.mts": {
+      "kind": "policy",
+      "reason": "AGENTS.md (Implementation 6): no build downloads V8, and a CI runner fetches the official rusty_v8 archive and binding only after their SHA-256 are verified; the v8 build script downloads without that check"
+    },
+    "scripts/github-ruleset.mts": {
+      "kind": "ecosystem",
+      "tool": "gh api, the REST calls of the GitHub CLI, which create the ruleset of .github/ruleset.json and compare it with the live one"
+    },
+    "scripts/install-packages.mts": {
+      "kind": "policy",
+      "reason": "Idempotency 2 and 10 of AGENTS.md: the fixture packages and the pinned chromium are installed once per lock digest into an immutable directory that npm ci and playwright-core install fill; no ecosystem tool names an install by the digest of its lock"
+    },
+    "scripts/json.mts": {
+      "kind": "ecosystem",
+      "tool": "ajv"
+    },
+    "scripts/verify-archive.mts": {
+      "kind": "policy",
+      "reason": "AGENTS.md (Implementation 6): the local V8 archive, binding, Cargo features and free disk are verified against declared SHA-256 before linking; the v8 build script reads the archive that RUSTY_V8_ARCHIVE names without checking it"
+    }
+  }
+}
