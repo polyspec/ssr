@@ -5,6 +5,21 @@
 
 ## Unreleased
 
+- A Composer link is a path repository with `symlink` that Composer itself installs (K304-1): link writes a
+  git-ignored `composer.link.json` (the tracked `composer.json` with a path repository per provider folder in front of
+  its repositories, the locked release as the version) and a copy of the lock, and runs `COMPOSER=composer.link.json
+  composer update <linked polyspec packages and own path packages>`; the installed folder is a symbolic link and the
+  record, autoload rules and platform check come from the folder's `composer.json`; `composer.json` and
+  `composer.lock` stay unchanged; `unlink` removes the link files. The hand-made rewrite of `installed.json` of K304
+  is removed. Red: the link test expected `composer update` with `composer.link.json` and found `dump-autoload`;
+  Green: it passes, and `tests/source/link-composer-real.test.mts` installs a package whose archive requires PHP 99
+  from its folder under the real Composer.
+- The record check reads the checklists of the plan folders (`docs/plans/<plan>/checklist.md` and its Korean twin) as
+  it read the execution checklists, which may name the terms and not the record words, and the records of S-58 to S-65
+  and their commit messages use no record word (S-66). Red: `make tool-test-check-records` failed with an unapproved term for
+  `docs/plans/execution/checklist.md`; `make check-records` exited with 2 and 8 findings, and `make
+  check-commit-records RANGE=874a6d4..HEAD` named two commits. Green: `make tool-test-check-records` passes 20 cases
+  and both targets exit with 0.
 - `config/rebuild.json` classifies the seven tool sources of `scripts/` (S1): `build-programs.mts`,
   `github-ruleset.mts` and `json.mts` use cargo, `gh` and ajv; `check-records.mts`, `fetch-v8.mts`,
   `install-packages.mts` and `verify-archive.mts` are policy with the rule of AGENTS.md that each keeps;
@@ -17,11 +32,11 @@
   not exist`; with the hook written, `make staged-generated-hook` failed with `config/generated.json does not exist`.
   Green: `make hooks-check` and `make staged-generated-hook` exit with 0 and `make owner-validate` owns every tracked
   path.
-- `CHECK_TARGETS` of the Makefile runs every gate of the `kit-gates` of kit: `docs-check` replaces `documents-check`,
+- `CHECK_TARGETS` of the Makefile runs every check of the `kit-gates` of kit: `docs-check` replaces `documents-check`,
   and `rules-check`, `rebuild-check`, `language-check`, `test-markers-check`, `duplication-check`,
   `parity-declarations-check`, `parity-check`, `commits-check`, `link-state-check` and `lint-ts` are words of it
   (S-63). `lint-ts` moves out of `SSR_TARGETS` because `make kit-check` reads `CHECK_TARGETS` without expanding
-  `$(SSR_TARGETS)`. Red: `make kit-check` exited with 2 and 11 findings `CHECK_TARGETS runs no <gate>`. Green: `make
+  `$(SSR_TARGETS)`. Red: `make kit-check` exited with 2 and 11 findings `CHECK_TARGETS runs no <check>`. Green: `make
   kit-check` exits with 0 and `make tool-test-workflows` passes 13 cases.
 - `config/owner-checks.json` names `docs-check` for the documents, owns `CHANGELOG.md`, `CHANGELOG.ko.md`,
   `.github/workflows/gates.yml` and `.claude/settings.json`, and drops the owner of the removed `config/commits.json`

@@ -1,11 +1,23 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: e884b8de5ef8fbe34ae8e9552ba21a9d6e54f954d88b177b343541e3f97fb2e3 -->
+<!-- source-sha256: 2e62e559f06ac8a217395d638e8bfea7fc945fa8c7256cfe7b852ed5d26673a3 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- Composer link는 Composer가 스스로 설치하는 `symlink` path repository이다(K304-1): link는 git이 무시하는 `composer.link.json`(추적되는
+  `composer.json`에 provider 폴더마다 path repository를 repositories 앞에 두고 lock의 릴리스를 version으로 쓴 것)과 lock의 사본을 쓰고
+  `COMPOSER=composer.link.json composer update <연결된 polyspec 패키지와 자기 path 패키지>`를 실행한다. 설치된 폴더는 심볼릭 링크이고 기록, autoload
+  규칙, platform check는 폴더의 `composer.json`에서 나오며, `composer.json`과 `composer.lock`은 그대로이고, `unlink`는 link 파일을 지운다.
+  K304의 손으로 한 `installed.json` 수정은 제거했다. Red: link test가 `composer.link.json`을 쓰는 `composer update`를 기대했는데
+  `dump-autoload`였다. Green: 통과하며 `tests/source/link-composer-real.test.mts`가 실제 Composer로 archive가 PHP 99를 요구하는 패키지를
+  폴더에서 설치한다.
+- record 검사는 계획 폴더의 체크리스트(`docs/plans/<plan>/checklist.md` 와 한국어 쌍)를 실행 체크리스트처럼 읽어, 용어는 적을 수 있고 record word 는 적을 수
+  없으며, S-58 부터 S-65 의 기록과 commit message 는 record word 를 쓰지 않는다 (S-66). Red: `make tool-test-check-records` 가
+  `docs/plans/execution/checklist.md` 의 unapproved term 으로 실패했고, `make check-records` 가 종료 코드 2 와 finding
+  8건으로, `make check-commit-records RANGE=874a6d4..HEAD` 가 commit 2개를 지적했다. Green: `make tool-test-check-records` 가
+  20개를 통과하고 두 target 이 종료 코드 0 이다.
 - `config/rebuild.json` 이 `scripts/` 의 도구 소스 7개를 분류한다 (S1): `build-programs.mts`, `github-ruleset.mts`, `json.mts` 는
   cargo, `gh`, ajv 를 쓰고, `check-records.mts`, `fetch-v8.mts`, `install-packages.mts`, `verify-archive.mts` 는 각각
   AGENTS.md 의 규칙을 지키는 policy 이며, `config/owner-checks.json` 이 이 파일을 소유한다 (S-65). Red: `make rebuild-check` 가 종료 코드 2 와
@@ -16,11 +28,11 @@
   와 `.githooks/pre-commit does not exist` 로 실패했고, hook 을 쓴 뒤 `make staged-generated-hook` 이 `config/generated.json
   does not exist` 로 실패했다. Green: `make hooks-check` 와 `make staged-generated-hook` 이 종료 코드 0 이고 `make owner-validate`
   가 모든 추적 경로를 소유한다.
-- `Makefile` 의 `CHECK_TARGETS` 가 kit 의 `kit-gates` 의 모든 gate 를 실행한다: `docs-check` 가 `documents-check` 를 대체하고
+- `Makefile` 의 `CHECK_TARGETS` 가 kit 의 `kit-gates` 의 모든 검사를 실행한다: `docs-check` 가 `documents-check` 를 대체하고
   `rules-check`, `rebuild-check`, `language-check`, `test-markers-check`, `duplication-check`,
   `parity-declarations-check`, `parity-check`, `commits-check`, `link-state-check`, `lint-ts` 가 단어로 들어간다 (S-63). `make
   kit-check` 가 `$(SSR_TARGETS)` 를 확장하지 않고 `CHECK_TARGETS` 를 읽으므로 `lint-ts` 는 `SSR_TARGETS` 에서 나온다. Red: `make
-  kit-check` 가 종료 코드 2 와 finding 11건(`CHECK_TARGETS runs no <gate>`)으로 실패했다. Green: `make kit-check` 가 종료 코드 0 이고
+  kit-check` 가 종료 코드 2 와 finding 11건(`CHECK_TARGETS runs no <check>`)으로 실패했다. Green: `make kit-check` 가 종료 코드 0 이고
   `make tool-test-workflows` 가 13개를 통과한다.
 - `config/owner-checks.json` 은 문서에 `docs-check` 를 지정하고, `CHANGELOG.md`, `CHANGELOG.ko.md`,
   `.github/workflows/gates.yml`, `.claude/settings.json` 을 소유하며, 제거된 `config/commits.json` 의 owner 를 삭제한다 (S-62). Red:

@@ -97,6 +97,20 @@ test('a word only joined to a record word by a hyphen or letter is no record wor
   assert.deepEqual(checkWords(root), []);
 });
 
+test('the checklists of the plan folders may name the terms, not the record words', t => {
+  const root = temporary(t);
+  write(root, {
+    'docs/plans/execution/checklist.md': 'The endpoint rejects an orphan.\n',
+    'docs/plans/execution/checklist.ko.md': 'The endpoint rejects an orphan.\n',
+    'docs/plans/execution/plan.md': 'The endpoint.\n',
+  });
+  commitAll(root);
+  assert.deepEqual(checkWords(root), [
+    `${path.join(root, 'docs/plans/execution/checklist.ko.md')}: prohibited record word orphan`,
+    `${path.join(root, 'docs/plans/execution/checklist.md')}: prohibited record word orphan`,
+    `${path.join(root, 'docs/plans/execution/plan.md')}: unapproved term endpoint`]);
+});
+
 test('untracked and ignored documents are not read', t => {
   const root = temporary(t);
   write(root, {

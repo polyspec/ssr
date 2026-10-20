@@ -8,7 +8,7 @@
 // The commit messages are those of the range <base>..<head>, the commits being pushed, as make commits-check of kit reads its
 // RANGE: make check-commit-records requires RANGE, and the job push-gate passes the range of its event. A pushed commit is not
 // read again, since Git history is not rewritten, so a checkout without a pushed range runs only the checks of the files. The
-// document pairs, links and checklists are checked by make documents-check of kit.
+// document pairs, links and checklists are checked by make docs-check of kit.
 //
 //   node scripts/check-records.mts                          the checks of the tracked files (make check-records)
 //   node scripts/check-records.mts --range <base>..<head>   the messages of the commits of the range (make check-commit-records)
@@ -108,8 +108,11 @@ export function markdownFiles(root: string): string[] {
   return tracked(root, '*.md');
 }
 
+/** A checklist of a plan folder, which names the terms that earlier work used. */
+const CHECKLIST = /^docs\/plans\/[^/]+\/checklist(?:\.ko)?\.md$/;
+
 /** The record words of the documents and the Rust comments of packages/, and the unapproved terms of the documents. AGENTS.md
- * names the words and is not read; the execution checklists may name the terms. */
+ * names the words and is not read; the checklists of the plan folders may name the terms. */
 export function checkWords(root: string): string[] {
   const errors: string[] = [];
   for (const file of markdownFiles(root)) {
@@ -118,7 +121,7 @@ export function checkWords(root: string): string[] {
     const full = path.join(root, file);
     const content = readText(full);
     for (const word of recordWords(content)) errors.push(`${full}: prohibited record word ${word}`);
-    if (name === 'execution-checklist.md' || name === 'execution-checklist.ko.md') continue;
+    if (CHECKLIST.test(file)) continue;
     for (const word of TERM_WORDS) {
       if (wordPattern([word], 'iu').test(content)) errors.push(`${full}: unapproved term ${word}`);
     }

@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: fe76350745dfb90db857884fcfe93c3f0e8ed459852ae8f4b38d83492c14a743 -->
+<!-- source-sha256: e5467b68881c9703ffa86b22bcd6b25dc2574d51ef8c4deb32407a05e365594c -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -9,6 +9,7 @@
 | S-60 | make kit-sync 로 kit 0.0.54 의 복사본을 받는다: lint 설정, kit layout, PRINCIPLES, release 와 gates workflow, bootstrap, .claude/settings.json | the copies named by kit.copies of @polyspec/kit | `make kit-check` | [o] |
 | S-61 | workflow test 가 release.yml 과 함께 kit 의 gates workflow 를 kit 복사본으로 받아들이게 한다 | tests/tools/workflows.test.mts | `make tool-test-workflows` | [o] |
 | S-62 | config/owner-checks.json 이 kit 0.0.54 의 복사본과 문서 경로를 소유하게 한다: documents-check 대신 docs-check, gates.yml 과 .claude/settings.json 은 kit-check 가 소유한다 | config/owner-checks.json | `make owner-validate` | [o] |
-| S-63 | Makefile 의 CHECK_TARGETS 가 kit-gates 의 모든 gate 를 실행하게 한다: documents-check 대신 docs-check 를 쓰고 rules-check, rebuild-check, language-check, test-markers-check, duplication-check, parity-declarations-check, parity-check, commits-check, link-state-check, lint-ts 를 추가한다 | Makefile | `make kit-check`, `make tool-test-workflows` | [o] |
+| S-63 | Makefile 의 CHECK_TARGETS 가 kit-gates 의 모든 검사를 실행하게 한다: documents-check 대신 docs-check 를 쓰고 rules-check, rebuild-check, language-check, test-markers-check, duplication-check, parity-declarations-check, parity-check, commits-check, link-state-check, lint-ts 를 추가한다 | Makefile | `make kit-check`, `make tool-test-workflows` | [o] |
 | S-64 | make hooks 가 쓰는 kit 0.0.54 의 pre-commit hook 을 pre-push 와 함께 추적한다 | .githooks/ | `make hooks-check` | [o] |
 | S-65 | scripts/ 의 도구 소스 7개를 config/rebuild.json 에서 분류한다 (S1): ecosystem, 또는 지키는 규칙을 적은 policy | config/rebuild.json, config/owner-checks.json | `make rebuild-check` | [o] |
+| S-66 | record 검사가 계획 폴더의 체크리스트를 대체된 실행 체크리스트처럼 읽게 하고, S-58 부터 S-65 의 기록에서 record word 를 없앤다 | scripts/check-records.mts, tests/tools/check-records.test.mts, CHANGELOG.md, CHANGELOG.ko.md, docs/plans/kit-standard/ | `make tool-test-check-records`, `make check-records` | [o] |
