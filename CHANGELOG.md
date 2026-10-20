@@ -5,6 +5,10 @@
 
 ## Unreleased
 
+- `.gitignore` ignores every cargo `target/` directory, also the one that a plain `cargo test --manifest-path
+  tests/test-ownership/Cargo.toml` writes beside that package, in place of only `/target/` (S-78). Red: after that
+  command `git status` listed `tests/test-ownership/target/` as untracked. Green: `git status` lists nothing for it
+  and `git check-ignore` names the rule `target/`.
 - `CHECK_TARGETS` of the Makefile runs `divergence-check`, and each reason of `config/duplication.json` begins with
   its kind, `test:` for the test folders and `harness:` for the programs that the development tests spawn (S-77). Red:
   `make kit-check` exited with 2 and `CHECK_TARGETS runs no divergence-check`; `make divergence-check` exited with 2

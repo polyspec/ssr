@@ -1,11 +1,14 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 278a1776a9ea9d78c07ec6c3a9a5e9b523520a91e91ccb4ed35b01f8b2ecf528 -->
+<!-- source-sha256: 0b617f7574b3c2ca9f6aa86f0f458c618ce7a73cb19aeeb9f36e2d14ec113b34 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- `.gitignore` 는 `/target/` 만이 아니라, 그 package 옆에 `cargo test --manifest-path tests/test-ownership/Cargo.toml` 가 쓰는 것을
+  포함해 모든 cargo `target/` directory 를 무시한다 (S-78). Red: 그 명령 뒤 `git status` 가 `tests/test-ownership/target/` 을 추적되지 않는
+  것으로 나열했다. Green: `git status` 가 이에 대해 아무것도 나열하지 않고 `git check-ignore` 가 규칙 `target/` 을 지목한다.
 - `Makefile` 의 `CHECK_TARGETS` 가 `divergence-check` 를 실행하고, `config/duplication.json` 의 각 reason 은 test 폴더에 `test:`,
   development test 가 띄우는 program 에 `harness:` 로 그 종류로 시작한다 (S-77). Red: `make kit-check` 가 종료 코드 2 와 `CHECK_TARGETS
   runs no divergence-check` 로, `make divergence-check` 가 종료 코드 2 와 종류 없는 예외 5건으로 실패했다. Green: `make divergence-check`

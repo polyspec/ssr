@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: 97059a9330e61512c8ae34ec36fb180cb7b71f24d9b1c7d990b6e72b466c585d -->
+<!-- source-sha256: b56ba9721d4e8cf1c2e21549def14af1f1591c64ee21f50202e65ffaf1b5d6b4 -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -29,3 +29,4 @@
 | S-75 | ownership 검사가 adapter 의 public 이름을 보게 한다: 각 adapter 가 struct 를 선언하고 support crate 의 macro 는 method 만 쓰며, support crate 에 page 와 runtime 을 쓰는 render test 를 둔다 | packages/adapter-*/src/lib.rs, packages/adapter-support, config/test-ownership.json | `make check-ownership` | [o] |
 | S-76 | S-72 이후 kit 이 바꾼 PRINCIPLES 복사본을 make kit-sync 로 받는다 | PRINCIPLES.md, PRINCIPLES.ko.md | `make kit-check` | [o] |
 | S-77 | CHECK_TARGETS 에서 divergence-check 를 실행하고 config/duplication.json 의 각 reason 을 그 종류(test 또는 harness)로 시작한다 | Makefile, config/duplication.json, config/owner-checks.json | `make divergence-check` | [o] |
+| S-78 | 루트의 것만이 아니라 모든 cargo target directory 를 .gitignore 에서 무시한다 | .gitignore | `make check-records` | [o] |

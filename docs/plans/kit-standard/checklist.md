@@ -28,3 +28,4 @@
 | S-75 | Let the ownership check see the public names of the adapters: each adapter declares its struct, the macro of the support crate writes only its methods, and the support crate has a render test that uses the page and the runtime | packages/adapter-*/src/lib.rs, packages/adapter-support, config/test-ownership.json | `make check-ownership` | [o] |
 | S-76 | Take the PRINCIPLES copies that kit changed since S-72 with make kit-sync | PRINCIPLES.md, PRINCIPLES.ko.md | `make kit-check` | [o] |
 | S-77 | Run divergence-check in CHECK_TARGETS and begin each reason of config/duplication.json with its kind (test or harness) | Makefile, config/duplication.json, config/owner-checks.json | `make divergence-check` | [o] |
+| S-78 | Ignore every cargo target directory in .gitignore, not only the one at the root | .gitignore | `make check-records` | [o] |
