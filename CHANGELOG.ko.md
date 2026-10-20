@@ -1,11 +1,14 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 7ebe5371ca726251dd638fb9fe52b529c8efaf2334fbb60a6b6eced0a8350a46 -->
+<!-- source-sha256: 5eeaae173dce489ef334971eb83a757541fa656c104eb9df0d0c54334551b785 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- `Development::start` 와 `Development::from_build` 는 render process 의 supervisor 를 함수 하나 `supervise` 로 시작한다. 동작은 그대로이다
+  (S-71-5). 이전: `make duplication-check` 가 clone 1건을 찾았다. 이후: clone 0건이고 `make duplication-check` 가 종료 코드 0 이며
+  `polyspec-ssr-server` 의 `development` test 16개가 통과한다.
 - runtime crate 는 classic script 의 origin 을 `script_origin` 으로, request 의 대기를 `Request::deadline_timer`,
   `interrupted`, `timed_out` 으로, snapshot 의 병렬 복원 test 둘을 helper 하나로 만든다. 동작과 message 는 그대로이다 (S-71-4). 이전: `make
   duplication-check` 가 clone 5건을 찾았고 runtime crate 에 4건이 있었다. 이후: clone 1건이고 runtime crate 에는 없으며, snapshot, 취소,

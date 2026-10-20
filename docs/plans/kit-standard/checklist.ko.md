@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: e474d7012202bc6d41b9002008eec14d80cfeeeae6c9883d5079b7555e5d346b -->
+<!-- source-sha256: 6d5acf85739d8ccf89463ddaeb7777c826e37062b1bfeb8804f3cb13f419ceee -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -22,3 +22,4 @@
 | S-71-2 | 네 adapter crate 가 공유하는 것(document, assets, render, static shell)을 private crate polyspec-ssr-adapter-support 로 옮기고 error 를 thiserror 로 derive 한다 | packages/adapter-support, packages/adapter-*/src/lib.rs, config/, AGENTS.md | `make nextest-adapter-support` | [o] |
 | S-71-3 | adapter 가 생성하는 entry 를 공유 함수 하나로 template 에서 만들어 entry 가 code 를 되풀이하지 않게 한다 | packages/adapter-support, packages/adapter-*/src/lib.rs | `make nextest-adapter-support` | [o] |
 | S-71-4 | runtime crate 의 clone 을 제거한다: classic script 의 origin 하나, request 대기의 deadline timer 와 취소·timeout 결과 하나, 병렬 복원 test 의 helper 하나 | packages/runtime/src | `make nextest-runtime` | [o] |
+| S-71-5 | development server 의 supervisor 시작을 감시하는 build 와 준비된 build 가 함께 쓰는 함수 하나로 한다 | packages/server/src/development.rs | `make nextest-server` | [o] |

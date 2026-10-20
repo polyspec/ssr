@@ -5,6 +5,9 @@
 
 ## Unreleased
 
+- `Development::start` and `Development::from_build` start the supervisor of the render process through one function
+  `supervise`; behavior is unchanged (S-71-5). Before: `make duplication-check` found 1 clone. After: 0 clones, `make
+  duplication-check` exits with 0; the 16 tests of `polyspec-ssr-server` `development` pass.
 - The runtime crate builds the origin of a classic script with `script_origin`, the waits of a request with
   `Request::deadline_timer`, `interrupted` and `timed_out`, and the two parallel restore tests of the snapshot with
   one helper; behavior and messages are unchanged (S-71-4). Before: `make duplication-check` found 5 clones, 4 in the

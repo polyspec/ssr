@@ -220,6 +220,32 @@ impl Development {
             elapsed_ms = started.elapsed().as_millis(),
             "development watch baseline observed"
         );
+        Self::supervise(
+            render,
+            probe,
+            options,
+            Some((roots, excluded, build)),
+            Some((events_rx, failure_rx)),
+            None,
+            Some(SourceWatcher {
+                watch: watcher,
+                baseline,
+            }),
+        )
+        .await
+    }
+
+    /// Starts the supervisor of the render process and waits until it is ready. `source` is the roots, the excluded paths
+    /// and the build command of a watched source; `directory` is the build directory of a prepared build.
+    async fn supervise(
+        render: impl Fn(&Path, &Path) -> Command + Send + Sync + 'static,
+        probe: Vec<u8>,
+        options: ProcessOptions,
+        source: Option<(Vec<PathBuf>, Vec<PathBuf>, Command)>,
+        events: Option<WatchEvents>,
+        directory: Option<PathBuf>,
+        watcher: Option<SourceWatcher>,
+    ) -> Result<(Self, mpsc::Receiver<Result<(), DevelopmentError>>), DevelopmentError> {
         let (stop, stop_rx) = watch::channel(false);
         let current = Arc::new(RwLock::new(Err(DevelopmentError(
             "render process is preparing".into(),
@@ -228,21 +254,17 @@ impl Development {
         let supervisor = supervisor::Supervisor::new(
             Arc::clone(&current),
             changes,
-            Some((roots, excluded, build)),
+            source,
             Box::new(render),
             probe,
             options,
         );
-        let (worker, ready, finished) =
-            supervisor.spawn(Some((events_rx, failure_rx)), stop_rx, None)?;
+        let (worker, ready, finished) = supervisor.spawn(events, stop_rx, directory)?;
         let worker = wait_ready(worker, ready).await?;
         Ok((
             Self {
                 current,
-                watcher: Mutex::new(Some(SourceWatcher {
-                    watch: watcher,
-                    baseline,
-                })),
+                watcher: Mutex::new(watcher),
                 stop,
                 worker: Mutex::new(Some(worker)),
                 finished,
@@ -264,31 +286,7 @@ impl Development {
         let probe = probe
             .to_json()
             .map_err(|e| DevelopmentError(e.to_string()))?;
-        let (stop, stop_rx) = watch::channel(false);
-        let current = Arc::new(RwLock::new(Err(DevelopmentError(
-            "render process is preparing".into(),
-        ))));
-        let (changes, changes_rx) = mpsc::channel(options.event_capacity);
-        let supervisor = supervisor::Supervisor::new(
-            Arc::clone(&current),
-            changes,
-            None,
-            Box::new(render),
-            probe,
-            options,
-        );
-        let (worker, ready, finished) = supervisor.spawn(None, stop_rx, Some(directory))?;
-        let worker = wait_ready(worker, ready).await?;
-        Ok((
-            Self {
-                current,
-                watcher: Mutex::new(None),
-                stop,
-                worker: Mutex::new(Some(worker)),
-                finished,
-            },
-            changes_rx,
-        ))
+        Self::supervise(render, probe, options, None, None, Some(directory), None).await
     }
 
     pub async fn handle(
