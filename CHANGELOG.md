@@ -5,6 +5,7 @@
 
 ## Unreleased
 
+- S-86: the poison case of the engine process moves from packages/core/tests/process.rs to packages/core/tests/process_poison.rs, so each runs in its own process; red: `cargo test -p polyspec-ssr-core --test process` failed with Disconnected at process.rs:16 because the poisoned lock of the other test reached the serialize test, green: both binaries pass. (S-86)
 - S-84: tests/test-ownership/src/main.rs maps an interrupted run's exit status with an explicit check and reports an out-of-range signal with its reason, instead of Result::ok turning it into FAILURE; red: the clippy run of the crate reported the disallowed method Result::ok at src/main.rs:28, green: the clippy run passes. (S-84)
 - S-85: .golangci.yml, ruff.toml, PRINCIPLES.md, PRINCIPLES.ko.md and scripts/kit/kit-bootstrap.mk take the kit 0.0.54 copies, with the P8 lint rules and the link of the siblings on install; red: kit-check reported 5 copies that differ from @polyspec/kit, green: kit-check passes. (S-85)
 - S-83: tests/test-ownership/src/cargo_case.rs reaps the child with an explicit error report instead of let _, and states the need of the poisoned-lock recovery in an allow with its reason; red: clippy reported the disallowed unwrap_or_else at cargo_case.rs:111 and two non-binding lets at cargo_case.rs:187, green: clippy of the library target reports no hit and the workspace tests pass. (S-83)

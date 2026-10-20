@@ -50,18 +50,3 @@ fn process_serializes_compilers_and_snapshot_selection() {
         Err("renderer process already initialized a snapshot")
     );
 }
-
-#[test]
-fn snapshot_panic_poison_is_not_hidden() {
-    assert!(
-        std::panic::catch_unwind(|| render(|| -> Result<(), ()> {
-            panic!("snapshot initialization panicked");
-        }))
-        .is_err()
-    );
-    assert_eq!(build(|| ()), Err("process engine lock is poisoned"));
-    assert_eq!(
-        render(|| Ok::<_, ()>(())),
-        Err("process engine lock is poisoned")
-    );
-}

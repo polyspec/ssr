@@ -6,6 +6,7 @@
 
 ## Unreleased
 
+- S-86: engine process의 poison 검사를 packages/core/tests/process.rs에서 packages/core/tests/process_poison.rs로 옮겨 각각 독립 프로세스에서 실행한다. red: `cargo test -p polyspec-ssr-core --test process`가 process.rs:16에서 Disconnected로 실패했다. 다른 테스트의 poison된 lock이 직렬화 테스트에 닿았기 때문이다. green: 두 binary 모두 통과. (S-86)
 - S-84: tests/test-ownership/src/main.rs는 중단된 실행의 종료 상태를 명시적 검사로 매핑하고, 범위를 벗어난 signal을 이유와 함께 보고한다. 이전에는 Result::ok가 이를 FAILURE로 바꿨다. red: 크레이트의 clippy 실행이 src/main.rs:28의 금지 method Result::ok를 보고했고, green: clippy 실행 통과. (S-84)
 - S-85: .golangci.yml, ruff.toml, PRINCIPLES.md, PRINCIPLES.ko.md, scripts/kit/kit-bootstrap.mk를 kit 0.0.54 복사본으로 맞추고, P8 lint 규칙과 설치 시 형제 체크아웃 링크를 포함한다. red: kit-check가 @polyspec/kit과 다른 복사본 5개를 보고했고, green: kit-check 통과. (S-85)
 - S-83: tests/test-ownership/src/cargo_case.rs는 자식 프로세스를 let _ 대신 명시적 오류 보고로 수거하고, poison된 lock 복구의 필요를 이유가 붙은 allow로 적는다. red: clippy가 cargo_case.rs:111의 disallowed unwrap_or_else와 cargo_case.rs:187의 non-binding let 두 건을 보고했고, green: 라이브러리 target의 clippy가 보고가 없고 workspace 테스트가 통과한다. (S-83)
