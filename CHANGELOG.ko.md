@@ -1,11 +1,12 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 2aa86fdb33cb0848e4a0fb2866ad01c61a257884ec6d8d216db39a17769296f7 -->
+<!-- source-sha256: 689b181f63bbd889873d71d83fbf00c6adef70867b7568ba436e3a5ccf63ae66 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- S-94: React 어댑터 테스트의 테스트당 30 초 제한은 측정된 여유를 가진다. 콜드 실행 3회(cargo clean -p polyspec-ssr-adapter-react 후 선택된 nextest 명령, load average 20에서 33)가 각각 10/10 통과하며 exit 0이었다. JUnit 파일의 테스트당 가장 긴 실행 시간은 9.19 초다(1회차 browser_hydrates_ssr_and_renders_csr_and_static_shells, 2회차 8.68 초, 3회차 8.17 초). 파일은 var/s94-cold-run-1.junit.xml, var/s94-cold-run-2.junit.xml, var/s94-cold-run-3.junit.xml에 보관한다. 앞서 콜드 실행 하나가 테스트 5개를 30 초에 시간 초과시켰으나 한 번만 관찰했고 로그는 보관하지 않았다. 콜드 실행 3회, 첫 패키지 설치, 직렬 실행(최대 5.6 초)에서 재현되지 않았다. 시간 제한과 설정은 바꾸지 않았다. (S-94)
 - S-96: ssr은 kit f9eb43dd의 복사본을 받는다. make kit-sync가 scripts/kit/kit-bootstrap.mk와 config/layout.kit.yml을 쓰고, make hooks가 .githooks/commit-msg를 쓴다. red: make kit-check가 설치된 kit과 다른 복사본 두 개로 exit 2였고, green: make kit-check가 exit 0. (S-96)
 - S-95: packages/server는 매핑하는 각 development 오류의 원본을 유지한다. DevelopmentError는 원본을 source로 가지며, 메시지 문구와 공개 이름은 바뀌지 않는다. lock poison 매핑은 메시지만 유지한다. poison 오류는 저장할 수 없는 lock guard를 가지기 때문이다. red: 테스트 inspection_failure_keeps_the_io_error_as_source가 config.rs에서 source가 없는 상태로 실패했다(cargo nextest exit 100). green: clippy 실행이 exit 0이고 server 테스트 선택이 65/65 통과한다. (S-95)
 - S-90: make lint-rust가 전체 workspace에서 exit 0으로 끝난다. S-91과 S-92 행이 이전 실패 뒤에 가려져 있던 adapter-support, adapter, server의 발견을 닫았다. red: 9e08285에서 make lint-rust가 exit 2였고, adapter-support lib.rs의 map_err_ignore와 server development/process.rs의 금지 method를 보고했다. green: 등록 HEAD에서 make lint-rust가 exit 0. (S-90)
