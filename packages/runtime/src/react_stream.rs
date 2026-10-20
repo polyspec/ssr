@@ -30,8 +30,10 @@ fn property<'s>(
     name: &str,
 ) -> Result<v8::Local<'s, v8::Value>, Error> {
     v8::tc_scope!(let scope, scope);
-    let key = v8::String::new(scope, name)
-        .ok_or(Error::InvalidResult("stream property name unavailable"))?;
+    let key = v8::String::new(scope, name).ok_or(Error::InvalidResult(
+        "stream property name unavailable",
+        None,
+    ))?;
     object.get(scope, key.into()).ok_or_else(|| caught!(scope))
 }
 
@@ -44,7 +46,7 @@ fn call<'s>(
     v8::tc_scope!(let scope, scope);
     let value = property(scope, receiver, name)?;
     let function = v8::Local::<v8::Function>::try_from(value)
-        .map_err(|_| Error::InvalidResult("stream function required"))?;
+        .map_err(|error| Error::InvalidResult("stream function required", Some(Box::new(error))))?;
     function
         .call(scope, receiver.into(), args)
         .ok_or_else(|| caught!(scope))
@@ -57,8 +59,9 @@ fn finish_promise<'s>(
     value: v8::Local<'s, v8::Value>,
 ) -> Result<v8::Local<'s, v8::Value>, Error> {
     v8::tc_scope!(let scope, scope);
-    let promise = v8::Local::<v8::Promise>::try_from(value)
-        .map_err(|_| Error::InvalidResult("React stream Promise required"))?;
+    let promise = v8::Local::<v8::Promise>::try_from(value).map_err(|error| {
+        Error::InvalidResult("React stream Promise required", Some(Box::new(error)))
+    })?;
     loop {
         scope.perform_microtask_checkpoint();
         if scope.is_execution_terminating() {
@@ -70,6 +73,7 @@ fn finish_promise<'s>(
         let Some(callback) = scheduler.next() else {
             return Err(Error::InvalidResult(
                 "React stream has no scheduled completion",
+                None,
             ));
         };
         let callback = v8::Local::new(scope, &callback);
@@ -89,19 +93,24 @@ fn state(
 ) -> Result<(polyspec_ssr_core::Value, usize), Error> {
     v8::tc_scope!(let scope, scope);
     if value.is_undefined() {
-        return Err(Error::InvalidResult("state is required"));
+        return Err(Error::InvalidResult("state is required", None));
     }
     let serializer = v8::Local::new(scope, serializer)
         .bind_to_current_context(scope)
         .run(scope)
         .ok_or_else(|| caught!(scope))?;
-    let serializer = v8::Local::<v8::Function>::try_from(serializer)
-        .map_err(|_| Error::InvalidBundle("state serializer is not a function"))?;
+    let serializer = v8::Local::<v8::Function>::try_from(serializer).map_err(|error| {
+        Error::InvalidBundle("state serializer is not a function", Some(Box::new(error)))
+    })?;
     let json = serializer
         .call(scope, context.global(scope).into(), &[value])
         .ok_or_else(|| caught!(scope))?;
-    let json = v8::Local::<v8::String>::try_from(json)
-        .map_err(|_| Error::InvalidResult("state serialization did not return JSON"))?;
+    let json = v8::Local::<v8::String>::try_from(json).map_err(|error| {
+        Error::InvalidResult(
+            "state serialization did not return JSON",
+            Some(Box::new(error)),
+        )
+    })?;
     let bytes = json.utf8_length(scope);
     if bytes > max_output_bytes {
         return Err(Error::LimitExceeded("output bytes"));
@@ -129,12 +138,15 @@ pub(crate) fn render(
         let global = framework.global(scope);
         let app = property(scope, global, "__ssrApp")?;
         if !app.is_function() {
-            return Err(Error::InvalidBundle("React application function required"));
+            return Err(Error::InvalidBundle(
+                "React application function required",
+                None,
+            ));
         }
         let props = engine::parse(scope, props).ok_or_else(|| caught!(scope))?;
         let input_state = engine::parse(scope, input_state).ok_or_else(|| caught!(scope))?;
         let nonce = v8::String::new(scope, nonce)
-            .ok_or(Error::InvalidResult("nonce exceeds V8 string limit"))?;
+            .ok_or(Error::InvalidResult("nonce exceeds V8 string limit", None))?;
         let shell = call(
             scope,
             global,
@@ -142,11 +154,13 @@ pub(crate) fn render(
             &[app, props, input_state, nonce.into()],
         )?;
         let shell = finish_promise(scope, framework, &scheduler, shell)?;
-        let shell = v8::Local::<v8::Object>::try_from(shell)
-            .map_err(|_| Error::InvalidResult("React shell object required"))?;
+        let shell = v8::Local::<v8::Object>::try_from(shell).map_err(|error| {
+            Error::InvalidResult("React shell object required", Some(Box::new(error)))
+        })?;
         let stream = property(scope, shell, "stream")?;
-        let stream = v8::Local::<v8::Object>::try_from(stream)
-            .map_err(|_| Error::InvalidResult("React ReadableStream required"))?;
+        let stream = v8::Local::<v8::Object>::try_from(stream).map_err(|error| {
+            Error::InvalidResult("React ReadableStream required", Some(Box::new(error)))
+        })?;
         let state_value = property(scope, shell, "state")?;
         let (state, mut output_bytes) = state(
             scope,
@@ -156,28 +170,38 @@ pub(crate) fn render(
             output.max_output_bytes,
         )?;
         let reader = call(scope, stream, "getReader", &[])?;
-        let reader = v8::Local::<v8::Object>::try_from(reader)
-            .map_err(|_| Error::InvalidResult("React stream reader required"))?;
+        let reader = v8::Local::<v8::Object>::try_from(reader).map_err(|error| {
+            Error::InvalidResult("React stream reader required", Some(Box::new(error)))
+        })?;
         let heap_used_bytes = scope.get_heap_statistics().used_heap_size();
         output.send(Event::Shell(state, heap_used_bytes))?;
         loop {
             output.request.check()?;
             let read = call(scope, reader, "read", &[])?;
             let read = finish_promise(scope, framework, &scheduler, read)?;
-            let read = v8::Local::<v8::Object>::try_from(read)
-                .map_err(|_| Error::InvalidResult("React stream read object required"))?;
+            let read = v8::Local::<v8::Object>::try_from(read).map_err(|error| {
+                Error::InvalidResult("React stream read object required", Some(Box::new(error)))
+            })?;
             let done = property(scope, read, "done")?;
             if !done.is_boolean() {
-                return Err(Error::InvalidResult("React stream done must be a boolean"));
+                return Err(Error::InvalidResult(
+                    "React stream done must be a boolean",
+                    None,
+                ));
             }
             if done.boolean_value(scope) {
                 return Ok(());
             }
             let value = property(scope, read, "value")?;
-            let bytes = v8::Local::<v8::Uint8Array>::try_from(value)
-                .map_err(|_| Error::InvalidResult("React stream chunk must be Uint8Array"))?;
+            let bytes = v8::Local::<v8::Uint8Array>::try_from(value).map_err(|error| {
+                Error::InvalidResult(
+                    "React stream chunk must be Uint8Array",
+                    Some(Box::new(error)),
+                )
+            })?;
             let backing = bytes.get_backing_store().ok_or(Error::InvalidResult(
                 "React stream chunk has no backing store",
+                None,
             ))?;
             let start = bytes.byte_offset();
             let end = start
@@ -185,6 +209,7 @@ pub(crate) fn render(
                 .filter(|end| *end <= backing.byte_length())
                 .ok_or(Error::InvalidResult(
                     "React stream chunk exceeds backing store",
+                    None,
                 ))?;
             let chunk_bytes = end - start;
             output_bytes = output_bytes

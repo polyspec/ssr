@@ -64,7 +64,10 @@ fn cancel_handle_interrupts_running_script_without_a_reader() {
     let cancel = stream.cancel_handle();
     assert_eq!(stream.next().unwrap().unwrap(), b"ok");
     cancel.cancel().unwrap();
-    assert!(matches!(stream.next(), Some(Err(crate::Error::Canceled))));
+    assert!(matches!(
+        stream.next(),
+        Some(Err(crate::Error::Canceled(_)))
+    ));
     let (_, stream) = pool
         .render_stream(&page(false), "nonce", Cancellation::new())
         .unwrap();
@@ -82,14 +85,14 @@ fn close_interrupts_running_script_joins_threads_and_rejects_calls() {
         .unwrap();
     assert_eq!(stream.next().unwrap().unwrap(), b"ok");
     pool.close().unwrap();
-    assert!(matches!(pool.health(), Err(crate::Error::WorkerStopped)));
+    assert!(matches!(pool.health(), Err(crate::Error::WorkerStopped(_))));
     assert!(matches!(
         stream.next(),
-        Some(Err(crate::Error::WorkerStopped))
+        Some(Err(crate::Error::WorkerStopped(_)))
     ));
     assert!(matches!(
         pool.render_stream(&page(false), "nonce", Cancellation::new()),
-        Err(crate::Error::WorkerStopped)
+        Err(crate::Error::WorkerStopped(_))
     ));
     pool.close().unwrap();
 }
@@ -101,7 +104,7 @@ fn canceled_input_and_reused_cancellation_return_explicit_errors() {
     cancel.cancel().unwrap();
     assert!(matches!(
         pool.render_stream(&page(false), "nonce", cancel),
-        Err(crate::Error::Canceled)
+        Err(crate::Error::Canceled(None))
     ));
     let cancel = Cancellation::new();
     let (_, stream) = pool
@@ -110,7 +113,7 @@ fn canceled_input_and_reused_cancellation_return_explicit_errors() {
     stream.collect::<Result<Vec<_>, _>>().unwrap();
     assert!(matches!(
         pool.render_stream(&page(false), "nonce", cancel),
-        Err(crate::Error::InvalidConfiguration(_))
+        Err(crate::Error::InvalidConfiguration(..))
     ));
 }
 
@@ -133,7 +136,7 @@ fn cancellation_wakes_a_queued_call_before_worker_release() {
     cancel.cancel().unwrap();
     assert!(matches!(
         thread.join().unwrap(),
-        Err(crate::Error::Canceled)
+        Err(crate::Error::Canceled(None))
     ));
     active.close().unwrap();
     pool.health().unwrap();
@@ -262,7 +265,7 @@ fn pool_closure_notifies_health_waiter_without_polling() {
     pool.close().unwrap();
     assert!(matches!(
         received.recv().unwrap(),
-        Err(crate::Error::WorkerStopped)
+        Err(crate::Error::WorkerStopped(_))
     ));
     waiter.join().unwrap();
 }
@@ -310,7 +313,7 @@ fn explicit_limits_reject_zero_and_clock_overflow() {
     ] {
         assert!(matches!(
             invalid.validate(),
-            Err(crate::Error::InvalidConfiguration(_))
+            Err(crate::Error::InvalidConfiguration(..))
         ));
     }
     PoolOptions {

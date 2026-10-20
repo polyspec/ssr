@@ -59,9 +59,12 @@ pub(crate) fn install_framework(
         .build(scope)
         .ok_or(Error::InvalidBundle(
             "React scheduling callback initialization failed",
+            None,
         ))?;
-    let name = v8::String::new(scope, "setTimeout")
-        .ok_or(Error::InvalidBundle("React scheduling name unavailable"))?;
+    let name = v8::String::new(scope, "setTimeout").ok_or(Error::InvalidBundle(
+        "React scheduling name unavailable",
+        None,
+    ))?;
     if context
         .global(scope)
         .set(scope, name.into(), schedule.into())
@@ -69,19 +72,23 @@ pub(crate) fn install_framework(
     {
         return Err(Error::InvalidBundle(
             "React scheduling callback installation failed",
+            None,
         ));
     }
     let report = v8::Function::builder(report_react_error)
         .build(scope)
         .ok_or(Error::InvalidBundle(
             "React error callback initialization failed",
+            None,
         ))?;
     let name = v8::String::new(scope, "__ssrReportReactError").ok_or(Error::InvalidBundle(
         "React error callback name unavailable",
+        None,
     ))?;
     if context.global(scope).set(scope, name.into(), report.into()) != Some(true) {
         return Err(Error::InvalidBundle(
             "React error callback installation failed",
+            None,
         ));
     }
     Ok(())
@@ -168,56 +175,79 @@ pub(crate) fn install(scope: &mut PinScope, context: Local<v8::Context>) -> Resu
                 .build(scope)
                 .ok_or(Error::InvalidBundle(
                     "console callback initialization failed",
+                    None,
                 ))?;
-        let name =
-            v8::String::new(scope, name).ok_or(Error::InvalidBundle("console name unavailable"))?;
+        let name = v8::String::new(scope, name)
+            .ok_or(Error::InvalidBundle("console name unavailable", None))?;
         if console.set(scope, name.into(), callback.into()) != Some(true) {
-            return Err(Error::InvalidBundle("console method initialization failed"));
+            return Err(Error::InvalidBundle(
+                "console method initialization failed",
+                None,
+            ));
         }
     }
     let name = v8::String::new(scope, "console")
-        .ok_or(Error::InvalidBundle("console name unavailable"))?;
+        .ok_or(Error::InvalidBundle("console name unavailable", None))?;
     if global.set(scope, name.into(), console.into()) != Some(true) {
-        return Err(Error::InvalidBundle("console initialization failed"));
+        return Err(Error::InvalidBundle("console initialization failed", None));
     }
-    let source = v8::String::new(scope, include_str!("dom_exception.js"))
-        .ok_or(Error::InvalidBundle("DOMException source unavailable"))?;
-    let script = v8::Script::compile(scope, source, None)
-        .ok_or(Error::InvalidBundle("DOMException initialization failed"))?;
-    script
-        .run(scope)
-        .ok_or(Error::InvalidBundle("DOMException initialization failed"))?;
+    let source = v8::String::new(scope, include_str!("dom_exception.js")).ok_or(
+        Error::InvalidBundle("DOMException source unavailable", None),
+    )?;
+    let script = v8::Script::compile(scope, source, None).ok_or(Error::InvalidBundle(
+        "DOMException initialization failed",
+        None,
+    ))?;
+    script.run(scope).ok_or(Error::InvalidBundle(
+        "DOMException initialization failed",
+        None,
+    ))?;
     let crypto = v8::Object::new(scope);
     let callback = v8::Function::builder(get_random_values)
         .build(scope)
         .ok_or(Error::InvalidBundle(
             "crypto callback initialization failed",
+            None,
         ))?;
     let name = v8::String::new(scope, "getRandomValues")
-        .ok_or(Error::InvalidBundle("crypto method name unavailable"))?;
+        .ok_or(Error::InvalidBundle("crypto method name unavailable", None))?;
     if crypto.set(scope, name.into(), callback.into()) != Some(true) {
-        return Err(Error::InvalidBundle("crypto method initialization failed"));
+        return Err(Error::InvalidBundle(
+            "crypto method initialization failed",
+            None,
+        ));
     }
-    let name =
-        v8::String::new(scope, "crypto").ok_or(Error::InvalidBundle("crypto name unavailable"))?;
+    let name = v8::String::new(scope, "crypto")
+        .ok_or(Error::InvalidBundle("crypto name unavailable", None))?;
     if global.set(scope, name.into(), crypto.into()) != Some(true) {
-        return Err(Error::InvalidBundle("crypto initialization failed"));
+        return Err(Error::InvalidBundle("crypto initialization failed", None));
     }
     let encoder = v8::Function::builder(encode_utf8)
         .build(scope)
-        .ok_or(Error::InvalidBundle("UTF-8 callback initialization failed"))?;
-    let name = v8::String::new(scope, "__ssrEncodeUtf8")
-        .ok_or(Error::InvalidBundle("UTF-8 callback name unavailable"))?;
+        .ok_or(Error::InvalidBundle(
+            "UTF-8 callback initialization failed",
+            None,
+        ))?;
+    let name = v8::String::new(scope, "__ssrEncodeUtf8").ok_or(Error::InvalidBundle(
+        "UTF-8 callback name unavailable",
+        None,
+    ))?;
     if global.set(scope, name.into(), encoder.into()) != Some(true) {
-        return Err(Error::InvalidBundle("UTF-8 callback initialization failed"));
+        return Err(Error::InvalidBundle(
+            "UTF-8 callback initialization failed",
+            None,
+        ));
     }
     let source = v8::String::new(scope, include_str!("text_encoder.js"))
-        .ok_or(Error::InvalidBundle("TextEncoder source unavailable"))?;
-    let script = v8::Script::compile(scope, source, None)
-        .ok_or(Error::InvalidBundle("TextEncoder initialization failed"))?;
-    script
-        .run(scope)
-        .ok_or(Error::InvalidBundle("TextEncoder initialization failed"))?;
+        .ok_or(Error::InvalidBundle("TextEncoder source unavailable", None))?;
+    let script = v8::Script::compile(scope, source, None).ok_or(Error::InvalidBundle(
+        "TextEncoder initialization failed",
+        None,
+    ))?;
+    script.run(scope).ok_or(Error::InvalidBundle(
+        "TextEncoder initialization failed",
+        None,
+    ))?;
     Ok(())
 }
 

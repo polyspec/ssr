@@ -66,7 +66,7 @@ mod tests {
         let notification = waiting_rx.recv_timeout(Duration::from_millis(200));
         pool.close().unwrap();
         waiter.join().unwrap();
-        assert!(matches!(notification, Ok(Err(Error::WorkerStopped))));
+        assert!(matches!(notification, Ok(Err(Error::WorkerStopped(_)))));
     }
 
     #[test]

@@ -121,13 +121,13 @@ fn server_close_notifies_health_waiters_and_stops_ssr_admission() {
     assert!(matches!(
         waiter.join().unwrap(),
         Err(polyspec_ssr_server::Error::Runtime(
-            polyspec_ssr_runtime::Error::WorkerStopped
+            polyspec_ssr_runtime::Error::WorkerStopped(..)
         ))
     ));
     assert!(matches!(
         server.health(),
         Err(polyspec_ssr_server::Error::Runtime(
-            polyspec_ssr_runtime::Error::WorkerStopped
+            polyspec_ssr_runtime::Error::WorkerStopped(..)
         ))
     ));
     let response = server

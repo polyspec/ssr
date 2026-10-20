@@ -25,7 +25,7 @@ pub(crate) fn send(
             request.health.fail(2);
             request.cancellation.finish(None)?;
             request.cancellation.acknowledge()?;
-            request.health.check().and(Err(Error::WorkerStopped))
+            request.health.check().and(Err(Error::WorkerStopped(None)))
         }
     }
 }
@@ -98,7 +98,7 @@ mod tests {
         request.cancellation.cancel().unwrap();
         assert!(matches!(
             send(&worker, &available, 7, command),
-            Err(Error::Canceled)
+            Err(Error::Canceled(None))
         ));
         request.health.check().unwrap();
         assert_eq!(capacity.try_recv(), Ok(7));
@@ -113,9 +113,12 @@ mod tests {
         let (command, request) = command();
         assert!(matches!(
             send(&worker, &available, 7, command),
-            Err(Error::WorkerStopped)
+            Err(Error::WorkerStopped(None))
         ));
-        assert!(matches!(request.health.check(), Err(Error::WorkerStopped)));
+        assert!(matches!(
+            request.health.check(),
+            Err(Error::WorkerStopped(_))
+        ));
         assert_eq!(capacity.try_recv(), Err(TryRecvError::Empty));
         request.wait().unwrap();
     }

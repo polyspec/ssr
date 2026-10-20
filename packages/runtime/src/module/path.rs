@@ -16,15 +16,19 @@ impl Sources {
         let mut files = BTreeMap::new();
         for (path, bytes) in std::iter::once(entry).chain(chunks) {
             if !valid_path(&path) {
-                return Err(Error::InvalidBundle("invalid server JavaScript path"));
+                return Err(Error::InvalidBundle("invalid server JavaScript path", None));
             }
-            let source = String::from_utf8(bytes)
-                .map_err(|_| Error::InvalidBundle("UTF-8 server JavaScript required"))?;
+            let source = String::from_utf8(bytes).map_err(|error| {
+                Error::InvalidBundle("UTF-8 server JavaScript required", Some(Box::new(error)))
+            })?;
             if source.is_empty() {
-                return Err(Error::InvalidBundle("server JavaScript is empty"));
+                return Err(Error::InvalidBundle("server JavaScript is empty", None));
             }
             if files.insert(path, source).is_some() {
-                return Err(Error::InvalidBundle("duplicate server JavaScript path"));
+                return Err(Error::InvalidBundle(
+                    "duplicate server JavaScript path",
+                    None,
+                ));
             }
         }
         Ok(Self {

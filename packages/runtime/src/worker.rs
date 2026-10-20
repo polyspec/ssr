@@ -1,3 +1,4 @@
+use crate::error::{panicked, poisoned};
 use crate::{
     Error, PoolOptions, WorkerReply, engine,
     pool::Health,
@@ -83,7 +84,7 @@ impl Worker {
                 health.fail(2);
                 let error = match result {
                     Ok(Err(error)) => error,
-                    _ => Error::WorkerStopped,
+                    _ => Error::WorkerStopped(None),
                 };
                 return Err(initialization_error(
                     worker,
@@ -104,9 +105,9 @@ impl Worker {
             Err(error) => {
                 health.fail(2);
                 let cleanup = match worker_completed.recv_timeout(options.cleanup_timeout) {
-                    Err(crossbeam_channel::RecvTimeoutError::Disconnected) => {
-                        worker.join().map_err(|_| Error::WorkerStopped)
-                    }
+                    Err(crossbeam_channel::RecvTimeoutError::Disconnected) => worker
+                        .join()
+                        .map_err(|error| Error::WorkerStopped(Some(panicked(error)))),
                     _ => Err(Error::WorkerUnresponsive),
                 };
                 let request = Error::WorkerStartup(error);
@@ -129,11 +130,16 @@ impl Worker {
     }
 
     pub(crate) fn join(&self, until: Instant) -> Result<(), Error> {
-        let mut threads = self.threads.lock().map_err(|_| Error::WorkerStopped)?;
+        let mut threads = self
+            .threads
+            .lock()
+            .map_err(|error| Error::WorkerStopped(Some(poisoned(error))))?;
         while let Some((thread, done)) = threads.pop() {
             match done.recv_timeout(until.saturating_duration_since(Instant::now())) {
                 Err(crossbeam_channel::RecvTimeoutError::Disconnected) => {
-                    thread.join().map_err(|_| Error::WorkerStopped)?;
+                    thread
+                        .join()
+                        .map_err(|error| Error::WorkerStopped(Some(panicked(error))))?;
                 }
                 _ => {
                     threads.push((thread, done));
@@ -158,7 +164,7 @@ fn initialization_error(
         if worker.join().is_err() {
             return Error::Cleanup {
                 request: Box::new(error),
-                cleanup: Box::new(Error::WorkerStopped),
+                cleanup: Box::new(Error::WorkerStopped(None)),
             };
         }
     } else {
@@ -224,11 +230,11 @@ mod tests {
             worker,
             completed,
             Duration::from_secs(1),
-            Error::InvalidBundle("serializer failed"),
+            Error::InvalidBundle("serializer failed", None),
         );
         assert!(matches!(error, Error::Cleanup { request, cleanup }
-            if matches!(*request, Error::InvalidBundle("serializer failed"))
-                && matches!(*cleanup, Error::WorkerStopped)));
+            if matches!(*request, Error::InvalidBundle("serializer failed", _))
+                && matches!(*cleanup, Error::WorkerStopped(_))));
     }
 
     #[test]

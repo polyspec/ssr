@@ -55,11 +55,15 @@ pub(crate) fn worker(
     ) {
         Ok(script) => script,
         Err(error) => {
-            ready.send(Err(error)).map_err(|_| Error::WorkerStopped)?;
+            ready
+                .send(Err(error))
+                .map_err(|error| Error::WorkerStopped(Some(Box::new(error))))?;
             return Ok(());
         }
     };
-    ready.send(Ok(())).map_err(|_| Error::WorkerStopped)?;
+    ready
+        .send(Ok(()))
+        .map_err(|error| Error::WorkerStopped(Some(Box::new(error))))?;
     loop {
         let command = select_biased! {
             recv(health.closed()) -> _ => return Ok(()),
@@ -76,7 +80,7 @@ pub(crate) fn worker(
         if watch.send(request.clone()).is_err() {
             request.cancellation.finish(Some(&mut runtime))?;
             request.cancellation.acknowledge()?;
-            return Err(Error::WorkerStopped);
+            return Err(Error::WorkerStopped(None));
         }
         let started = request.cancellation.start(runtime.thread_safe_handle());
         match command {
@@ -100,6 +104,7 @@ pub(crate) fn worker(
                         ),
                         None => Err(Error::InvalidConfiguration(
                             "React pool requires stream rendering",
+                            None,
                         )),
                     }
                 });
@@ -137,6 +142,7 @@ pub(crate) fn worker(
                     } else {
                         Err(Error::InvalidConfiguration(
                             "stream rendering requires a React pool",
+                            None,
                         ))
                     }
                 });
@@ -154,7 +160,9 @@ pub(crate) fn worker(
         }
         request.cancellation.finish(Some(&mut runtime))?;
         if health.check().is_ok() {
-            available.send(index).map_err(|_| Error::WorkerStopped)?;
+            available
+                .send(index)
+                .map_err(|error| Error::WorkerStopped(Some(Box::new(error))))?;
         }
         request.cancellation.acknowledge()?;
         tracing::info!(
@@ -175,9 +183,11 @@ pub(crate) fn compile(
     let scope = &mut v8::ContextScope::new(scope, context);
     v8::tc_scope!(let scope, scope);
     let text = v8::String::new(scope, source)
-        .ok_or(Error::InvalidBundle("bundle exceeds V8 string limit"))?;
-    let name = v8::String::new(scope, name)
-        .ok_or(Error::InvalidBundle("script name exceeds V8 string limit"))?;
+        .ok_or(Error::InvalidBundle("bundle exceeds V8 string limit", None))?;
+    let name = v8::String::new(scope, name).ok_or(Error::InvalidBundle(
+        "script name exceeds V8 string limit",
+        None,
+    ))?;
     let origin = script_origin(scope, name);
     let mut source = v8::script_compiler::Source::new(text, Some(&origin));
     let script = v8::script_compiler::compile_unbound_script(
@@ -186,7 +196,7 @@ pub(crate) fn compile(
         v8::script_compiler::CompileOptions::EagerCompile,
         v8::script_compiler::NoCacheReason::NoReason,
     )
-    .ok_or(Error::InvalidBundle("bundle compilation failed"))?;
+    .ok_or(Error::InvalidBundle("bundle compilation failed", None))?;
     Ok(v8::Global::new(scope, script))
 }
 
@@ -220,58 +230,69 @@ fn render(
         .ok_or_else(|| caught!(scope))?;
     let value = settle(scope, value)?;
     let object = v8::Local::<v8::Object>::try_from(value)
-        .map_err(|_| Error::InvalidResult("object required"))?;
+        .map_err(|error| Error::InvalidResult("object required", Some(Box::new(error))))?;
     let html_name =
-        v8::String::new(scope, "html").ok_or(Error::InvalidResult("html key unavailable"))?;
+        v8::String::new(scope, "html").ok_or(Error::InvalidResult("html key unavailable", None))?;
     let html = object
         .get(scope, html_name.into())
         .ok_or_else(|| caught!(scope))?;
     let html = v8::Local::<v8::String>::try_from(html)
-        .map_err(|_| Error::InvalidResult("html must be a string"))?;
+        .map_err(|error| Error::InvalidResult("html must be a string", Some(Box::new(error))))?;
     if html.utf8_length(scope) > max_output_bytes {
         return Err(Error::LimitExceeded("output bytes"));
     }
     let html_text = html.to_rust_string_lossy(scope);
     let html_roundtrip = v8::String::new(scope, &html_text)
-        .ok_or(Error::InvalidResult("html exceeds V8 string limit"))?;
+        .ok_or(Error::InvalidResult("html exceeds V8 string limit", None))?;
     if !html.strict_equals(html_roundtrip.into()) {
-        return Err(Error::InvalidResult("html contains an unpaired surrogate"));
+        return Err(Error::InvalidResult(
+            "html contains an unpaired surrogate",
+            None,
+        ));
     }
     let html = html_text.into_bytes();
     let head_name =
-        v8::String::new(scope, "head").ok_or(Error::InvalidResult("head key unavailable"))?;
+        v8::String::new(scope, "head").ok_or(Error::InvalidResult("head key unavailable", None))?;
     let head = object
         .get(scope, head_name.into())
         .ok_or_else(|| caught!(scope))?;
     let head = v8::Local::<v8::String>::try_from(head)
-        .map_err(|_| Error::InvalidResult("head must be a string"))?;
+        .map_err(|error| Error::InvalidResult("head must be a string", Some(Box::new(error))))?;
     if head.utf8_length(scope) > max_output_bytes - html.len() {
         return Err(Error::LimitExceeded("output bytes"));
     }
     let head_text = head.to_rust_string_lossy(scope);
     let head_roundtrip = v8::String::new(scope, &head_text)
-        .ok_or(Error::InvalidResult("head exceeds V8 string limit"))?;
+        .ok_or(Error::InvalidResult("head exceeds V8 string limit", None))?;
     if !head.strict_equals(head_roundtrip.into()) {
-        return Err(Error::InvalidResult("head contains an unpaired surrogate"));
+        return Err(Error::InvalidResult(
+            "head contains an unpaired surrogate",
+            None,
+        ));
     }
     let head = head_text.into_bytes();
-    let state_name =
-        v8::String::new(scope, "state").ok_or(Error::InvalidResult("state key unavailable"))?;
+    let state_name = v8::String::new(scope, "state")
+        .ok_or(Error::InvalidResult("state key unavailable", None))?;
     let state = object
         .get(scope, state_name.into())
         .ok_or_else(|| caught!(scope))?;
     if state.is_undefined() {
-        return Err(Error::InvalidResult("state is required"));
+        return Err(Error::InvalidResult("state is required", None));
     }
     let serializer = v8::Local::new(scope, serializer).bind_to_current_context(scope);
     let serializer = serializer.run(scope).ok_or_else(|| caught!(scope))?;
-    let serializer = v8::Local::<v8::Function>::try_from(serializer)
-        .map_err(|_| Error::InvalidBundle("state serializer is not a function"))?;
+    let serializer = v8::Local::<v8::Function>::try_from(serializer).map_err(|error| {
+        Error::InvalidBundle("state serializer is not a function", Some(Box::new(error)))
+    })?;
     let json = serializer
         .call(scope, context.global(scope).into(), &[state])
         .ok_or_else(|| caught!(scope))?;
-    let json = v8::Local::<v8::String>::try_from(json)
-        .map_err(|_| Error::InvalidResult("state serialization did not return JSON"))?;
+    let json = v8::Local::<v8::String>::try_from(json).map_err(|error| {
+        Error::InvalidResult(
+            "state serialization did not return JSON",
+            Some(Box::new(error)),
+        )
+    })?;
     if json.utf8_length(scope) > max_output_bytes - html.len() - head.len() {
         return Err(Error::LimitExceeded("output bytes"));
     }
@@ -298,9 +319,10 @@ pub(crate) fn settle<'s>(
     }
     match promise.state() {
         v8::PromiseState::Fulfilled => Ok(promise.result(scope)),
-        v8::PromiseState::Pending => {
-            Err(Error::InvalidResult("promise has no scheduled completion"))
-        }
+        v8::PromiseState::Pending => Err(Error::InvalidResult(
+            "promise has no scheduled completion",
+            None,
+        )),
         v8::PromiseState::Rejected => {
             let reason = promise.result(scope);
             promise.mark_as_handled();
@@ -308,13 +330,15 @@ pub(crate) fn settle<'s>(
                 .to_string(scope)
                 .ok_or(Error::InvalidResult(
                     "promise rejection cannot be converted to text",
+                    None,
                 ))?
                 .to_rust_string_lossy(scope);
             let stack = if let Ok(object) = v8::Local::<v8::Object>::try_from(reason) {
                 let key = v8::String::new(scope, "stack")
-                    .ok_or(Error::InvalidResult("stack key unavailable"))?;
+                    .ok_or(Error::InvalidResult("stack key unavailable", None))?;
                 let value = object.get(scope, key.into()).ok_or(Error::InvalidResult(
                     "promise rejection stack lookup failed",
+                    None,
                 ))?;
                 if value.is_undefined() {
                     None
@@ -324,6 +348,7 @@ pub(crate) fn settle<'s>(
                             .to_string(scope)
                             .ok_or(Error::InvalidResult(
                                 "promise rejection stack cannot be converted to text",
+                                None,
                             ))?
                             .to_rust_string_lossy(scope),
                     )

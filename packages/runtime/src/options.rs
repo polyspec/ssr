@@ -25,12 +25,18 @@ impl PoolOptions {
             || self.max_heap_bytes == 0
             || (self.queue_capacity > 0 && self.max_queue_bytes == 0)
         {
-            return Err(Error::InvalidConfiguration("required pool limit is zero"));
+            return Err(Error::InvalidConfiguration(
+                "required pool limit is zero",
+                None,
+            ));
         }
         for duration in [self.timeout, self.cleanup_timeout] {
             Instant::now()
                 .checked_add(duration)
-                .ok_or(Error::InvalidConfiguration("timeout exceeds clock range"))?;
+                .ok_or(Error::InvalidConfiguration(
+                    "timeout exceeds clock range",
+                    None,
+                ))?;
         }
         Ok(())
     }

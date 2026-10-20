@@ -474,7 +474,7 @@ fn render_status(error: &Error) -> StatusCode {
     match error {
         Error::Runtime(
             RuntimeError::QueueFull
-            | RuntimeError::WorkerStopped
+            | RuntimeError::WorkerStopped(..)
             | RuntimeError::WorkerUnresponsive
             | RuntimeError::Cleanup { .. }
             | RuntimeError::LimitExceeded("queue bytes"),
@@ -483,7 +483,7 @@ fn render_status(error: &Error) -> StatusCode {
         Error::Runtime(RuntimeError::LimitExceeded("input bytes")) => StatusCode::PAYLOAD_TOO_LARGE,
         Error::Svelte(SvelteError::Runtime(
             RuntimeError::QueueFull
-            | RuntimeError::WorkerStopped
+            | RuntimeError::WorkerStopped(..)
             | RuntimeError::WorkerUnresponsive
             | RuntimeError::Cleanup { .. }
             | RuntimeError::LimitExceeded("queue bytes"),
@@ -494,7 +494,7 @@ fn render_status(error: &Error) -> StatusCode {
         }
         Error::Vanilla(VanillaError::Runtime(
             RuntimeError::QueueFull
-            | RuntimeError::WorkerStopped
+            | RuntimeError::WorkerStopped(..)
             | RuntimeError::WorkerUnresponsive
             | RuntimeError::Cleanup { .. }
             | RuntimeError::LimitExceeded("queue bytes"),
@@ -561,7 +561,10 @@ mod tests {
     #[test]
     fn render_failures_preserve_their_http_status() {
         assert_eq!(
-            render_status(&Error::Runtime(RuntimeError::InvalidResult("shell failed"))),
+            render_status(&Error::Runtime(RuntimeError::InvalidResult(
+                "shell failed",
+                None
+            ))),
             StatusCode::INTERNAL_SERVER_ERROR
         );
         assert_eq!(
@@ -569,7 +572,7 @@ mod tests {
             StatusCode::SERVICE_UNAVAILABLE
         );
         assert_eq!(
-            render_status(&Error::Runtime(RuntimeError::WorkerStopped)),
+            render_status(&Error::Runtime(RuntimeError::WorkerStopped(None))),
             StatusCode::SERVICE_UNAVAILABLE
         );
         assert_eq!(

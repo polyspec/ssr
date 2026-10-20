@@ -1,3 +1,4 @@
+use crate::error::poisoned;
 use crate::{
     Cancellation, ContextRender, Error, PoolOptions, RenderMetrics, Stream, StreamMetrics,
     WorkerReply,
@@ -44,7 +45,7 @@ impl Health {
         match self.status.load(Ordering::Acquire) {
             0 => Ok(()),
             3 => Err(Error::WorkerUnresponsive),
-            _ => Err(Error::WorkerStopped),
+            _ => Err(Error::WorkerStopped(None)),
         }
     }
     pub(crate) fn closed(&self) -> &Receiver<()> {
@@ -116,7 +117,7 @@ impl Pool {
             pool.workers.push(worker);
             pool.available_tx
                 .send(index)
-                .map_err(|_| Error::WorkerStopped)?;
+                .map_err(|error| Error::WorkerStopped(Some(Box::new(error))))?;
         }
         Ok(pool)
     }
@@ -130,6 +131,7 @@ impl Pool {
             Err(_) => self.health(),
             Ok(()) => Err(Error::InvalidConfiguration(
                 "pool closure signal contained a value",
+                None,
             )),
         }
     }
@@ -189,12 +191,15 @@ impl Pool {
         request.check()?;
         match self.available_rx.try_recv() {
             Ok(index) => return Ok(index),
-            Err(TryRecvError::Disconnected) => return Err(Error::WorkerStopped),
+            Err(TryRecvError::Disconnected) => return Err(Error::WorkerStopped(None)),
             Err(TryRecvError::Empty) => {}
         }
         #[cfg(test)]
         let entered = {
-            let mut entry = self.queue_entry.lock().map_err(|_| Error::WorkerStopped)?;
+            let mut entry = self
+                .queue_entry
+                .lock()
+                .map_err(|error| Error::WorkerStopped(Some(poisoned(error))))?;
             let delay = entry.delay;
             let entered = entry.entered.take();
             drop(entry);
@@ -202,7 +207,10 @@ impl Pool {
             entered
         };
         {
-            let mut waiting = self.waiting.lock().map_err(|_| Error::WorkerStopped)?;
+            let mut waiting = self
+                .waiting
+                .lock()
+                .map_err(|error| Error::WorkerStopped(Some(poisoned(error))))?;
             if waiting.count >= self.options.queue_capacity {
                 return Err(Error::QueueFull);
             }
@@ -222,14 +230,17 @@ impl Pool {
         };
         #[cfg(test)]
         if let Some(entered) = entered {
-            entered.send(()).map_err(|_| {
-                Error::InvalidConfiguration("queue entry signal receiver is closed")
+            entered.send(()).map_err(|error| {
+                Error::InvalidConfiguration(
+                    "queue entry signal receiver is closed",
+                    Some(Box::new(error)),
+                )
             })?;
         }
         select_biased! {
             recv(request.cancellation.canceled()) -> _ => Err(request.cancellation.failure()?),
-            recv(self.health.closed()) -> _ => self.health().and(Err(Error::WorkerStopped)),
-            recv(self.available_rx) -> value => value.map_err(|_| Error::WorkerStopped),
+            recv(self.health.closed()) -> _ => self.health().and(Err(Error::WorkerStopped(None))),
+            recv(self.available_rx) -> value => value.map_err(|error| Error::WorkerStopped(Some(Box::new(error)))),
             default(request.deadline.saturating_duration_since(Instant::now())) => Err(Error::Timeout),
         }
     }
@@ -274,7 +285,7 @@ impl Pool {
             bytes,
         )?;
         let received = select_biased! {
-            recv(result) -> result => result.map_err(|_| Error::WorkerStopped),
+            recv(result) -> result => result.map_err(|error| Error::WorkerStopped(Some(Box::new(error)))),
             recv(request.cancellation.canceled()) -> _ => Err(request.cancellation.failure()?),
             default(request.deadline.saturating_duration_since(Instant::now())) => {request.stop(Reason::Timeout)?; Err(Error::Timeout)},
         };
@@ -363,7 +374,7 @@ impl Pool {
             result => {
                 let error = match result {
                     Ok(Event::Failed(error)) | Err(error) => error,
-                    _ => Error::InvalidResult("stream shell required before body"),
+                    _ => Error::InvalidResult("stream shell required before body", None),
                 };
                 if let Err(cleanup) = stream.close() {
                     return Err(Error::Cleanup {

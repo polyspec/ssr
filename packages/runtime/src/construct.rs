@@ -19,24 +19,30 @@ impl Pool {
         if !module::valid_path(&framework.0) || !module::valid_path(&application.entry_path) {
             return Err(Error::InvalidBundle(
                 "React server JavaScript path is invalid",
+                None,
             ));
         }
         if framework.0 == application.entry_path {
             return Err(Error::InvalidBundle(
                 "React framework and application paths must differ",
+                None,
             ));
         }
         if !application.chunks.is_empty() {
             return Err(Error::InvalidBundle(
                 "React server chunks are unsupported by the IIFE build",
+                None,
             ));
         }
-        let framework_source = std::str::from_utf8(&framework.1)
-            .map_err(|_| Error::InvalidBundle("React framework UTF-8 required"))?;
-        let application_source = std::str::from_utf8(&application.entry_bytes)
-            .map_err(|_| Error::InvalidBundle("React application UTF-8 required"))?;
+        let framework_source = std::str::from_utf8(&framework.1).map_err(|error| {
+            Error::InvalidBundle("React framework UTF-8 required", Some(Box::new(error)))
+        })?;
+        let application_source =
+            std::str::from_utf8(&application.entry_bytes).map_err(|error| {
+                Error::InvalidBundle("React application UTF-8 required", Some(Box::new(error)))
+            })?;
         if framework_source.is_empty() || application_source.is_empty() {
-            return Err(Error::InvalidBundle("React bundles must be nonempty"));
+            return Err(Error::InvalidBundle("React bundles must be nonempty", None));
         }
         let snapshot = snapshot::get_react(
             &framework.0,

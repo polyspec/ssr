@@ -1,3 +1,4 @@
+use crate::error::poisoned;
 use crate::{Error, pool::Health};
 use crossbeam_channel::{Receiver, Sender, bounded};
 use deno_core::v8;
@@ -13,9 +14,9 @@ pub(crate) enum Reason {
 impl Reason {
     pub(crate) fn error(self) -> Error {
         match self {
-            Self::Canceled => Error::Canceled,
+            Self::Canceled => Error::Canceled(None),
             Self::Timeout => Error::Timeout,
-            Self::Stopped => Error::WorkerStopped,
+            Self::Stopped => Error::WorkerStopped(None),
         }
     }
 }
@@ -66,7 +67,11 @@ impl Cancellation {
     }
 
     pub(crate) fn stop(&self, reason: Reason) -> Result<(), Error> {
-        let mut state = self.0.state.lock().map_err(|_| Error::WorkerStopped)?;
+        let mut state = self
+            .0
+            .state
+            .lock()
+            .map_err(|error| Error::WorkerStopped(Some(poisoned(error))))?;
         if matches!(state.phase, Phase::Complete) || state.reason.is_some() {
             return Ok(());
         }
@@ -75,16 +80,21 @@ impl Cancellation {
         if let Phase::Running(handle) = &state.phase
             && !handle.terminate_execution()
         {
-            return Err(Error::WorkerStopped);
+            return Err(Error::WorkerStopped(None));
         }
         Ok(())
     }
 
     pub(crate) fn claim(&self) -> Result<(), Error> {
-        let mut state = self.0.state.lock().map_err(|_| Error::WorkerStopped)?;
+        let mut state = self
+            .0
+            .state
+            .lock()
+            .map_err(|error| Error::WorkerStopped(Some(poisoned(error))))?;
         if !matches!(state.phase, Phase::New) {
             return Err(Error::InvalidConfiguration(
                 "cancellation belongs to one request",
+                None,
             ));
         }
         state.phase = Phase::Waiting;
@@ -95,7 +105,11 @@ impl Cancellation {
     }
 
     pub(crate) fn start(&self, handle: v8::IsolateHandle) -> Result<(), Error> {
-        let mut state = self.0.state.lock().map_err(|_| Error::WorkerStopped)?;
+        let mut state = self
+            .0
+            .state
+            .lock()
+            .map_err(|error| Error::WorkerStopped(Some(poisoned(error))))?;
         if let Some(reason) = state.reason {
             return Err(reason.error());
         }
@@ -104,7 +118,11 @@ impl Cancellation {
     }
 
     pub(crate) fn finish(&self, runtime: Option<&mut v8::OwnedIsolate>) -> Result<(), Error> {
-        let mut state = self.0.state.lock().map_err(|_| Error::WorkerStopped)?;
+        let mut state = self
+            .0
+            .state
+            .lock()
+            .map_err(|error| Error::WorkerStopped(Some(poisoned(error))))?;
         if let Some(runtime) = runtime {
             runtime.cancel_terminate_execution();
         }
@@ -116,7 +134,7 @@ impl Cancellation {
         self.0
             .state
             .lock()
-            .map_err(|_| Error::WorkerStopped)?
+            .map_err(|error| Error::WorkerStopped(Some(poisoned(error))))?
             .done
             .take();
         Ok(())
@@ -127,14 +145,16 @@ impl Cancellation {
             .0
             .state
             .lock()
-            .map_err(|_| Error::WorkerStopped)?
+            .map_err(|error| Error::WorkerStopped(Some(poisoned(error))))?
             .reason
             .map(Reason::error))
     }
 
     pub(crate) fn failure(&self) -> Result<Error, Error> {
-        self.error()?
-            .ok_or(Error::InvalidConfiguration("cancellation reason is absent"))
+        self.error()?.ok_or(Error::InvalidConfiguration(
+            "cancellation reason is absent",
+            None,
+        ))
     }
 
     pub(crate) fn canceled(&self) -> &Receiver<()> {

@@ -30,7 +30,8 @@ fn one_process_rejects_another_snapshot_key_after_all_pools_close() {
     assert!(matches!(
         different,
         Err(Error::Snapshot(
-            "renderer process already selected another snapshot key"
+            "renderer process already selected another snapshot key",
+            _
         ))
     ));
 }

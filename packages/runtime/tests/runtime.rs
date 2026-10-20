@@ -89,7 +89,10 @@ fn pending_promise_reports_missing_completion() {
     .unwrap();
     assert!(matches!(
         pending.render(&page("{}")),
-        Err(Error::InvalidResult("promise has no scheduled completion"))
+        Err(Error::InvalidResult(
+            "promise has no scheduled completion",
+            _
+        ))
     ));
 }
 
@@ -356,11 +359,11 @@ fn console_writes_to_stderr() {
 fn invalid_input_and_result_fail() {
     assert!(matches!(
         make_pool(Vec::new(), 1, 0, Duration::from_secs(1)),
-        Err(Error::InvalidBundle(_))
+        Err(Error::InvalidBundle(..))
     ));
     assert!(matches!(
         make_pool(b"x".to_vec(), 0, 0, Duration::from_secs(1)),
-        Err(Error::InvalidConfiguration(_))
+        Err(Error::InvalidConfiguration(..))
     ));
     let pool = make_pool(
         b"export function render() { return {head:'', html: 1, state: null}; }".to_vec(),
@@ -371,7 +374,7 @@ fn invalid_input_and_result_fail() {
     .unwrap();
     assert!(matches!(
         pool.render(&page("{}")),
-        Err(Error::InvalidResult(_))
+        Err(Error::InvalidResult(..))
     ));
     let mut csr = page("{}");
     csr.render = Render::Csr;
@@ -432,7 +435,7 @@ fn server_bundle_rejects_duplicate_and_invalid_files() {
     ] {
         assert!(matches!(
             Pool::new(bundle, support::options(1, 0, Duration::from_secs(2))),
-            Err(Error::InvalidBundle(_))
+            Err(Error::InvalidBundle(..))
         ));
     }
 }
@@ -452,7 +455,7 @@ fn render_head_is_required_and_preserved() {
 fn invalid_head(source: &str) {
     let pool = make_pool(source.as_bytes().to_vec(), 1, 0, Duration::from_secs(2)).unwrap();
     assert!(
-        matches!(pool.render(&page("{}")), Err(Error::InvalidResult(_))),
+        matches!(pool.render(&page("{}")), Err(Error::InvalidResult(..))),
         "{source}"
     );
 }

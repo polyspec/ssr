@@ -181,7 +181,7 @@ fn incomplete_snapshot_module_index_is_an_error() {
     let scope = &mut v8::ContextScope::new(scope, context);
     assert!(matches!(
         install_sources(scope, context, sources, &indices),
-        Err(Error::Snapshot("server module snapshot indices differ"))
+        Err(Error::Snapshot("server module snapshot indices differ", _))
     ));
 }
 
@@ -211,7 +211,8 @@ fn pending_top_level_await_is_rejected() {
     assert!(matches!(
         snapshot::get(&pending, Duration::from_secs(5)),
         Err(Error::InvalidBundle(
-            "server module evaluation did not complete"
+            "server module evaluation did not complete",
+            _
         ))
     ));
 }
@@ -228,7 +229,7 @@ fn unexported_render_is_rejected() {
     .unwrap();
     assert!(matches!(
         snapshot::get(&bundle, Duration::from_secs(5)),
-        Err(Error::InvalidBundle("render function export required"))
+        Err(Error::InvalidBundle("render function export required", _))
     ));
 }
 

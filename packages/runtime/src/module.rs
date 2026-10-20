@@ -55,9 +55,11 @@ fn compile_all<'s>(
     for (path, source) in &sources.files {
         let code = v8::String::new(scope, source).ok_or(Error::InvalidBundle(
             "server JavaScript exceeds V8 string limit",
+            None,
         ))?;
         let name = v8::String::new(scope, path).ok_or(Error::InvalidBundle(
             "server JavaScript path exceeds V8 string limit",
+            None,
         ))?;
         let origin = v8::ScriptOrigin::new(
             scope,
@@ -73,8 +75,9 @@ fn compile_all<'s>(
             None,
         );
         let mut source = v8::script_compiler::Source::new(code, Some(&origin));
-        let module = v8::script_compiler::compile_module(scope, &mut source)
-            .ok_or(Error::InvalidBundle("server module compilation failed"))?;
+        let module = v8::script_compiler::compile_module(scope, &mut source).ok_or(
+            Error::InvalidBundle("server module compilation failed", None),
+        )?;
         modules
             .borrow_mut()
             .compiled
@@ -130,32 +133,42 @@ pub(crate) fn initialize<'s>(
     if context.get_slot::<RefCell<Modules>>().is_some() {
         return Err(Error::InvalidBundle(
             "server module loader already installed",
+            None,
         ));
     }
     let modules = Rc::new(RefCell::new(Modules::new(Arc::clone(&sources))));
     if context.set_slot(Rc::clone(&modules)).is_some() {
         return Err(Error::InvalidBundle(
             "server module loader already installed",
+            None,
         ));
     }
     compile_all(scope, &modules)?;
     let entry = modules
         .borrow()
         .find(scope, &sources.entry)
-        .ok_or(Error::InvalidBundle("server module entry is missing"))?;
+        .ok_or(Error::InvalidBundle("server module entry is missing", None))?;
     for (_, module) in &modules.borrow().compiled {
         let module = v8::Local::new(scope, module);
         if module.get_status() == v8::ModuleStatus::Uninstantiated
             && module.instantiate_module(scope, resolve_static) != Some(true)
         {
-            return Err(Error::InvalidBundle("server module instantiation failed"));
+            return Err(Error::InvalidBundle(
+                "server module instantiation failed",
+                None,
+            ));
         }
     }
-    let evaluation = entry
-        .evaluate(scope)
-        .ok_or(Error::InvalidBundle("server module evaluation failed"))?;
-    let promise = v8::Local::<v8::Promise>::try_from(evaluation)
-        .map_err(|_| Error::InvalidBundle("server module evaluation did not return a promise"))?;
+    let evaluation = entry.evaluate(scope).ok_or(Error::InvalidBundle(
+        "server module evaluation failed",
+        None,
+    ))?;
+    let promise = v8::Local::<v8::Promise>::try_from(evaluation).map_err(|error| {
+        Error::InvalidBundle(
+            "server module evaluation did not return a promise",
+            Some(Box::new(error)),
+        )
+    })?;
     scope.perform_microtask_checkpoint();
     match promise.state() {
         v8::PromiseState::Fulfilled => {}
@@ -166,21 +179,25 @@ pub(crate) fn initialize<'s>(
                 .to_string(scope)
                 .ok_or(Error::InvalidBundle(
                     "server module error cannot be converted to text",
+                    None,
                 ))?
                 .to_rust_string_lossy(scope);
             let stack = if let Ok(object) = v8::Local::<v8::Object>::try_from(reason) {
-                let key = v8::String::new(scope, "stack")
-                    .ok_or(Error::InvalidBundle("server module stack name unavailable"))?;
-                let value = object
-                    .get(scope, key.into())
-                    .ok_or(Error::InvalidBundle("server module stack lookup failed"))?;
+                let key = v8::String::new(scope, "stack").ok_or(Error::InvalidBundle(
+                    "server module stack name unavailable",
+                    None,
+                ))?;
+                let value = object.get(scope, key.into()).ok_or(Error::InvalidBundle(
+                    "server module stack lookup failed",
+                    None,
+                ))?;
                 if value.is_undefined() {
                     None
                 } else {
                     Some(
                         value
                             .to_string(scope)
-                            .ok_or(Error::InvalidBundle("server module stack is invalid"))?
+                            .ok_or(Error::InvalidBundle("server module stack is invalid", None))?
                             .to_rust_string_lossy(scope),
                     )
                 }
@@ -192,19 +209,24 @@ pub(crate) fn initialize<'s>(
         v8::PromiseState::Pending => {
             return Err(Error::InvalidBundle(
                 "server module evaluation did not complete",
+                None,
             ));
         }
     }
     let namespace = entry.get_module_namespace();
-    let namespace = v8::Local::<v8::Object>::try_from(namespace)
-        .map_err(|_| Error::InvalidBundle("server module namespace is invalid"))?;
+    let namespace = v8::Local::<v8::Object>::try_from(namespace).map_err(|error| {
+        Error::InvalidBundle("server module namespace is invalid", Some(Box::new(error)))
+    })?;
     let key = v8::String::new(scope, "render")
-        .ok_or(Error::InvalidBundle("render export name unavailable"))?;
+        .ok_or(Error::InvalidBundle("render export name unavailable", None))?;
     let render = namespace
         .get(scope, key.into())
-        .ok_or(Error::InvalidBundle("render export lookup failed"))?;
+        .ok_or(Error::InvalidBundle("render export lookup failed", None))?;
     if !render.is_function() {
-        return Err(Error::InvalidBundle("render function export required"));
+        return Err(Error::InvalidBundle(
+            "render function export required",
+            None,
+        ));
     }
     context.set_embedder_data(0, render);
     let mut indices = BTreeMap::new();
@@ -222,9 +244,10 @@ pub(crate) fn render<'s>(
 ) -> Result<v8::Local<'s, v8::Function>, Error> {
     let value = context
         .get_embedder_data(scope, 0)
-        .ok_or(Error::InvalidBundle("render export is missing"))?;
-    v8::Local::<v8::Function>::try_from(value)
-        .map_err(|_| Error::InvalidBundle("render function export required"))
+        .ok_or(Error::InvalidBundle("render export is missing", None))?;
+    v8::Local::<v8::Function>::try_from(value).map_err(|error| {
+        Error::InvalidBundle("render function export required", Some(Box::new(error)))
+    })
 }
 
 pub(crate) fn install_dynamic_import_callback(isolate: &mut v8::OwnedIsolate) {
@@ -238,7 +261,10 @@ pub(crate) fn install_sources<'s>(
     indices: &BTreeMap<String, usize>,
 ) -> Result<(), Error> {
     if context.get_slot::<RefCell<Modules>>().is_some() {
-        return Err(Error::Snapshot("server module loader already installed"));
+        return Err(Error::Snapshot(
+            "server module loader already installed",
+            None,
+        ));
     }
     if indices.len() != sources.files.len()
         || !indices.keys().eq(sources.files.keys())
@@ -248,19 +274,27 @@ pub(crate) fn install_sources<'s>(
             .len()
             != indices.len()
     {
-        return Err(Error::Snapshot("server module snapshot indices differ"));
+        return Err(Error::Snapshot(
+            "server module snapshot indices differ",
+            None,
+        ));
     }
     let mut modules = Modules::new(sources);
     for (path, index) in indices {
         let module = scope
             .get_context_data_from_snapshot_once::<v8::Module>(*index)
-            .map_err(|_| Error::Snapshot("server module was not restored"))?;
+            .map_err(|error| {
+                Error::Snapshot("server module was not restored", Some(Box::new(error)))
+            })?;
         modules
             .compiled
             .push((path.clone(), v8::Global::new(scope, module)));
     }
     if context.set_slot(Rc::new(RefCell::new(modules))).is_some() {
-        return Err(Error::Snapshot("server module loader already installed"));
+        return Err(Error::Snapshot(
+            "server module loader already installed",
+            None,
+        ));
     }
     Ok(())
 }

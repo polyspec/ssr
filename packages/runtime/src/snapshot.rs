@@ -1,4 +1,5 @@
 use crate::engine::script_origin;
+use crate::error::{panicked, poisoned};
 use crate::{Error, module, web};
 use deno_core::{JsRuntime, v8};
 use sha2::{Digest, Sha256};
@@ -169,11 +170,12 @@ fn get_or_create(
     let mut cache = CACHE
         .get_or_init(|| Mutex::new(None))
         .lock()
-        .map_err(|_| Error::Snapshot("snapshot cache lock failed"))?;
+        .map_err(|error| Error::Snapshot("snapshot cache lock failed", Some(poisoned(error))))?;
     if let Some(selected) = &*cache {
         if selected.key != key {
             return Err(Error::Snapshot(
                 "renderer process already selected another snapshot key",
+                None,
             ));
         }
         return Ok(Arc::clone(&selected.snapshot));
@@ -210,6 +212,7 @@ fn create_modules(
                 .map(|value| value.to_rust_string_lossy(scope))
                 .ok_or(Error::InvalidBundle(
                     "server module failed without an error message",
+                    None,
                 ))?;
             let stack = scope
                 .stack_trace()
@@ -234,10 +237,15 @@ fn create_react(
         let scope = &mut v8::ContextScope::new(scope, context);
         web::install_framework(scope, context)?;
         run_react_framework(scope, context, framework, framework_path)?;
-        let key = v8::String::new(scope, "setTimeout")
-            .ok_or(Error::InvalidBundle("React scheduling name unavailable"))?;
+        let key = v8::String::new(scope, "setTimeout").ok_or(Error::InvalidBundle(
+            "React scheduling name unavailable",
+            None,
+        ))?;
         if context.global(scope).delete(scope, key.into()) != Some(true) {
-            return Err(Error::InvalidBundle("React scheduling removal failed"));
+            return Err(Error::InvalidBundle(
+                "React scheduling removal failed",
+                None,
+            ));
         }
         run_bundle(scope, context, application, application_path, "__ssrApp")?;
         Ok(())
@@ -254,19 +262,27 @@ fn run_react_framework(
     v8::tc_scope!(let scope, scope);
     let source = v8::String::new(scope, bundle).ok_or(Error::InvalidBundle(
         "framework bundle exceeds V8 string limit",
+        None,
     ))?;
-    let name = v8::String::new(scope, script_name)
-        .ok_or(Error::InvalidBundle("framework script name unavailable"))?;
+    let name = v8::String::new(scope, script_name).ok_or(Error::InvalidBundle(
+        "framework script name unavailable",
+        None,
+    ))?;
     let origin = script_origin(scope, name);
     let mut source = v8::script_compiler::Source::new(source, Some(&origin));
-    let timer_name = v8::String::new(scope, "setTimeout")
-        .ok_or(Error::InvalidBundle("React scheduling name unavailable"))?;
+    let timer_name = v8::String::new(scope, "setTimeout").ok_or(Error::InvalidBundle(
+        "React scheduling name unavailable",
+        None,
+    ))?;
     let stream_name = v8::String::new(scope, "ReadableStream")
-        .ok_or(Error::InvalidBundle("React stream name unavailable"))?;
+        .ok_or(Error::InvalidBundle("React stream name unavailable", None))?;
     let timer = context
         .global(scope)
         .get(scope, timer_name.into())
-        .ok_or(Error::InvalidBundle("React scheduling callback missing"))?;
+        .ok_or(Error::InvalidBundle(
+            "React scheduling callback missing",
+            None,
+        ))?;
     let function = v8::script_compiler::compile_function(
         scope,
         &mut source,
@@ -283,16 +299,20 @@ fn run_react_framework(
     for required in ["render", "__ssrReact", "__ssrJsxRuntime"] {
         let key = v8::String::new(scope, required).ok_or(Error::InvalidBundle(
             "React framework export name unavailable",
+            None,
         ))?;
         let value = context
             .global(scope)
             .get(scope, key.into())
-            .ok_or(Error::InvalidBundle("React framework export missing"))?;
+            .ok_or(Error::InvalidBundle("React framework export missing", None))?;
         if required == "render" && !value.is_function() {
-            return Err(Error::InvalidBundle("React render function required"));
+            return Err(Error::InvalidBundle("React render function required", None));
         }
         if required != "render" && !value.is_object() {
-            return Err(Error::InvalidBundle("React framework object required"));
+            return Err(Error::InvalidBundle(
+                "React framework object required",
+                None,
+            ));
         }
     }
     Ok(())
@@ -307,21 +327,24 @@ fn run_bundle(
 ) -> Result<(), Error> {
     v8::tc_scope!(let scope, scope);
     let source = v8::String::new(scope, bundle)
-        .ok_or(Error::InvalidBundle("bundle exceeds V8 string limit"))?;
+        .ok_or(Error::InvalidBundle("bundle exceeds V8 string limit", None))?;
     let name = v8::String::new(scope, script_name)
-        .ok_or(Error::InvalidBundle("script name unavailable"))?;
+        .ok_or(Error::InvalidBundle("script name unavailable", None))?;
     let origin = script_origin(scope, name);
     let script =
         v8::Script::compile(scope, source, Some(&origin)).ok_or_else(|| script_error!(scope))?;
     script.run(scope).ok_or_else(|| script_error!(scope))?;
     let function_name = v8::String::new(scope, expected_function)
-        .ok_or(Error::InvalidBundle("render name unavailable"))?;
+        .ok_or(Error::InvalidBundle("render name unavailable", None))?;
     let function = context
         .global(scope)
         .get(scope, function_name.into())
-        .ok_or(Error::InvalidBundle("render lookup failed"))?;
+        .ok_or(Error::InvalidBundle("render lookup failed", None))?;
     if !function.is_function() {
-        return Err(Error::InvalidBundle("global render function required"));
+        return Err(Error::InvalidBundle(
+            "global render function required",
+            None,
+        ));
     }
     Ok(())
 }
@@ -332,7 +355,7 @@ fn create_with<T>(
     initialize: impl FnOnce(&mut v8::OwnedIsolate, &v8::Global<v8::Context>) -> Result<T, Error>,
 ) -> Result<(Vec<u8>, T), Error> {
     polyspec_ssr_core::process::render(|| create_snapshot(timeout, modules, initialize))
-        .map_err(Error::Snapshot)?
+        .map_err(|message| Error::Snapshot(message, None))?
 }
 
 fn create_snapshot<T>(
@@ -373,12 +396,12 @@ fn create_snapshot<T>(
     drop(done_tx);
     let timed_out = watchdog
         .join()
-        .map_err(|_| Error::Snapshot("snapshot timeout worker failed"));
+        .map_err(|error| Error::Snapshot("snapshot timeout worker failed", Some(panicked(error))));
     creator.cancel_terminate_execution();
     drop(context);
     let blob = creator
         .create_blob(v8::FunctionCodeHandling::Keep)
-        .ok_or(Error::Snapshot("snapshot serialization failed"));
+        .ok_or(Error::Snapshot("snapshot serialization failed", None));
     if timed_out? {
         return Err(Error::Timeout);
     }

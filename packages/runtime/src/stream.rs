@@ -26,7 +26,7 @@ impl Output {
         select_biased! {
             recv(self.request.cancellation.canceled()) -> _ => self.request.interrupted(),
             recv(timeout) -> _ => self.request.timed_out(),
-            send(self.events, event) -> result => result.map_err(|_| Error::Canceled),
+            send(self.events, event) -> result => result.map_err(|error| Error::Canceled(Some(Box::new(error)))),
         }
     }
 }
@@ -63,7 +63,7 @@ impl Stream {
         let timeout = self.request.deadline_timer()?;
         select_biased! {
             recv(self.request.cancellation.canceled()) -> _ => self.request.interrupted(),
-            recv(self.events) -> result => result.map_err(|_| Error::WorkerStopped),
+            recv(self.events) -> result => result.map_err(|error| Error::WorkerStopped(Some(Box::new(error)))),
             recv(timeout) -> _ => self.request.timed_out(),
         }
     }
@@ -97,7 +97,9 @@ impl Iterator for Stream {
                 self.request.wait().err().map(Err)
             }
             Ok(Event::Failed(error)) | Err(error) => self.fail(error),
-            Ok(Event::Shell(_, _)) => self.fail(Error::InvalidResult("duplicate stream shell")),
+            Ok(Event::Shell(_, _)) => {
+                self.fail(Error::InvalidResult("duplicate stream shell", None))
+            }
         }
     }
 }

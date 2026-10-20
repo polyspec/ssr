@@ -6,6 +6,7 @@
 
 ## Unreleased
 
+- S-88: packages/runtime은 매핑하는 각 오류의 원본을 유지한다. InvalidConfiguration, InvalidBundle, InvalidResult, Snapshot, Canceled, WorkerStopped 변형이 source(v8 변환, 채널, UTF-8 또는 정수 변환, poison된 lock 메시지, thread panic 메시지)를 가지며, server는 새 패턴을 쓴다. red: 크레이트의 clippy가 44곳에서 map_err_ignore를 보고했고, green: clippy 통과. (S-88)
 - S-87: packages/build는 asset_url.rs, js.rs, svelte.rs에서 lock poison과 Tokio runtime 오류의 메시지를 wildcard로 버리지 않고 유지한다. red: 크레이트의 clippy가 이 4곳에서 map_err_ignore를 보고했고, green: clippy 통과. (S-87)
 - S-86: engine process의 poison 검사를 packages/core/tests/process.rs에서 packages/core/tests/process_poison.rs로 옮겨 각각 독립 프로세스에서 실행한다. red: `cargo test -p polyspec-ssr-core --test process`가 process.rs:16에서 Disconnected로 실패했다. 다른 테스트의 poison된 lock이 직렬화 테스트에 닿았기 때문이다. green: 두 binary 모두 통과. (S-86)
 - S-84: tests/test-ownership/src/main.rs는 중단된 실행의 종료 상태를 명시적 검사로 매핑하고, 범위를 벗어난 signal을 이유와 함께 보고한다. 이전에는 Result::ok가 이를 FAILURE로 바꿨다. red: 크레이트의 clippy 실행이 src/main.rs:28의 금지 method Result::ok를 보고했고, green: clippy 실행 통과. (S-84)
