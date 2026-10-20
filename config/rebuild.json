@@ -12,7 +12,7 @@
     },
     "scripts/fetch-v8.mts": {
       "kind": "policy",
-      "reason": "AGENTS.md (Implementation 6): no build downloads V8, and a CI runner fetches the official rusty_v8 archive and binding only after their SHA-256 are verified; the v8 build script downloads without that check"
+      "reason": "AGENTS.md (Implementation): no build downloads V8, and a CI runner fetches the official rusty_v8 archive and binding only after their SHA-256 are verified; the v8 build script downloads without that check"
     },
     "scripts/github-ruleset.mts": {
       "kind": "ecosystem",
@@ -20,7 +20,7 @@
     },
     "scripts/install-packages.mts": {
       "kind": "policy",
-      "reason": "Idempotency 2 and 10 of AGENTS.md: the fixture packages and the pinned chromium are installed once per lock digest into an immutable directory that npm ci and playwright-core install fill; no ecosystem tool names an install by the digest of its lock"
+      "reason": "the Idempotency rules of AGENTS.md on what a test reads and on shared state: the fixture packages and the pinned chromium are installed once per lock digest into an immutable directory that npm ci and playwright-core install fill; no ecosystem tool names an install by the digest of its lock"
     },
     "scripts/json.mts": {
       "kind": "ecosystem",
@@ -28,7 +28,7 @@
     },
     "scripts/verify-archive.mts": {
       "kind": "policy",
-      "reason": "AGENTS.md (Implementation 6): the local V8 archive, binding, Cargo features and free disk are verified against declared SHA-256 before linking; the v8 build script reads the archive that RUSTY_V8_ARCHIVE names without checking it"
+      "reason": "AGENTS.md (Implementation): the local V8 archive, binding, Cargo features and free disk are verified against declared SHA-256 before linking; the v8 build script reads the archive that RUSTY_V8_ARCHIVE names without checking it"
     }
   }
 }

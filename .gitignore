@@ -3,7 +3,7 @@
 node_modules/
 __pycache__/
 
-# Generated files of the install, build, cache and test runs (AGENTS.md, Generated files)
+# Generated files of the install, build, cache and test runs (AGENTS.md, Repository)
 vendor/
 dist/
 dist.next/

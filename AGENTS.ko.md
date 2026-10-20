@@ -1,268 +1,120 @@
 <!-- doc-id: agents -->
-<!-- source-sha256: c89c9d0e2dcc8a48c9f1de8417ab0987a73c19608677b9b5d6514a63a483d196 -->
+<!-- source-sha256: dd59c457796099e5e2f95a2c5aa55ccd59cc4bb109b1757042818a345accb840 -->
 # 개발 절차
 
-사용자의 지시가 우선한다. [English](AGENTS.md). 모든 polyspec 저장소의 작업 원칙은
-[PRINCIPLES.ko.md](PRINCIPLES.ko.md)에 있고, 이 파일은 ssr의 규칙을 적는다.
+[English](AGENTS.md).
+
+모든 polyspec 저장소의 작업 원칙과 모든 저장소가 따르는 작업 규칙은 [PRINCIPLES.ko.md](PRINCIPLES.ko.md)에 있다. 이 파일은 ssr의 규칙만 적는다.
 
 ## 공유 도구
 
-- ssr은 package `@polyspec/kit`(kit)의 공유 도구를 실행한다. `package.json`은 이를 release asset의 URL과 integrity로
-  고정하고 `package-lock.json`이 이를 담는다. checkout은 이를 두 번의 online 단계로 설치한다. `make install-tools
-  TOOLS=npm`은 `packageManager`의 npm을 `var/tools`에 설치하고, `make install-packages`는 그 npm으로
-  `package-lock.json`을 설치한다. Makefile은 설치된 package의 `kit.mk`를 include하는 `scripts/kit/kit-bootstrap.mk`를
-  include하며, 설치 전에는 그 두 target만 실행된다.
-- kit의 target은 toolchain(`install-tools`, `toolchain-check`), 사본(`kit-sync`, `kit-check`), Git hook과 push 검사
-  (`hooks`, `hooks-check`, `push-gate-hook`, `push-gate-commit`), 전체 실행의 guard(`make check`, `rerun-failed`),
-  문서(`documents-check`, `documents-stamp`), commit message(`commits-check`), CI 보고(`ci-targets`, `ci-summary`,
-  `ci-passed`), 릴리스(`release-*`)다. 이것들은 `config/*.json`인 `checklist.json`, `commits.json`, `documents.json`,
-  `release.json`을 읽는다.
-- kit은 `make kit-sync`로 자기 file의 사본(그 `package.json`의 `kit.copies`)을 쓴다: `scripts/kit/`,
-  `.github/workflows/release.yml`, `PRINCIPLES.md(.ko)`, `config/layout.kit.yml`, lint 설정, schema. 사본은 kit에서
-  바꾸고 다시 복사하며 여기서 고치지 않는다. 바뀌거나 없는 사본에서 `make kit-check`가 실패한다. 새 kit은
-  `package.json`과 `package-lock.json`의 `@polyspec/kit`을 갱신하고 `make install-packages`와 `make kit-sync`를 실행해
-  받는다.
-- polyspec version이 0.0.x인 동안 개발 checkout은 kit `docs/plans/local-links.md`가 설명하듯 설치된 polyspec package를
-  그 source에 link하며, link는 commit하지 않는다.
-- kit은 Node.js 26.12.0(`mise.toml`의 `node`, `engines.node` `>=26.12.0`)과 Rust 1.99.0(`rust-toolchain.toml`, 모든 Cargo
-  package의 `rust-version`)을 고정하며, 다른 선언에서 `make toolchain-check`가 실패한다. 한국어 문서는 영어 문서의
-  sha256인 `<!-- source-sha256: ... -->`를 가지며, 번역이 같은 정보를 담으면 `make documents-stamp`가 이를 쓴다.
+- Own: ssr은 package `@polyspec/kit`(kit)의 공유 도구를 실행한다. `package.json`은 이를 release asset의 URL과 integrity로 고정하고 `package-lock.json`이 이를 담는다. checkout은 이를 두 번의 online 단계로 설치한다. `make install-tools TOOLS=npm`은 `packageManager`의 npm을 `var/tools`에 설치하고, `make install-packages`는 그 npm으로 `package-lock.json`을 설치한다. Makefile은 `scripts/kit/kit-bootstrap.mk`를 include하고, 이는 설치된 package의 `kit.mk`를 include한다. 설치 전에는 그 두 target만 실행된다.
+  Enforced by: `make kit-check`
+- Own: kit은 `make kit-sync`(그 `package.json`의 `kit.copies`)로 자기 파일의 복사본을 쓴다. 복사본은 `scripts/kit/`, `.github/workflows/release.yml`, `.github/workflows/gates.yml`, `.claude/settings.json`, `PRINCIPLES.md(.ko)`, `config/layout.kit.yml`, lint 설정과 schema다. 복사본은 kit에서 바꾸고 다시 복사하며 여기서 고치지 않는다. 더 새로운 kit은 `package.json`과 `package-lock.json`의 `@polyspec/kit`을 갱신한 뒤 `make install-packages`와 `make kit-sync`로 받는다.
+  Enforced by: `make kit-check`
+- Own: kit은 Node.js 26.12.0(`mise.toml`의 `node`, `engines.node` `>=26.12.0`)과 Rust 1.99.0(`rust-toolchain.toml`, 모든 Cargo package의 `rust-version`)을 고정한다. ssr은 PHP, Python, Go를 선언하지 않는다.
+  Enforced by: `make toolchain-check`
+- Own: 한국어 문서는 영어 문서의 sha256인 `<!-- source-sha256: ... -->`를 담고, `make documents-stamp`가 번역이 같은 정보를 담게 된 뒤 이를 쓴다.
+  Enforced by: `make docs-check`
 
 ## 저장소
 
-- 원격 `origin`은 `github.com/polyspec/ssr`이다. push는 push하는 ref의 tip commit과 작업 트리 어디에서도
-  체크리스트 항목(하위 항목 포함)이 `[~]`가 아닐 때만 한다. 항목은 한 commit에서 진행 중으로 기록되고 다음 commit에서 완료되므로 push의
-  앞선 commit에는 진행 중 항목이 있을 수 있다. `make hooks`가 쓰는 추적되는 pre-push hook `.githooks/pre-push`는
-  kit의 push 검사인 `make push-gate-hook`을 실행하고, 이것은 그런 push를 거부하며 각 항목의 ID와 제목을 적는다.
-  모든 make 실행은 `core.hooksPath`가 `.githooks`와 다르면 그것으로 설정하고, `make hooks`가 설정하고
-  검사하며, 설정되지 않은 동안 `make hooks-check`와 `make check`의 guard가 실패한다. workflow
-  `.github/workflows/push-gate.yml`은 모든 push, pull request, merge group에서 job `push-gate`로 `make ci-push`를
-  실행한다. `make push-gate-commit`은 같은 방식으로 실패하며 hook을 실행하지 않은 push에도 그렇고, `make
-  check-records`는 `scripts/check-records.mts`의 기록 검사(단어, React 문서, 경로, 시간 assertion)를, `make
-  check-commit-records`는 반드시 주어야 하는 push되는 commit인 `RANGE`의 commit message의 단어를 실행하므로 기록
-  검사가 실패하는 commit은 `main`에 오르지 않는다. 이 job은 `scripts/`와 `tests/`의 TypeScript의 type과 lint인
-  `make typecheck`와 `make lint-ts`도 실행한다.
-- 모든 변경은 pull request와 merge queue를 거쳐 `main`에 들어간다. 이 저장소의 어떤 명령도 `main`을 push하지 않는다.
-  branch는 GitHub의 표준 명령이나 GitHub UI로 게시한다.
+- Own: remote `origin`은 `github.com/polyspec/ssr`다. push는 checklist 항목이, sub-item을 포함해, push되는 ref의 tip commit에도 working tree에도 `[~]`가 아닐 때만 한다. 추적되는 hook `.githooks/pre-push`는 `make hooks`가 쓰며 kit의 push check를 실행해 그런 항목을 ID와 제목으로 지목한다. workflow `.github/workflows/push-gate.yml`은 모든 push, pull request, merge group에서 job `push-gate`에 `make ci-push`를 실행하므로, hook을 실행하지 않은 push도 같은 방식으로 실패한다.
+  Enforced by: `.githooks/pre-push`, `make push-gate-commit`
+- Own: `make ci-push`는 또한 `make check-records`(`scripts/check-records.mts`의 record 검사: 단어, React 문서, 경로, 시간 assertion)와 `make check-commit-records`(push되는 commit인 `RANGE`의 commit message의 단어, 이를 요구한다)를 실행하며, job은 `scripts/`와 `tests/`의 TypeScript를 위해 `make typecheck`와 `make lint-ts`를 실행한다.
+  Enforced by: `make check-records`, `make check-commit-records`, `make typecheck`, `make lint-ts`
+- Own: 모든 변경은 pull request와 merge queue를 거쳐 `main`에 도달하며, 이 저장소의 어떤 명령도 `main`을 push하지 않는다. `.github/ruleset.json`에 선언한 GitHub ruleset `main`은 pull request(승인 불요), merge method `REBASE`의 merge queue, linear history, 정확히 `push-gate`와 `ci-passed` check를 요구하고, `main`의 force-push와 삭제를 거부하며, bypass actor가 없다. `make github-ruleset`은 ruleset과 선언한 저장소 설정을 만들거나 갱신한다([workspace](docs/operations/workspace.ko.md)). branch는 `git push origin HEAD:refs/heads/<branch>`, `gh pr create --base main --head <branch> --fill`, `gh pr merge <branch> --auto --rebase`로 올린다. rebase는 병합된 commit에 새 hash를 주므로 `git pull --rebase`는 queue가 병합한 로컬 commit을 버린다.
+  Enforced by: none, the live settings of GitHub are read with an administrator token that no CI job holds; `make github-ruleset-check` compares them on request.
+- Own: 공개 계약의 JSON 문서는 ordered-json을 쓴다.
+  Enforced by: none, which JSON documents belong to the public contract is a judgement.
+- Own: `0.0.2` library 하나를 개발한다. crate는 `polyspec-ssr-core`, `polyspec-ssr-build`, `polyspec-ssr-runtime`, `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`, `polyspec-ssr-adapter-svelte`, `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-nonce`, `polyspec-ssr-server`이고, 각각 접두사 `polyspec-ssr-` 없이 `packages/<name>`에 있으며(`packages/core` 등) library는 `polyspec_ssr_core` 등이다.
+  Enforced by: `make layout-check`, `make check-nextest`
+- Own: library는 Node process를 실행하지 않는다. production build 명령과 render server는 별도의 Rust process에서 실행된다. renderer process는 자기 수명 동안 불변의 bundle 하나와 snapshot key 하나를 고른다. 새 bundle은 새 renderer process를 쓰며, 요청 동시성과 서비스는 선택된 전체 application bundle을 공유한다.
+  Enforced by: `make check-nextest`
+- Own: 생성된 JavaScript, component CSS, server head는 정해진 위치에 보존한다. 필요한 출력이 없거나 compiler warning이 있으면 build나 render가 실패한다. 최종 출력을 정확히 가리키는 source map만 게시한다.
+  Enforced by: `make check-nextest`
+- Own: test fixture는 이 저장소에 추적된다. package test는 추적되는 fixture lock의 npm package를 symbolic link 없이 `npm ci`로, lock digest마다 한 번 설치하며, `make check-fixture-filter`는 setup script의 filter가 그 설치를 읽는 test binary를 정확히 지목하는지 검사한다.
+  Enforced by: `make check-fixture-filter`, `make check-nextest`
+- Own: 생성된 파일은 Git에 추적하지 않는다. dependency 설치(`node_modules/`, `vendor/`, 가상 환경), build 출력(`dist/`, `target/`, `*.tsbuildinfo`), cache(`.cache/`, `__pycache__/`, `.pytest_cache/`), test 실행 산출물(`test-results/`, `playwright-report/`, PHPUnit cache), 도구 download(`var/`)가 그것이다. 이런 종류에서 추적되는 파일은 lock 파일(`package-lock.json`, `composer.lock`, `Cargo.lock`, uv lock, `mise.lock`), 이 파일이 지목하는 commit된 생성 문서, test fixture뿐이며, `config/generated.json`이 예외를 선언하고 각 `.gitignore`가 이 경로를 덮는다. 새 generator는 같은 commit에서 ignore 항목을 추가한다.
+  Enforced by: `.githooks/pre-commit`
 
-  ```sh
-  git push origin HEAD:refs/heads/<branch>
-  gh pr create --base main --head <branch> --fill
-  gh pr merge <branch> --auto --rebase
-  ```
+## 어휘와 설계
 
-  `.github/ruleset.json`에 선언된 GitHub ruleset `main`은 pull request(승인 불필요), merge method `REBASE`의 merge queue,
-  선형 history, 정확히 GitHub Actions의 check `push-gate`와 `ci-passed`(`.github/workflows/ci.yml`의 마지막 job으로,
-  그 workflow의 다른 모든 job이 통과했을 때만 통과)를 요구하고
-  `main`의 force-push와 삭제를 거부하며 bypass actor가 없으므로, GitHub는 관리자에게서도 `main`으로의 직접 push를
-  거부한다. merge queue는 대기열의 각 pull request를 `main` 위로 rebase한 merge group으로 만들고, 그 commit에서 필수
-  check를 실행해 통과하면 `main`을 그 commit으로 옮긴다. rebase는 merge된 commit에 새 hash를 주므로 `git pull --rebase`가
-  queue가 merge한 로컬 commit을 버린다. `make github-ruleset`은 ruleset과 선언된 저장소 설정을 만들거나 갱신하고,
-  `make github-ruleset-check`는 그것들이 선언과 다르면 실패한다([워크스페이스](docs/operations/workspace.ko.md)).
-- 브랜치는 `{type}/{shortname}-{체크리스트 ID}`, 워크트리는 `{프로젝트}-{shortname}-{체크리스트 ID}`로
-  이름 짓는다. 브랜치를 `main`에 통합한 뒤 커밋이나 동등한 변경이 반영됐고 워크트리가 깨끗한지 확인한다.
-  삭제할 워크트리에만 있는 `.gitignore` 제외 파일 중 계속 필요한 파일은 먼저 다른 곳에 보존한다.
-  그런 다음 워크트리와 로컬 브랜치를 즉시 제거한다.
-  미통합 작업이나 진행 중인 작업은 보존한다.
-- `main`에 통합할 수 없는 테스트 전용 브랜치의 의미 있는 커밋은 관련 기능을 커밋하기 전에 체리픽하고,
-  나머지 테스트 전용 변경은 폐기한 뒤 워크트리와 브랜치를 제거한다. 제거할 수 없다면 먼저 소유
-  체크리스트에 번호가 붙은 하위 항목을 추가하고 원인과 정확한 제거 조건을 기록한다.
-- 공개 계약의 JSON 문서는 ordered-json을 사용한다.
-- `0.0.2` 라이브러리 하나를 개발한다. 크레이트는 `polyspec-ssr-core`, `polyspec-ssr-build`,
-  `polyspec-ssr-runtime`, `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`,
-  `polyspec-ssr-adapter-svelte`, `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-nonce`,
-  `polyspec-ssr-server`이며 각각 접두사 `polyspec-ssr-`를 뺀 `packages/<name>`(`packages/core` 등)에 있고 라이브러리
-  이름은 `polyspec_ssr_core` 등이다.
-- 라이브러리는 Node 프로세스를 실행하지 않는다. 운영 빌드 명령과 렌더 서버는 별도 Rust 프로세스에서 실행한다.
-  렌더 프로세스는 생존 기간 동안 불변 번들·스냅샷 키 하나를 선택한다. 새 번들은 새 렌더 프로세스를
-  사용하며 동시 요청과 여러 서비스는 선택한 전체 앱 번들을 공유한다.
-- 생성한 JavaScript, 컴포넌트 CSS와 서버 head를 정의된 위치에 반영한다. 필수 출력 누락과
-  컴파일러 경고는 빌드 또는 렌더 실패다. 최종 출력의 위치를 정확히 표시하는 소스맵만 게시한다.
-- 테스트 fixture는 이 저장소에서 추적된다. 패키지 테스트는 추적되는 fixture 잠금 파일의 npm
-  패키지를 `npm ci`로 심볼릭 링크 없이 설치한다.
-
-## 용어와 설계
-
-- 공개 API와 문서에 체크리스트의 이름 외의 새 단어를 만들지 않는다. 새 이름이 필요하면 필요한 이름을 모두 모아
-  사용자에게 한 번에 승인을 요청한다.
-- 하위 호환, 대체 경로, 숨겨진 오류를 만들지 않는다. 잘못된 입력은 오류다.
-- 스냅샷 키에는 서버 진입점과 청크의 경로·바이트 SHA-256, 고정된 deno_core 버전, 라이브러리
-  버전을 포함한다. 복원한
-  context의 네이티브 콜백은 해당 context의 전역 객체를 사용한다. 초기화 성공과 실패 모두에서 V8
-  스냅샷 생성기를 소비하며, 설정한 제한 시간을 스냅샷 초기화에 적용하고, 스냅샷 하나를 프로세스
-  종료까지 유지한다. 생성기를 완전히 정리한 뒤 공개 V8 API로 워커 isolate를 동시에 복원한다.
-  모든 풀이 종료된 후에도 다른 번들 키는 명시적인 오류다.
-- Svelte 컴파일러의 V8 진입과 스냅샷 초기화는 공통 프로세스 계약으로 보호한다. 컴파일러끼리는
-  동시에 실행할 수 있지만 스냅샷 생성과 겹치거나 성공한 스냅샷 뒤에 실행할 수 없다. 컴파일러 런타임과
-  스냅샷 생성기를 완전히 정리한 뒤 프로세스 접근을 해제한다. 실패한 스냅샷도 모든 isolate를 정리한 뒤
-  다음 엔진 진입을 허용한다. 일반 Rust 번들링과 컴파일 완료 후 렌더하는 경로는 계속 지원한다.
-- 관리되는 렌더 하위 프로세스는 stdin 종료 계약을 따른다. 부모는 해당 세대가 요청을 받거나 완료를
-  기다리는 동안 stdin 핸들을 유지하고, 종료 시 닫은 뒤 하위 프로세스의 종료를 기다리고 기록한다.
-  stdin 소유와 프로세스 종료 관측을 분리한다. 준비 확인 작업이 핸들을 의도치 않게 닫아서는 안 된다.
-  정상 종료 제한 시간을 넘긴 자식은 강제 종료하고 종료를 확인하며 해당 실패를 보고한다.
-- 일반 서버 진입점은 ECMAScript 모듈의 `render`를 export한다. 진입점과 모든 비공개 서버 청크를
-  스냅샷에 한 번 컴파일하고, 상대 import를 정확히 제공된 파일에서 해석하며, 요청 context마다 독립
-  모듈 데이터를 복원한다. render export를 전역 객체에 두지 않는다. 누락 모듈, 잘못된 import 또는
-  완료되지 않은 평가는 오류다.
-- React 프레임워크와 애플리케이션 번들을 하나의 스냅샷 context에서 평가해 애플리케이션 모듈
-  초기화와 렌더가 하나의 React 인스턴스를 사용하게 한다. 프레임워크 작업 예약은 어휘 바인딩으로
-  제공하고 애플리케이션 코드 평가 전에 전역에서 제거한다. 요청마다 어느 번들도 다시 평가하지 않는다.
-- 풀 한도와 요청 취소를 명시한다. context 정리 뒤에만 워커 용량을 반환하고 정리 실패를
-  보고하며, 네이티브 작업을 중단하지 못하면 렌더 프로세스를 교체한다.
-- 공개 API 문서에는 현재 진입점·풀·렌더 메서드 이름을 기록한다. 영문·국문
-  계약을 실행 가능한 사용 경로와 대조하고, API를 바꾸면 교체된 호출의 설명을 제거한다.
-- 에이전트의 결정이 틀린 것으로 드러나면 보고의 첫 문장에서 그 결정을 적는다.
-- `var/handoff/work.md`는 항목마다 명세 원천을 나열한다. 이 파일은 추적하지 않는다.
-
-## 생성 파일
-
-생성 파일은 Git에 추적하지 않습니다. 여기에는 의존성 설치(`node_modules/`, `vendor/`, 가상 환경), 빌드 산출물(`dist/`, `target/`, `*.tsbuildinfo`), 캐시(`.cache/`, `__pycache__/`, `.pytest_cache/`), 테스트 실행 산출물(`test-results/`, `playwright-report/`, PHPUnit 캐시), 도구 다운로드(`var/`)가 포함됩니다. 예외는 저장소가 의도적으로 필요로 하는 파일뿐이며 이것만 추적합니다: lock 파일(`package-lock.json`, `composer.lock`, `Cargo.lock`, uv lock, `mise.lock`), 이 문서가 밝히는 커밋된 생성 문서, 테스트 fixture. 각 `.gitignore`가 이 경로를 덮으며, 새 생성기는 같은 commit에서 ignore 항목을 추가합니다.
-
-## 체크리스트
-
-- `config/checklist.json`이 선언한 `docs/plans/execution-checklist.md`가 유일한 작업 추적 파일이다.
-  `docs/plans/execution-checklist.ko.md`는 같은 작업 ID와 상태를 가진다.
-  다른 체크리스트를 만들지 않는다. 필요하면 항목을 번호가 붙은 세부 항목으로 나누거나 항목을 추가한다.
-- 체크리스트에는 저장소에 고유한 작업의 구체적인 산출물과 검증 가능한 완료 증거를 기록한다. 지속해서
-  적용할 업무 지침은 이 파일에 둔다. 지침 변경 요청은 이 파일을 갱신하며, 별도의 저장소 구현이나
-  검사가 필요할 때만 체크리스트 항목으로 만든다. 새 지시를 항목에 넣기 전에 이 기준으로 분류한다.
-- 상태: `[ ]` 대기, `[~]` 진행 중, `[o]` 완료, `[!]` 일시 우회.
-  `[!]`는 미완료 항목을 의도적으로 우회하지 않으면 다음 체크리스트 항목으로 진행할 수 없을 때만 쓴다.
-  작업을 계속할 수 있다면 어려운 항목을 미루기 위해 쓰지 않는다. 우회는 완료가 아니다. 항목에 원인과
-  재시도 조건을 기록하고, 재시도 조건이 충족되면 허가를 기다리지 않고 재개한다. 감사는 `[!]` 항목과
-  그 원인·재시도 조건에만 하며, 그 감사를 이유로 관련 없는 전체 테스트를 반복하지 않는다.
-- 체크리스트에는 항목과 제목만 둔다. 항목은 하이픈, 공백, 상태, 공백, ID로 시작하는 항목 줄과 그 바로 다음에
-  오는, 공백 두 칸으로 들여 쓴 줄이다. 각 항목은 의존 관계와 완료 증거를 적는다. 요구 사항은
-  `docs/spec/requirements.ko.md`에, 규칙은 이 파일에 둔다. 상태 표시는, Markdown task list가 쓰는 대괄호 안의 x나
-  대문자 X도, 항목 줄의 상태로만 쓴다. 체크리스트에는 범례가 없고 문장은 상태를 말로 적는다. `make documents-check`는
-  다른 줄이나 표시에 대해 실패하고 그 file, 줄, 열을 적는다.
-- 병렬로 작업하되 진행 중 작업을 통제한다. 서로 독립인 A, B, C, D는 동시에 진행할 수 있으며 새 작업의 시작을
-  제한하지 않는다. 기존 항목을 조금씩만 진행하면서 `[~]` 항목을 계속 추가해 미완료 항목 수만 늘리지 않는다.
-  예를 들어 A[~]와 D[~]를 함께 두는 것은 허용한다. A를 일부만 하고 D를 시작하고, D를 일부만 하고 E, F, G를
-  시작하는 것은 금지한다. 새 작업의 시작보다 진행 중 작업의 완료를 우선해 `[o]`가 지속적으로 늘게 한다.
-- 저장소 작업 지시나 새로 발견한 결함은 우선순위·수용 기준·의존 관계를 이 체크리스트에 기록하고 구현 전에 명세를
-  갱신한다. 사용자가 즉시 처리를 명시하거나 결함을 먼저 고쳐야 하는 경우가 아니면 진행 중인 작업을
-  완료한다. 다른 작업 목록을 만들지 않고 독립 항목을 병렬로 진행한다. 한 작업 트리의 미커밋 변경은
-  항목 하나만 다루며 `[o]`로 표시할 때 그 항목의 구현·테스트·기록과 변경 기록 항목을
-  하나의 커밋으로 남긴다.
-- 커밋 로그는 영문으로 `type(scope): subject (#issue)` 형식으로 쓴다: 50자 이내 명령조 대문자 시작
-  제목(끝 마침표 없음), 빈 줄, 72자 부근 개행한 본문(무엇을·왜 변경했는지), 선택적 꼬리말. 타입은
-  feat, fix, docs, style, refactor, test, chore 중 하나다. `make commits-check`는 message를 `config/commits.json`과
-  비교하고, pre-push hook은 push되는 commit을 검사한다.
-- 개발 중에는 변경을 소유한 unit 수준의 Red·Green 테스트만 실행한다. 전체 검사와 end-to-end 검사(`make check`의
-  target, 그중 ownership 검사)와 Linux build와 test는 모든 pull request,
-  merge group, 수동 실행의 GitHub CI(`.github/workflows/ci.yml`)에서 실행한다. 그 job `lint`와 `test`는 각
-  architecture에서 lint target과 test target을 실행하고, 각 CI target은 정확히 한 job에서 실행된다. 어떤 규칙도 push 전에 이것들을 로컬에서 실행하기를 요구하지 않으며,
-  pre-push hook은 진행 중 항목이 있는 push만 거부한다. 로컬 전체 실행은 요청이 있을 때만, 활성 체크리스트 항목이 모두
-  끝났을 때 한 번 하며, 수정마다, 항목마다 다시 실행하지 않는다. 모든 테스트는 자신의 실행·완료·성공·실패와
-  경과 시간을 출력하고 자기 타임아웃을 가지며, 전체 일괄 타임아웃은 쓰지 않는다. 장기 작업은 타임아웃 대신
-  상세 단계 로그로 관측한다.
-- `make check`가 이 규칙을 강제한다: 어떤 단계보다 먼저, 체크리스트 항목(하위 항목 포함)이 `[~]`인 동안, 추적하는
-  file에 commit하지 않은 변경이 있는 동안, 추적되지도 무시되지도 않는 file이 있는 동안, pre-push hook이 설치되지 않은 동안, 다른 실행이 lock을 잡은 동안, 그리고 `var/full-run.json`이 같은 tree의 전체 실행을 기록하고 있을 때
-  거부한다. commit하고 활성 항목을 모두 완료한 뒤 `make check`를 한 번 실행한다. `make rerun-failed`는 원인이
-  tree 밖(환경이나 machine 자원)에 있는 실패에 대해, 기록된 tree에서 통과하지 못한 target만 다시 실행한다. code의
-  실패는 체크리스트 항목으로 고치고, 그 commit은 새 tree를 만들며 그 전체 묶음은 활성 항목이 모두 완료되었을 때 한 번
-  실행한다. 다시 실행하려고 기록을 지우거나 고치지 않는다.
-- 완료 항목에서 새로 발견한 문제는 번호가 붙은 세부 항목으로 추가한다. 완료 항목을 `[~]`로 되돌리지 않는다.
-- 항목을 `[o]`로 표시하려면 구현, 테스트, 기록을 같은 단계에서 커밋해야 한다. 커밋되지 않은 변경은 항목 하나만
-  다룬다.
+- Own: public API나 문서에 checklist에 있는 이름 밖의 새 단어를 만들지 않는다. 새 이름이 필요하면 필요한 모든 이름을 모아 사용자에게 한 번 승인을 묻는다.
+  Enforced by: none, whether a name is new is a judgement; `make check-records` rejects the unapproved terms.
+- Own: snapshot key는 server entry와 chunk 경로 및 byte의 SHA-256, 고정된 deno_core version, library version을 포함한다. 복원된 context는 native callback에 자기 global object를 쓴다. 모든 V8 snapshot creator는 성공과 초기화 실패 때 소비하고, 설정된 timeout을 snapshot 초기화에 적용하며, 그 snapshot 하나를 process 종료까지 유지한다. 동시 worker isolate를 public V8 API로 복원하기 전에 creator를 dispose한다. 다른 bundle key는 모든 pool이 닫힌 뒤에도 명시적 오류다.
+  Enforced by: `make check-nextest`
+- Own: Svelte compiler V8 entry와 snapshot 초기화는 공통 process 계약으로 보호한다. compiler 작업은 서로 겹칠 수 있으나 snapshot 생성과 겹치거나 성공한 snapshot 뒤에 올 수 없다. compiler runtime과 snapshot creator는 process 접근을 놓기 전에 dispose한다. 실패한 snapshot은 다른 engine 진입 전에 모든 isolate를 dispose한다. 일반 Rust bundling과 render 전에 끝난 compile은 계속 지원한다.
+  Enforced by: `make check-nextest`
+- Own: 관리되는 renderer child는 stdin 종료 계약을 따른다. parent는 그 generation이 요청을 받거나 비우는 동안 stdin handle을 유지하고, 종료할 때 닫은 뒤 child의 종료를 기다리고 기록한다. stdin 소유권은 종료 관찰과 따로 관리한다. readiness task가 handle을 실수로 닫아서는 안 된다. graceful 종료 시간을 넘긴 child는 kill하고 기다리며, 종료는 그 실패를 보고한다.
+  Enforced by: `make check-nextest`
+- Own: 일반 server entry는 ECMAScript module로 `render`를 export한다. entry와 모든 private server chunk를 snapshot에 한 번 compile하고, 상대 import는 정확히 공급된 파일에 대해 해석하며, 독립된 module data를 요청 context마다 복원한다. render export는 global object 밖에 둔다. 없는 module, 잘못된 import, 끝나지 않은 평가는 오류다.
+  Enforced by: `make check-nextest`
+- Own: React framework와 application bundle은 하나의 snapshot context에서 평가해 application module 초기화와 render가 React instance 하나를 쓰게 한다. framework scheduling은 lexical binding을 갖고 application code를 평가하기 전에 global에서 제거한다. 어느 bundle도 요청마다 평가하지 않는다.
+  Enforced by: `make check-nextest`
+- Own: pool 한도와 요청 취소는 명시적이다. worker 용량은 context 정리 뒤에만 반환하고, 정리 실패는 보고하며, native 작업을 멈출 수 없으면 renderer process를 교체한다.
+  Enforced by: `make check-nextest`
+- Own: client entry는 SSR HTML이 비어 있을 때도 문서의 명시적 page render mode로 hydration이나 새 render를 고른다. 없거나 잘못된 mode는 실패한다. hydration acceptance test는 browser에서 실행되어 client hydration 뒤에도 server DOM node가 같은 node로 남는지 검증하며, bundle 텍스트 검사는 hydration을 증명하지 않는다.
+  Enforced by: `make check-nextest`
+- Own: public API 문서는 현재의 entry, pool, render method를 지목한다. 영어와 한국어 계약은 실행 가능한 사용 경로와 대조해 검사하고, API가 바뀌면 교체된 호출의 설명을 제거한다.
+  Enforced by: `make check-records`, `make docs-check`
+- Own: agent의 결정이 틀렸음이 밝혀지면 보고는 그 결정을 먼저 지목한다. `var/handoff/work.md`는 각 항목의 명세 출처를 나열하며 추적하지 않는다.
+  Enforced by: none, which decision was shown wrong is a judgement.
 
 ## 구현
 
-1. 구현 전에 명세와 수용 기준을 정의하거나 갱신한다. 올바른 기준을 테스트 통과를 위해 약화하지 않는다.
-2. 결함은 추적되는 RED 테스트로 실패를 재현한다. 아직 관측되지 않았지만 발생할 수 있는 문제는
-   그 문제를 드러낼 입력과 요구 결과를 가진 결정적인 RED 사례를 먼저 작성한다. 구현을 바꾸기 전에
-   의도한 이유로 실패하는지 확인하고 원인을 고친 뒤 같은 사례와 관련 사용 경로 테스트를 GREEN으로
-   검증한다. 사례가 문제를 드러내지 못하면 기준을 낮추지 말고 원인을 조사한다.
-   기본 동작 테스트는 소유 크레이트에 두고 실제 사용 테스트는 각 소비 크레이트에 둔다. 테스트 파일의
-   존재만으로 완료 증거가 되지 않으며 두 테스트가 실제 실행되어야 한다.
-3. 가장 단순한 완전 구현을 선택한다. 호환 계층, 대체 경로, 데이터 변환, 명시되지 않은 요구를 위한 추상화를 만들지
-   않는다. 잘못된 입력은 오류이며 그럴듯한 기본값으로 바꾸지 않는다.
-4. `polyspec-ssr-core`는 이 저장소의 다른 크레이트에 의존하지 않는다. 어댑터는 `polyspec-ssr-core`와
-   `polyspec-ssr-runtime`에만 의존한다.
-5. 의존성은 워크스페이스 매니페스트에 정확한 버전으로 고정하고 공식 릴리스 정보로 확인한다. `Cargo.lock`을
-   커밋한다.
-6. 테스트 환경이 없으면 실패이며 건너뛰지 않는다. 각 테스트는 자체 타임아웃을 가지고 시작, 통과, 실패, 건너뜀,
-   타임아웃을 경과 시간과 함께 보고한다. 종료 코드를 확인하고 파이프 뒤에 숨기지 않는다. 긴 실행 전에 10 GiB 이상의 디스크 여유 공간과
-   고정된 로컬 V8 입력을 확인한다. `make check`와 `make bench`는 공식 로컬 archive의 target,
-   SHA-256, binding과 Cargo feature를 검증한 뒤 연결한다. 입력 누락이나 변경은 실패이며 어떤 build도 V8을
-   다운로드하거나 V8 소스 빌드로 대체하지 않는다. CI runner는 `make ci-setup`(`scripts/fetch-v8.mts`)으로만 공식
-   archive와 binding을 받고, 어떤 build보다 먼저 그 SHA-256을 검증한다. cargo-nextest와 cargo-deny는
-   `mise.lock`이 고정한 digest로 mise에서만 설치한다(`make install-tools`). 긴 빌드는 전체 경과 시간 제한 없이 명령과 진행을
-   기록하고 테스트 사례에는 개별 제한 시간을 유지한다.
-7. 성능 주장은 유지되는 벤치마크(`make bench`)로 측정하고 한도를 기록한다.
-   성능은 측정하며 test나 check를 실패시키지 않는다. 한도를 넘은 측정은 경고를 출력하고 CI에서는
-   `::warning::` annotation도 출력한다. test는 동작(작업이 끝났는지, event가 일어났는지)을 assert하고
-   걸린 시간을 출력한다. `scripts/check-records.mts`는 측정한 시간에 대한 assertion을 거부한다.
-8. 이벤트가 있으면 폴링하지 않고, 심볼릭 링크와 설정의 상대 경로를 쓰지 않으며, 반복 작업에 임시 스크립트를 쓰지
-   않는다. 반복 명령은 Git에 있는 make 목표나 도구다. 심볼릭 링크와 상대 경로의 금지는
-   [PRINCIPLES.ko.md](PRINCIPLES.ko.md#repository-기준)의 S1이 제한하듯 이 저장소가 만드는 것에 적용된다.
-9. Linux는 GitHub CI의 Linux runner에서 검증한다. `.github/workflows/ci.yml`의 job `lint`와 `test`가
-   `ubuntu-24.04-arm`과 `ubuntu-24.04`에서 workspace를 lint, build, test한다. 어떤 검사도 개발 machine의
-   container 도구를 실행하지 않는다.
-10. 클라이언트 진입점은 SSR HTML이 비어 있어도 문서의 명시적인 페이지 렌더 모드로 hydration 또는 새
-    렌더를 선택한다. 모드 누락이나 잘못된 모드는 실패한다. Hydration 완료 검사는 브라우저에서 실행하고
-    클라이언트 hydration 뒤에도 서버 DOM 노드가 같은 노드인지 확인한다. 번들 텍스트 검사만으로는
-    hydration을 증명할 수 없다.
-11. 동시에 실행하는 테스트가 애플리케이션 진입점 파일을 생성하면 테스트마다 별도 디렉터리를 사용한다.
+- Own: 동작의 기본 test는 그것을 소유한 crate에, 실제 사용 test는 그것을 쓰는 각 crate에 둔다. 두 test가 모두 실행되며, test 파일이 있다는 것만으로는 증거가 아니다. `config/test-ownership.json`이 공유 동작을 각각 선언한다([test ownership](docs/operations/test-ownership.ko.md)).
+  Enforced by: `make check-ownership`
+- Own: `polyspec-ssr-core`는 이 저장소의 다른 crate에 의존하지 않고, adapter는 `polyspec-ssr-core`와 `polyspec-ssr-runtime`에만 의존한다.
+  Enforced by: `make check-deny`, `make check-ownership`
+- Own: dependency는 workspace manifest에서 정확한 version으로 고정하고 공식 release 정보로 검증한다. `Cargo.lock`은 commit한다.
+  Enforced by: `make dependency-policy-check`, `make check-deny`
+- Own: 없는 test 환경은 실패이며 skip이 아니다. 각 test는 자기 timeout을 갖고 시작, 통과, 실패, skip, timeout을 걸린 시간과 함께 보고한다. 긴 실행 전에 10 GiB 이상의 여유 disk와 고정된 로컬 V8 입력을 확인한다. `make verify-archive`는 link 전에 공식 로컬 archive의 target, SHA-256, binding, Cargo feature를 검증하며, 어떤 build도 V8을 download하거나 V8 source build로 대체하지 않는다. CI runner는 공식 archive와 binding을 `make ci-setup`(`scripts/fetch-v8.mts`)으로만 가져오고, 이는 build 전에 SHA-256을 검증한다. cargo-nextest와 cargo-deny는 mise(`make install-tools`)에서만 오며 `mise.lock`이 고정한 digest를 쓴다. 긴 build는 전체 시간 제한 없이 명령과 진행을 보고하고, test case는 개별 시간 제한을 유지한다.
+  Enforced by: `make verify-archive`, `make check-nextest`
+- Own: 성능 주장은 기록된 한도와 함께 유지되는 benchmark(`make bench`)로 측정한다. 성능은 측정하되 test나 check를 실패시키지 않는다. 한도를 넘은 측정은 CI에서 `::warning::` annotation과 함께 warning을 출력한다. test는 동작(작업이 끝났다, 사건이 일어났다)을 assert하고 걸린 시간을 출력하며, `scripts/check-records.mts`는 측정된 시간에 대한 assertion을 거부한다.
+  Enforced by: `make check-bench`, `make check-records`
+- Own: symbolic link, 설정의 상대 경로, 반복 가능한 작업을 위한 임시 script를 쓰지 않는다. 반복 가능한 명령은 make target이거나 Git의 도구다. symbolic link와 상대 경로의 금지는 [PRINCIPLES.ko.md](PRINCIPLES.ko.md#repository-기준)의 S1이 제한하듯 이 저장소가 만드는 것에 적용된다.
+  Enforced by: `make kit-check`
+- Own: Linux는 GitHub CI의 Linux runner에서 검증한다. `.github/workflows/ci.yml`의 job `lint`와 `test`가 `ubuntu-24.04-arm`과 `ubuntu-24.04`에서 workspace를 lint, build, test하며, 각 CI target은 정확히 한 job에 있다. 어떤 check도 개발 machine의 container 도구를 실행하지 않는다.
+  Enforced by: `make ci-lint`, `make ci-test`
+- Own: application entry 파일을 생성하는 동시 test는 test마다 별도의 directory를 쓴다.
+  Enforced by: `make check-nextest`
 
-## 릴리스
+## Release
 
-모든 변경은 필수 check와 함께 merge queue로 `main`에 도달하므로, `main`의 모든 commit은 전체 검사를
-통과했다. 릴리스는 `main`의 commit에 붙인 tag이고, tag를 만들고 옮기고 push하는 것은 메인테이너뿐이다.
-tag는 pull request로 올리지 않는다.
+- Own: 모든 변경은 필수 check와 함께 merge queue를 거쳐 `main`에 도달하므로 `main`의 모든 commit은 전체 check를 통과했다. release는 `main`의 commit에 대한 tag이고, tag는 maintainer만 만들고 옮기고 push하며, pull request로 올리지 않는다.
+  Enforced by: none, the live settings of GitHub are read with an administrator token that no CI job holds; `make github-ruleset-check` compares them on request.
+- Own: version을 올리는 pull request `chore(release): Release X.Y.Z (#<checklist ID>)`는 `Cargo.toml`의 `[workspace.package]`와 workspace crate에 대한 모든 `=X.Y.Z` 요구에 version X.Y.Z를 쓰고, `CHANGELOG.md`와 `CHANGELOG.ko.md`의 `## Unreleased`를 `## X.Y.Z`로 바꾸며 그 위에 비어 있는 새 `## Unreleased`를 둔다. maintainer가 병합된 `main` commit에 `vX.Y.Z` tag를 달고 push한다. tag push는 kit의 release workflow `.github/workflows/release.yml`을 실행한다. 이는 tag된 commit이 `main`에 있고 check `push-gate`와 `ci-passed`가 통과했으며, tag의 version이 `config/release.json`의 모든 manifest에 있고 `CHANGELOG.md`에 section `## X.Y.Z`가 있는지 확인하고, GitHub Release를 초안으로 만들고, 각 crate가 tag에서 해석되는지 증명한 뒤 release를 공개한다. crate는 archive로 release하지 않고 git tag로 사용한다([workspace](docs/operations/workspace.ko.md)).
+  Enforced by: `make release-versions`
 
-1. 버전 올림 pull request `chore(release): Release X.Y.Z (#<체크리스트 ID>)`는 `Cargo.toml`의
-   `[workspace.package]`와 workspace crate에 대한 모든 요구 `=X.Y.Z`의 버전을 X.Y.Z로 정하고,
-   `CHANGELOG.md`와 `CHANGELOG.ko.md`의 `## Unreleased`를 `## X.Y.Z`로 바꾸며 그 위에
-   비어 있는 새 `## Unreleased`를 둔다.
-2. 메인테이너는 merge된 `main`의 commit에 `vX.Y.Z` tag를 붙이고 tag를 push한다.
-3. tag push는 kit의 release workflow인 `.github/workflows/release.yml`을 실행한다. 이 workflow는 tag된 commit이
-   `main`에 있고 check `push-gate`와 `ci-passed`를 통과했는지, `config/release.json`의 모든 manifest에 tag의
-   버전이 있고 `CHANGELOG.md`에 section `## X.Y.Z`가 있는지 확인하고, GitHub Release를 초안으로 만들고, 각
-   crate가 tag에서 해석되는지 증명한 뒤 릴리스를 공개한다. crate는 archive로 릴리스하지 않고 git tag로
-   사용한다([워크스페이스](docs/operations/workspace.ko.md)).
+## Idempotency
 
-## 멱등성
-
-같은 tree는 언제 어느 machine에서든 같은 결과를 낸다. 한 곳에서 발견한 결함은 하나의 부류다. 이 저장소의 모든
-도구, 테스트, recipe에서 그것을 확인하고 모든 곳에서 고친다.
-
-1. 어떤 결과도 시간이나 외부 세계에 따라 달라지지 않는다. 검사는 live registry 조회(`npm outdated`, `npm audit`,
-   `npm view`, 실행 시점에 정해지는 잠금 파일, 보안 공지 database)를 하지 않고, 실행 중에 도구를 설치하지 않으며
-   (`@latest`, rustup 자동 설치), 모든 도구를 `package.json`의 `packageManager`, `rust-toolchain.toml`, `mise.lock`과 함께 `mise.toml`이 선언한 version으로 이 host와 CI에서 같은
-   방식으로 실행한다. 보안 공지는 따로 검토한다(`make review-advisories`).
-2. 테스트는 자기가 만든 것이나 자기 실행이 설치하고 검증한 것만 읽는다. 다른 실행이 남긴 build 출력, 설치된 package
-   사본, target directory, 추적되지 않는 file, 다른 checkout을 가리키는 컴파일 시점 고정 경로, checkout 사이에 공유한
-   target directory를 읽지 않는다.
-3. 다른 process가 읽는 출력은 한 단계로 게시한다. 임시 경로에 쓰고 이름을 바꾸며, 제자리에서 지우고 다시 쓰지 않는다.
-4. 한 실행은 모든 검사를 보고한다. 단계는 상태를 누적하고, 실패한 단계는 그 출력을 읽는 것만 건너뛰며, 어떤 recipe나
-   CI 단계도 첫 실패에서 멈추지 않는다(`|| exit`, `-k` 없는 `make`, `if: ${{ !cancelled() }}` 없는 CI 단계).
-5. 실패는 스스로를 설명한다. command, 그 출력, 기대 값과 실제 값을 적는다. bare timeout, "error above", 도구의 오류
-   없는 종료 상태를 쓰지 않는다.
-6. 검사는 실행되지 않고 통과할 수 없다. 빈 선택, 빈 목록, 실행되지 않는 사례는 실패한다.
-7. 테스트는 자기가 시작한 것을 회수한다. child는 자기 process group에서 실행되고 그 group을 죽인 뒤 기다리며, 임시
-   directory는 assertion이 실패해도 guard가 지운다.
-8. version이나 맥락마다 형식이 다른 출력에서 결과를 읽지 않는다. 도구 결과는 고정된 형식의 기계용 보고에서 읽고,
-   recipe는 `make -n`이 아니라 Makefile에서 읽는다.
-9. 추적되는 모든 file은 `config/owner-checks.json`에 소유 검사를 가지고, 다른 crate가 의존하는 모든 crate는
-   `config/test-ownership.json`에 선언된 동작을 가진다.
-10. 공유 상태는 한 번에 한 소유자만 가진다. 동시 실행은 자기 directory, holder lock, 내용 주소의 불변 경로를 쓰고,
-    lease 없는 공유 임시·출력 directory, database, port를 쓰지 않는다.
+- Own: 어떤 결과도 시간이나 외부 세계에 의존하지 않는다. check는 live registry 질의(`npm outdated`, `npm audit`, `npm view`, 실행 시 해석되는 lock, 보안 advisory database)를 하지 않고, 실행 시 도구를 설치하지 않으며(`@latest`, rustup 자동 설치), 모든 도구를 `package.json`의 `packageManager`, `rust-toolchain.toml`, `mise.toml`과 `mise.lock`이 선언한 version으로 이 host와 CI에서 같은 방식으로 실행한다. advisory는 따로 검토한다(`make review-advisories`).
+  Enforced by: `make kit-check`, `make toolchain-check`
+- Own: test는 자기가 만들거나 자기 실행이 설치하고 검증한 것만 읽는다. 다른 실행이 남긴 build 출력, 설치된 package 복사본, target directory, 추적되지 않는 파일, 다른 checkout을 지목하는 compile 시점 고정 경로, checkout 사이에 공유되는 target directory를 읽지 않는다.
+  Enforced by: `make check-nextest`
+- Own: 다른 process가 읽는 출력은 한 단계로 게시한다. 임시 경로에 쓰고 rename하며, 지우고 제자리에서 다시 쓰지 않는다.
+  Enforced by: none, which writes are read by other processes is judged by reading the code.
+- Own: 실행은 모든 check를 보고한다. 단계는 상태를 누적하고, 실패한 단계는 자기 출력을 읽는 것만 건너뛰며, 어떤 recipe나 CI 단계도 첫 실패에서 멈추지 않는다(`|| exit`, `-k` 없는 `make`, `if: ${{ !cancelled() }}` 없는 CI 단계).
+  Enforced by: `make check-tools`
+- Own: 실패는 스스로 설명한다. 명령, 그 출력, 기대값과 실제값을 지목하며, 맨 timeout, "위의 오류", 도구의 오류 없는 종료 상태는 없다.
+  Enforced by: none, whether a message explains itself is a judgement.
+- Own: check는 실행되지 않고는 통과할 수 없다. 빈 선택, 빈 목록, 실행되지 않는 case는 실패한다.
+  Enforced by: `make check-nextest`, `make test-markers-check`
+- Own: test는 자기가 시작한 것을 수거한다. child는 자기 process group에서 실행되어 그 group을 kill하고 기다리며, 임시 directory는 assertion이 실패해도 guard가 제거한다.
+  Enforced by: `make check-nextest`
+- Own: version이나 context에 따라 형식이 달라지는 출력에서 결과를 읽지 않는다. 도구 결과는 고정된 형식의 기계가 읽는 report에서 오고, recipe는 `make -n`이 아니라 Makefile에서 읽는다.
+  Enforced by: `make kit-check`
+- Own: 추적되는 모든 파일은 `config/owner-checks.json`에 소유 check가 있고, 다른 crate가 의존하는 모든 crate는 `config/test-ownership.json`에 선언된 동작이 있다.
+  Enforced by: `make owner-validate`, `make check-ownership`
+- Own: 공유 상태는 한 번에 한 소유자를 갖는다. 동시 실행은 자기 directory, holder lock, content-addressed 불변 경로를 쓰며, lease 없는 공유 임시 directory, 출력 directory, database, port를 쓰지 않는다.
+  Enforced by: none, which state is shared is a judgement.
 
 ## 기록
 
-- 기록은 커밋 로그, 문서, 주석, i18n 텍스트, `CHANGELOG.md`(+ `.ko.md`)다. 현재 제품과 그 변경을
-  명시적인 주체, 동작, 대상으로 비유, 의인화, 구어 없이 설명한다. 연산 이름을
-  그대로 쓴다(생성, 게시, 수신, 등록, 제거, 반환, 실패). 원인은 한 문장으로 적는다. 방원, 묶임, 진술, 남처럼,
-  읽힌다, 대가, 비켜서고, 1급, 산다, 단언, 부재, 퇴역, 죽은, 부여, 봉투, 게이트, 붙은, 가장자리, 이름으로, 말한다,
-  돈다, 회수, 센다, 자리에, 싣는다, 두지, 낸다, 답한다, 꽂으면, 나간다, 달고, 흘린다, 보낸다, 투영, 침묵, 가리킨다,
-  밝힌다, 안다, 소속은, 고아, 입양, 뺀다, 흉내, 박다, 사건, 경계, 무는지, 물어야, 재다, 죽이다, 놓으라, 잊다,
-  비싼, 유도, 덮이고 같은 단어를 제품 동작 설명에 쓰지 않는다.
-- 기록은 결함을 ssr 자체에 대한 사실, 즉 입력, 동작, 기대 동작으로 적는다. 보고자, 출처, ssr 밖의 어떤 것도 적지 않고,
-  코드의 출처, 이식 경위, 작성자나 도구 표기(Co-Authored-By 포함), 대화나 조사 경위를 담지 않는다. ssr에 대한 그런 사실이
-  없는 문장은 지운다. 그런 맥락은 Git 밖의 로컬 메모리에 둔다.
-- 영어가 원본이다. `.ko.md` 파일을 같은 변경에서 같은 정보로 갱신한다.
-- 커밋 전에 변경을 소유한 Red·Green 검사인 `make owner-check`를 실행한다. 이는 `config/owner-checks.json`에서 바뀐
-  file의 소유자를 실행한다. `make owner-validate`는 소유자가 없는 추적 file에서 실패하고, `make
-  check-records`(`scripts/check-records.mts`)는 추적되는 file에 기록 검사와 용어 검사를 실행한다.
+- Own: 기록은 commit log, 문서, 주석, i18n 텍스트, `CHANGELOG.md`(+ `.ko.md`)다. 기록은 현재 제품과 그 변경을 명시적인 주어, 동작, 목적어로, 은유, 의인화, 구어 없이 평이한 말로 적는다. 동작 이름을 직접 쓴다(create, publish, receive, register, remove, return, fail). 원인은 한 문장으로 적는다. envelope, publish, orphan, adopt, retire, dead, first-class, carries, speaks, answers 같은 단어는 제품 동작에 쓰지 않는다.
+  Enforced by: `make check-records`, `make check-commit-records`
+- Own: 기록은 결함을 ssr 자체에 관한 사실로 적는다. 입력, 동작, 기대 동작이다. 보고자, 출처, ssr 밖의 어떤 것도 지목하지 않고, code의 기원, 이식이나 migration 이력, 작성자나 도구 표기, 대화나 조사 이력을 담지 않으며, ssr에 관한 사실이 없는 문장은 삭제한다. 그런 맥락은 Git 밖의 로컬 memory에 둔다.
+  Enforced by: none, whether a sentence names a source of a decision is a judgement that no tool makes.
+- Own: 각 commit 전에, 변경을 소유한 Red와 Green check를 실행하며, `make owner-check`는 `config/owner-checks.json`의 변경된 파일의 소유자를 실행하고 `make owner-validate`는 소유자 없는 추적 파일을 실패시킨다.
+  Enforced by: `make owner-validate`

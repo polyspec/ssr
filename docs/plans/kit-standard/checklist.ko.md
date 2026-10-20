@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: 55aa65cb9223e3ac10515925a7502cacc6399c80d746acd24991ece99581b04a -->
+<!-- source-sha256: 56a332f1f4ea3a970c1bd2a9c85b42ea8c008ea3bee411aca978653d378b4aa9 -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -15,3 +15,4 @@
 | S-66 | record 검사가 계획 폴더의 체크리스트를 대체된 실행 체크리스트처럼 읽게 하고, S-58 부터 S-65 의 기록에서 record word 를 없앤다 | scripts/check-records.mts, tests/tools/check-records.test.mts, CHANGELOG.md, CHANGELOG.ko.md, docs/plans/kit-standard/ | `make tool-test-check-records`, `make check-records` | [o] |
 | S-67 | docs/ 의 문서를 kit layout (K245) 에 따라 docs/spec/ (계약과 요구사항) 과 docs/operations/ (workspace, test ownership, benchmarks) 로 옮기고 모든 참조를 고친다 | docs/spec/, docs/operations/, references in AGENTS.md, Makefile, config/, tests/, scripts/check-records.mts | `make layout-check`, `make docs-check`, `make tool-test-check-records` | [o] |
 | S-68 | tests/tools 의 도구 테스트를 CI job lint 에서 check-tools 로 실행해, 도구 테스트를 지정하는 모든 규칙이 건너뛸 수 없는 지점에서 강제되게 한다 | Makefile, tests/tools/workflows.test.mts | `make tool-test-workflows` | [o] |
+| S-69 | AGENTS.md 와 AGENTS.ko.md 를 ssr 의 규칙만으로 쓴다: 각 규칙은 Enforced by 줄을 가진 Own 이고, PRINCIPLES.md 의 되풀이와 체크리스트 절차는 제거하며, 두 언어가 같은 check 를 지목한다 | AGENTS.md, AGENTS.ko.md, config/rebuild.json, .gitignore | `make rules-check`, `make docs-check` | [o] |

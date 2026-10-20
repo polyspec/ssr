@@ -5,6 +5,12 @@
 
 ## Unreleased
 
+- AGENTS.md and AGENTS.ko.md state the rules of ssr only: each is an `Own:` rule that ends with its `Enforced by:`
+  line, the checklist protocol, the commit message format, the branch names and the other restatements of
+  PRINCIPLES.md are removed, the rules of the V8 inputs, the test ownership, the records and the CI are tied to their
+  checks, and 9 rules name no tool with their reason (S-69). Red: `make rules-check` exited with 2 and 83 findings
+  (`the rule names no check`, `begins with neither Own: nor Refines`, a twin of 40 rules against 46). Green: `make
+  rules-check` exits with 0, every rule names its check and 17 rules, 9 of them of AGENTS.md, are enforced by no tool.
 - The job `test` of `ci.yml` runs `make check-tools`, the tool tests of `tests/tools`, on each architecture, so that
   CI runs the tool tests that the rules of AGENTS.md name (S-68). Red: `make tool-test-workflows` exited with 2; `each
   architecture runs every CI target in exactly one job` lacked `check-tools`. Green: `make tool-test-workflows` exits

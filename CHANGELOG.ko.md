@@ -1,11 +1,15 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: e3771c7f4604179f3594e5cca52a25b381c81c3ffab60e344f55adca369a0286 -->
+<!-- source-sha256: 53ec8898231732ae254f22f518a699b37b4611084b99ae23709e6ad8b3db0f1e -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- AGENTS.md 와 AGENTS.ko.md 는 ssr 의 규칙만 적는다: 각 규칙은 `Enforced by:` 줄로 끝나는 `Own:` 규칙이고, 체크리스트 절차, commit message 형식,
+  branch 이름, 그 밖의 PRINCIPLES.md 되풀이는 제거하며, V8 입력, test 소유권, 기록, CI 의 규칙은 해당 check 와 연결하고, 9개 규칙은 도구 없음과 그 이유를 적는다
+  (S-69). Red: `make rules-check` 가 종료 코드 2 와 finding 83건(`the rule names no check`, `begins with neither Own: nor
+  Refines`, 규칙 40개 대 46개의 쌍)으로 실패했다. Green: `make rules-check` 가 종료 코드 0 이고 모든 규칙이 check 를 지목하며 17개 규칙(그중 AGENTS.md 의 9개)은 도구가 강제하지 않는다.
 - CI 의 `ci.yml` job `test` 는 각 architecture 에서 AGENTS.md 의 규칙이 지정하는 `tests/tools` 의 도구 테스트인 `make check-tools` 를 실행한다
   (S-68). Red: `make tool-test-workflows` 가 종료 코드 2 로 실패했고 `each architecture runs every CI target in exactly one job`
   에 `check-tools` 가 없었다. Green: `make tool-test-workflows` 가 종료 코드 0 이고 13개가 통과했다.
