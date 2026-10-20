@@ -25,9 +25,15 @@ fn main() -> ExitCode {
         }
         Err(error) => {
             eprintln!("FAIL test ownership: {error}");
-            match cargo_case::interrupted().and_then(|signal| u8::try_from(128 + signal).ok()) {
-                Some(code) => ExitCode::from(code),
-                None => ExitCode::FAILURE,
+            let Some(signal) = cargo_case::interrupted() else {
+                return ExitCode::FAILURE;
+            };
+            match u8::try_from(128 + signal) {
+                Ok(code) => ExitCode::from(code),
+                Err(conversion) => {
+                    eprintln!("FAIL test ownership: the exit status of signal {signal} is out of the range of u8: {conversion}");
+                    ExitCode::FAILURE
+                }
             }
         }
     }

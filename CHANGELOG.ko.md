@@ -6,6 +6,7 @@
 
 ## Unreleased
 
+- S-84: tests/test-ownership/src/main.rs는 중단된 실행의 종료 상태를 명시적 검사로 매핑하고, 범위를 벗어난 signal을 이유와 함께 보고한다. 이전에는 Result::ok가 이를 FAILURE로 바꿨다. red: 크레이트의 clippy 실행이 src/main.rs:28의 금지 method Result::ok를 보고했고, green: clippy 실행 통과. (S-84)
 - S-85: .golangci.yml, ruff.toml, PRINCIPLES.md, PRINCIPLES.ko.md, scripts/kit/kit-bootstrap.mk를 kit 0.0.54 복사본으로 맞추고, P8 lint 규칙과 설치 시 형제 체크아웃 링크를 포함한다. red: kit-check가 @polyspec/kit과 다른 복사본 5개를 보고했고, green: kit-check 통과. (S-85)
 - S-83: tests/test-ownership/src/cargo_case.rs는 자식 프로세스를 let _ 대신 명시적 오류 보고로 수거하고, poison된 lock 복구의 필요를 이유가 붙은 allow로 적는다. red: clippy가 cargo_case.rs:111의 disallowed unwrap_or_else와 cargo_case.rs:187의 non-binding let 두 건을 보고했고, green: 라이브러리 target의 clippy가 보고가 없고 workspace 테스트가 통과한다. (S-83)
 - S-82: packages/core/src/lib.rs의 Page::from_json은 title과 language의 kind를 검사하고 파싱 오류를 전파하므로, map_err가 오류를 버리지 않는다. red: clippy가 lib.rs:83과 86에서 오류를 버리는 map_err를 보고했고, green: lint-rust의 lint 옵션으로 polyspec-ssr-core의 clippy가 통과한다. page.rs의 단위 테스트는 통과한다. process.rs는 HEAD에서도 같은 방식으로 실패한다(process.rs:16의 Disconnected). 이는 별도의 발견이며 여기서 확인하지 않았다. (S-82)
