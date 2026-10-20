@@ -30,6 +30,8 @@ rules:
       - "!.githooks"
       - "!.kit"
       - "!.mise"
+      # kit copies .claude/settings.json, the Claude Code settings with the hook of K240.
+      - "!.claude"
       # cargo-nextest reads its configuration from .config/nextest.toml of the workspace root, by its own convention
       # (https://nexte.st/docs/configuration/); another place needs --config-file on every command.
       - "!.config"
@@ -69,7 +71,7 @@ rules:
       - "!tests/kit"
       # The tool tests: the tests of scripts/ and of the configuration of the repository (workflows, Makefile, deny.toml).
       - "!tests/tools"
-      # The check of the test ownership of config/test-ownership.json across the packages (docs/test-ownership.md).
+      # The check of the test ownership of config/test-ownership.json across the packages (docs/operations/test-ownership.md).
       - "!tests/test-ownership"
 
   - id: layout-infrastructure-typescript

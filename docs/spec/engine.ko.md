@@ -1,5 +1,5 @@
 <!-- doc-id: engine -->
-<!-- source-sha256: 9f07ca763a2b9ea03743e4591f97aa3793cf745496a43cc7991c614d15071bd2 -->
+<!-- source-sha256: 56411821395ec622999894c3442d098cc316da0a2513eba33b587100c3cdf661 -->
 [English](engine.md)
 
 # 엔진 검증
@@ -48,7 +48,7 @@ V8 버전과 feature 구성을 검사한다. `make check`, `make bench`처럼 V8
 | macOS AArch64 및 x86_64 | `ca5adf0cf89c9a70ad460ae73648b2fe89b74aa113b3cb7f757b6a02b758394f` |
 | Linux AArch64 및 x86_64 | `7727826ae479bdb645e807239fb12d1f8e2e23de7a6cf16f5ee592690d1d8506` |
 
-Linux는 GitHub CI의 Linux runner에서 검증한다([workspace](workspace.ko.md)).
+Linux는 GitHub CI의 Linux runner에서 검증한다([workspace](../operations/workspace.ko.md)).
 `ubuntu-24.04-arm`과 `ubuntu-24.04`에서 `make ci-setup`이 runner 대상의 공식 archive와 binding을
 가져와 SHA-256을 검증하고(`scripts/fetch-v8.mts`), `.github/workflows/ci.yml`의 job `lint`와 `test`가
 workspace의 모든 target에 Clippy를 실행하고(`check-clippy`), `development_process`와

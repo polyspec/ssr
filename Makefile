@@ -68,7 +68,7 @@ $(foreach test,$(TOOL_TESTS),$(eval tool-test-$(test): ; $$(NODE) $$(KIT)/run-te
 $(foreach package,$(PACKAGES),$(eval nextest-$(package): verify-archive ; cargo nextest run -p polyspec-ssr-$(package) --locked --no-tests fail))
 .PHONY: $(addprefix tool-test-,$(TOOL_TESTS)) $(addprefix nextest-,$(PACKAGES))
 
-# The test ownership of config/test-ownership.json (docs/test-ownership.md): the standalone package tests/test-ownership,
+# The test ownership of config/test-ownership.json (docs/operations/test-ownership.md): the standalone package tests/test-ownership,
 # built into the target directory of the workspace.
 check-ownership:
 	CARGO_TARGET_DIR=$(CURDIR)/target cargo run --locked --manifest-path tests/test-ownership/Cargo.toml -- $(CURDIR)
@@ -161,7 +161,7 @@ ci-push:
 	$(MAKE) --no-print-directory ci-targets TARGETS="$(CI_PUSH_TARGETS)"
 
 # The GitHub ruleset of main and the merge settings, declared in .github/ruleset.json (scripts/github-ruleset.mts,
-# docs/workspace.md): every change reaches main through a pull request and the merge queue, which requires the checks
+# docs/operations/workspace.md): every change reaches main through a pull request and the merge queue, which requires the checks
 # push-gate and ci-passed. github-ruleset creates or updates the ruleset of the declared name and the
 # settings; github-ruleset-check fails when the live ruleset or a setting differs from the declaration.
 github-ruleset:

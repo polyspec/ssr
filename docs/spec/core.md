@@ -23,8 +23,8 @@ is available to the browser for hydration. `polyspec-ssr-core` does not set cach
 or choose HTTP status codes; the HTTP server maps invalid requests and render
 failures to its responses. `CALL_PATH` is `/_render`.
 
-Acceptance: both [SSR fixture](../packages/core/tests/fixtures/ssr.json) and
-[CSR fixture](../packages/core/tests/fixtures/csr.json) parse, encode and parse
+Acceptance: both [SSR fixture](../../packages/core/tests/fixtures/ssr.json) and
+[CSR fixture](../../packages/core/tests/fixtures/csr.json) parse, encode and parse
 again without changing values or object order. Invalid cases return errors. A
 render result retains its HTML, head and output state.
 

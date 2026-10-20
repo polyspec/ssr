@@ -1,4 +1,4 @@
-//! The test ownership check (docs/test-ownership.md), run from the repository root by
+//! The test ownership check (docs/operations/test-ownership.md), run from the repository root by
 //!   cargo run --locked --manifest-path tests/test-ownership/Cargo.toml -- <repository root>
 
 use std::env;

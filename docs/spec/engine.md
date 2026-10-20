@@ -51,7 +51,7 @@ verifies the resulting dependency graph.
 | macOS AArch64 and x86_64 | `ca5adf0cf89c9a70ad460ae73648b2fe89b74aa113b3cb7f757b6a02b758394f` |
 | Linux AArch64 and x86_64 | `7727826ae479bdb645e807239fb12d1f8e2e23de7a6cf16f5ee592690d1d8506` |
 
-Linux is verified on the Linux runners of GitHub CI ([workspace](workspace.md)). On
+Linux is verified on the Linux runners of GitHub CI ([workspace](../operations/workspace.md)). On
 `ubuntu-24.04-arm` and `ubuntu-24.04`, `make ci-setup` fetches the official archive and binding of
 the runner's target and verifies their SHA-256 (`scripts/fetch-v8.mts`); the jobs `lint` and `test`
 of `.github/workflows/ci.yml` then run Clippy on every target of the workspace (`check-clippy`),

@@ -172,7 +172,7 @@ const isFile = (file: string): boolean => existsSync(file) && statSync(file).isF
 export function checkReactDocument(root: string): string[] {
   const errors: string[] = [];
   for (const name of ['react.md', 'react.ko.md']) {
-    const file = path.join(root, 'docs', name);
+    const file = path.join(root, 'docs/spec', name);
     if (!isFile(file)) {
       errors.push(`${file}: React adapter document is missing`);
       continue;
@@ -182,7 +182,7 @@ export function checkReactDocument(root: string): string[] {
     if (content.includes('`Pool::new`')) errors.push(`${file}: obsolete React Pool::new contract`);
   }
   for (const name of ['runtime.md', 'runtime.ko.md']) {
-    const file = path.join(root, 'docs', name);
+    const file = path.join(root, 'docs/spec', name);
     if (!isFile(file)) {
       errors.push(`${file}: React runtime document is missing`);
       continue;

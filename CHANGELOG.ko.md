@@ -1,11 +1,17 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 2e62e559f06ac8a217395d638e8bfea7fc945fa8c7256cfe7b852ed5d26673a3 -->
+<!-- source-sha256: d4f54b2b065971d3b885ec0cc8600c1dc6dab93c26bc1510fd363a82afe97346 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- 계약과 요구사항은 `docs/spec/` (`build`, `core`, `engine`, `react`, `requirements`, `runtime`, `server`, `svelte`,
+  `vanilla`, `vue`) 에, 절차는 `docs/operations/` (`benchmarks`, `test-ownership`, `workspace`) 에 한국어 쌍과 함께 두어 kit layout
+  을 따르고, link, `AGENTS.md`, Makefile, owner, React 문서 검사와 그 test 가 새 경로를 가리키며, `config/layout.yml` 은 kit 이 복사하는 Claude
+  Code 설정 폴더 `.claude` 를 허용한다 (S-67). Red: `make layout-check` 가 종료 코드 2 와 오류 27건(`docs/` 문서 26개, `.claude`)으로 실패했다.
+  Green: `make layout-check` 가 모든 규칙을 통과하고 `make docs-check` 와 `make owner-validate` 가 종료 코드 0 이며 `make
+  tool-test-check-records` 와 `make tool-test-test-ownership` 이 통과한다.
 - Composer link는 Composer가 스스로 설치하는 `symlink` path repository이다(K304-1): link는 git이 무시하는 `composer.link.json`(추적되는
   `composer.json`에 provider 폴더마다 path repository를 repositories 앞에 두고 lock의 릴리스를 version으로 쓴 것)과 lock의 사본을 쓰고
   `COMPOSER=composer.link.json composer update <연결된 polyspec 패키지와 자기 path 패키지>`를 실행한다. 설치된 폴더는 심볼릭 링크이고 기록, autoload

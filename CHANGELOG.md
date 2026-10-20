@@ -5,6 +5,13 @@
 
 ## Unreleased
 
+- The contracts and requirements are in `docs/spec/` (`build`, `core`, `engine`, `react`, `requirements`, `runtime`,
+  `server`, `svelte`, `vanilla`, `vue`) and the procedures in `docs/operations/` (`benchmarks`, `test-ownership`,
+  `workspace`), with their Korean twins, as the layout of kit requires; the links, `AGENTS.md`, the Makefile, the
+  owners, the React document check and its tests name the new paths, and `config/layout.yml` keeps `.claude`, the
+  folder of the Claude Code settings that kit copies (S-67). Red: `make layout-check` exited with 2 and 27 errors (26
+  documents in `docs/`, `.claude`). Green: `make layout-check` passes all rules, `make docs-check` and `make
+  owner-validate` exit with 0, and `make tool-test-check-records` and `make tool-test-test-ownership` pass.
 - A Composer link is a path repository with `symlink` that Composer itself installs (K304-1): link writes a
   git-ignored `composer.link.json` (the tracked `composer.json` with a path repository per provider folder in front of
   its repositories, the locked release as the version) and a copy of the lock, and runs `COMPOSER=composer.link.json

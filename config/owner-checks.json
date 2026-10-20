@@ -345,10 +345,10 @@
     },
     {
       "paths": [
-        "docs/react.md",
-        "docs/react.ko.md",
-        "docs/runtime.md",
-        "docs/runtime.ko.md"
+        "docs/spec/react.md",
+        "docs/spec/react.ko.md",
+        "docs/spec/runtime.md",
+        "docs/spec/runtime.ko.md"
       ],
       "targets": [
         "docs-check",

@@ -105,7 +105,7 @@ An unresolved import or asset must fail the build.
 
 The tests of `polyspec-ssr-build` in `packages/build/tests/build.rs` build this sample, the
 application of `packages/build/tests/fixtures`, with the pinned packages of its lock, which the nextest setup
-script `install-packages` installs ([workspace](workspace.md)); `make check` and CI run them.
+script `install-packages` installs ([workspace](../operations/workspace.md)); `make check` and CI run them.
 The workspace uses the CSS library from the branch `ssr/bundler-without-sourcemap` of
 `github.com/min-median-max/lightningcss` at `ddead301`, the crates.io `1.0.0-alpha.72` source with
 the source-map feature moved from the bundler to the command line, so the bundler does not depend
@@ -148,7 +148,7 @@ identify the original stylesheet for CSS module names and `url()` references. Th
 library's tests pass with and without source-map support (120 and 117 tests respectively).
 `make check-deny` checks the bans, licenses and sources of the workspace. The required Rolldown
 graph uses xxhash-rust 0.8.18 and dragonbox_ecma 0.1.12; exact-version license exceptions are
-recorded in [workspace.md](workspace.md).
+recorded in [workspace.md](../operations/workspace.md).
 
 Rolldown 1.2.11 rejects CSS modules with an explicit unsupported feature error. The selected
 replacement for CSS is Lightning CSS's bundler with a package-aware `SourceProvider` and explicit

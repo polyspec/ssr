@@ -146,7 +146,7 @@ declared value, when a declared repository field differs or the live ruleset is 
 administration access to the repository. `tests/tools/github-ruleset.test.mts` runs `scripts/github-ruleset.mts`
 against a fake `gh`.
 
-A release is a tag `vX.Y.Z` of a commit of `main` ([release procedure](../AGENTS.md)); it releases the packages of
+A release is a tag `vX.Y.Z` of a commit of `main` ([release procedure](../../AGENTS.md)); it releases the packages of
 `packages/` at version X.Y.Z. A crate is not released as an archive; it is consumed by git tag, because `cargo package`
 rewrites git dependencies, such as `polyspec-ordered-json`, into crates.io requirements that do not resolve. The push of
 the tag runs `.github/workflows/release.yml`, the release workflow of kit, which `make kit-sync` copies and `make

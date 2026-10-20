@@ -1,5 +1,5 @@
 <!-- doc-id: workspace -->
-<!-- source-sha256: be3bc8560ee94a4c18d6c8562fa3b4d62c33ce8f3f609c26d7aaf696027d6ab8 -->
+<!-- source-sha256: 27e86bfefbacfb3483bada645cf8064a95ad34c5d1b715b1637475d96e146652 -->
 [English](workspace.md)
 
 # 워크스페이스
@@ -128,7 +128,7 @@ check가 실패하면 pull request는 queue에서 빠지고 `main`은 움직이�
 선언 값으로 적고 실패한다. 둘 다 저장소 administration 권한이 있는 인증된 `gh`가 필요하다. `tests/tools/github-ruleset.test.mts`는
 가짜 `gh`로 `scripts/github-ruleset.mts`를 실행한다.
 
-릴리스는 `main`의 commit에 붙인 tag `vX.Y.Z`이고([릴리스 절차](../AGENTS.ko.md)), `packages/`의 package를 버전 X.Y.Z로
+릴리스는 `main`의 commit에 붙인 tag `vX.Y.Z`이고([릴리스 절차](../../AGENTS.ko.md)), `packages/`의 package를 버전 X.Y.Z로
 릴리스한다. crate는 archive로 릴리스하지 않고 git tag로 사용한다. `cargo package`는 `polyspec-ordered-json` 같은 git
 의존성을 해석되지 않는 crates.io 요구로 바꾸기 때문이다. tag의 push는 kit의 release workflow인 `.github/workflows/release.yml`을 실행한다. `make kit-sync`가 이를 복사하고 `make
 kit-check`가 비교한다. 그 step은 kit의 package를 설치한 뒤 다음 순서로 실행하고 첫 실패에서 멈춘다: `make

@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: e5467b68881c9703ffa86b22bcd6b25dc2574d51ef8c4deb32407a05e365594c -->
+<!-- source-sha256: e511b0cfd6cc28108afbcf90beb8d700aacd42ecf05afb1df8fef7651b78c827 -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -13,3 +13,4 @@
 | S-64 | make hooks 가 쓰는 kit 0.0.54 의 pre-commit hook 을 pre-push 와 함께 추적한다 | .githooks/ | `make hooks-check` | [o] |
 | S-65 | scripts/ 의 도구 소스 7개를 config/rebuild.json 에서 분류한다 (S1): ecosystem, 또는 지키는 규칙을 적은 policy | config/rebuild.json, config/owner-checks.json | `make rebuild-check` | [o] |
 | S-66 | record 검사가 계획 폴더의 체크리스트를 대체된 실행 체크리스트처럼 읽게 하고, S-58 부터 S-65 의 기록에서 record word 를 없앤다 | scripts/check-records.mts, tests/tools/check-records.test.mts, CHANGELOG.md, CHANGELOG.ko.md, docs/plans/kit-standard/ | `make tool-test-check-records`, `make check-records` | [o] |
+| S-67 | docs/ 의 문서를 kit layout (K245) 에 따라 docs/spec/ (계약과 요구사항) 과 docs/operations/ (workspace, test ownership, benchmarks) 로 옮기고 모든 참조를 고친다 | docs/spec/, docs/operations/, references in AGENTS.md, Makefile, config/, tests/, scripts/check-records.mts | `make layout-check`, `make docs-check`, `make tool-test-check-records` | [o] |

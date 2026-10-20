@@ -1,5 +1,5 @@
 <!-- doc-id: build -->
-<!-- source-sha256: 2acfb429d7683e9d8c350c618025b518f63140dc192f8cda7fe19708675fdd8c -->
+<!-- source-sha256: b447558b3b2d5e8a17b8833f2285b92e70fdb973a265a3fa54a5a44575eac24c -->
 [English](build.md)
 
 # 빌드 검증
@@ -93,7 +93,7 @@ React 렌더링 코드가 있어야 하며 동적 import는 별도 청크를 출
 
 `packages/build/tests/build.rs`의 `polyspec-ssr-build` 테스트는 이 샘플, 즉 `packages/build/tests/fixtures`의
 애플리케이션을 nextest setup script `install-packages`가 설치한 잠금 파일의 고정 패키지로 빌드한다
-([워크스페이스](workspace.ko.md)). `make check`와 CI가 이 테스트를 실행한다.
+([워크스페이스](../operations/workspace.ko.md)). `make check`와 CI가 이 테스트를 실행한다.
 워크스페이스는 `github.com/min-median-max/lightningcss`의 branch `ssr/bundler-without-sourcemap`의 `ddead301`에서
 CSS 라이브러리를 쓴다. 이것은 crates.io `1.0.0-alpha.72` 소스에서 소스맵 feature를 번들러에서 명령줄로 옮긴 것이므로
 번들러는 `parcel_sourcemap`과 `rkyv 0.7`(RUSTSEC-2026-0235)에 의존하지 않는다. 워크스페이스 매니페스트는 그
@@ -134,7 +134,7 @@ CSS 라이브러리는 이제 번들링의 소스맵 지원을 선택적으로 �
 소스맵 사용 시 120개, 사용하지 않을 때 117개가 통과했다. `make check-deny`는 워크스페이스의
 금지 목록, 라이선스, 출처를 검사한다. 필요한 Rolldown 의존성의 정확한 버전인
 xxhash-rust 0.8.18과 dragonbox_ecma 0.1.12의 라이선스 예외는
-[workspace.ko.md](workspace.ko.md)에 기록했다.
+[workspace.ko.md](../operations/workspace.ko.md)에 기록했다.
 
 rolldown 1.2.11은 CSS 모듈에 명시적인 미지원 오류를 반환한다. 선택한 CSS 대체 방법은
 패키지를 해석하는 `SourceProvider`와 명시적인 자산 URL 치환을 포함한 Lightning CSS

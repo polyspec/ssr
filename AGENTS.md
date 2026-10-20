@@ -63,7 +63,7 @@ repository are in [PRINCIPLES.md](PRINCIPLES.md); this file states the rules of 
   rebase gives the merged commits new hashes, so `git pull --rebase` drops the local commits that the
   queue merged. `make github-ruleset` creates or updates the ruleset and the declared repository
   settings, and `make github-ruleset-check` fails when they differ from the declaration
-  ([workspace](docs/workspace.md)).
+  ([workspace](docs/operations/workspace.md)).
 - Name branches `{type}/{shortname}-{checklist ID}` and worktrees
   `{project}-{shortname}-{checklist ID}`. After integrating a branch into `main`, verify its commits
   or equivalent changes are present and its worktree is clean. Before removal, preserve any files
@@ -149,7 +149,7 @@ Generated files are never tracked in Git. This covers dependency installs (`node
 - The checklists hold only items and headings. An item is an item line, which starts with a hyphen,
   a space, its state, a space and its ID, and the lines indented by two spaces that directly follow
   it. Each item names its dependencies and its completion evidence. Requirements are in
-  `docs/requirements.md`; rules are in this file. A state marker, also an x or a capital X between
+  `docs/spec/requirements.md`; rules are in this file. A state marker, also an x or a capital X between
   brackets as Markdown task lists write it, appears only as the state of an item line; the
   checklists have no legend, and their texts name states in words. `make documents-check` fails for
   any other line or marker and names its file, line and column.
@@ -253,7 +253,7 @@ creates, moves or pushes a tag; a tag is never raised through a pull request.
    commit on `main` with the checks `push-gate` and `ci-passed` passed, the version of the tag in every
    manifest of `config/release.json` and the section `## X.Y.Z` in `CHANGELOG.md`, creates the GitHub
    Release as a draft, proves that each crate resolves from the tag and makes the release public; a crate is
-   not released as an archive and is consumed by git tag ([workspace](docs/workspace.md)).
+   not released as an archive and is consumed by git tag ([workspace](docs/operations/workspace.md)).
 
 ## Idempotency
 

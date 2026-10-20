@@ -1,4 +1,4 @@
-//! Validate and execute the tests declared for shared workspace behavior (docs/test-ownership.md).
+//! Validate and execute the tests declared for shared workspace behavior (docs/operations/test-ownership.md).
 //!
 //! The declaration `config/test-ownership.json` maps the public root names of every crate that another workspace
 //! crate depends on to one owner test and one consumer test in every crate that uses them. Every location comes from

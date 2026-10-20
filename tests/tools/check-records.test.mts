@@ -228,7 +228,7 @@ const RUNTIME = '`Pool::new_react` `Pool::render_stream` `setTimeout`';
 test('a missing stream API and the old Pool::new are errors of the React document', t => {
   const root = temporary(t);
   write(root, {
-    'docs/react.md': '`Pool::new`', 'docs/react.ko.md': CONTRACT, 'docs/runtime.md': RUNTIME, 'docs/runtime.ko.md': RUNTIME,
+    'docs/spec/react.md': '`Pool::new`', 'docs/spec/react.ko.md': CONTRACT, 'docs/spec/runtime.md': RUNTIME, 'docs/spec/runtime.ko.md': RUNTIME,
   });
   const errors = checkReactDocument(root);
   assert.ok(errors.some(error => error.includes('obsolete React Pool::new')));
@@ -238,15 +238,15 @@ test('a missing stream API and the old Pool::new are errors of the React documen
 test('both React documents require the current API', t => {
   const root = temporary(t);
   write(root, {
-    'docs/react.md': CONTRACT, 'docs/react.ko.md': CONTRACT, 'docs/runtime.md': RUNTIME, 'docs/runtime.ko.md': RUNTIME,
+    'docs/spec/react.md': CONTRACT, 'docs/spec/react.ko.md': CONTRACT, 'docs/spec/runtime.md': RUNTIME, 'docs/spec/runtime.ko.md': RUNTIME,
   });
   assert.deepEqual(checkReactDocument(root), []);
 });
 
 test('a missing React document is named', t => {
   const root = temporary(t);
-  write(root, { 'docs/react.md': CONTRACT, 'docs/runtime.md': RUNTIME });
+  write(root, { 'docs/spec/react.md': CONTRACT, 'docs/spec/runtime.md': RUNTIME });
   assert.deepEqual(checkReactDocument(root), [
-    `${path.join(root, 'docs/react.ko.md')}: React adapter document is missing`,
-    `${path.join(root, 'docs/runtime.ko.md')}: React runtime document is missing`]);
+    `${path.join(root, 'docs/spec/react.ko.md')}: React adapter document is missing`,
+    `${path.join(root, 'docs/spec/runtime.ko.md')}: React runtime document is missing`]);
 });

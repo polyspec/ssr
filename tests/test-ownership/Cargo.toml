@@ -1,4 +1,4 @@
-# The test ownership check (docs/test-ownership.md): validates config/test-ownership.json against the workspace and
+# The test ownership check (docs/operations/test-ownership.md): validates config/test-ownership.json against the workspace and
 # runs the declared tests once on one workspace build. A standalone package with its own lock file, run by
 #   cargo run --locked --manifest-path tests/test-ownership/Cargo.toml -- <repository root>
 [package]

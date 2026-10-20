@@ -1,5 +1,5 @@
 <!-- doc-id: agents -->
-<!-- source-sha256: 3ea8b0218074ee5d7a5a8603a50b7d7972063b37176cd2ca1aa2c6094fcf3f85 -->
+<!-- source-sha256: c89c9d0e2dcc8a48c9f1de8417ab0987a73c19608677b9b5d6514a63a483d196 -->
 # 개발 절차
 
 사용자의 지시가 우선한다. [English](AGENTS.md). 모든 polyspec 저장소의 작업 원칙은
@@ -58,7 +58,7 @@
   거부한다. merge queue는 대기열의 각 pull request를 `main` 위로 rebase한 merge group으로 만들고, 그 commit에서 필수
   check를 실행해 통과하면 `main`을 그 commit으로 옮긴다. rebase는 merge된 commit에 새 hash를 주므로 `git pull --rebase`가
   queue가 merge한 로컬 commit을 버린다. `make github-ruleset`은 ruleset과 선언된 저장소 설정을 만들거나 갱신하고,
-  `make github-ruleset-check`는 그것들이 선언과 다르면 실패한다([워크스페이스](docs/workspace.ko.md)).
+  `make github-ruleset-check`는 그것들이 선언과 다르면 실패한다([워크스페이스](docs/operations/workspace.ko.md)).
 - 브랜치는 `{type}/{shortname}-{체크리스트 ID}`, 워크트리는 `{프로젝트}-{shortname}-{체크리스트 ID}`로
   이름 짓는다. 브랜치를 `main`에 통합한 뒤 커밋이나 동등한 변경이 반영됐고 워크트리가 깨끗한지 확인한다.
   삭제할 워크트리에만 있는 `.gitignore` 제외 파일 중 계속 필요한 파일은 먼저 다른 곳에 보존한다.
@@ -133,7 +133,7 @@
   그 원인·재시도 조건에만 하며, 그 감사를 이유로 관련 없는 전체 테스트를 반복하지 않는다.
 - 체크리스트에는 항목과 제목만 둔다. 항목은 하이픈, 공백, 상태, 공백, ID로 시작하는 항목 줄과 그 바로 다음에
   오는, 공백 두 칸으로 들여 쓴 줄이다. 각 항목은 의존 관계와 완료 증거를 적는다. 요구 사항은
-  `docs/requirements.ko.md`에, 규칙은 이 파일에 둔다. 상태 표시는, Markdown task list가 쓰는 대괄호 안의 x나
+  `docs/spec/requirements.ko.md`에, 규칙은 이 파일에 둔다. 상태 표시는, Markdown task list가 쓰는 대괄호 안의 x나
   대문자 X도, 항목 줄의 상태로만 쓴다. 체크리스트에는 범례가 없고 문장은 상태를 말로 적는다. `make documents-check`는
   다른 줄이나 표시에 대해 실패하고 그 file, 줄, 열을 적는다.
 - 병렬로 작업하되 진행 중 작업을 통제한다. 서로 독립인 A, B, C, D는 동시에 진행할 수 있으며 새 작업의 시작을
@@ -221,7 +221,7 @@ tag는 pull request로 올리지 않는다.
    `main`에 있고 check `push-gate`와 `ci-passed`를 통과했는지, `config/release.json`의 모든 manifest에 tag의
    버전이 있고 `CHANGELOG.md`에 section `## X.Y.Z`가 있는지 확인하고, GitHub Release를 초안으로 만들고, 각
    crate가 tag에서 해석되는지 증명한 뒤 릴리스를 공개한다. crate는 archive로 릴리스하지 않고 git tag로
-   사용한다([워크스페이스](docs/workspace.ko.md)).
+   사용한다([워크스페이스](docs/operations/workspace.ko.md)).
 
 ## 멱등성
 
