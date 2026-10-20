@@ -46,7 +46,7 @@ fn full_change_queue_reports_the_rejected_result_and_stops_supervision() {
     use super::{DevelopmentError, ProcessOptions, Supervisor};
     use std::sync::{Arc, RwLock};
     use std::time::Duration;
-    let current = Arc::new(RwLock::new(Err(DevelopmentError("preparing".into()))));
+    let current = Arc::new(RwLock::new(Err(DevelopmentError::new("preparing"))));
     let (changes, _receiver) = tokio::sync::mpsc::channel(1);
     let options = ProcessOptions {
         ready_timeout: Duration::from_secs(1),
@@ -65,7 +65,7 @@ fn full_change_queue_reports_the_rejected_result_and_stops_supervision() {
     );
     supervisor.report(Ok(()), false);
     supervisor.report(
-        Err(DevelopmentError("render preparation failed".into())),
+        Err(DevelopmentError::new("render preparation failed")),
         true,
     );
     assert!(supervisor.observer_failed);
@@ -158,7 +158,7 @@ async fn events_during_a_build_start_one_follow_up_build() {
         .env("PROCESS_LOG", &log)
         .env("PROCESS_BUILD_HOLD", &hold.0);
     let render_log = log.clone();
-    let current = Arc::new(RwLock::new(Err(DevelopmentError("preparing".into()))));
+    let current = Arc::new(RwLock::new(Err(DevelopmentError::new("preparing"))));
     let (changes, mut results) = tokio::sync::mpsc::channel(32);
     let supervisor = Supervisor::new(
         Arc::clone(&current),

@@ -139,10 +139,10 @@ impl Tree {
                     events.push(Event::new(EventKind::Remove(RemoveKind::Any)).add_path(child));
                 }
                 Err(error) => {
-                    return Err(DevelopmentError(format!(
+                    return Err(DevelopmentError::with_source(format!(
                         "source watch of {} failed: {error}",
                         child.display()
-                    )));
+                    ), error));
                 }
             }
         }
@@ -200,19 +200,19 @@ impl Tree {
             Ok(entries) => entries,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
             Err(error) => {
-                return Err(DevelopmentError(format!(
+                return Err(DevelopmentError::with_source(format!(
                     "source watch of {} failed: {error}",
                     directory.display()
-                )));
+                ), error));
             }
         };
         let mut found = Vec::new();
         for entry in entries {
             let entry = entry.map_err(|e| {
-                DevelopmentError(format!(
+                DevelopmentError::with_source(format!(
                     "source watch of {} failed: {e}",
                     directory.display()
-                ))
+                ), e)
             })?;
             let path = entry.path();
             if self.watched.contains_key(&path) || self.is_excluded(&path) {
@@ -222,10 +222,10 @@ impl Tree {
                 Ok(file_type) => file_type,
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
                 Err(error) => {
-                    return Err(DevelopmentError(format!(
+                    return Err(DevelopmentError::with_source(format!(
                         "source watch of {} failed: {error}",
                         path.display()
-                    )));
+                    ), error));
                 }
             };
             if file_type.is_dir() {
@@ -286,24 +286,24 @@ impl Walk {
         while let Some(directory) = pending.pop() {
             let mut count = 0;
             let entries = std::fs::read_dir(&directory).map_err(|e| {
-                DevelopmentError(format!(
+                DevelopmentError::with_source(format!(
                     "source walk of {} failed: {e}",
                     directory.display()
-                ))
+                ), e)
             })?;
             for entry in entries {
                 let entry = entry.map_err(|e| {
-                    DevelopmentError(format!(
+                    DevelopmentError::with_source(format!(
                         "source walk of {} failed: {e}",
                         directory.display()
-                    ))
+                    ), e)
                 })?;
                 let path = entry.path();
                 if excluded.iter().any(|excluded| path.starts_with(excluded)) {
                     continue;
                 }
                 let file_type = entry.file_type().map_err(|e| {
-                    DevelopmentError(format!("source walk of {} failed: {e}", path.display()))
+                    DevelopmentError::with_source(format!("source walk of {} failed: {e}", path.display()), e)
                 })?;
                 if file_type.is_dir() && mode == RecursiveMode::Recursive {
                     count += 1;
@@ -357,7 +357,7 @@ pub(super) fn descriptor_limit(
 fn ensure_descriptors(path: &Path, walk: &Walk) -> Result<(), DevelopmentError> {
     use rustix::process::{Resource, getrlimit, setrlimit};
     let open = std::fs::read_dir("/dev/fd")
-        .map_err(|e| DevelopmentError(format!("open descriptor count failed: {e}")))?
+        .map_err(|e| DevelopmentError::with_source(format!("open descriptor count failed: {e}"), e))?
         .count() as u64;
     let limit = getrlimit(Resource::Nofile);
     let soft = limit.current.unwrap_or(u64::MAX);
@@ -380,9 +380,10 @@ fn ensure_descriptors(path: &Path, walk: &Walk) -> Result<(), DevelopmentError> 
                 },
             )
             .map_err(|e| {
-                DevelopmentError(describe(format!(
-                    "{soft}; raising it to {raised} failed: {e}"
-                )))
+                DevelopmentError::with_source(
+                    describe(format!("{soft}; raising it to {raised} failed: {e}")),
+                    e,
+                )
             })?;
             tracing::info!(
                 path = %path.display(),
@@ -394,7 +395,7 @@ fn ensure_descriptors(path: &Path, walk: &Walk) -> Result<(), DevelopmentError> 
             );
             Ok(())
         }
-        Err(hard) => Err(DevelopmentError(describe(format!(
+        Err(hard) => Err(DevelopmentError::new(describe(format!(
             "{soft} (hard limit {hard})"
         )))),
     }
@@ -420,16 +421,16 @@ impl Kernel for Queue {
                     tracing::debug!(path = %path.display(), "source path disappeared before its registration");
                 }
                 Err(error) => {
-                    return Err(DevelopmentError(format!(
+                    return Err(DevelopmentError::with_source(format!(
                         "source watch of {} failed: {error}",
                         path.display()
-                    )));
+                    ), error));
                 }
             }
         }
         self.0
             .watch()
-            .map_err(|e| DevelopmentError(format!("source watch registration failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("source watch registration failed: {e}"), e))?;
         Ok(registered)
     }
 
@@ -437,7 +438,7 @@ impl Kernel for Queue {
         self.0
             .remove_filename(path, EventFilter::EVFILT_VNODE)
             .map_err(|e| {
-                DevelopmentError(format!("source unwatch of {} failed: {e}", path.display()))
+                DevelopmentError::with_source(format!("source unwatch of {} failed: {e}", path.display()), e)
             })
     }
 }
@@ -462,10 +463,10 @@ impl Kqueue {
     fn send(&mut self, command: Command) -> Result<(), DevelopmentError> {
         self.commands
             .send(command)
-            .map_err(|e| DevelopmentError(format!("source watch stopped: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("source watch stopped: {e}"), e))?;
         self.wake
             .write_all(&[0])
-            .map_err(|e| DevelopmentError(format!("source watch wake failed: {e}")))
+            .map_err(|e| DevelopmentError::with_source(format!("source watch wake failed: {e}"), e))
     }
 }
 
@@ -477,7 +478,7 @@ impl SourceWatch for Kqueue {
         self.send(Command::Add(path.to_path_buf(), mode, reply))?;
         result
             .recv()
-            .map_err(|e| DevelopmentError(format!("source watch stopped: {e}")))?
+            .map_err(|e| DevelopmentError::with_source(format!("source watch stopped: {e}"), e))?
     }
 }
 
@@ -499,14 +500,14 @@ pub(super) fn start(
     excluded: Vec<PathBuf>,
 ) -> Result<Box<dyn SourceWatch>, DevelopmentError> {
     let (mut wake_reader, wake) =
-        std::io::pipe().map_err(|e| DevelopmentError(format!("source watch pipe failed: {e}")))?;
+        std::io::pipe().map_err(|e| DevelopmentError::with_source(format!("source watch pipe failed: {e}"), e))?;
     let mut watcher = kqueue::Watcher::new()
-        .map_err(|e| DevelopmentError(format!("source watch queue failed: {e}")))?;
+        .map_err(|e| DevelopmentError::with_source(format!("source watch queue failed: {e}"), e))?;
     let wake_fd = wake_reader.as_raw_fd();
     watcher
         .add_fd(wake_fd, EventFilter::EVFILT_READ, FilterFlag::empty())
         .and_then(|()| watcher.watch())
-        .map_err(|e| DevelopmentError(format!("source watch queue failed: {e}")))?;
+        .map_err(|e| DevelopmentError::with_source(format!("source watch queue failed: {e}"), e))?;
     let (commands, received) = mpsc::channel();
     let mut tree = Tree::new(excluded.clone());
     let thread = std::thread::Builder::new()
@@ -555,7 +556,7 @@ pub(super) fn start(
                         };
                         match tree.change(&mut queue, Path::new(&path), change) {
                             Ok(events) => events.into_iter().for_each(|event| handler(Ok(event))),
-                            Err(error) => handler(Err(notify::Error::generic(&error.0))),
+                            Err(error) => handler(Err(notify::Error::generic(&error.to_string()))),
                         }
                     }
                     (ident, EventData::Error(error))
@@ -569,7 +570,7 @@ pub(super) fn start(
                 }
             }
         })
-        .map_err(|e| DevelopmentError(format!("source watch thread failed: {e}")))?;
+        .map_err(|e| DevelopmentError::with_source(format!("source watch thread failed: {e}"), e))?;
     Ok(Box::new(Kqueue {
         excluded,
         commands,

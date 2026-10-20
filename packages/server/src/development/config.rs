@@ -18,8 +18,7 @@ impl ProcessOptions {
             || self.event_capacity == 0
             || self.max_probe_bytes == 0
         {
-            return Err(DevelopmentError(
-                "process timeouts and capacities must be positive".into(),
+            return Err(DevelopmentError::new("process timeouts and capacities must be positive",
             ));
         }
         Ok(())
@@ -35,8 +34,7 @@ pub(super) fn validate_excluded(path: &Path) -> Result<(), DevelopmentError> {
             )
         })
     {
-        return Err(DevelopmentError(
-            "excluded path must be absolute without dot components".into(),
+        return Err(DevelopmentError::new("excluded path must be absolute without dot components",
         ));
     }
     let mut existing = path;
@@ -44,24 +42,23 @@ pub(super) fn validate_excluded(path: &Path) -> Result<(), DevelopmentError> {
         match std::fs::symlink_metadata(existing) {
             Ok(_) => {
                 let canonical = existing.canonicalize().map_err(|error| {
-                    DevelopmentError(format!("excluded path inspection failed: {error}"))
+                    DevelopmentError::with_source(format!("excluded path inspection failed: {error}"), error)
                 })?;
                 if canonical != existing {
-                    return Err(DevelopmentError(
-                        "excluded path contains symbolic links".into(),
+                    return Err(DevelopmentError::new("excluded path contains symbolic links",
                     ));
                 }
                 return Ok(());
             }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
                 existing = existing.parent().ok_or_else(|| {
-                    DevelopmentError("excluded path has no existing parent".into())
+                    DevelopmentError::new("excluded path has no existing parent")
                 })?;
             }
             Err(error) => {
-                return Err(DevelopmentError(format!(
+                return Err(DevelopmentError::with_source(format!(
                     "excluded path inspection failed: {error}"
-                )));
+                ), error));
             }
         }
     }
@@ -79,5 +76,22 @@ mod tests {
         );
         assert!(validate_excluded(Path::new("relative/generated")).is_err());
         assert!(validate_excluded(Path::new("/app/../generated")).is_err());
+    }
+
+    #[test]
+    fn inspection_failure_keeps_the_io_error_as_source() {
+        let error = validate_excluded(Path::new("/dev/null/generated")).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .starts_with("excluded path inspection failed: "),
+            "{error}"
+        );
+        let source = std::error::Error::source(&error)
+            .expect("the mapped error keeps the original error as its source");
+        assert!(
+            source.downcast_ref::<std::io::Error>().is_some(),
+            "source is {source:?}"
+        );
     }
 }

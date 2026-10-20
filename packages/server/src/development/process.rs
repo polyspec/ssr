@@ -34,20 +34,19 @@ impl Generation {
         mut request: Request<Vec<u8>>,
     ) -> Result<Response<Incoming>, DevelopmentError> {
         if request.uri().scheme().is_some() || request.uri().authority().is_some() {
-            return Err(DevelopmentError(
-                "request URI must contain only a path and query".into(),
+            return Err(DevelopmentError::new("request URI must contain only a path and query",
             ));
         }
         let path = request
             .uri()
             .path_and_query()
-            .ok_or_else(|| DevelopmentError("request path is missing".into()))?;
+            .ok_or_else(|| DevelopmentError::new("request path is missing"))?;
         let stream = UnixStream::connect(&self.socket)
             .await
-            .map_err(|e| DevelopmentError(format!("render socket connection failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("render socket connection failed: {e}"), e))?;
         let (mut sender, connection) = hyper::client::conn::http1::handshake(TokioIo::new(stream))
             .await
-            .map_err(|e| DevelopmentError(format!("render connection failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("render connection failed: {e}"), e))?;
         tokio::spawn(async move {
             if let Err(error) = connection.await {
                 tracing::error!(%error, "render connection failed");
@@ -63,7 +62,7 @@ impl Generation {
         sender
             .send_request(request.map(|body| Full::new(Bytes::from(body))))
             .await
-            .map_err(|e| DevelopmentError(format!("render request failed: {e:?}")))
+            .map_err(|e| DevelopmentError::with_source(format!("render request failed: {e:?}"), e))
     }
 }
 
@@ -109,17 +108,17 @@ impl Process {
             .stderr(Stdio::inherit())
             .kill_on_drop(true)
             .spawn()
-            .map_err(|e| DevelopmentError(format!("render process start failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("render process start failed: {e}"), e))?;
         let input = child
             .stdin
             .take()
-            .ok_or_else(|| DevelopmentError("render stdin is missing".into()))?;
+            .ok_or_else(|| DevelopmentError::new("render stdin is missing"))?;
         let pid = child.id();
         tracing::info!(generation = id, ?pid, "render process preparation started");
         let stdout = child
             .stdout
             .take()
-            .ok_or_else(|| DevelopmentError("render stdout is missing".into()))?;
+            .ok_or_else(|| DevelopmentError::new("render stdout is missing"))?;
         let mut output = BufReader::new(stdout);
         let (stop, control) = mpsc::unbounded_channel();
         let result = tokio::select! {
@@ -129,34 +128,34 @@ impl Process {
                 let generation = Arc::new(Generation { id, socket, stop: stop.clone() });
                 let response = generation.request(Request::builder().method("POST").uri(polyspec_ssr_core::CALL_PATH)
                     .header(CONTENT_TYPE, "application/json").body(probe.to_vec())
-                    .map_err(|e| DevelopmentError(format!("preparation request failed: {e}")))?).await?;
+                    .map_err(|e| DevelopmentError::with_source(format!("preparation request failed: {e}"), e))?).await?;
                 let media_type = match response.headers().get(CONTENT_TYPE) {
                     Some(value) => value
                         .to_str()
-                        .map_err(|e| DevelopmentError(format!("render preparation content type is not text: {e}")))?
+                        .map_err(|e| DevelopmentError::with_source(format!("render preparation content type is not text: {e}"), e))?
                         .split(';')
                         .next(),
                     None => None,
                 };
                 if response.status() != StatusCode::OK || media_type != Some("text/html") {
-                    return Err(DevelopmentError(format!("render preparation requires HTTP 200 HTML, received {}", response.status())));
+                    return Err(DevelopmentError::new(format!("render preparation requires HTTP 200 HTML, received {}", response.status())));
                 }
                 let mut body = response.into_body();
                 let mut size = 0usize;
                 while let Some(frame) = body.frame().await {
-                    let frame = frame.map_err(|e| DevelopmentError(format!("render preparation body failed: {e:?}")))?;
+                    let frame = frame.map_err(|e| DevelopmentError::with_source(format!("render preparation body failed: {e:?}"), e))?;
                     if let Some(bytes) = frame.data_ref() {
-                        size = size.checked_add(bytes.len()).ok_or_else(|| DevelopmentError("render preparation body size overflow".into()))?;
-                        if size > max_probe_bytes { return Err(DevelopmentError(format!("render preparation body exceeds {max_probe_bytes} bytes"))); }
+                        size = size.checked_add(bytes.len()).ok_or_else(|| DevelopmentError::new("render preparation body size overflow"))?;
+                        if size > max_probe_bytes { return Err(DevelopmentError::new(format!("render preparation body exceeds {max_probe_bytes} bytes"))); }
                     }
                 }
-                if size == 0 { return Err(DevelopmentError("render preparation body is empty".into())); }
+                if size == 0 { return Err(DevelopmentError::new("render preparation body is empty")); }
                 Ok(generation)
             }) => match result {
                 Ok(generation) => generation,
-                Err(elapsed) => Err(DevelopmentError(format!("render preparation timed out: {elapsed}"))),
+                Err(elapsed) => Err(DevelopmentError::with_source(format!("render preparation timed out: {elapsed}"), elapsed)),
             },
-            _ = cancel.changed() => Err(DevelopmentError("render preparation canceled".into())),
+            _ = cancel.changed() => Err(DevelopmentError::new("render preparation canceled")),
         };
         match result {
             Ok(generation) => {
@@ -192,7 +191,7 @@ impl Process {
                 break if expected && std::process::ExitStatus::success(status) {
                     Ok(())
                 } else {
-                    Err(DevelopmentError(format!(
+                    Err(DevelopmentError::new(format!(
                         "render process {id} {}: {status}",
                         if expected {
                             "stopped"
@@ -206,7 +205,7 @@ impl Process {
                 result = self.child.wait(), if status.is_none() => {
                     match result {
                         Ok(value) => { status = Some(value); stop_at.get_or_insert(tokio::time::Instant::now() + timeout); }
-                        Err(error) => break Err(DevelopmentError(format!("render process {id} wait failed: {error}"))),
+                        Err(error) => break Err(DevelopmentError::with_source(format!("render process {id} wait failed: {error}"), error)),
                     }
                 },
                 control = self.control.recv() => {
@@ -216,11 +215,11 @@ impl Process {
                 },
                 output = self.output.read_u8(), if stdout_open => match output {
                     Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => stdout_open = false,
-                    Err(e) => break Err(kill_and_wait(&mut self.child, DevelopmentError(format!("render stdout failed: {e}"))).await),
-                    Ok(byte) => break Err(kill_and_wait(&mut self.child, DevelopmentError(format!("render stdout contains output after its address: byte {byte:#04x}"))).await),
+                    Err(e) => break Err(kill_and_wait(&mut self.child, DevelopmentError::with_source(format!("render stdout failed: {e}"), e)).await),
+                    Ok(byte) => break Err(kill_and_wait(&mut self.child, DevelopmentError::new(format!("render stdout contains output after its address: byte {byte:#04x}"))).await),
                 },
                 _ = async { match stop_at { Some(at) => tokio::time::sleep_until(at).await, None => std::future::pending().await } } => {
-                    break Err(kill_and_wait(&mut self.child, DevelopmentError(format!("render process {id} shutdown timed out; forced termination"))).await);
+                    break Err(kill_and_wait(&mut self.child, DevelopmentError::new(format!("render process {id} shutdown timed out; forced termination"))).await);
                 },
             }
         };
@@ -251,30 +250,30 @@ pub(super) async fn build(
         .stderr(Stdio::inherit())
         .kill_on_drop(true)
         .spawn()
-        .map_err(|e| DevelopmentError(format!("build process start failed: {e}")))?;
+        .map_err(|e| DevelopmentError::with_source(format!("build process start failed: {e}"), e))?;
     let mut stdout = child
         .stdout
         .take()
-        .ok_or_else(|| DevelopmentError("build stdout is missing".into()))?
+        .ok_or_else(|| DevelopmentError::new("build stdout is missing"))?
         .take(8193);
     let mut bytes = Vec::new();
     let result = tokio::select! {
         result = async {
-            stdout.read_to_end(&mut bytes).await.map_err(|e| DevelopmentError(format!("build stdout failed: {e}")))?;
-            if bytes.len() > 8192 { return Err(DevelopmentError("build path exceeds 8192 bytes".into())); }
-            let status = child.wait().await.map_err(|e| DevelopmentError(format!("build wait failed: {e}")))?;
-            if !status.success() { return Err(DevelopmentError(format!("build process failed: {status}"))); }
-            if bytes.len() > 8192 { return Err(DevelopmentError("build path exceeds 8192 bytes".into())); }
-            let line = std::str::from_utf8(&bytes).map_err(|e| DevelopmentError(format!("build path is not UTF-8: {e}")))?;
+            stdout.read_to_end(&mut bytes).await.map_err(|e| DevelopmentError::with_source(format!("build stdout failed: {e}"), e))?;
+            if bytes.len() > 8192 { return Err(DevelopmentError::new("build path exceeds 8192 bytes")); }
+            let status = child.wait().await.map_err(|e| DevelopmentError::with_source(format!("build wait failed: {e}"), e))?;
+            if !status.success() { return Err(DevelopmentError::new(format!("build process failed: {status}"))); }
+            if bytes.len() > 8192 { return Err(DevelopmentError::new("build path exceeds 8192 bytes")); }
+            let line = std::str::from_utf8(&bytes).map_err(|e| DevelopmentError::with_source(format!("build path is not UTF-8: {e}"), e))?;
             let path = line.strip_suffix('\n').filter(|path| !path.is_empty() && !path.contains(['\n', '\r']))
-                .ok_or_else(|| DevelopmentError("build stdout must contain one path and newline".into()))?;
+                .ok_or_else(|| DevelopmentError::new("build stdout must contain one path and newline"))?;
             let path = PathBuf::from(path);
             if !path.is_absolute() || !path.canonicalize().is_ok_and(|canonical| canonical == path) {
-                return Err(DevelopmentError("build directory must be absolute without symbolic links".into()));
+                return Err(DevelopmentError::new("build directory must be absolute without symbolic links"));
             }
             Ok(path)
         } => result,
-        _ = cancel.changed() => Err(DevelopmentError("development build canceled".into())),
+        _ = cancel.changed() => Err(DevelopmentError::new("development build canceled")),
     };
     let result = match result {
         Ok(path) => Ok(path),
@@ -297,17 +296,17 @@ async fn read_line(output: &mut BufReader<ChildStdout>) -> Result<String, Develo
         let byte = output
             .read_u8()
             .await
-            .map_err(|e| DevelopmentError(format!("render address read failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("render address read failed: {e}"), e))?;
         if byte == b'\n' {
             break;
         }
         if line.len() == 8192 {
-            return Err(DevelopmentError("render address exceeds 8192 bytes".into()));
+            return Err(DevelopmentError::new("render address exceeds 8192 bytes"));
         }
         line.push(byte);
     }
     String::from_utf8(line)
-        .map_err(|e| DevelopmentError(format!("render address is not UTF-8: {e}")))
+        .map_err(|e| DevelopmentError::with_source(format!("render address is not UTF-8: {e}"), e))
 }
 
 pub(super) fn validate_program(command: &Command) -> Result<(), DevelopmentError> {
@@ -316,8 +315,7 @@ pub(super) fn validate_program(command: &Command) -> Result<(), DevelopmentError
         || !program.is_file()
         || !program.canonicalize().is_ok_and(|path| path == program)
     {
-        return Err(DevelopmentError(
-            "command program must be an absolute file without symbolic links".into(),
+        return Err(DevelopmentError::new("command program must be an absolute file without symbolic links",
         ));
     }
     Ok(())
@@ -327,12 +325,14 @@ async fn kill_and_wait(child: &mut Child, error: DevelopmentError) -> Developmen
     let killed = child.start_kill();
     let waited = child.wait().await;
     match (killed, waited) {
-        (Ok(()), Ok(status)) => {
-            DevelopmentError(format!("{error}; process exit collected: {status}"))
-        }
-        (kill, wait) => DevelopmentError(format!(
-            "{error}; process kill: {kill:?}; process wait: {wait:?}"
-        )),
+        (Ok(()), Ok(status)) => DevelopmentError::with_source(
+            format!("{error}; process exit collected: {status}"),
+            error,
+        ),
+        (kill, wait) => DevelopmentError::with_source(
+            format!("{error}; process kill: {kill:?}; process wait: {wait:?}"),
+            error,
+        ),
     }
 }
 
@@ -343,6 +343,6 @@ fn combine_cleanup<T>(
     match (result, cleanup) {
         (Ok(value), Ok(())) => Ok(value),
         (Err(error), Ok(())) | (Ok(_), Err(error)) => Err(error),
-        (Err(error), Err(cleanup)) => Err(DevelopmentError(format!("{error}; {cleanup}"))),
+        (Err(error), Err(cleanup)) => Err(DevelopmentError::with_source(format!("{error}; {cleanup}"), error)),
     }
 }

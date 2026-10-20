@@ -14,14 +14,14 @@ impl Socket {
     pub fn new() -> Result<Self, DevelopmentError> {
         let root = std::env::temp_dir()
             .canonicalize()
-            .map_err(|e| DevelopmentError(format!("socket root failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("socket root failed: {e}"), e))?;
         Self::create(&root)
     }
 
     pub fn create(root: &Path) -> Result<Self, DevelopmentError> {
         let mut random = [0u8; 8];
         getrandom::fill(&mut random)
-            .map_err(|e| DevelopmentError(format!("socket name failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("socket name failed: {e}"), e))?;
         let name = random
             .iter()
             .map(|byte| format!("{byte:02x}"))
@@ -29,17 +29,17 @@ impl Socket {
         let directory = root.join(format!("ssr-{name}"));
         let path = directory.join("render");
         std::os::unix::net::SocketAddr::from_pathname(&path).map_err(|e| {
-            DevelopmentError(format!(
+            DevelopmentError::with_source(format!(
                 "render socket path exceeds the Unix socket address length: {}: {e}",
                 path.display()
-            ))
+            ), e)
         })?;
         std::fs::DirBuilder::new()
             .mode(0o700)
             .create(&directory)
-            .map_err(|e| DevelopmentError(format!("socket directory creation failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("socket directory creation failed: {e}"), e))?;
         let metadata = std::fs::symlink_metadata(&directory)
-            .map_err(|e| DevelopmentError(format!("socket directory metadata failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("socket directory metadata failed: {e}"), e))?;
         Ok(Self {
             path,
             directory,
@@ -55,48 +55,44 @@ impl Socket {
 
     pub fn validate(&self, socket: &Path) -> Result<(), DevelopmentError> {
         if socket != self.path() {
-            return Err(DevelopmentError(
-                "render socket differs from the owned path".into(),
+            return Err(DevelopmentError::new("render socket differs from the owned path",
             ));
         }
         if !socket.is_absolute()
             || socket
                 .canonicalize()
-                .map_err(|e| DevelopmentError(format!("render socket path failed: {e}")))?
+                .map_err(|e| DevelopmentError::with_source(format!("render socket path failed: {e}"), e))?
                 != socket
         {
-            return Err(DevelopmentError(
-                "render socket path must be absolute and canonical".into(),
+            return Err(DevelopmentError::new("render socket path must be absolute and canonical",
             ));
         }
         let metadata = std::fs::symlink_metadata(socket)
-            .map_err(|e| DevelopmentError(format!("render socket metadata failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("render socket metadata failed: {e}"), e))?;
         let directory = socket
             .parent()
-            .ok_or_else(|| DevelopmentError("render socket parent is missing".into()))?;
+            .ok_or_else(|| DevelopmentError::new("render socket parent is missing"))?;
         let mode = std::fs::metadata(directory)
-            .map_err(|e| DevelopmentError(format!("render socket directory failed: {e}")))?
+            .map_err(|e| DevelopmentError::with_source(format!("render socket directory failed: {e}"), e))?
             .permissions()
             .mode();
         if !metadata.file_type().is_socket() {
-            return Err(DevelopmentError(
-                "render socket is not a Unix socket".into(),
+            return Err(DevelopmentError::new("render socket is not a Unix socket",
             ));
         }
         if mode & 0o077 != 0 {
-            return Err(DevelopmentError(format!(
+            return Err(DevelopmentError::new(format!(
                 "render socket directory is open to other users: mode {:o}",
                 mode & 0o777
             )));
         }
         let entries = std::fs::read_dir(directory)
-            .map_err(|e| DevelopmentError(format!("render socket directory read failed: {e}")))?
+            .map_err(|e| DevelopmentError::with_source(format!("render socket directory read failed: {e}"), e))?
             .map(|entry| entry.map(|entry| entry.path()))
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| DevelopmentError(format!("render socket directory entry failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("render socket directory entry failed: {e}"), e))?;
         if entries != vec![socket.to_path_buf()] {
-            return Err(DevelopmentError(
-                "render socket requires its own private directory".into(),
+            return Err(DevelopmentError::new("render socket requires its own private directory",
             ));
         }
         Ok(())
@@ -110,22 +106,22 @@ impl Socket {
 
     fn cleanup(&self) -> Result<(), DevelopmentError> {
         let metadata = std::fs::symlink_metadata(&self.directory)
-            .map_err(|e| DevelopmentError(format!("socket cleanup metadata failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("socket cleanup metadata failed: {e}"), e))?;
         if !metadata.is_dir() || metadata.dev() != self.device || metadata.ino() != self.inode {
-            return Err(DevelopmentError("owned socket directory differs".into()));
+            return Err(DevelopmentError::new("owned socket directory differs"));
         }
         match std::fs::symlink_metadata(&self.path) {
             Ok(_) => std::fs::remove_file(&self.path)
-                .map_err(|e| DevelopmentError(format!("socket removal failed: {e}")))?,
+                .map_err(|e| DevelopmentError::with_source(format!("socket removal failed: {e}"), e))?,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
             Err(error) => {
-                return Err(DevelopmentError(format!(
+                return Err(DevelopmentError::with_source(format!(
                     "socket cleanup path failed: {error}"
-                )));
+                ), error));
             }
         }
         std::fs::remove_dir(&self.directory)
-            .map_err(|e| DevelopmentError(format!("socket directory removal failed: {e}")))
+            .map_err(|e| DevelopmentError::with_source(format!("socket directory removal failed: {e}"), e))
     }
 }
 

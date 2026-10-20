@@ -45,13 +45,13 @@ mod inotify {
         fn watch(&mut self, path: &Path, mode: RecursiveMode) -> Result<(), DevelopmentError> {
             self.0
                 .watch(path, mode)
-                .map_err(|error| DevelopmentError(format!("watch registration failed: {error}")))
+                .map_err(|error| DevelopmentError::with_source(format!("watch registration failed: {error}"), error))
         }
     }
 
     pub(super) fn start(handler: Handler) -> Result<Box<dyn SourceWatch>, DevelopmentError> {
         let watcher = ::notify::recommended_watcher(handler)
-            .map_err(|e| DevelopmentError(format!("watch creation failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("watch creation failed: {e}"), e))?;
         Ok(Box::new(Notify(watcher)))
     }
 }
@@ -73,10 +73,10 @@ impl Baseline {
     pub fn new() -> Result<Self, DevelopmentError> {
         let root = std::env::temp_dir()
             .canonicalize()
-            .map_err(|e| DevelopmentError(format!("watch baseline root failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("watch baseline root failed: {e}"), e))?;
         let mut random = [0u8; 8];
         getrandom::fill(&mut random)
-            .map_err(|e| DevelopmentError(format!("watch baseline name failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("watch baseline name failed: {e}"), e))?;
         let name = random
             .iter()
             .map(|byte| format!("{byte:02x}"))
@@ -85,9 +85,9 @@ impl Baseline {
         std::fs::DirBuilder::new()
             .mode(0o700)
             .create(&directory)
-            .map_err(|e| DevelopmentError(format!("watch baseline directory failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("watch baseline directory failed: {e}"), e))?;
         let metadata = std::fs::symlink_metadata(&directory)
-            .map_err(|e| DevelopmentError(format!("watch baseline metadata failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("watch baseline metadata failed: {e}"), e))?;
         Ok(Self {
             directory,
             device: metadata.dev(),
@@ -106,7 +106,7 @@ impl Baseline {
 
     pub fn write(&self) -> Result<(), DevelopmentError> {
         std::fs::write(self.sentinel(), b"")
-            .map_err(|e| DevelopmentError(format!("watch baseline write failed: {e}")))
+            .map_err(|e| DevelopmentError::with_source(format!("watch baseline write failed: {e}"), e))
     }
 
     pub fn close(mut self) -> Result<(), DevelopmentError> {
@@ -116,23 +116,22 @@ impl Baseline {
 
     fn cleanup(&self) -> Result<(), DevelopmentError> {
         let metadata = std::fs::symlink_metadata(&self.directory)
-            .map_err(|e| DevelopmentError(format!("watch baseline cleanup failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("watch baseline cleanup failed: {e}"), e))?;
         if !metadata.is_dir() || metadata.dev() != self.device || metadata.ino() != self.inode {
-            return Err(DevelopmentError(
-                "owned watch baseline directory differs".into(),
+            return Err(DevelopmentError::new("owned watch baseline directory differs",
             ));
         }
         match std::fs::remove_file(self.sentinel()) {
             Ok(()) => {}
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
             Err(error) => {
-                return Err(DevelopmentError(format!(
+                return Err(DevelopmentError::with_source(format!(
                     "watch baseline removal failed: {error}"
-                )));
+                ), error));
             }
         }
         std::fs::remove_dir(&self.directory)
-            .map_err(|e| DevelopmentError(format!("watch baseline directory removal failed: {e}")))
+            .map_err(|e| DevelopmentError::with_source(format!("watch baseline directory removal failed: {e}"), e))
     }
 }
 

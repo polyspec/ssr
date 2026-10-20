@@ -19,7 +19,7 @@ impl source::SourceWatch for Fake {
         self.registered.lock().unwrap().push(path.to_path_buf());
         self.calls
             .send((path.to_path_buf(), mode))
-            .map_err(|e| DevelopmentError(format!("fake watch registration failed: {e}")))
+            .map_err(|e| DevelopmentError::with_source(format!("fake watch registration failed: {e}"), e))
     }
 }
 

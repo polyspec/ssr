@@ -81,9 +81,9 @@ impl Supervisor {
                     {
                         Ok(runtime) => runtime,
                         Err(error) => {
-                            let error = DevelopmentError(format!(
+                            let error = DevelopmentError::with_source(format!(
                                 "process runtime creation failed: {error}"
-                            ));
+                            ), error);
                             if ready.send(Err(error.clone())).is_err() {
                                 tracing::error!(%error, "process preparation receiver stopped");
                             }
@@ -105,14 +105,14 @@ impl Supervisor {
                         });
                         if ready.send(result.clone()).is_err() {
                             self.stop_all().await?;
-                            return Err(DevelopmentError("process preparation canceled".into()));
+                            return Err(DevelopmentError::new("process preparation canceled"));
                         }
                         if let Err(error) = result {
                             return match self.stop_all().await {
                                 Ok(()) => Err(error),
-                                Err(cleanup) => Err(DevelopmentError(format!(
+                                Err(cleanup) => Err(DevelopmentError::with_source(format!(
                                     "{error}; cleanup failed: {cleanup}"
-                                ))),
+                                ), error)),
                             };
                         }
                         self.run(events, cancel).await
@@ -122,14 +122,14 @@ impl Supervisor {
                 result
             })
             .map_err(|error| {
-                DevelopmentError(format!("process supervisor start failed: {error}"))
+                DevelopmentError::with_source(format!("process supervisor start failed: {error}"), error)
             })?;
         Ok((worker, receiver, finished))
     }
 
     async fn rebuild(&mut self, cancel: watch::Receiver<bool>) -> Result<(), DevelopmentError> {
         let build = self.build.as_mut().ok_or_else(|| {
-            DevelopmentError("prepared render process has no build command".into())
+            DevelopmentError::new("prepared render process has no build command")
         })?;
         let directory = process::build(build, cancel.clone()).await?;
         if self
@@ -141,8 +141,7 @@ impl Supervisor {
                 .iter()
                 .any(|excluded| directory.starts_with(excluded))
         {
-            return Err(DevelopmentError(
-                "build output must be outside the watched source root".into(),
+            return Err(DevelopmentError::new("build output must be outside the watched source root",
             ));
         }
         self.start(directory, cancel).await?;
@@ -158,16 +157,16 @@ impl Supervisor {
         let verified = directory.clone();
         tokio::task::spawn_blocking(move || polyspec_ssr_build::Build::read(&verified))
             .await
-            .map_err(|e| DevelopmentError(format!("build verification task failed: {e}")))?
-            .map_err(|e| DevelopmentError(format!("build verification failed: {e}")))?;
+            .map_err(|e| DevelopmentError::with_source(format!("build verification task failed: {e}"), e))?
+            .map_err(|e| DevelopmentError::with_source(format!("build verification failed: {e}"), e))?;
         if *cancel.borrow() {
-            return Err(DevelopmentError("render preparation canceled".into()));
+            return Err(DevelopmentError::new("render preparation canceled"));
         }
         let id = self.next_id;
         self.next_id = self
             .next_id
             .checked_add(1)
-            .ok_or_else(|| DevelopmentError("render generation overflow".into()))?;
+            .ok_or_else(|| DevelopmentError::new("render generation overflow"))?;
         let process = Process::start(
             id,
             |socket| (self.render)(&directory, socket),
@@ -192,7 +191,7 @@ impl Supervisor {
     ) -> Result<(), DevelopmentError> {
         let previous = {
             let mut current = self.current.write().map_err(|error| {
-                DevelopmentError(format!("development state lock failed: {error}"))
+                DevelopmentError::new(format!("development state lock failed: {error}"))
             })?;
             std::mem::replace(&mut *current, value)
         };
@@ -225,8 +224,8 @@ impl Supervisor {
                 _ = cancel.changed() => break,
                 failure = async { match &mut watch_errors { Some(errors) => {
                     match errors.changed().await {
-                        Ok(()) => errors.borrow().clone().ok_or_else(|| DevelopmentError("watch error event is missing".into())),
-                        Err(error) => Err(DevelopmentError(format!("watch error receiver closed: {error}"))),
+                        Ok(()) => errors.borrow().clone().ok_or_else(|| DevelopmentError::new("watch error event is missing")),
+                        Err(error) => Err(DevelopmentError::with_source(format!("watch error receiver closed: {error}"), error)),
                     }
                 }, None => std::future::pending().await } } => {
                     if *cancel.borrow() { break; }
@@ -264,7 +263,7 @@ impl Supervisor {
                                     source += 1;
                                 }
                                 Ok(_) => {}
-                                Err(error) => self.report(Err(DevelopmentError(format!("watch failed: {error}"))), true),
+                                Err(error) => self.report(Err(DevelopmentError::with_source(format!("watch failed: {error}"), error)), true),
                             }
                         }
                         if source == 0 || *cancel.borrow() || self.observer_failed {
@@ -282,7 +281,7 @@ impl Supervisor {
                     let exit = match exit {
                         Some(Ok(exit)) => exit,
                         Some(Err(error)) => {
-                            let failure = DevelopmentError(format!("render process supervisor failed: {error}"));
+                            let failure = DevelopmentError::with_source(format!("render process supervisor failed: {error}"), error);
                             self.errors.push(failure.to_string());
                             self.report(Err(failure), true);
                             break;
@@ -298,13 +297,13 @@ impl Supervisor {
                         self.report(exit.result, true);
                         if self.observer_failed { continue; }
                         if self.restarts >= self.options.restart_limit {
-                            self.report(Err(DevelopmentError(format!("render restart limit exhausted: {}", self.options.restart_limit))), true);
+                            self.report(Err(DevelopmentError::new(format!("render restart limit exhausted: {}", self.options.restart_limit))), true);
                             continue;
                         }
                         self.restarts += 1;
                         let result = match self.directory.clone() {
                             Some(directory) => self.start(directory, cancel.clone()).await,
-                            None => Err(DevelopmentError("completed build directory is missing".into())),
+                            None => Err(DevelopmentError::new("completed build directory is missing")),
                         };
                         self.report(result, true);
                     } else {
@@ -328,7 +327,7 @@ impl Supervisor {
         if let Err(error) = self.changes.try_send(result) {
             let cause = error.to_string();
             let rejected = error.into_inner();
-            let error = DevelopmentError(format!(
+            let error = DevelopmentError::new(format!(
                 "development change queue failed: {cause}; rejected: {rejected:?}"
             ));
             tracing::error!(%error, "development change event rejected");
@@ -344,7 +343,7 @@ impl Supervisor {
         match self.current.write() {
             Ok(mut current) => {
                 if current.is_ok() {
-                    *current = Err(DevelopmentError("development stopped".into()));
+                    *current = Err(DevelopmentError::new("development stopped"));
                 }
             }
             Err(error) => self
@@ -372,7 +371,7 @@ impl Supervisor {
         if self.errors.is_empty() {
             Ok(())
         } else {
-            Err(DevelopmentError(self.errors.join("; ")))
+            Err(DevelopmentError::new(self.errors.join("; ")))
         }
     }
 }

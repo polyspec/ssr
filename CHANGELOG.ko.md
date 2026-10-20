@@ -1,11 +1,12 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: ca8fcd14dd9808ac3018f817f8ae4ecee75ee3d46e207b78a4fff97d0d4808c9 -->
+<!-- source-sha256: bbb3118cd3c2718950b0f022ad46f02c1a761c289e5867d091734a5fe34a96af -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- S-95: packages/server는 매핑하는 각 development 오류의 원본을 유지한다. DevelopmentError는 원본을 source로 가지며, 메시지 문구와 공개 이름은 바뀌지 않는다. lock poison 매핑은 메시지만 유지한다. poison 오류는 저장할 수 없는 lock guard를 가지기 때문이다. red: 테스트 inspection_failure_keeps_the_io_error_as_source가 config.rs에서 source가 없는 상태로 실패했다(cargo nextest exit 100). green: clippy 실행이 exit 0이고 server 테스트 선택이 65/65 통과한다. (S-95)
 - S-90: make lint-rust가 전체 workspace에서 exit 0으로 끝난다. S-91과 S-92 행이 이전 실패 뒤에 가려져 있던 adapter-support, adapter, server의 발견을 닫았다. red: 9e08285에서 make lint-rust가 exit 2였고, adapter-support lib.rs의 map_err_ignore와 server development/process.rs의 금지 method를 보고했다. green: 등록 HEAD에서 make lint-rust가 exit 0. (S-90)
 - S-92: packages/server는 development process의 오류를 Result::ok나 unwrap_or_else 없이 매핑한다. 헤더 검사, render 준비 timeout, 빌드 경로 읽기는 오류를 전파하고, state lock과 생성된 stack frame 매핑은 오류 텍스트를 유지하며, socket 테스트 지원의 선택적 SOCKET_KIND는 non-Unicode 값을 버리지 않고 읽는다. red: 크레이트의 clippy 실행이 development/process.rs, supervisor.rs, development.rs, stack.rs에서 7건을 보고했고, green: clippy 실행이 통과하고 server 테스트가 64/64 통과한다. (S-92)
 - S-93: CHANGELOG.md와 kit-standard checklist의 한국어 문서를 영문 원문과 대조해 검토하고, 영문 문서의 sha256으로 스탬프를 찍는다. red: make docs-check가 exit 2로 실패했다. CHANGELOG.ko.md와 checklist의 source-sha256이 영문 문서와 일치하지 않았다. green: make docs-check가 exit 0. (S-93)

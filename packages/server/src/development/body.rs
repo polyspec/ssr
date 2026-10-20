@@ -33,9 +33,9 @@ impl HttpBody for Body {
             }
             Poll::Ready(Some(Err(error))) => {
                 self.generation.take();
-                Poll::Ready(Some(Err(DevelopmentError(format!(
+                Poll::Ready(Some(Err(DevelopmentError::with_source(format!(
                     "render response failed: {error:?}"
-                )))))
+                ), error))))
             }
             Poll::Ready(Some(Ok(frame))) => Poll::Ready(Some(Ok(frame))),
             Poll::Pending => Poll::Pending,

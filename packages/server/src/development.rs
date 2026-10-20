@@ -22,15 +22,63 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::thread::JoinHandle;
 use tokio::sync::{mpsc, watch};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct DevelopmentError(String);
+/// A failure of the development server. Its message is the text of the failure; a failure that maps
+/// another error keeps that error as its source.
+///
+/// The source is held in an Arc because a failure is cloned to every receiver of its result. thiserror
+/// cannot derive the source of an Arc<dyn Error>: std implements Error for Arc, so the derived source
+/// would be the Arc and not the error it holds. The source is therefore returned by hand.
+#[derive(Clone, Debug)]
+pub struct DevelopmentError {
+    message: String,
+    source: Option<Arc<dyn std::error::Error + Send + Sync>>,
+}
+
+impl DevelopmentError {
+    pub(crate) fn new(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            source: None,
+        }
+    }
+
+    pub(crate) fn with_source(
+        message: impl Into<String>,
+        source: impl std::error::Error + Send + Sync + 'static,
+    ) -> Self {
+        Self {
+            message: message.into(),
+            source: Some(Arc::new(source)),
+        }
+    }
+}
 
 impl fmt::Display for DevelopmentError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
+        f.write_str(&self.message)
     }
 }
-impl std::error::Error for DevelopmentError {}
+
+impl std::error::Error for DevelopmentError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.source
+            .as_deref()
+            .map(|source| source as &(dyn std::error::Error + 'static))
+    }
+}
+
+impl PartialEq for DevelopmentError {
+    fn eq(&self, other: &Self) -> bool {
+        self.message == other.message
+            && match (&self.source, &other.source) {
+                (None, None) => true,
+                (Some(left), Some(right)) => Arc::ptr_eq(left, right),
+                _ => false,
+            }
+    }
+}
+
+impl Eq for DevelopmentError {}
 
 /// The file watch of the source paths and the private directory of its baseline. Closing it
 /// stops the watch before the directory is removed.
@@ -98,7 +146,7 @@ impl Development {
         ) -> Result<Box<dyn source::SourceWatch>, DevelopmentError>,
     ) -> Result<(Self, mpsc::Receiver<Result<(), DevelopmentError>>), DevelopmentError> {
         if roots.is_empty() {
-            return Err(DevelopmentError("source paths are required".into()));
+            return Err(DevelopmentError::new("source paths are required"));
         }
         let mut seen = std::collections::BTreeSet::new();
         for root in &roots {
@@ -108,12 +156,11 @@ impl Development {
                     .is_ok_and(|canonical| &canonical == root)
                 || (!root.is_dir() && !root.is_file())
             {
-                return Err(DevelopmentError(
-                    "source path must be absolute without symbolic links".into(),
+                return Err(DevelopmentError::new("source path must be absolute without symbolic links",
                 ));
             }
             if !seen.insert(root) {
-                return Err(DevelopmentError("source paths contain a duplicate".into()));
+                return Err(DevelopmentError::new("source paths contain a duplicate"));
             }
         }
         for path in &excluded {
@@ -122,19 +169,18 @@ impl Development {
                 .iter()
                 .any(|root| root != path && path.starts_with(root))
             {
-                return Err(DevelopmentError(
-                    "excluded path must be below a source root".into(),
+                return Err(DevelopmentError::new("excluded path must be below a source root",
                 ));
             }
         }
         options.validate()?;
         if probe.render != Render::Ssr {
-            return Err(DevelopmentError("preparation requires an SSR page".into()));
+            return Err(DevelopmentError::new("preparation requires an SSR page"));
         }
         process::validate_program(&build)?;
         let probe = probe
             .to_json()
-            .map_err(|e| DevelopmentError(e.to_string()))?;
+            .map_err(|e| DevelopmentError::with_source(e.to_string(), e))?;
         let (events, events_rx) = mpsc::channel(options.event_capacity);
         let (failed, failure_rx) = watch::channel(None);
         let ignored = excluded.clone();
@@ -150,16 +196,16 @@ impl Development {
             if let Ok(mut observed) = observed.lock()
                 && let Some(sender) = observed.take()
             {
-                let result = match &event {
+                let result = match event {
                     Ok(event) if event.paths.contains(&sentinel) => Ok(()),
                     Ok(event) => {
                         tracing::debug!(paths = ?event.paths, "source event before the watch baseline");
                         *observed = Some(sender);
                         return;
                     }
-                    Err(error) => Err(DevelopmentError(format!(
+                    Err(error) => Err(DevelopmentError::with_source(format!(
                         "watch failed before its baseline: {error}"
-                    ))),
+                    ), error)),
                 };
                 if sender.send(result).is_err() {
                     tracing::error!("watch baseline receiver stopped");
@@ -175,7 +221,7 @@ impl Development {
             if let Err(error) = events.try_send(event) {
                 let cause = error.to_string();
                 let rejected = error.into_inner();
-                let error = DevelopmentError(format!(
+                let error = DevelopmentError::new(format!(
                     "watch event queue failed: {cause}; rejected: {rejected:?}"
                 ));
                 tracing::error!(%error, "development watch event rejected");
@@ -189,7 +235,7 @@ impl Development {
             } else {
                 (
                     root.parent()
-                        .ok_or_else(|| DevelopmentError("source file parent is missing".into()))?
+                        .ok_or_else(|| DevelopmentError::new("source file parent is missing"))?
                         .to_path_buf(),
                     false,
                 )
@@ -215,7 +261,7 @@ impl Development {
         baseline.write()?;
         observation
             .await
-            .map_err(|e| DevelopmentError(format!("watch baseline observation stopped: {e}")))??;
+            .map_err(|e| DevelopmentError::with_source(format!("watch baseline observation stopped: {e}"), e))??;
         tracing::info!(
             elapsed_ms = started.elapsed().as_millis(),
             "development watch baseline observed"
@@ -247,8 +293,7 @@ impl Development {
         watcher: Option<SourceWatcher>,
     ) -> Result<(Self, mpsc::Receiver<Result<(), DevelopmentError>>), DevelopmentError> {
         let (stop, stop_rx) = watch::channel(false);
-        let current = Arc::new(RwLock::new(Err(DevelopmentError(
-            "render process is preparing".into(),
+        let current = Arc::new(RwLock::new(Err(DevelopmentError::new("render process is preparing",
         ))));
         let (changes, changes_rx) = mpsc::channel(options.event_capacity);
         let supervisor = supervisor::Supervisor::new(
@@ -281,11 +326,11 @@ impl Development {
     ) -> Result<(Self, mpsc::Receiver<Result<(), DevelopmentError>>), DevelopmentError> {
         options.validate()?;
         if probe.render != Render::Ssr {
-            return Err(DevelopmentError("preparation requires an SSR page".into()));
+            return Err(DevelopmentError::new("preparation requires an SSR page"));
         }
         let probe = probe
             .to_json()
-            .map_err(|e| DevelopmentError(e.to_string()))?;
+            .map_err(|e| DevelopmentError::with_source(e.to_string(), e))?;
         Self::supervise(render, probe, options, None, None, Some(directory), None).await
     }
 
@@ -299,7 +344,7 @@ impl Development {
         let generation = self
             .current
             .read()
-            .map_err(|error| DevelopmentError(format!("development state lock failed: {error}")))?
+            .map_err(|error| DevelopmentError::new(format!("development state lock failed: {error}")))?
             .clone()?;
         let response = generation.request(request).await?;
         Ok(response.map(|incoming| body::Body::new(incoming, generation)))
@@ -310,7 +355,7 @@ impl Development {
         let watcher = self
             .watcher
             .lock()
-            .map_err(|e| DevelopmentError(format!("watcher lock failed: {e}")))?
+            .map_err(|e| DevelopmentError::new(format!("watcher lock failed: {e}")))?
             .take();
         let watched = watcher.map_or(Ok(()), SourceWatcher::close);
         let mut finished = self.finished.clone();
@@ -321,23 +366,23 @@ impl Development {
             finished
                 .changed()
                 .await
-                .map_err(|e| DevelopmentError(format!("process completion unavailable: {e}")))?;
+                .map_err(|e| DevelopmentError::with_source(format!("process completion unavailable: {e}"), e))?;
         };
         let worker = self
             .worker
             .lock()
-            .map_err(|e| DevelopmentError(format!("worker lock failed: {e}")))?
+            .map_err(|e| DevelopmentError::new(format!("worker lock failed: {e}")))?
             .take();
         let result = match worker {
             Some(worker) => tokio::task::spawn_blocking(move || join(worker))
                 .await
-                .map_err(|e| DevelopmentError(format!("development join task failed: {e}")))?,
+                .map_err(|e| DevelopmentError::with_source(format!("development join task failed: {e}"), e))?,
             None => result,
         };
         match (result, watched) {
             (result, Ok(())) => result,
             (Ok(()), Err(error)) => Err(error),
-            (Err(error), Err(watched)) => Err(DevelopmentError(format!("{error}; {watched}"))),
+            (Err(error), Err(watched)) => Err(DevelopmentError::with_source(format!("{error}; {watched}"), error)),
         }
     }
 }
@@ -376,7 +421,7 @@ fn join(worker: Worker) -> Result<(), DevelopmentError> {
             .map(String::as_str)
             .or_else(|| panic.downcast_ref::<&str>().copied())
             .unwrap_or("non-string panic payload");
-        DevelopmentError(format!("development worker panicked: {message}"))
+        DevelopmentError::new(format!("development worker panicked: {message}"))
     })?
 }
 
@@ -386,16 +431,16 @@ async fn wait_ready(worker: Worker, ready: Ready) -> Result<Worker, DevelopmentE
         result => {
             let error = match result {
                 Ok(Err(error)) => error,
-                Err(error) => DevelopmentError(format!("development preparation stopped: {error}")),
+                Err(error) => DevelopmentError::with_source(format!("development preparation stopped: {error}"), error),
                 Ok(Ok(())) => unreachable!(),
             };
             match tokio::task::spawn_blocking(move || join(worker)).await {
                 Ok(Ok(())) => Err(error),
                 Ok(Err(cleanup)) if cleanup == error => Err(error),
-                Ok(Err(cleanup)) => Err(DevelopmentError(format!(
+                Ok(Err(cleanup)) => Err(DevelopmentError::with_source(format!(
                     "{error}; cleanup failed: {cleanup}"
-                ))),
-                Err(cleanup) => Err(DevelopmentError(format!("{error}; join failed: {cleanup}"))),
+                ), error)),
+                Err(cleanup) => Err(DevelopmentError::with_source(format!("{error}; join failed: {cleanup}"), error)),
             }
         }
     }
