@@ -153,7 +153,7 @@ the tag runs `.github/workflows/release.yml`, the release workflow of kit, which
 kit-check` compares. Its steps install the package of kit and run, in this order and stopping at the first failure,
 `make release-tools`, `make release-verify` (the tagged commit is an ancestor of `origin/main`, and the latest check
 runs `push-gate` and `ci-passed` of that commit concluded `success`), `make release-versions` (X.Y.Z in every manifest
-of `config/release.json` and the section `## X.Y.Z` in `docs/changelog.md` and `docs/changelog.ko.md`), `make
+of `config/release.json` and the section `## X.Y.Z` in `CHANGELOG.md` and `CHANGELOG.ko.md`), `make
 release-assets` (no archive, since `config/release.json` declares no package), `make release-publish` (the GitHub
 Release as a draft with the section as notes), `make release-proof` (each crate is resolved from the tag as a git
 dependency of a new crate and `cargo check` passes, `proof.gitTag` of `config/release.json`) and `make

@@ -246,12 +246,12 @@ creates, moves or pushes a tag; a tag is never raised through a pull request.
 
 1. The version-bump pull request `chore(release): Release X.Y.Z (#<checklist ID>)` sets the version
    X.Y.Z in `[workspace.package]` of `Cargo.toml` and in every requirement `=X.Y.Z` on a crate of the
-   workspace, and renames `## Unreleased` of `docs/changelog.md` and `docs/changelog.ko.md` to
+   workspace, and renames `## Unreleased` of `CHANGELOG.md` and `CHANGELOG.ko.md` to
    `## X.Y.Z`, with a new empty `## Unreleased` above it.
 2. The maintainer tags the merged commit of `main` `vX.Y.Z` and pushes the tag.
 3. The tag push runs `.github/workflows/release.yml`, the release workflow of kit: it requires the tagged
    commit on `main` with the checks `push-gate` and `ci-passed` passed, the version of the tag in every
-   manifest of `config/release.json` and the section `## X.Y.Z` in `docs/changelog.md`, creates the GitHub
+   manifest of `config/release.json` and the section `## X.Y.Z` in `CHANGELOG.md`, creates the GitHub
    Release as a draft, proves that each crate resolves from the tag and makes the release public; a crate is
    not released as an archive and is consumed by git tag ([workspace](docs/workspace.md)).
 
@@ -292,7 +292,7 @@ is a class: check every tool, test and recipe of this repository for it and fix 
 
 ## Records
 
-- Records are the commit log, documentation, comments, i18n text and `docs/changelog.md`
+- Records are the commit log, documentation, comments, i18n text and `CHANGELOG.md`
   (+ `.ko.md`). They describe the current product and its changes with explicit subjects, actions
   and objects, in plain wording without metaphors, personification or colloquial words. Operation
   names are used directly (create, publish, receive, register, remove, return, fail). A cause is

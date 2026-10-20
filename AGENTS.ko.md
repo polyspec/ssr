@@ -1,5 +1,5 @@
 <!-- doc-id: agents -->
-<!-- source-sha256: c3796984ad8809c99320b751fd52e975214e6ccff994f39b0384abc3a671ac35 -->
+<!-- source-sha256: 3ea8b0218074ee5d7a5a8603a50b7d7972063b37176cd2ca1aa2c6094fcf3f85 -->
 # 개발 절차
 
 사용자의 지시가 우선한다. [English](AGENTS.md). 모든 polyspec 저장소의 작업 원칙은
@@ -214,12 +214,12 @@ tag는 pull request로 올리지 않는다.
 
 1. 버전 올림 pull request `chore(release): Release X.Y.Z (#<체크리스트 ID>)`는 `Cargo.toml`의
    `[workspace.package]`와 workspace crate에 대한 모든 요구 `=X.Y.Z`의 버전을 X.Y.Z로 정하고,
-   `docs/changelog.md`와 `docs/changelog.ko.md`의 `## Unreleased`를 `## X.Y.Z`로 바꾸며 그 위에
+   `CHANGELOG.md`와 `CHANGELOG.ko.md`의 `## Unreleased`를 `## X.Y.Z`로 바꾸며 그 위에
    비어 있는 새 `## Unreleased`를 둔다.
 2. 메인테이너는 merge된 `main`의 commit에 `vX.Y.Z` tag를 붙이고 tag를 push한다.
 3. tag push는 kit의 release workflow인 `.github/workflows/release.yml`을 실행한다. 이 workflow는 tag된 commit이
    `main`에 있고 check `push-gate`와 `ci-passed`를 통과했는지, `config/release.json`의 모든 manifest에 tag의
-   버전이 있고 `docs/changelog.md`에 section `## X.Y.Z`가 있는지 확인하고, GitHub Release를 초안으로 만들고, 각
+   버전이 있고 `CHANGELOG.md`에 section `## X.Y.Z`가 있는지 확인하고, GitHub Release를 초안으로 만들고, 각
    crate가 tag에서 해석되는지 증명한 뒤 릴리스를 공개한다. crate는 archive로 릴리스하지 않고 git tag로
    사용한다([워크스페이스](docs/workspace.ko.md)).
 
@@ -252,7 +252,7 @@ tag는 pull request로 올리지 않는다.
 
 ## 기록
 
-- 기록은 커밋 로그, 문서, 주석, i18n 텍스트, `docs/changelog.md`(+ `.ko.md`)다. 현재 제품과 그 변경을
+- 기록은 커밋 로그, 문서, 주석, i18n 텍스트, `CHANGELOG.md`(+ `.ko.md`)다. 현재 제품과 그 변경을
   명시적인 주체, 동작, 대상으로 비유, 의인화, 구어 없이 설명한다. 연산 이름을
   그대로 쓴다(생성, 게시, 수신, 등록, 제거, 반환, 실패). 원인은 한 문장으로 적는다. 방원, 묶임, 진술, 남처럼,
   읽힌다, 대가, 비켜서고, 1급, 산다, 단언, 부재, 퇴역, 죽은, 부여, 봉투, 게이트, 붙은, 가장자리, 이름으로, 말한다,

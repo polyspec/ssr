@@ -1,11 +1,16 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 3701a3bb82886b21324109d7d4671e3fe3a22b3ec797cd479dac1a753a0be6d7 -->
-[English](changelog.md)
-
+<!-- source-sha256: 740a275a86829f435368cacc5dedfa5fd66ec05247c89bfbd1346e2449ef1000 -->
 # 변경 기록
+
+[English](CHANGELOG.md)
 
 ## Unreleased
 
+- 체크리스트는 계획 폴더 `docs/plans/execution/` 과 `docs/plans/kit-standard/` 의 표이고, 변경 기록은 루트의
+  `CHANGELOG.md` 와 `CHANGELOG.ko.md` 이며, kit 이 commit 규칙을 직접 읽으므로 `config/commits.json` 을 제거한다
+  (S-58). Red: `make docs-check` 가 종료 코드 2 와 finding 6건(`docs/plans/execution-checklist.md` 와 한국어 쌍의
+  `checklist-place`, `plan-folder`, `config/checklist.json` schema, `PRINCIPLES.ko.md` revision)으로 실패했고,
+  `make kit-check` 가 `config/commits.json` 을 지적했다. Green: `make docs-check` 가 종료 코드 0 이다.
 - AGENTS는 kit `docs/plans/local-links.md`를 가리킨다. polyspec version이 0.0.x인 동안 개발 checkout은 설치된
   polyspec package를 그 source에 link하며, link는 commit하지 않는다.
 - kit 0.0.53을 실행한다. release-proof는 release가 각 sibling wheel을 나열하는지 검사하며, 옮길 것은 없다.

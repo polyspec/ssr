@@ -4,9 +4,10 @@
   "include": [
     "AGENTS.md",
     "PRINCIPLES.md",
+    "CHANGELOG.md",
     "docs/**/*.md"
   ],
   "changelogs": [
-    "docs/changelog.md"
+    "CHANGELOG.md"
   ]
 }

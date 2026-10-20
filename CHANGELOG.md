@@ -1,10 +1,16 @@
 <!-- doc-id: changelog -->
-[Korean](changelog.ko.md)
-
 # Changelog
+
+[한국어](CHANGELOG.ko.md)
 
 ## Unreleased
 
+- The checklist is a table in the plan folders `docs/plans/execution/` and `docs/plans/kit-standard/`, and
+  the changelog is `CHANGELOG.md` with `CHANGELOG.ko.md` in the root; `config/commits.json` is removed
+  because kit reads the commit rules itself (S-58). Red: `make docs-check` exited with 2 and 6 findings
+  (`checklist-place` and `plan-folder` for `docs/plans/execution-checklist.md` and its Korean twin, the
+  `config/checklist.json` schema, the revision of `PRINCIPLES.ko.md`); `make kit-check` named
+  `config/commits.json`. Green: `make docs-check` exits with 0.
 - AGENTS points to kit `docs/plans/local-links.md`: while polyspec versions are 0.0.x, development
   checkouts link installed polyspec packages to their source, and links are never committed.
 - Run kit 0.0.53, whose release-proof checks that the release lists each sibling wheel; nothing

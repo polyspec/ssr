@@ -1,5 +1,5 @@
 <!-- doc-id: workspace -->
-<!-- source-sha256: 834a37f3dbdf9948682b0f9639768a99e977a3ad84ab74e9ab131ae85a8c267b -->
+<!-- source-sha256: be3bc8560ee94a4c18d6c8562fa3b4d62c33ce8f3f609c26d7aaf696027d6ab8 -->
 [English](workspace.md)
 
 # 워크스페이스
@@ -134,7 +134,7 @@ check가 실패하면 pull request는 queue에서 빠지고 `main`은 움직이�
 kit-check`가 비교한다. 그 step은 kit의 package를 설치한 뒤 다음 순서로 실행하고 첫 실패에서 멈춘다: `make
 release-tools`, `make release-verify`(tag된 commit이 `origin/main`의 조상이고 그 commit의 최신 check run `push-gate`와
 `ci-passed`가 `success`로 끝났다), `make release-versions`(`config/release.json`의 모든 manifest에 X.Y.Z가 있고
-`docs/changelog.md`와 `docs/changelog.ko.md`에 section `## X.Y.Z`가 있다), `make release-assets`(`config/release.json`이
+`CHANGELOG.md`와 `CHANGELOG.ko.md`에 section `## X.Y.Z`가 있다), `make release-assets`(`config/release.json`이
 package를 선언하지 않으므로 archive가 없다), `make release-publish`(section을 notes로 한 GitHub Release 초안), `make
 release-proof`(각 crate를 tag에서 새 crate의 git 의존성으로 해석하고 `cargo check`가 통과한다, `config/release.json`의
 `proof.gitTag`), `make release-undraft`. `config/release.json`은 workspace manifest를 version으로, 각 crate manifest를

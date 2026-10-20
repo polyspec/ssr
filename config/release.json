@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "repositoryUrl": "https://github.com/polyspec/ssr",
-  "changelog": "docs/changelog.md",
+  "changelog": "CHANGELOG.md",
   "changelogTranslations": [
-    "docs/changelog.ko.md"
+    "CHANGELOG.ko.md"
   ],
   "checks": [
     "push-gate",
