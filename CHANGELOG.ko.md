@@ -6,6 +6,7 @@
 
 ## Unreleased
 
+- S-80: config/owner-checks.json은 kit 복사본인 Rust lint 설정 clippy.toml에 kit 복사본의 소유 규칙을 준다. red: owner-validate가 clippy.toml을 어떤 소유자와도 맞지 않는 경로로 보고했고, green: 추적되는 모든 경로가 소유된다고 보고한다. (S-80)
 - K316 과 K327 부터 K330 의 kit 변경에 따라 `PRINCIPLES.md` 와 `PRINCIPLES.ko.md` 를 `make kit-sync` 로 받는다 (S-79). Red: 이전 복사본에서
   `make kit-check` 가 종료 코드 2 였다. Green: `make kit-check` 가 종료 코드 0 이고 ssr 가 실행하는 `kit-gates` 의 나머지 check 도 다른 변경 없이 종료
   코드 0 이다.

@@ -31,3 +31,4 @@
 | S-77 | CHECK_TARGETS 에서 divergence-check 를 실행하고 config/duplication.json 의 각 reason 을 그 종류(test 또는 harness)로 시작한다 | Makefile, config/duplication.json, config/owner-checks.json | `make divergence-check` | [o] |
 | S-78 | 루트의 것만이 아니라 모든 cargo target directory 를 .gitignore 에서 무시한다 | .gitignore | `make check-records` | [o] |
 | S-79 | K316 과 K327 부터 K330 으로 kit 이 바꾼 PRINCIPLES 복사본을 make kit-sync 로 받는다 | PRINCIPLES.md, PRINCIPLES.ko.md | `make kit-check` | [o] |
+| S-80 | 저장소가 가진 kit 복사본마다 소유 규칙을 둔다 | config/owner-checks.json with clippy.toml in the kit copies rule | `make owner-validate` | [o] |

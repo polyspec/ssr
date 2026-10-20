@@ -12,6 +12,7 @@
         "PRINCIPLES.ko.md",
         "config/layout.kit.yml",
         "ruff.toml",
+        "clippy.toml",
         "phpcs.xml.dist",
         "phpstan.dist.neon",
         ".golangci.yml",

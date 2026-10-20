@@ -5,6 +5,7 @@
 
 ## Unreleased
 
+- S-80: config/owner-checks.json gives clippy.toml, the kit copy of Rust lint settings, the owner rule of the kit copies; red: owner-validate reported clippy.toml as a path that matches no owner, green: it reports every tracked path owned. (S-80)
 - `PRINCIPLES.md` and `PRINCIPLES.ko.md` follow the kit changes K316 and K327 to K330 through `make kit-sync` (S-79).
   Red: `make kit-check` with the previous copies exited with 2. Green: `make kit-check` exits with 0, and every other
   check of `kit-gates` that ssr runs exits with 0 with no further change.
