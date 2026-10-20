@@ -23,3 +23,4 @@
 | S-71-4 | Remove the clones of the runtime crate: one script origin for the classic scripts, one deadline timer and one cancellation and timeout result for the request waits, and one helper for the parallel restore tests | packages/runtime/src | `make nextest-runtime` | [o] |
 | S-71-5 | Start the supervisor of the development server in one function for the watched and the prepared build | packages/server/src/development.rs | `make nextest-server` | [o] |
 | S-72 | Take the copies of kit that changed since S-60 (PRINCIPLES in both languages and config/php-lint) with make kit-sync | PRINCIPLES.md, PRINCIPLES.ko.md, config/php-lint | `make kit-check` | [o] |
+| S-73 | Run bypass-check, the new check of kit-gates, in CHECK_TARGETS of the Makefile | Makefile, config/owner-checks.json | `make kit-check` | [o] |

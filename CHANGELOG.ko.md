@@ -1,11 +1,14 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 6711a92ee1de7297ae0f672820103176920c52ddd1191881522897976972bff4 -->
+<!-- source-sha256: 6ca27e2bc8b3f9fa2ed2b73913a6a0626b166e3e780ecba0e4c4831dfc62f33b -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- `Makefile` 의 `CHECK_TARGETS` 가 CI 를 가장하거나, check 를 최신으로 가정하거나, hook 을 건너뛰는 test, script, Makefile 을 실패시키는
+  `kit-gates` 의 check `bypass-check` 를 실행한다 (S-73). Red: `make kit-check` 가 종료 코드 2 와 `CHECK_TARGETS runs no
+  bypass-check` 로 실패했다. Green: `make kit-check` 와 `make bypass-check` 가 종료 코드 0 이고 `make tool-test-workflows` 가 통과한다.
 - S-60 이후 바뀐 kit 복사본을 `make kit-sync` 로 받는다: `PRINCIPLES.md` 와 `PRINCIPLES.ko.md`, 그리고 platform 이 이제 `8.4.1` 인
   `config/php-lint` (S-72). 이전: `make kit-check` 가 복사본이 다르다고 보고했다. 이후: 복사본 finding 은 없고, `kit-gates` 의 새 check
   `bypass-check` 에 대한 finding 1건이 남는다.

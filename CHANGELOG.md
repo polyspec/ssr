@@ -5,6 +5,10 @@
 
 ## Unreleased
 
+- `CHECK_TARGETS` of the Makefile runs `bypass-check`, the check of `kit-gates` that fails on a test, script or
+  Makefile that impersonates CI, assumes a check up to date or skips a hook (S-73). Red: `make kit-check` exited with
+  2 and `CHECK_TARGETS runs no bypass-check`. Green: `make kit-check` exits with 0, `make bypass-check` exits with 0
+  and `make tool-test-workflows` passes.
 - The copies of kit that changed since S-60 are taken with `make kit-sync`: `PRINCIPLES.md` with `PRINCIPLES.ko.md`,
   and `config/php-lint`, whose platform is now `8.4.1` (S-72). Before: `make kit-check` reported the copies as
   different. After: no copy finding; one finding remains for the new check `bypass-check` of `kit-gates`.

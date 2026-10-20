@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: 8ec1e3457f77f68ecc92ee10ef648cad3bfc61834eca3838d8b50b1ad5efd644 -->
+<!-- source-sha256: ea04db758ce32e7ce59fafb7333b3e5cd21f250ba1ea960f670ecb10f8db843f -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -24,3 +24,4 @@
 | S-71-4 | runtime crate 의 clone 을 제거한다: classic script 의 origin 하나, request 대기의 deadline timer 와 취소·timeout 결과 하나, 병렬 복원 test 의 helper 하나 | packages/runtime/src | `make nextest-runtime` | [o] |
 | S-71-5 | development server 의 supervisor 시작을 감시하는 build 와 준비된 build 가 함께 쓰는 함수 하나로 한다 | packages/server/src/development.rs | `make nextest-server` | [o] |
 | S-72 | S-60 이후 바뀐 kit 복사본(두 언어의 PRINCIPLES 와 config/php-lint)을 make kit-sync 로 받는다 | PRINCIPLES.md, PRINCIPLES.ko.md, config/php-lint | `make kit-check` | [o] |
+| S-73 | kit-gates 의 새 check 인 bypass-check 를 Makefile 의 CHECK_TARGETS 에서 실행한다 | Makefile, config/owner-checks.json | `make kit-check` | [o] |
