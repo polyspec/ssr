@@ -5,6 +5,7 @@
 
 ## Unreleased
 
+- S-85: .golangci.yml, ruff.toml, PRINCIPLES.md, PRINCIPLES.ko.md and scripts/kit/kit-bootstrap.mk take the kit 0.0.54 copies, with the P8 lint rules and the link of the siblings on install; red: kit-check reported 5 copies that differ from @polyspec/kit, green: kit-check passes. (S-85)
 - S-83: tests/test-ownership/src/cargo_case.rs reaps the child with an explicit error report instead of let _, and states the need of the poisoned-lock recovery in an allow with its reason; red: clippy reported the disallowed unwrap_or_else at cargo_case.rs:111 and two non-binding lets at cargo_case.rs:187, green: clippy of the library target reports no hit and the workspace tests pass. (S-83)
 - S-82: Page::from_json in packages/core/src/lib.rs checks the kind of title and language and propagates the parse error, so no map_err discards it; red: clippy reported map_err ignoring the error at lib.rs:83 and 86, green: clippy passes for polyspec-ssr-core with the lint flags of lint-rust. The unit tests of page.rs pass; process.rs fails in the same way at HEAD (Disconnected at process.rs:16), a finding of its own, not checked here. (S-82)
 - S-81: the suite runs lint-rust, the Rust gate of kit-gates, through CHECK_TARGETS in Makefile; red: kit-check reported that CHECK_TARGETS runs no lint-rust, green: kit-check passes. (S-81)
