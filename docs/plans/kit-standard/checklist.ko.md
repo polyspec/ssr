@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: 62baea92abbc40f6da7ddfc55c4acb72a346c4a5242ec6073cb9b6c65ae31bfd -->
+<!-- source-sha256: 2a059f663a38fd493d14ab0af27e761bd1442665e6fd4e244d5d7dcde95f6f01 -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -46,3 +46,4 @@
 | S-92 | server crate는 매핑하는 각 실패의 오류를 유지한다: development process의 Result::ok와 unwrap_or_else는 match가 되고, lock과 frame 파싱 매핑은 오류 텍스트를 유지하며, 선택적 socket kind는 non-Unicode 값을 버리지 않고 읽는다 | packages/server/src/development.rs, packages/server/src/development/process.rs, packages/server/src/development/supervisor.rs, packages/server/src/stack.rs, packages/server/tests/support/socket_process.rs | `cargo clippy -p polyspec-ssr-server --all-targets --locked -- -D warnings -D unused_must_use -D clippy::let_underscore_must_use -D clippy::let_underscore_untyped -D clippy::map_err_ignore -D clippy::allow_attributes_without_reason`, `cargo nextest run -p polyspec-ssr-server --lib --test cancellation --test development --test process --test public --test react_late_reader --test react_stream --test render --test svelte --locked` | [o] |
 | S-90 | make lint-rust가 전체 workspace에서 종료 코드 0으로 끝난다: checkout의 모든 Cargo workspace가 P8 lint와 함께 clippy를 통과한다 | CHANGELOG.md, CHANGELOG.ko.md, docs/plans/kit-standard/checklist.md, docs/plans/kit-standard/checklist.ko.md | `make lint-rust` | [o] |
 | S-94 | 콜드 타깃에서 React 어댑터 테스트 바이너리의 첫 실행이 30 초 제한으로 다섯 테스트를 시간 초과시키지 않는다 | packages/adapter-react/tests, .config/nextest.toml, scripts/install-packages.mts | `cargo nextest run -p polyspec-ssr-adapter-react --test form_rows --test heap --test react --test recovery --locked` | [ ] |
+| S-95 | 서버 크레이트가 매핑하는 개발 오류의 원래 오류를 source로 보관한다: DevelopmentError는 thiserror로 원래 오류를 source로 갖고 모든 메시지 문구와 공개 이름을 유지한다 | packages/server/src, packages/server/Cargo.toml, Cargo.lock | `cargo clippy -p polyspec-ssr-server --all-targets --locked -- -D warnings -D unused_must_use -D clippy::let_underscore_must_use -D clippy::let_underscore_untyped -D clippy::map_err_ignore -D clippy::allow_attributes_without_reason`, `cargo nextest run -p polyspec-ssr-server --lib --test cancellation --test development --test process --test public --test react_late_reader --test react_stream --test render --test svelte --locked` | [ ] |
