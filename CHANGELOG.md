@@ -5,6 +5,9 @@
 
 ## Unreleased
 
+- The copies of kit that changed since S-60 are taken with `make kit-sync`: `PRINCIPLES.md` with `PRINCIPLES.ko.md`,
+  and `config/php-lint`, whose platform is now `8.4.1` (S-72). Before: `make kit-check` reported the copies as
+  different. After: no copy finding; one finding remains for the new check `bypass-check` of `kit-gates`.
 - S-71 is complete: the 29 clones of the sources are removed in S-71-1 to S-71-5, and `make duplication-check` exits
   with 0 (S-71).
 - `Development::start` and `Development::from_build` start the supervisor of the render process through one function

@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: c8f5afa3f67978972d334f8a9b9896eed57e927ca0f9f88581fb3a5d800ff3d5 -->
+<!-- source-sha256: 8ec1e3457f77f68ecc92ee10ef648cad3bfc61834eca3838d8b50b1ad5efd644 -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -23,3 +23,4 @@
 | S-71-3 | adapter 가 생성하는 entry 를 공유 함수 하나로 template 에서 만들어 entry 가 code 를 되풀이하지 않게 한다 | packages/adapter-support, packages/adapter-*/src/lib.rs | `make nextest-adapter-support` | [o] |
 | S-71-4 | runtime crate 의 clone 을 제거한다: classic script 의 origin 하나, request 대기의 deadline timer 와 취소·timeout 결과 하나, 병렬 복원 test 의 helper 하나 | packages/runtime/src | `make nextest-runtime` | [o] |
 | S-71-5 | development server 의 supervisor 시작을 감시하는 build 와 준비된 build 가 함께 쓰는 함수 하나로 한다 | packages/server/src/development.rs | `make nextest-server` | [o] |
+| S-72 | S-60 이후 바뀐 kit 복사본(두 언어의 PRINCIPLES 와 config/php-lint)을 make kit-sync 로 받는다 | PRINCIPLES.md, PRINCIPLES.ko.md, config/php-lint | `make kit-check` | [o] |

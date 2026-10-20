@@ -1,11 +1,14 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 048f1322b594ee71db76c601c1deaeec2fc0e9a37a72257acd10057ac809e17e -->
+<!-- source-sha256: 6711a92ee1de7297ae0f672820103176920c52ddd1191881522897976972bff4 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- S-60 이후 바뀐 kit 복사본을 `make kit-sync` 로 받는다: `PRINCIPLES.md` 와 `PRINCIPLES.ko.md`, 그리고 platform 이 이제 `8.4.1` 인
+  `config/php-lint` (S-72). 이전: `make kit-check` 가 복사본이 다르다고 보고했다. 이후: 복사본 finding 은 없고, `kit-gates` 의 새 check
+  `bypass-check` 에 대한 finding 1건이 남는다.
 - S-71 이 완료되었다: source clone 29건이 S-71-1 부터 S-71-5 까지에서 제거되었고 `make duplication-check` 가 종료 코드 0 이다 (S-71).
 - `Development::start` 와 `Development::from_build` 는 render process 의 supervisor 를 함수 하나 `supervise` 로 시작한다. 동작은 그대로이다
   (S-71-5). 이전: `make duplication-check` 가 clone 1건을 찾았다. 이후: clone 0건이고 `make duplication-check` 가 종료 코드 0 이며
