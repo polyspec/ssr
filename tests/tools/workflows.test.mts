@@ -1,6 +1,6 @@
 // Tests of the GitHub workflows of the repository and the make targets they run: every step runs a make target, every
 // job that runs checks uploads its report, the actions are pinned, the triggers, the job ci-passed, and the CI targets of
-// each architecture. .github/workflows/release.yml is the copy of kit, tested in kit. The workflows are read with the
+// each architecture. .github/workflows/release.yml and gates.yml are copies of kit, tested in kit. The workflows are read with the
 // YAML parser of the ecosystem (yaml).
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -114,9 +114,9 @@ test('a new push cancels the previous pull request run', () => {
 
 test('each workflow declares exactly its triggers', () => {
   // ci.yml runs the checks on every pull request, merge group and manual run: the merge group runs CI on the commit that
-  // main receives. push-gate.yml also runs on every push outside the branches of the merge queue. The only other workflow
-  // is the release workflow of kit.
-  assert.deepEqual(readdirSync(path.join(ROOT, '.github/workflows')).sort(), ['ci.yml', 'push-gate.yml', 'release.yml']);
+  // main receives. push-gate.yml also runs on every push outside the branches of the merge queue. The only other workflows
+  // are the release workflow and the gates workflow of kit, copies that kit-check compares with the package.
+  assert.deepEqual(readdirSync(path.join(ROOT, '.github/workflows')).sort(), ['ci.yml', 'gates.yml', 'push-gate.yml', 'release.yml']);
   assert.deepEqual(workflow('ci.yml').on, { pull_request: null, merge_group: null, workflow_dispatch: null });
   assert.deepEqual(workflow('push-gate.yml').on, {
     push: { 'branches-ignore': ['gh-readonly-queue/**'] }, pull_request: null, merge_group: null,

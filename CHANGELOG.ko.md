@@ -1,11 +1,14 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 51fce0a3e8d00a8c14bc5bf99d51e624b046e7244a42a5bd37ab1c00866e9e2a -->
+<!-- source-sha256: 831b5d5da0a35881071e1520a1d2dfaaddbaa72206a21de39c61bad63a9f8cfc -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- workflow test 는 `release.yml` 과 함께 kit 이 복사하는 gates workflow `.github/workflows/gates.yml` 을 받아들인다 (S-61). Red:
+  `make tool-test-workflows` 가 종료 코드 2 로 실패했고 `each workflow declares exactly its triggers` 가 추가 파일 `gates.yml` 로
+  실패했다. Green: `make tool-test-workflows` 가 종료 코드 0 이고 13개가 통과했다.
 - `make kit-sync` 로 kit 0.0.54 의 복사본을 받는다: lint 설정(`.golangci.yml`, `.oxlintrc.json`, `knip.json`, `phpcs.xml.dist`,
   `ruff.toml`), `config/layout.kit.yml`, `PRINCIPLES.md` 와 `PRINCIPLES.ko.md`, `.github/workflows/release.yml`, 새
   `.github/workflows/gates.yml`, `scripts/kit/` 의 bootstrap, `.claude/settings.json` (S-60). Red: 이전 복사본에서 `make

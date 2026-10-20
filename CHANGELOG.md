@@ -5,6 +5,9 @@
 
 ## Unreleased
 
+- The workflow test accepts `.github/workflows/gates.yml`, the gates workflow that kit copies, beside `release.yml`
+  (S-61). Red: `make tool-test-workflows` exited with 2; `each workflow declares exactly its triggers` failed with the
+  extra file `gates.yml`. Green: `make tool-test-workflows` exits with 0, 13 passed.
 - The copies of kit 0.0.54 are taken with `make kit-sync`: the lint configurations (`.golangci.yml`, `.oxlintrc.json`,
   `knip.json`, `phpcs.xml.dist`, `ruff.toml`), `config/layout.kit.yml`, `PRINCIPLES.md` with `PRINCIPLES.ko.md`,
   `.github/workflows/release.yml`, the new `.github/workflows/gates.yml`, the bootstrap of `scripts/kit/` and
