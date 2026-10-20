@@ -32,3 +32,4 @@
 | S-79 | Take the PRINCIPLES copies that kit changed with K316 and K327 to K330 using make kit-sync | PRINCIPLES.md, PRINCIPLES.ko.md | `make kit-check` | [o] |
 | S-80 | Every copy of kit the repository holds has an owner rule | config/owner-checks.json with clippy.toml in the kit copies rule | `make owner-validate` | [o] |
 | S-81 | The suite runs lint-rust, a gate of kit-gates, for the Rust of the repository | Makefile CHECK_TARGETS with lint-rust | `make kit-check` | [o] |
+| S-82 | The core crate maps its field errors without ignoring the error | packages/core/src/lib.rs Page::from_json | `cargo clippy -p polyspec-ssr-core --all-targets --locked -- -D warnings -D unused_must_use -D clippy::let_underscore_must_use -D clippy::let_underscore_untyped -D clippy::map_err_ignore -D clippy::allow_attributes_without_reason` | [o] |

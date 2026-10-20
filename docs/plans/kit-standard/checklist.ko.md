@@ -33,3 +33,4 @@
 | S-79 | K316 과 K327 부터 K330 으로 kit 이 바꾼 PRINCIPLES 복사본을 make kit-sync 로 받는다 | PRINCIPLES.md, PRINCIPLES.ko.md | `make kit-check` | [o] |
 | S-80 | 저장소가 가진 kit 복사본마다 소유 규칙을 둔다 | config/owner-checks.json with clippy.toml in the kit copies rule | `make owner-validate` | [o] |
 | S-81 | 스위트가 저장소의 Rust를 위해 kit-gates의 gate인 lint-rust를 실행한다 | Makefile CHECK_TARGETS with lint-rust | `make kit-check` | [o] |
+| S-82 | core crate는 오류를 무시하지 않고 필드 오류로 바꾼다 | packages/core/src/lib.rs Page::from_json | `cargo clippy -p polyspec-ssr-core --all-targets --locked -- -D warnings -D unused_must_use -D clippy::let_underscore_must_use -D clippy::let_underscore_untyped -D clippy::map_err_ignore -D clippy::allow_attributes_without_reason` | [o] |

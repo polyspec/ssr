@@ -78,12 +78,16 @@ impl Page {
             Ok(value) if value == "csr" => Render::Csr,
             _ => return Err(Error::InvalidField("render")),
         };
-        let title = required(&value, "title")?
-            .string_value()
-            .map_err(|_| Error::InvalidField("title"))?;
-        let language = required(&value, "language")?
-            .string_value()
-            .map_err(|_| Error::InvalidField("language"))?;
+        let title = required(&value, "title")?;
+        if title.kind() != Kind::String {
+            return Err(Error::InvalidField("title"));
+        }
+        let title = title.string_value()?;
+        let language = required(&value, "language")?;
+        if language.kind() != Kind::String {
+            return Err(Error::InvalidField("language"));
+        }
+        let language = language.string_value()?;
         let props = required(&value, "props")?;
         if props.kind() != Kind::Object {
             return Err(Error::InvalidField("props"));

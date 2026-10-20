@@ -5,6 +5,7 @@
 
 ## Unreleased
 
+- S-82: Page::from_json in packages/core/src/lib.rs checks the kind of title and language and propagates the parse error, so no map_err discards it; red: clippy reported map_err ignoring the error at lib.rs:83 and 86, green: clippy passes for polyspec-ssr-core with the lint flags of lint-rust. The unit tests of page.rs pass; process.rs fails in the same way at HEAD (Disconnected at process.rs:16), a finding of its own, not checked here. (S-82)
 - S-81: the suite runs lint-rust, the Rust gate of kit-gates, through CHECK_TARGETS in Makefile; red: kit-check reported that CHECK_TARGETS runs no lint-rust, green: kit-check passes. (S-81)
 - S-80: config/owner-checks.json gives clippy.toml, the kit copy of Rust lint settings, the owner rule of the kit copies; red: owner-validate reported clippy.toml as a path that matches no owner, green: it reports every tracked path owned. (S-80)
 - `PRINCIPLES.md` and `PRINCIPLES.ko.md` follow the kit changes K316 and K327 to K330 through `make kit-sync` (S-79).
