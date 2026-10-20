@@ -5,6 +5,11 @@
 
 ## Unreleased
 
+- `PRINCIPLES.md` and `PRINCIPLES.ko.md` are taken again with `make kit-sync` after kit changed them (S-76). Red:
+  `make kit-check` with the previous copies named both files as different. Green: no copy finding; one finding remains
+  for the new check `divergence-check`. The kit changes K319 (`make lint-php` and `make lint-python` pass in a
+  checkout without sources) and K320 (`make link-state-check` skips the Composer projects that kit writes) make those
+  three checks exit with 0 in ssr without a change here.
 - The adapters declare their structs and `adapter!` of the support crate writes only their methods, the ownership
   check reads a `#[macro_export]` macro_rules as a public root name, and the support crate has a render test that uses
   the pool and the page (S-75). Red: `make check-ownership` exited with 2 and 5 declaration errors (`owner does not

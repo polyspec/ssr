@@ -139,7 +139,7 @@ repository.
   runtime-native integration is written once as a neutral rule in docs/spec, and each implementation binds its native form
   to it. An implementation-internal test is a plain test of its package, not a parity unit, and it cites no requirement; a
   symbol that is public by accident becomes non-public.
-  Enforced by: `make parity-declarations-check`, `make parity-check`
+  Enforced by: `make parity-declarations-check`, `make parity-check`, `make divergence-check`, `make test-markers-check`
 - P33 A rule that the work needs and docs/spec lacks is written in docs/spec first. A requirement is cited only by a test that
   tests it, a unit is never dropped to pass, and nothing is renamed to escape a check.
   Enforced by: `make parity-declarations-check`

@@ -1,11 +1,15 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: d83c6531ab7e4474850ab713b0b2759ec9f8f49244f9734f41f46ec3bf07c3c1 -->
+<!-- source-sha256: 8c42e495dbf60de10760cf2448c844522c67b57c902d3884dc882cd4a899bf63 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- `PRINCIPLES.md` 와 `PRINCIPLES.ko.md` 를 kit 이 바꾼 뒤 `make kit-sync` 로 다시 받는다 (S-76). Red: 이전 복사본에서 `make kit-check` 가
+  두 파일이 다르다고 지목했다. Green: 복사본 finding 이 없고 새 check `divergence-check` 에 대한 finding 1건이 남는다. kit 의 K319(source 가 없는
+  checkout 에서 `make lint-php` 와 `make lint-python` 통과)와 K320(`make link-state-check` 가 kit 이 쓰는 Composer project 를
+  건너뜀)로 이 저장소의 변경 없이 세 check 가 종료 코드 0 이다.
 - adapter 는 struct 를 선언하고 support crate 의 `adapter!` 는 method 만 쓰며, ownership 검사는 `#[macro_export]` macro_rules 를
   public root 이름으로 읽고, support crate 에는 pool 과 page 를 쓰는 render test 가 있다 (S-75). Red: `make check-ownership` 이 종료 코드
   2 와 선언 오류 5건(`owner does not export polyspec-ssr-adapter-support::adapter`, adapter 의 인식되지 않은 이름, source 와 다른

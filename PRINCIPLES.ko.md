@@ -1,5 +1,5 @@
 <!-- doc-id: principles -->
-<!-- source-sha256: 3694288be2448eef0272f8ac2dec75d7822f67f5cfdf54f808573e97be0b961c -->
+<!-- source-sha256: 488f8c89209839a5d200ee6d436c7c331a04ebff2ccee79bb9542bdaa3423059 -->
 # 원칙
 
 [English](PRINCIPLES.md)
@@ -131,7 +131,7 @@ vendor하므로, 모든 repository가 같은 text를 가지며 `make kit-check`�
 - P32 범위: contract 동작은 모든 구현에 있고(S6, S10) test와 함께 구현한다. 언어나 runtime에 고유한 통합은 docs/spec에
   중립적인 규칙 하나로 쓰고, 각 구현이 자기 고유한 형태를 거기에 묶는다. 구현 내부 test는 자기 package의 보통 test이지 parity
   unit이 아니며 requirement를 인용하지 않는다. 우연히 public인 symbol은 non-public이 된다.
-  Enforced by: `make parity-declarations-check`, `make parity-check`
+  Enforced by: `make parity-declarations-check`, `make parity-check`, `make divergence-check`, `make test-markers-check`
 - P33 작업에 필요한데 docs/spec에 없는 규칙은 docs/spec에 먼저 쓴다. requirement는 그것을 test하는 test만 인용하고, unit을 통과하려고
   버리지 않으며, 검사를 피하려고 이름을 바꾸지 않는다.
   Enforced by: `make parity-declarations-check`
