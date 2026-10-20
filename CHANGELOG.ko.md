@@ -1,11 +1,17 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: f7f55b87dbd3c2fdc0a7b4be0550116854c0527d117c4873c6bdba44ce1ae158 -->
+<!-- source-sha256: 18fbf1df9add6281077a18e8d161ab3108bbc848ad762386617a379d745402fa -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- `Makefile` 의 `CHECK_TARGETS` 가 kit 의 `kit-gates` 의 모든 gate 를 실행한다: `docs-check` 가 `documents-check` 를 대체하고
+  `rules-check`, `rebuild-check`, `language-check`, `test-markers-check`, `duplication-check`,
+  `parity-declarations-check`, `parity-check`, `commits-check`, `link-state-check`, `lint-ts` 가 단어로 들어간다 (S-63). `make
+  kit-check` 가 `$(SSR_TARGETS)` 를 확장하지 않고 `CHECK_TARGETS` 를 읽으므로 `lint-ts` 는 `SSR_TARGETS` 에서 나온다. Red: `make
+  kit-check` 가 종료 코드 2 와 finding 11건(`CHECK_TARGETS runs no <gate>`)으로 실패했다. Green: `make kit-check` 가 종료 코드 0 이고
+  `make tool-test-workflows` 가 13개를 통과한다.
 - `config/owner-checks.json` 은 문서에 `docs-check` 를 지정하고, `CHANGELOG.md`, `CHANGELOG.ko.md`,
   `.github/workflows/gates.yml`, `.claude/settings.json` 을 소유하며, 제거된 `config/commits.json` 의 owner 를 삭제한다 (S-62). Red:
   `make owner-validate` 가 종료 코드 2 와 오류 8건(owner 3곳이 없는 target `documents-check` 를 지정, 추적 경로 4개가 owner 없음, glob 1개가 경로와

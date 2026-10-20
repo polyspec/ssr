@@ -22,8 +22,10 @@ V8_BINDING := $(CURDIR)/var/v8/src_binding_simdutf_release_$(V8_TARGET).rs
 # and nextest-<package> below.
 TOOL_TESTS := $(patsubst tests/tools/%.test.mts,%,$(wildcard tests/tools/*.test.mts))
 PACKAGES := $(patsubst packages/%/Cargo.toml,%,$(wildcard packages/*/Cargo.toml))
-SSR_TARGETS = typecheck lint-ts check-tools tool-test-test-ownership check-ownership check-records check-fixture-filter check-fmt check-clippy check-deny check-examples check-nextest check-bench
-CHECK_TARGETS = kit-check toolchain-check layout-check documents-check owner-validate hooks-check dependency-policy-check $(SSR_TARGETS)
+SSR_TARGETS = typecheck check-tools tool-test-test-ownership check-ownership check-records check-fixture-filter check-fmt check-clippy check-deny check-examples check-nextest check-bench
+# Every gate of kit-gates is a word of CHECK_TARGETS itself, which make kit-check reads from the database of make without
+# expanding $(SSR_TARGETS); the targets of ssr are the words of SSR_TARGETS.
+CHECK_TARGETS = kit-check toolchain-check layout-check docs-check rules-check owner-validate rebuild-check language-check test-markers-check duplication-check dependency-policy-check parity-declarations-check parity-check commits-check link-state-check lint-ts hooks-check $(SSR_TARGETS)
 # The number of Cargo build jobs of the check targets: 1 by default, so a local build leaves the
 # other processors of the host to the other work; the CI targets set it to the processor count of
 # the runner (nproc).

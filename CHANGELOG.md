@@ -5,6 +5,12 @@
 
 ## Unreleased
 
+- `CHECK_TARGETS` of the Makefile runs every gate of the `kit-gates` of kit: `docs-check` replaces `documents-check`,
+  and `rules-check`, `rebuild-check`, `language-check`, `test-markers-check`, `duplication-check`,
+  `parity-declarations-check`, `parity-check`, `commits-check`, `link-state-check` and `lint-ts` are words of it
+  (S-63). `lint-ts` moves out of `SSR_TARGETS` because `make kit-check` reads `CHECK_TARGETS` without expanding
+  `$(SSR_TARGETS)`. Red: `make kit-check` exited with 2 and 11 findings `CHECK_TARGETS runs no <gate>`. Green: `make
+  kit-check` exits with 0 and `make tool-test-workflows` passes 13 cases.
 - `config/owner-checks.json` names `docs-check` for the documents, owns `CHANGELOG.md`, `CHANGELOG.ko.md`,
   `.github/workflows/gates.yml` and `.claude/settings.json`, and drops the owner of the removed `config/commits.json`
   (S-62). Red: `make owner-validate` exited with 2 and 8 errors (three owners named the missing target
