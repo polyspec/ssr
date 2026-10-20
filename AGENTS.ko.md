@@ -1,5 +1,5 @@
 <!-- doc-id: agents -->
-<!-- source-sha256: dd59c457796099e5e2f95a2c5aa55ccd59cc4bb109b1757042818a345accb840 -->
+<!-- source-sha256: ae3d8e72c34d6f25649c217924f958722c610f88441f3787776aca772fbdaf95 -->
 # 개발 절차
 
 [English](AGENTS.md).
@@ -27,7 +27,7 @@
   Enforced by: none, the live settings of GitHub are read with an administrator token that no CI job holds; `make github-ruleset-check` compares them on request.
 - Own: 공개 계약의 JSON 문서는 ordered-json을 쓴다.
   Enforced by: none, which JSON documents belong to the public contract is a judgement.
-- Own: `0.0.2` library 하나를 개발한다. crate는 `polyspec-ssr-core`, `polyspec-ssr-build`, `polyspec-ssr-runtime`, `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`, `polyspec-ssr-adapter-svelte`, `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-nonce`, `polyspec-ssr-server`이고, 각각 접두사 `polyspec-ssr-` 없이 `packages/<name>`에 있으며(`packages/core` 등) library는 `polyspec_ssr_core` 등이다.
+- Own: `0.0.2` library 하나를 개발한다. crate는 `polyspec-ssr-core`, `polyspec-ssr-build`, `polyspec-ssr-runtime`, `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`, `polyspec-ssr-adapter-svelte`, `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-adapter-support`(adapter가 공유하는 code로 다른 crate는 쓰지 않는다), `polyspec-ssr-nonce`, `polyspec-ssr-server`이고, 각각 접두사 `polyspec-ssr-` 없이 `packages/<name>`에 있으며(`packages/core` 등) library는 `polyspec_ssr_core` 등이다.
   Enforced by: `make layout-check`, `make check-nextest`
 - Own: library는 Node process를 실행하지 않는다. production build 명령과 render server는 별도의 Rust process에서 실행된다. renderer process는 자기 수명 동안 불변의 bundle 하나와 snapshot key 하나를 고른다. 새 bundle은 새 renderer process를 쓰며, 요청 동시성과 서비스는 선택된 전체 application bundle을 공유한다.
   Enforced by: `make check-nextest`
@@ -65,7 +65,7 @@
 
 - Own: 동작의 기본 test는 그것을 소유한 crate에, 실제 사용 test는 그것을 쓰는 각 crate에 둔다. 두 test가 모두 실행되며, test 파일이 있다는 것만으로는 증거가 아니다. `config/test-ownership.json`이 공유 동작을 각각 선언한다([test ownership](docs/operations/test-ownership.ko.md)).
   Enforced by: `make check-ownership`
-- Own: `polyspec-ssr-core`는 이 저장소의 다른 crate에 의존하지 않고, adapter는 `polyspec-ssr-core`와 `polyspec-ssr-runtime`에만 의존한다.
+- Own: `polyspec-ssr-core`는 이 저장소의 다른 crate에 의존하지 않고, adapter는 `polyspec-ssr-core`, `polyspec-ssr-runtime`, `polyspec-ssr-adapter-support`에만 의존한다.
   Enforced by: `make check-deny`, `make check-ownership`
 - Own: dependency는 workspace manifest에서 정확한 version으로 고정하고 공식 release 정보로 검증한다. `Cargo.lock`은 commit한다.
   Enforced by: `make dependency-policy-check`, `make check-deny`

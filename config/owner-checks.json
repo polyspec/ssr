@@ -406,6 +406,16 @@
     },
     {
       "paths": [
+        "packages/adapter-support/**"
+      ],
+      "targets": [
+        "nextest-adapter-support",
+        "check-ownership",
+        "layout-check"
+      ]
+    },
+    {
+      "paths": [
         "packages/adapter-svelte/**"
       ],
       "targets": [

@@ -9,8 +9,10 @@ license.workspace = true
 workspace = true
 
 [dependencies]
+polyspec-ssr-adapter-support = { path = "../adapter-support", version = "=0.0.2" }
 polyspec-ssr-core = { path = "../core", version = "=0.0.2" }
 polyspec-ssr-runtime = { path = "../runtime", version = "=0.0.2" }
+thiserror.workspace = true
 
 [dev-dependencies]
 polyspec-ssr-build = { path = "../build", version = "=0.0.2" }

@@ -19,6 +19,7 @@
     "packages/adapter-vue/Cargo.toml": "git-tag",
     "packages/adapter-svelte/Cargo.toml": "git-tag",
     "packages/adapter-vanilla/Cargo.toml": "git-tag",
+    "packages/adapter-support/Cargo.toml": "git-tag",
     "packages/nonce/Cargo.toml": "git-tag",
     "packages/server/Cargo.toml": "git-tag"
   },
@@ -82,6 +83,14 @@
       "packages/adapter-vanilla/Cargo.toml": {
         "kind": "rust",
         "name": "polyspec-ssr-adapter-vanilla",
+        "smoke": [
+          "cargo",
+          "check"
+        ]
+      },
+      "packages/adapter-support/Cargo.toml": {
+        "kind": "rust",
+        "name": "polyspec-ssr-adapter-support",
         "smoke": [
           "cargo",
           "check"

@@ -27,7 +27,7 @@ The working principles of every polyspec repository, and the rules of work that 
   Enforced by: none, the live settings of GitHub are read with an administrator token that no CI job holds; `make github-ruleset-check` compares them on request.
 - Own: JSON documents of the public contract use ordered-json.
   Enforced by: none, which JSON documents belong to the public contract is a judgement.
-- Own: Develop one `0.0.2` library. The crates are `polyspec-ssr-core`, `polyspec-ssr-build`, `polyspec-ssr-runtime`, `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`, `polyspec-ssr-adapter-svelte`, `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-nonce` and `polyspec-ssr-server`, each in `packages/<name>` without the prefix `polyspec-ssr-` (`packages/core` and so on), with the libraries `polyspec_ssr_core` and so on.
+- Own: Develop one `0.0.2` library. The crates are `polyspec-ssr-core`, `polyspec-ssr-build`, `polyspec-ssr-runtime`, `polyspec-ssr-adapter-react`, `polyspec-ssr-adapter-vue`, `polyspec-ssr-adapter-svelte`, `polyspec-ssr-adapter-vanilla`, `polyspec-ssr-adapter-support` (the code that the adapters share, used by no other crate), `polyspec-ssr-nonce` and `polyspec-ssr-server`, each in `packages/<name>` without the prefix `polyspec-ssr-` (`packages/core` and so on), with the libraries `polyspec_ssr_core` and so on.
   Enforced by: `make layout-check`, `make check-nextest`
 - Own: The library runs no Node process. Production build commands and render servers run in separate Rust processes. A renderer process selects one immutable bundle and snapshot key for its lifetime. New bundles use new renderer processes; request concurrency and services share the selected full application bundle.
   Enforced by: `make check-nextest`
@@ -65,7 +65,7 @@ The working principles of every polyspec repository, and the rules of work that 
 
 - Own: A behavior's base tests are in its owning crate and its actual use is tested in each consuming crate. Both tests execute; the presence of a test file alone is not evidence. `config/test-ownership.json` declares each shared behavior ([test ownership](docs/operations/test-ownership.md)).
   Enforced by: `make check-ownership`
-- Own: `polyspec-ssr-core` depends on no other crate of this repository; adapters depend only on `polyspec-ssr-core` and `polyspec-ssr-runtime`.
+- Own: `polyspec-ssr-core` depends on no other crate of this repository; adapters depend only on `polyspec-ssr-core`, `polyspec-ssr-runtime` and `polyspec-ssr-adapter-support`.
   Enforced by: `make check-deny`, `make check-ownership`
 - Own: Dependencies are pinned to exact versions in the workspace manifest and verified against official release information. `Cargo.lock` is committed.
   Enforced by: `make dependency-policy-check`, `make check-deny`

@@ -56,6 +56,17 @@
       ]
     },
     {
+      "id": "adapter_support",
+      "owner": {"crate": "polyspec-ssr-adapter-support", "target": "document", "test": "document_escapes_the_page_and_orders_head_body_and_scripts"},
+      "exports": ["Assets", "HeadOutput", "app_import", "import_specifier"],
+      "consumers": [
+        {"crate": "polyspec-ssr-adapter-react", "target": "react", "test": "generated_react_entries_build_and_execute"},
+        {"crate": "polyspec-ssr-adapter-vue", "target": "vue", "test": "entries_and_documents_follow_the_page_contract"},
+        {"crate": "polyspec-ssr-adapter-svelte", "target": "svelte", "test": "entries_and_documents_follow_the_page_contract"},
+        {"crate": "polyspec-ssr-adapter-vanilla", "target": "vanilla", "test": "entries_render_both_modes_and_reject_invalid_input"}
+      ]
+    },
+    {
       "id": "react_adapter",
       "owner": {"crate": "polyspec-ssr-adapter-react", "target": "react", "test": "generated_react_entries_build_and_execute"},
       "exports": ["Error", "ReactAdapter", "client_entry", "framework_entry", "server_entry"],

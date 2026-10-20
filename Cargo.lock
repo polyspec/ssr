@@ -2597,20 +2597,32 @@ dependencies = [
 name = "polyspec-ssr-adapter-react"
 version = "0.0.2"
 dependencies = [
+ "polyspec-ssr-adapter-support",
  "polyspec-ssr-build",
  "polyspec-ssr-core",
  "polyspec-ssr-runtime",
+ "thiserror",
  "tokio",
  "wait-timeout",
+]
+
+[[package]]
+name = "polyspec-ssr-adapter-support"
+version = "0.0.2"
+dependencies = [
+ "polyspec-ssr-core",
+ "polyspec-ssr-runtime",
 ]
 
 [[package]]
 name = "polyspec-ssr-adapter-svelte"
 version = "0.0.2"
 dependencies = [
+ "polyspec-ssr-adapter-support",
  "polyspec-ssr-build",
  "polyspec-ssr-core",
  "polyspec-ssr-runtime",
+ "thiserror",
  "tokio",
  "wait-timeout",
 ]
@@ -2619,9 +2631,11 @@ dependencies = [
 name = "polyspec-ssr-adapter-vanilla"
 version = "0.0.2"
 dependencies = [
+ "polyspec-ssr-adapter-support",
  "polyspec-ssr-build",
  "polyspec-ssr-core",
  "polyspec-ssr-runtime",
+ "thiserror",
  "tokio",
  "wait-timeout",
 ]
@@ -2630,9 +2644,11 @@ dependencies = [
 name = "polyspec-ssr-adapter-vue"
 version = "0.0.2"
 dependencies = [
+ "polyspec-ssr-adapter-support",
  "polyspec-ssr-build",
  "polyspec-ssr-core",
  "polyspec-ssr-runtime",
+ "thiserror",
  "tokio",
  "wait-timeout",
 ]

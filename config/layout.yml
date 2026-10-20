@@ -62,6 +62,8 @@ rules:
       - "!packages/adapter-vue"
       - "!packages/adapter-svelte"
       - "!packages/adapter-vanilla"
+      # The code that the adapter crates share; only they depend on it.
+      - "!packages/adapter-support"
       - "!packages/nonce"
       - "!packages/server"
 

@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: 9a142c77c52bc250b1b1d6c43691d8c20d3f8c09845bd403bea6f27e0b1c93b9 -->
+<!-- source-sha256: 549250630f9fcedeadf26603f78cdb50e4a7e4a935855c33c3daa49a122397f4 -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -19,3 +19,4 @@
 | S-70 | test 폴더를 test 는 자기 case 를 온전히 적는다는 이유로 중복 검사에서 제외한다: config/duplication.json 이 packages/*/tests/**, packages/*/src/*_tests.rs, tests/** 를 나열한다 | config/duplication.json, config/owner-checks.json | `make duplication-check` | [o] |
 | S-71 | make duplication-check 가 보고하는 adapter crate 4개, build, runtime, server 의 source clone 29건을 공유 code 로 재구성해 제거한다. 새 public 이름과 error 타입의 thiserror 사용을 사용자가 승인한 뒤 진행한다 | packages/adapter-*/src/lib.rs, packages/build/src, packages/runtime/src, packages/server/src | `make duplication-check` | [~] |
 | S-71-1 | build crate 의 error 를 thiserror 로 derive 하고 임시 경로 제거의 처리를 공유해 Error 와 PublishError 가 code 를 되풀이하지 않게 한다 | Cargo.toml, Cargo.lock, config/dependency-review.json, packages/build/src | `make nextest-build` | [o] |
+| S-71-2 | 네 adapter crate 가 공유하는 것(document, assets, render, static shell)을 private crate polyspec-ssr-adapter-support 로 옮기고 error 를 thiserror 로 derive 한다 | packages/adapter-support, packages/adapter-*/src/lib.rs, config/, AGENTS.md | `make nextest-adapter-support` | [o] |

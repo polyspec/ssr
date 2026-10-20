@@ -4,7 +4,7 @@
 # Test ownership
 
 `config/test-ownership.json` declares the behavior of every crate that another workspace crate
-depends on: page, build, process, runtime, nonce and the React, Svelte and vanilla adapters; a
+depends on: page, build, process, runtime, nonce, the code that the adapters share, and the React, Svelte and vanilla adapters; a
 dependency without a declared behavior fails. Each behavior maps
 public names at its owner's crate root to one integration test in that crate and one actual use
 test in every consuming crate. All public root names of a declared owner belong to exactly one

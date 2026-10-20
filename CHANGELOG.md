@@ -5,6 +5,14 @@
 
 ## Unreleased
 
+- The React, Vue, Svelte and vanilla adapters share the crate `polyspec-ssr-adapter-support`, which only they depend
+  on: the page document, the validation of the client and style URLs, the render of a page through a pool and the
+  static shell are written once, each adapter keeps its entries and its head policy, its public names and its error
+  type, and the errors are derived with thiserror; the crate has the behavior `adapter_support` in
+  `config/test-ownership.json`, an owner, a layout entry and a release entry (S-71-2). Before: `make
+  duplication-check` found 26 clones, 18 of them in the adapters. After: 8 clones, 3 in the adapters; `cargo nextest
+  run -p polyspec-ssr-adapter-support` passes 6 tests, and the entries and document tests of the four adapters pass.
+  `make check-ownership` did not run here: `make verify-archive` refused with less than 10 GiB of free disk.
 - `Error` and `PublishError` of the build crate are derived with thiserror 2.0.21 (`=2.0.21` in the workspace, already
   locked through another crate), one `finish` joins the result of an operation with the removal of its temporary path
   for both, and `existing` checks a target for both publication paths; messages and sources are unchanged; the review
