@@ -5,6 +5,11 @@
 
 ## Unreleased
 
+- `config/owner-checks.json` names `docs-check` for the documents, owns `CHANGELOG.md`, `CHANGELOG.ko.md`,
+  `.github/workflows/gates.yml` and `.claude/settings.json`, and drops the owner of the removed `config/commits.json`
+  (S-62). Red: `make owner-validate` exited with 2 and 8 errors (three owners named the missing target
+  `documents-check`, four tracked paths had no owner, one glob matched no path). Green: `make owner-validate` exits
+  with 0 and owns every tracked path.
 - The workflow test accepts `.github/workflows/gates.yml`, the gates workflow that kit copies, beside `release.yml`
   (S-61). Red: `make tool-test-workflows` exited with 2; `each workflow declares exactly its triggers` failed with the
   extra file `gates.yml`. Green: `make tool-test-workflows` exits with 0, 13 passed.

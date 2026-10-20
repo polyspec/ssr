@@ -7,3 +7,4 @@
 | S-59 | Set the PHP floor of config/php-lint to the platform PHP 8.4 (kit-sync copy of config/php-lint/composer.json and composer.lock) | config/php-lint/composer.json, config/php-lint/composer.lock | `make toolchain-check` | [o] |
 | S-60 | Take the copies of kit 0.0.54 with make kit-sync: the lint configurations, the layout of kit, PRINCIPLES, the release and gates workflows, the bootstrap and .claude/settings.json | the copies named by kit.copies of @polyspec/kit | `make kit-check` | [o] |
 | S-61 | Let the workflow test accept the gates workflow of kit as a copy of kit, beside release.yml | tests/tools/workflows.test.mts | `make tool-test-workflows` | [o] |
+| S-62 | Own the paths of the copies and the documents of kit 0.0.54 in config/owner-checks.json: docs-check replaces documents-check, and gates.yml and .claude/settings.json are owned by kit-check | config/owner-checks.json | `make owner-validate` | [o] |

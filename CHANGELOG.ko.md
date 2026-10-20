@@ -1,11 +1,15 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 831b5d5da0a35881071e1520a1d2dfaaddbaa72206a21de39c61bad63a9f8cfc -->
+<!-- source-sha256: f7f55b87dbd3c2fdc0a7b4be0550116854c0527d117c4873c6bdba44ce1ae158 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- `config/owner-checks.json` 은 문서에 `docs-check` 를 지정하고, `CHANGELOG.md`, `CHANGELOG.ko.md`,
+  `.github/workflows/gates.yml`, `.claude/settings.json` 을 소유하며, 제거된 `config/commits.json` 의 owner 를 삭제한다 (S-62). Red:
+  `make owner-validate` 가 종료 코드 2 와 오류 8건(owner 3곳이 없는 target `documents-check` 를 지정, 추적 경로 4개가 owner 없음, glob 1개가 경로와
+  일치하지 않음)으로 실패했다. Green: `make owner-validate` 가 종료 코드 0 이고 모든 추적 경로를 소유한다.
 - workflow test 는 `release.yml` 과 함께 kit 이 복사하는 gates workflow `.github/workflows/gates.yml` 을 받아들인다 (S-61). Red:
   `make tool-test-workflows` 가 종료 코드 2 로 실패했고 `each workflow declares exactly its triggers` 가 추가 파일 `gates.yml` 로
   실패했다. Green: `make tool-test-workflows` 가 종료 코드 0 이고 13개가 통과했다.

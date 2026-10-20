@@ -6,6 +6,8 @@
       "paths": [
         "scripts/kit/**",
         ".github/workflows/release.yml",
+        ".github/workflows/gates.yml",
+        ".claude/settings.json",
         "PRINCIPLES.md",
         "PRINCIPLES.ko.md",
         "config/layout.kit.yml",
@@ -36,13 +38,15 @@
     },
     {
       "paths": [
+        "CHANGELOG.md",
+        "CHANGELOG.ko.md",
         "AGENTS.md",
         "AGENTS.ko.md",
         "docs/**/*.md",
         "config/documents.json"
       ],
       "targets": [
-        "documents-check",
+        "docs-check",
         "check-records"
       ]
     },
@@ -52,17 +56,9 @@
         ".githooks/pre-push"
       ],
       "targets": [
-        "documents-check",
+        "docs-check",
         "hooks-check",
         "push-gate-commit"
-      ]
-    },
-    {
-      "paths": [
-        "config/commits.json"
-      ],
-      "targets": [
-        "commits-check"
       ]
     },
     {
@@ -337,7 +333,7 @@
         "docs/runtime.ko.md"
       ],
       "targets": [
-        "documents-check",
+        "docs-check",
         "tool-test-check-records",
         "check-records"
       ]
