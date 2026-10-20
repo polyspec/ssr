@@ -19,11 +19,11 @@
     "packages/adapter-vue/Cargo.toml": "git-tag",
     "packages/adapter-svelte/Cargo.toml": "git-tag",
     "packages/adapter-vanilla/Cargo.toml": "git-tag",
-    "packages/adapter-support/Cargo.toml": "git-tag",
     "packages/nonce/Cargo.toml": "git-tag",
     "packages/server/Cargo.toml": "git-tag"
   },
   "notReleased": {
+    "packages/adapter-support/Cargo.toml": "the code that the adapter crates share; shared implementation, no product, and a path dependency inside the repository",
     "config/php-lint/composer.json": "the Composer project of the PHP lint that kit copies into every repository",
     "package.json": "the npm project that installs the package @polyspec/kit for the tools of this repository",
     "packages/build/tests/fixtures/package.json": "the npm packages of the build cases",
@@ -83,14 +83,6 @@
       "packages/adapter-vanilla/Cargo.toml": {
         "kind": "rust",
         "name": "polyspec-ssr-adapter-vanilla",
-        "smoke": [
-          "cargo",
-          "check"
-        ]
-      },
-      "packages/adapter-support/Cargo.toml": {
-        "kind": "rust",
-        "name": "polyspec-ssr-adapter-support",
         "smoke": [
           "cargo",
           "check"

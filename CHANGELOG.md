@@ -5,6 +5,10 @@
 
 ## Unreleased
 
+- `polyspec-ssr-adapter-support` is marked `publish = false` and is classified as not released in
+  `config/release.json`, without a release manifest entry or release proof, because it is shared implementation and no
+  product (S-74). Red: `config/release.json` listed it as a `git-tag` manifest and in the release proof. Green: it
+  lists neither; `make kit-check`, `make rules-check` and `make release-coverage` exit with 0.
 - `CHECK_TARGETS` of the Makefile runs `bypass-check`, the check of `kit-gates` that fails on a test, script or
   Makefile that impersonates CI, assumes a check up to date or skips a hook (S-73). Red: `make kit-check` exited with
   2 and `CHECK_TARGETS runs no bypass-check`. Green: `make kit-check` exits with 0, `make bypass-check` exits with 0

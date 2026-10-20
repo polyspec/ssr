@@ -1,11 +1,14 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 6ca27e2bc8b3f9fa2ed2b73913a6a0626b166e3e780ecba0e4c4831dfc62f33b -->
+<!-- source-sha256: 47ff0309827e8f1e80c95bf1cd3b90d755f72ae88cae2a7ea6404613145acdde -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- `polyspec-ssr-adapter-support` 는 `publish = false` 이며, 공유 구현이고 제품이 아니므로 `config/release.json` 에서 release manifest
+  항목과 release proof 없이 release 하지 않는 것으로 분류한다 (S-74). Red: `config/release.json` 이 이를 `git-tag` manifest 와 release
+  proof 에 나열했다. Green: 둘 다 나열하지 않으며 `make kit-check`, `make rules-check`, `make release-coverage` 가 종료 코드 0 이다.
 - `Makefile` 의 `CHECK_TARGETS` 가 CI 를 가장하거나, check 를 최신으로 가정하거나, hook 을 건너뛰는 test, script, Makefile 을 실패시키는
   `kit-gates` 의 check `bypass-check` 를 실행한다 (S-73). Red: `make kit-check` 가 종료 코드 2 와 `CHECK_TARGETS runs no
   bypass-check` 로 실패했다. Green: `make kit-check` 와 `make bypass-check` 가 종료 코드 0 이고 `make tool-test-workflows` 가 통과한다.
