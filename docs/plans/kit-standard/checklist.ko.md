@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: de61f69e8b975b78cd98ef4c653eaf51303b5b97bfa9ee4676e3a82f1c2904e0 -->
+<!-- source-sha256: 0c54152d64eb8dc6c06790b715840a9082dc0d3f0da7e13f342e3746f1d78422 -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -47,4 +47,4 @@
 | S-90 | make lint-rust가 전체 workspace에서 종료 코드 0으로 끝난다: checkout의 모든 Cargo workspace가 P8 lint와 함께 clippy를 통과한다 | CHANGELOG.md, CHANGELOG.ko.md, docs/plans/kit-standard/checklist.md, docs/plans/kit-standard/checklist.ko.md | `make lint-rust` | [o] |
 | S-94 | 콜드 타깃에서 React 어댑터 테스트 바이너리의 첫 실행이 30 초 제한으로 다섯 테스트를 시간 초과시키지 않는다 | packages/adapter-react/tests, .config/nextest.toml, scripts/install-packages.mts | `cargo nextest run -p polyspec-ssr-adapter-react --test form_rows --test heap --test react --test recovery --locked` | [ ] |
 | S-95 | 서버 크레이트가 매핑하는 개발 오류의 원래 오류를 source로 보관한다: DevelopmentError는 thiserror로 원래 오류를 source로 갖고 모든 메시지 문구와 공개 이름을 유지한다 | packages/server/src, packages/server/Cargo.toml, Cargo.lock | `cargo clippy -p polyspec-ssr-server --all-targets --locked -- -D warnings -D unused_must_use -D clippy::let_underscore_must_use -D clippy::let_underscore_untyped -D clippy::map_err_ignore -D clippy::allow_attributes_without_reason`, `cargo nextest run -p polyspec-ssr-server --lib --test cancellation --test development --test process --test public --test react_late_reader --test react_stream --test render --test svelte --locked` | [o] |
-| S-96 | ssr은 kit f9eb43dd의 복사본(K348 K385 K384 K360-1 K383 K380 K382 K375)을 make kit-sync, make hooks, make link-check로 받는다 | scripts/kit, config, .githooks, PRINCIPLES.md, PRINCIPLES.ko.md, .claude/settings.json | `make kit-check` | [ ] |
+| S-96 | ssr은 kit f9eb43dd의 복사본(K348 K385 K384 K360-1 K383 K380 K382 K375)을 make kit-sync, make hooks, make link-check로 받는다 | scripts/kit, config, .githooks, PRINCIPLES.md, PRINCIPLES.ko.md, .claude/settings.json | `make kit-check` | [o] |
