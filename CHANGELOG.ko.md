@@ -1,12 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 8177aae8c88d5ccddf7d277191e30825acaeb893b1ce45a971f6b4149a413f7b -->
+<!-- source-sha256: aaaeb77a53de21ff103e8eaaa6fef8ff100efdf6e9769ce636715eab39ab01d1 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
-- S-91: packages/adapter-support는 자체 Error를 가지며 이유와 원본 오류를 source로 담고, 네 adapter의 InvalidInput이 이를 가진다. document의 UTF-8 오류는 Utf8Error를 source로 유지한다. red: 9e08285에서 make lint-rust가 exit 2, adapter-support lib.rs:139-140의 map_err_ignore. green: make lint-rust exit 0, owner test invalid_utf8_keeps_the_utf8_error_as_source 통과. (S-91)
+- S-93: CHANGELOG.md와 kit-standard checklist의 한국어 문서를 영문 원문과 대조해 검토하고, 영문 문서의 sha256으로 스탬프를 찍는다. red: make docs-check가 exit 2로 실패했다. CHANGELOG.ko.md와 checklist의 source-sha256이 영문 문서와 일치하지 않았다. green: make docs-check가 exit 0. (S-93)
+- S-91: packages/adapter-support는 자체 Error를 가지며 이유와 원본 오류를 source로 담고, 네 adapter의 InvalidInput이 이를 가진다. document의 UTF-8 오류는 Utf8Error를 source로 유지한다. red: 9e08285에서 make lint-rust가 exit 2, adapter-support lib.rs:139-140의 map_err_ignore. green: 어댑터 5개 crate의 clippy 실행이 통과하고 owner test invalid_utf8_keeps_the_utf8_error_as_source가 통과한다. make lint-rust는 server crate에서 여전히 실패하며, 이는 별도의 발견이다. (S-91)
 - S-89: packages/build/src/svelte.rs는 S-87의 style lock 매핑을 rustfmt 형식으로 둔다. red: 크레이트의 cargo fmt --check가 차이를 보고했고, green: 검사 통과. (S-89)
 - S-88: packages/runtime은 매핑하는 각 오류의 원본을 유지한다. InvalidConfiguration, InvalidBundle, InvalidResult, Snapshot, Canceled, WorkerStopped 변형이 source(v8 변환, 채널, UTF-8 또는 정수 변환, poison된 lock 메시지, thread panic 메시지)를 가지며, server는 새 패턴을 쓴다. red: 크레이트의 clippy가 44곳에서 map_err_ignore를 보고했고, green: clippy 통과. (S-88)
 - S-87: packages/build는 asset_url.rs, js.rs, svelte.rs에서 lock poison과 Tokio runtime 오류의 메시지를 wildcard로 버리지 않고 유지한다. red: 크레이트의 clippy가 이 4곳에서 map_err_ignore를 보고했고, green: clippy 통과. (S-87)
