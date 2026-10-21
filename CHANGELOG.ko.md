@@ -1,10 +1,12 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: e9b12b506aaf301e37f1320bf14b3ea7227b586e7072f634b4c44cef20efcfe7 -->
+<!-- source-sha256: 71e03f28a5e7e1dc810acf527f6222499209deec6c0bf3ed28fe0d1858ae814c -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
+
+- S-98: runtime과 server: json_text와 rejection_text는 engine.rs로, Cancellation::lock_state는 request.rs로, runtime_status는 server render.rs로 옮겨 중복된 복사본을 각각 대신한다. red: make duplication-check가 clone 4개로 exit 2였고, green: 통과하며 runtime 및 server 테스트가 통과한다(runtime 23/23, server render 및 react_stream 12/12). (S-98).
 
 - S-97: ssr은 kit f7c1f10c의 복사본을 받는다. make kit-sync가 scripts/kit/kit-bootstrap.mk를 쓴다. red: make kit-check가 exit 2였고, scripts/kit/kit-bootstrap.mk가 설치된 @polyspec/kit과 다르다는 발견이 있었다. green: make kit-check가 exit 0. (S-97)
 - S-94: React 어댑터 테스트의 테스트당 30 초 제한은 측정된 여유를 가진다. 콜드 실행 3회(cargo clean -p polyspec-ssr-adapter-react 후 선택된 nextest 명령, load average 20에서 33)가 각각 10/10 통과하며 exit 0이었다. JUnit 파일의 테스트당 가장 긴 실행 시간은 9.19 초다(1회차 browser_hydrates_ssr_and_renders_csr_and_static_shells, 2회차 8.68 초, 3회차 8.17 초). 파일은 var/s94-cold-run-1.junit.xml, var/s94-cold-run-2.junit.xml, var/s94-cold-run-3.junit.xml에 보관한다. 앞서 콜드 실행 하나가 테스트 5개를 30 초에 시간 초과시켰으나 한 번만 관찰했고 로그는 보관하지 않았다. 콜드 실행 3회, 첫 패키지 설치, 직렬 실행(최대 5.6 초)에서 재현되지 않았다. 시간 제한과 설정은 바꾸지 않았다. (S-94)

@@ -1,4 +1,4 @@
-use crate::Error;
+use crate::{Error, engine};
 use deno_core::v8;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -175,35 +175,17 @@ pub(crate) fn initialize<'s>(
         v8::PromiseState::Rejected => {
             let reason = promise.result(scope);
             promise.mark_as_handled();
-            let message = reason
-                .to_string(scope)
-                .ok_or(Error::InvalidBundle(
+            let (message, stack) = engine::rejection_text(
+                scope,
+                reason,
+                |text| Error::InvalidBundle(text, None),
+                [
                     "server module error cannot be converted to text",
-                    None,
-                ))?
-                .to_rust_string_lossy(scope);
-            let stack = if let Ok(object) = v8::Local::<v8::Object>::try_from(reason) {
-                let key = v8::String::new(scope, "stack").ok_or(Error::InvalidBundle(
                     "server module stack name unavailable",
-                    None,
-                ))?;
-                let value = object.get(scope, key.into()).ok_or(Error::InvalidBundle(
                     "server module stack lookup failed",
-                    None,
-                ))?;
-                if value.is_undefined() {
-                    None
-                } else {
-                    Some(
-                        value
-                            .to_string(scope)
-                            .ok_or(Error::InvalidBundle("server module stack is invalid", None))?
-                            .to_rust_string_lossy(scope),
-                    )
-                }
-            } else {
-                None
-            };
+                    "server module stack is invalid",
+                ],
+            )?;
             return Err(Error::JavaScript { message, stack });
         }
         v8::PromiseState::Pending => {

@@ -105,12 +105,7 @@ fn state(
     let json = serializer
         .call(scope, context.global(scope).into(), &[value])
         .ok_or_else(|| caught!(scope))?;
-    let json = v8::Local::<v8::String>::try_from(json).map_err(|error| {
-        Error::InvalidResult(
-            "state serialization did not return JSON",
-            Some(Box::new(error)),
-        )
-    })?;
+    let json = engine::json_text(json)?;
     let bytes = json.utf8_length(scope);
     if bytes > max_output_bytes {
         return Err(Error::LimitExceeded("output bytes"));

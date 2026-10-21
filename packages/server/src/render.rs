@@ -472,37 +472,22 @@ impl Server {
 
 fn render_status(error: &Error) -> StatusCode {
     match error {
-        Error::Runtime(
-            RuntimeError::QueueFull
-            | RuntimeError::WorkerStopped(..)
-            | RuntimeError::WorkerUnresponsive
-            | RuntimeError::Cleanup { .. }
-            | RuntimeError::LimitExceeded("queue bytes"),
-        ) => StatusCode::SERVICE_UNAVAILABLE,
-        Error::Runtime(RuntimeError::Timeout) => StatusCode::GATEWAY_TIMEOUT,
-        Error::Runtime(RuntimeError::LimitExceeded("input bytes")) => StatusCode::PAYLOAD_TOO_LARGE,
-        Error::Svelte(SvelteError::Runtime(
-            RuntimeError::QueueFull
-            | RuntimeError::WorkerStopped(..)
-            | RuntimeError::WorkerUnresponsive
-            | RuntimeError::Cleanup { .. }
-            | RuntimeError::LimitExceeded("queue bytes"),
-        )) => StatusCode::SERVICE_UNAVAILABLE,
-        Error::Svelte(SvelteError::Runtime(RuntimeError::Timeout)) => StatusCode::GATEWAY_TIMEOUT,
-        Error::Svelte(SvelteError::Runtime(RuntimeError::LimitExceeded("input bytes"))) => {
-            StatusCode::PAYLOAD_TOO_LARGE
-        }
-        Error::Vanilla(VanillaError::Runtime(
-            RuntimeError::QueueFull
-            | RuntimeError::WorkerStopped(..)
-            | RuntimeError::WorkerUnresponsive
-            | RuntimeError::Cleanup { .. }
-            | RuntimeError::LimitExceeded("queue bytes"),
-        )) => StatusCode::SERVICE_UNAVAILABLE,
-        Error::Vanilla(VanillaError::Runtime(RuntimeError::Timeout)) => StatusCode::GATEWAY_TIMEOUT,
-        Error::Vanilla(VanillaError::Runtime(RuntimeError::LimitExceeded("input bytes"))) => {
-            StatusCode::PAYLOAD_TOO_LARGE
-        }
+        Error::Runtime(runtime) => runtime_status(runtime),
+        Error::Svelte(SvelteError::Runtime(runtime)) => runtime_status(runtime),
+        Error::Vanilla(VanillaError::Runtime(runtime)) => runtime_status(runtime),
+        _ => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+fn runtime_status(error: &RuntimeError) -> StatusCode {
+    match error {
+        RuntimeError::QueueFull
+        | RuntimeError::WorkerStopped(..)
+        | RuntimeError::WorkerUnresponsive
+        | RuntimeError::Cleanup { .. }
+        | RuntimeError::LimitExceeded("queue bytes") => StatusCode::SERVICE_UNAVAILABLE,
+        RuntimeError::Timeout => StatusCode::GATEWAY_TIMEOUT,
+        RuntimeError::LimitExceeded("input bytes") => StatusCode::PAYLOAD_TOO_LARGE,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }

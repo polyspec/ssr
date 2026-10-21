@@ -287,12 +287,7 @@ fn render(
     let json = serializer
         .call(scope, context.global(scope).into(), &[state])
         .ok_or_else(|| caught!(scope))?;
-    let json = v8::Local::<v8::String>::try_from(json).map_err(|error| {
-        Error::InvalidResult(
-            "state serialization did not return JSON",
-            Some(Box::new(error)),
-        )
-    })?;
+    let json = json_text(json)?;
     if json.utf8_length(scope) > max_output_bytes - html.len() - head.len() {
         return Err(Error::LimitExceeded("output bytes"));
     }
@@ -326,36 +321,17 @@ pub(crate) fn settle<'s>(
         v8::PromiseState::Rejected => {
             let reason = promise.result(scope);
             promise.mark_as_handled();
-            let message = reason
-                .to_string(scope)
-                .ok_or(Error::InvalidResult(
+            let (message, stack) = rejection_text(
+                scope,
+                reason,
+                |text| Error::InvalidResult(text, None),
+                [
                     "promise rejection cannot be converted to text",
-                    None,
-                ))?
-                .to_rust_string_lossy(scope);
-            let stack = if let Ok(object) = v8::Local::<v8::Object>::try_from(reason) {
-                let key = v8::String::new(scope, "stack")
-                    .ok_or(Error::InvalidResult("stack key unavailable", None))?;
-                let value = object.get(scope, key.into()).ok_or(Error::InvalidResult(
+                    "stack key unavailable",
                     "promise rejection stack lookup failed",
-                    None,
-                ))?;
-                if value.is_undefined() {
-                    None
-                } else {
-                    Some(
-                        value
-                            .to_string(scope)
-                            .ok_or(Error::InvalidResult(
-                                "promise rejection stack cannot be converted to text",
-                                None,
-                            ))?
-                            .to_rust_string_lossy(scope),
-                    )
-                }
-            } else {
-                None
-            };
+                    "promise rejection stack cannot be converted to text",
+                ],
+            )?;
             Err(Error::JavaScript { message, stack })
         }
     }
@@ -387,4 +363,51 @@ pub(crate) fn parse<'s>(
 ) -> Option<v8::Local<'s, v8::Value>> {
     let text = v8::String::new(scope, input)?;
     v8::json::parse(scope, text)
+}
+
+/// The JSON text that a state serializer returned.
+pub(crate) fn json_text<'s>(
+    value: v8::Local<'s, v8::Value>,
+) -> Result<v8::Local<'s, v8::String>, Error> {
+    v8::Local::<v8::String>::try_from(value).map_err(|error| {
+        Error::InvalidResult(
+            "state serialization did not return JSON",
+            Some(Box::new(error)),
+        )
+    })
+}
+
+/// The message and the stack of a rejected promise's reason. `texts` are the
+/// messages of the errors for the message, the stack key, the stack lookup and
+/// the stack text, in that order.
+pub(crate) fn rejection_text<'s>(
+    scope: &mut v8::PinScope<'s, '_>,
+    reason: v8::Local<'s, v8::Value>,
+    error: impl Fn(&'static str) -> Error,
+    texts: [&'static str; 4],
+) -> Result<(String, Option<String>), Error> {
+    let [text, key_text, lookup_text, stack_text] = texts;
+    let message = reason
+        .to_string(scope)
+        .ok_or_else(|| error(text))?
+        .to_rust_string_lossy(scope);
+    let stack = if let Ok(object) = v8::Local::<v8::Object>::try_from(reason) {
+        let key = v8::String::new(scope, "stack").ok_or_else(|| error(key_text))?;
+        let value = object
+            .get(scope, key.into())
+            .ok_or_else(|| error(lookup_text))?;
+        if value.is_undefined() {
+            None
+        } else {
+            Some(
+                value
+                    .to_string(scope)
+                    .ok_or_else(|| error(stack_text))?
+                    .to_rust_string_lossy(scope),
+            )
+        }
+    } else {
+        None
+    };
+    Ok((message, stack))
 }

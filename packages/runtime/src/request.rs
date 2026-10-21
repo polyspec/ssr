@@ -2,7 +2,7 @@ use crate::error::poisoned;
 use crate::{Error, pool::Health};
 use crossbeam_channel::{Receiver, Sender, bounded};
 use deno_core::v8;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy)]
@@ -66,12 +66,15 @@ impl Cancellation {
         self.stop(Reason::Canceled)
     }
 
-    pub(crate) fn stop(&self, reason: Reason) -> Result<(), Error> {
-        let mut state = self
-            .0
+    fn lock_state(&self) -> Result<MutexGuard<'_, State>, Error> {
+        self.0
             .state
             .lock()
-            .map_err(|error| Error::WorkerStopped(Some(poisoned(error))))?;
+            .map_err(|error| Error::WorkerStopped(Some(poisoned(error))))
+    }
+
+    pub(crate) fn stop(&self, reason: Reason) -> Result<(), Error> {
+        let mut state = self.lock_state()?;
         if matches!(state.phase, Phase::Complete) || state.reason.is_some() {
             return Ok(());
         }
@@ -86,11 +89,7 @@ impl Cancellation {
     }
 
     pub(crate) fn claim(&self) -> Result<(), Error> {
-        let mut state = self
-            .0
-            .state
-            .lock()
-            .map_err(|error| Error::WorkerStopped(Some(poisoned(error))))?;
+        let mut state = self.lock_state()?;
         if !matches!(state.phase, Phase::New) {
             return Err(Error::InvalidConfiguration(
                 "cancellation belongs to one request",
@@ -105,11 +104,7 @@ impl Cancellation {
     }
 
     pub(crate) fn start(&self, handle: v8::IsolateHandle) -> Result<(), Error> {
-        let mut state = self
-            .0
-            .state
-            .lock()
-            .map_err(|error| Error::WorkerStopped(Some(poisoned(error))))?;
+        let mut state = self.lock_state()?;
         if let Some(reason) = state.reason {
             return Err(reason.error());
         }
@@ -118,11 +113,7 @@ impl Cancellation {
     }
 
     pub(crate) fn finish(&self, runtime: Option<&mut v8::OwnedIsolate>) -> Result<(), Error> {
-        let mut state = self
-            .0
-            .state
-            .lock()
-            .map_err(|error| Error::WorkerStopped(Some(poisoned(error))))?;
+        let mut state = self.lock_state()?;
         if let Some(runtime) = runtime {
             runtime.cancel_terminate_execution();
         }

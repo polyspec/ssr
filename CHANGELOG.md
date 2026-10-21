@@ -5,6 +5,8 @@
 
 ## Unreleased
 
+- S-98: runtime and server: json_text and rejection_text moved to engine.rs, Cancellation::lock_state to request.rs and runtime_status to server render.rs, each replacing its duplicated copies; red: make duplication-check exit 2 with 4 clones; green: it passes, and the runtime and server tests pass (runtime 23/23, server render and react_stream 12/12). (S-98).
+
 - S-97: ssr takes the copies of kit at f7c1f10c: make kit-sync writes scripts/kit/kit-bootstrap.mk. red: make kit-check exit 2 with the finding that scripts/kit/kit-bootstrap.mk differs from the installed @polyspec/kit, green: make kit-check exit 0. (S-97)
 - S-94: the 30 s per-test limit of the React adapter tests holds with a measured margin. Three cold runs (cargo clean -p polyspec-ssr-adapter-react, then the selected nextest command, load average 20 to 33) each passed 10 of 10 with exit 0; the largest per-test elapsed time in the JUnit files is 9.19 s (run 1, browser_hydrates_ssr_and_renders_csr_and_static_shells; run 2 8.68 s, run 3 8.17 s), kept in var/s94-cold-run-1.junit.xml, var/s94-cold-run-2.junit.xml and var/s94-cold-run-3.junit.xml. An earlier cold run that timed out 5 tests at 30 s was observed once; its log was not kept, and the cold runs, a first package install and a serial run (largest 5.6 s) did not reproduce it. No timeout or configuration changed. (S-94)
 - S-96: ssr takes the copies of kit at f9eb43dd: make kit-sync writes scripts/kit/kit-bootstrap.mk and config/layout.kit.yml, and make hooks writes .githooks/commit-msg; red: make kit-check exit 2 with two copies that differ from the installed kit, green: make kit-check exit 0. (S-96)
