@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: 0db965b0857e1841626607c301a7ec3eaa01f3573ed39ca34399e92d57fc9450 -->
+<!-- source-sha256: 78d430dd973bd3b18e3ee668c5de2990b9f89fd4a3e412eb8e65e43aa463809b -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -49,3 +49,4 @@
 | S-95 | 서버 크레이트가 매핑하는 개발 오류의 원래 오류를 source로 보관한다: DevelopmentError는 thiserror로 원래 오류를 source로 갖고 모든 메시지 문구와 공개 이름을 유지한다 | packages/server/src, packages/server/Cargo.toml, Cargo.lock | `cargo clippy -p polyspec-ssr-server --all-targets --locked -- -D warnings -D unused_must_use -D clippy::let_underscore_must_use -D clippy::let_underscore_untyped -D clippy::map_err_ignore -D clippy::allow_attributes_without_reason`, `cargo nextest run -p polyspec-ssr-server --lib --test cancellation --test development --test process --test public --test react_late_reader --test react_stream --test render --test svelte --locked` | [o] |
 | S-96 | ssr은 kit f9eb43dd의 복사본(K348 K385 K384 K360-1 K383 K380 K382 K375)을 make kit-sync, make hooks, make link-check로 받는다 | scripts/kit, config, .githooks, PRINCIPLES.md, PRINCIPLES.ko.md, .claude/settings.json | `make kit-check` | [o] |
 | S-97 | ssr은 f7c1f10c의 kit 사본을 받으며(K354 K394 K386 K348-1 K360-2 K349-2 K392-1 K393), make kit-sync와 make hooks가 쓴다 | the copies of kit, .githooks | `make kit-check` | [o] |
+| S-98 | ssr가 다시 make duplication-check를 통과한다: jscpd가 보고하는 Rust 중복 네 개가 각각 그 자리들이 호출하는 함수 하나로 옮겨지고 동작은 바뀌지 않는다 (packages/runtime의 engine.rs와 react_stream.rs, engine.rs와 module.rs, request.rs의 두 블록, packages/server render.rs의 두 블록) | packages/runtime/src/engine.rs, packages/runtime/src/react_stream.rs, packages/runtime/src/module.rs, packages/runtime/src/request.rs, packages/server/src/render.rs | `make duplication-check`, `cargo nextest run -p polyspec-ssr-runtime --test runtime --locked`, `cargo nextest run -p polyspec-ssr-server --test render --test react_stream --locked` | [ ] |
