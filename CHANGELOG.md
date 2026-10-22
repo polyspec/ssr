@@ -5,6 +5,7 @@
 
 ## Unreleased
 
+- S-104 is done (S-104): AGENTS.md states the generated-files rule, checked by grep; red on the parent of 2d1daae, green on the commit.
 - S-103 is done (S-103): the npm ci recipe passes no `--install-links` (`make text-absent` on scripts/install-packages.mts, red on 874a6d4^, green on the commit).
 - S-103: the npm ci recipe of the install checks no longer passes `--install-links` (874a6d4); `make text-absent` on scripts/install-packages.mts holds: RED on its parent, GREEN on the fix (S-103).
 - S-104: AGENTS.md forbids tracked generated files, as `make text-present` on AGENTS.md checks (2d1daae): RED on its parent, GREEN on the commit (S-104).
