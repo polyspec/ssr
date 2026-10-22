@@ -5,6 +5,8 @@
 
 ## Unreleased
 
+- S-103: the npm ci recipe of the install checks no longer passes `--install-links` (874a6d4); `make text-absent` on scripts/install-packages.mts holds: RED on its parent, GREEN on the fix (S-103).
+- S-104: AGENTS.md forbids tracked generated files, as `make text-present` on AGENTS.md checks (2d1daae): RED on its parent, GREEN on the commit (S-104).
 - S-101: config/polyspec.json declares @polyspec/kit for the project, so make polyspec-lock-check passes: the declared name is no finding after K509 (S-101). Red: make item-red ID=S-101 recorded make polyspec-lock-check failing with 2 findings; green: make polyspec-lock-check exit 0.
 - S-99-2: the tracked Cargo.lock names the release source of every polyspec crate: make link-state-check refuses a path source, so polyspec-ordered-json keeps its git tag v0.0.9 (S-99-2). Red: make item-red ID=S-99-2 BEFORE=a786458 recorded make link-state-check exit 2 (the Cargo.lock finding of K507); green: make link-state-check exit 0 on HEAD.
 - S-99-1: Cargo.lock records polyspec-ordered-json at its release tag v0.0.9 (git source, no path entry), so a plain locked fetch in CI works and make cargo-fetch DIR=. links the sibling in the link state, leaving the tracked lock unchanged (S-99-1). Red: make item-red ID=S-99-1 recorded the Verification failing (make link-state-check, exit 2) before the fix; green: make cargo-fetch DIR=. exit 0, git status --porcelain -- Cargo.lock Cargo.toml empty, make link-state-check exit 0.

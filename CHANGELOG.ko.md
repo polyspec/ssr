@@ -1,11 +1,13 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 58b30ad9239d3a7b7cfe7512931ca5e743fae2f3152b6fd66c58f65679cc58ef -->
+<!-- source-sha256: 3ad0b368f96ae0e6eb485f691831e898b212f57ecf4e2e4ecb0a5e32bd926ec1 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- S-103: install 점검의 npm ci 레시피가 `--install-links`를 넘기지 않는다(874a6d4); scripts/install-packages.mts의 `make text-absent`가 성립한다: 부모에서 RED, 수정에서 GREEN (S-103).
+- S-104: AGENTS.md는 추적되는 생성 파일을 금지한다(2d1daae); AGENTS.md의 `make text-present`가 성립한다: 부모에서 RED, 커밋에서 GREEN (S-104).
 - S-101: config/polyspec.json이 프로젝트에 대해 @polyspec/kit을 선언하므로 make polyspec-lock-check가 통과한다. K509 이후 선언된 이름은 finding이 아니다 (S-101). Red: make item-red ID=S-101이 make polyspec-lock-check의 2 findings 실패를 기록했다. green: make polyspec-lock-check exit 0.
 - S-99-2: 추적 Cargo.lock은 모든 polyspec crate의 release source를 이름한다. make link-state-check는 path source를 거부하므로 polyspec-ordered-json은 git tag v0.0.9를 유지한다(S-99-2). Red: make item-red ID=S-99-2 BEFORE=a786458이 make link-state-check exit 2(K507의 Cargo.lock finding)를 기록했다. green: HEAD에서 make link-state-check exit 0이다.
 - S-99-1: Cargo.lock은 polyspec-ordered-json을 release tag v0.0.9의 git source(path 항목 없음)로 기록하므로 CI의 plain 잠금 fetch가 동작하고, make cargo-fetch DIR=.는 link 상태에서 sibling을 link하며 추적 lock은 바뀌지 않는다 (S-99-1). Red: make item-red ID=S-99-1이 수정 전 Verification(make link-state-check)의 exit 2 실패를 기록했다. green: make cargo-fetch DIR=. exit 0, git status --porcelain -- Cargo.lock Cargo.toml 비어 있음, make link-state-check exit 0.
