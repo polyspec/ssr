@@ -5,6 +5,7 @@
 
 ## Unreleased
 
+- S-99-2: the tracked Cargo.lock names the release source of every polyspec crate: make link-state-check refuses a path source, so polyspec-ordered-json keeps its git tag v0.0.9 (S-99-2). Red: make item-red ID=S-99-2 BEFORE=a786458 recorded make link-state-check exit 2 (the Cargo.lock finding of K507); green: make link-state-check exit 0 on HEAD.
 - S-99-1: Cargo.lock records polyspec-ordered-json at its release tag v0.0.9 (git source, no path entry), so a plain locked fetch in CI works and make cargo-fetch DIR=. links the sibling in the link state, leaving the tracked lock unchanged (S-99-1). Red: make item-red ID=S-99-1 recorded the Verification failing (make link-state-check, exit 2) before the fix; green: make cargo-fetch DIR=. exit 0, git status --porcelain -- Cargo.lock Cargo.toml empty, make link-state-check exit 0.
 - S-100: the cargo recipes check-examples and ci-setup fetch and build through the kit link (cargo-fetch and link cargo --siblings), so make link-state-check passes (S-100). Red: make link-state-check on the HEAD Makefile failed with Makefile:118 and Makefile:147 (exit 2); green: make npm-install DIR=. and make link-state-check exit 0.
 - S-99: Cargo.lock takes polyspec-ordered-json from the sibling checkout through a cargo [patch] path, not the git tag; Cargo.toml requires =0.0.9 (the version the sibling and orm provide), so the patch applies; make cargo-fetch DIR=. links it (S-99). Red: make text-absent FILE=Cargo.lock TEXT=git+https://github.com/polyspec/ failed at Cargo.lock:2589 before the change; green: exit 0.

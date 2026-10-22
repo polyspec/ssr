@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: 465db8a85f5f4272f72037bbced96d32ec5d2006f2ca0dbeecc35280b1a7add8 -->
+<!-- source-sha256: 8e75c7eefc11aa6e86af8e7d00917da3bc215fa33e811beed39dda48f8e41572 -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -52,4 +52,5 @@
 | S-98 | ssr가 다시 make duplication-check를 통과한다: jscpd가 보고하는 Rust 중복 네 개가 각각 그 자리들이 호출하는 함수 하나로 옮겨지고 동작은 바뀌지 않는다 (packages/runtime의 engine.rs와 react_stream.rs, engine.rs와 module.rs, request.rs의 두 블록, packages/server render.rs의 두 블록) | packages/runtime/src/engine.rs, packages/runtime/src/react_stream.rs, packages/runtime/src/module.rs, packages/runtime/src/request.rs, packages/server/src/render.rs | `make duplication-check`, `cargo nextest run -p polyspec-ssr-runtime --test runtime --locked`, `cargo nextest run -p polyspec-ssr-server --test render --test react_stream --locked` | [o] |
 | S-99 | Cargo.lock이 polyspec-ordered-json을 저장소의 git tag로 고정하는 대신 형제 checkout을 가리키는 cargo [patch] 경로를 쓴다; kit의 cargo 링크 행(cargo의 [patch] 경로, cargo 고유 링크)을 기다리며, kit이 등록하면 그 id를 적는다 | Cargo.lock | `make text-absent FILE=Cargo.lock TEXT=git+https://github.com/polyspec/` | [o] |
 | S-99-1 | Cargo.lock은 polyspec-ordered-json을 추적되는 Cargo.toml이 이름하는 release git tag v0.0.9로 기록하며, path 항목과 로컬 fetch의 [patch]를 두지 않는다. sibling은 make cargo-fetch DIR=.가 fetch할 때만 link한다(K448-5). 원인: S-99가 커밋한 lock은 polyspec-ordered-json 항목에 source가 없어 path 패키지가 되었고, 로컬 fetch의 patch.unused 항목도 받았다. | Cargo.lock | `make link-state-check`, `make cargo-fetch DIR=.`, and `git status --porcelain` empty after the fetch | [o] |
+| S-99-2 | 추적 Cargo.lock은 모든 polyspec crate의 release source를 이름하며, path나 link가 아니다. 그래서 lock은 release 기록으로 남고 로컬 link는 상태일 뿐이다(K507, S-99 후속). 원인: a786458의 lock은 polyspec-ordered-json을 source 없이(path 패키지) 가졌고, 이를 거부하는 gate가 없었다. | Cargo.lock | `make link-state-check` | [o] |
 | S-100 | Makefile의 cargo 레시피 check-examples와 ci-setup은 kit link(cargo-fetch와 link cargo --siblings)를 거쳐 fetch하고 build한다. sibling checkout 옆에서 잠긴 polyspec release를 git tag로 받는 plain cargo를 쓰지 않는다. 로컬 설치는 처음부터 sibling 패키지를 link하며(make npm-install), make link-state-check가 통과한다. | package-lock.json | `make npm-install DIR=.`, `make link-state-check` | [o] |
