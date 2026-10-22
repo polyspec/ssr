@@ -1,11 +1,12 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 3ad0b368f96ae0e6eb485f691831e898b212f57ecf4e2e4ecb0a5e32bd926ec1 -->
+<!-- source-sha256: 399a6b0ded766391a3978fe8ec8d862051fb0d5ad44a14af9f02a6cfa70f9475 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- S-103 완료 (S-103): npm ci 레시피는 `--install-links`를 넘기지 않는다(scripts/install-packages.mts의 `make text-absent`, 874a6d4^에서 red, 커밋에서 green).
 - S-103: install 점검의 npm ci 레시피가 `--install-links`를 넘기지 않는다(874a6d4); scripts/install-packages.mts의 `make text-absent`가 성립한다: 부모에서 RED, 수정에서 GREEN (S-103).
 - S-104: AGENTS.md는 추적되는 생성 파일을 금지한다(2d1daae); AGENTS.md의 `make text-present`가 성립한다: 부모에서 RED, 커밋에서 GREEN (S-104).
 - S-101: config/polyspec.json이 프로젝트에 대해 @polyspec/kit을 선언하므로 make polyspec-lock-check가 통과한다. K509 이후 선언된 이름은 finding이 아니다 (S-101). Red: make item-red ID=S-101이 make polyspec-lock-check의 2 findings 실패를 기록했다. green: make polyspec-lock-check exit 0.
