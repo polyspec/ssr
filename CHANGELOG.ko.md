@@ -1,11 +1,12 @@
 <!-- doc-id: changelog -->
-<!-- source-sha256: 3f1a93f58c2bceca297cfc4241139fa54b30fe1e9836287fdbf064a38c160129 -->
+<!-- source-sha256: 599ca09ab3bafc0cfb6613c3be3803147475b9783c1dbf2e3edd131458c1cbe3 -->
 # 변경 기록
 
 [English](CHANGELOG.md)
 
 ## Unreleased
 
+- S-99-1: Cargo.lock은 polyspec-ordered-json을 release tag v0.0.9의 git source(path 항목 없음)로 기록하므로 CI의 plain 잠금 fetch가 동작하고, make cargo-fetch DIR=.는 link 상태에서 sibling을 link하며 추적 lock은 바뀌지 않는다 (S-99-1). Red: make item-red ID=S-99-1이 수정 전 Verification(make link-state-check)의 exit 2 실패를 기록했다. green: make cargo-fetch DIR=. exit 0, git status --porcelain -- Cargo.lock Cargo.toml 비어 있음, make link-state-check exit 0.
 - S-100: Makefile의 cargo 레시피 check-examples와 ci-setup은 kit link(cargo-fetch와 link cargo --siblings)를 거쳐 fetch하고 build하므로 make link-state-check가 통과한다 (S-100). Red: HEAD Makefile에서 make link-state-check가 Makefile:118과 Makefile:147로 실패했다(exit 2). green: make npm-install DIR=.와 make link-state-check가 exit 0이다.
 - S-99: Cargo.lock은 polyspec-ordered-json을 git tag가 아니라 sibling checkout의 cargo [patch] path에서 받는다. Cargo.toml은 =0.0.9(sibling과 orm이 제공하는 버전)를 요구하므로 patch가 적용된다. make cargo-fetch DIR=.가 이를 link한다 (S-99). Red: 수정 전 make text-absent FILE=Cargo.lock TEXT=git+https://github.com/polyspec/가 Cargo.lock:2589에서 실패했고, green은 exit 0이다.
 - S-98: runtime과 server: json_text와 rejection_text는 engine.rs로, Cancellation::lock_state는 request.rs로, runtime_status는 server render.rs로 옮겨 중복된 복사본을 각각 대신한다. red: make duplication-check가 clone 4개로 exit 2였고, green: 통과하며 runtime 및 server 테스트가 통과한다(runtime 23/23, server render 및 react_stream 12/12). (S-98).

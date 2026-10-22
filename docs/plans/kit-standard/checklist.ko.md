@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: a22cb5293ef83fb7337853418a4ee513088f7d7977eb7284ee38461c56b31aeb -->
+<!-- source-sha256: 465db8a85f5f4272f72037bbced96d32ec5d2006f2ca0dbeecc35280b1a7add8 -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -51,5 +51,5 @@
 | S-97 | ssr은 f7c1f10c의 kit 사본을 받으며(K354 K394 K386 K348-1 K360-2 K349-2 K392-1 K393), make kit-sync와 make hooks가 쓴다 | the copies of kit, .githooks | `make kit-check` | [o] |
 | S-98 | ssr가 다시 make duplication-check를 통과한다: jscpd가 보고하는 Rust 중복 네 개가 각각 그 자리들이 호출하는 함수 하나로 옮겨지고 동작은 바뀌지 않는다 (packages/runtime의 engine.rs와 react_stream.rs, engine.rs와 module.rs, request.rs의 두 블록, packages/server render.rs의 두 블록) | packages/runtime/src/engine.rs, packages/runtime/src/react_stream.rs, packages/runtime/src/module.rs, packages/runtime/src/request.rs, packages/server/src/render.rs | `make duplication-check`, `cargo nextest run -p polyspec-ssr-runtime --test runtime --locked`, `cargo nextest run -p polyspec-ssr-server --test render --test react_stream --locked` | [o] |
 | S-99 | Cargo.lock이 polyspec-ordered-json을 저장소의 git tag로 고정하는 대신 형제 checkout을 가리키는 cargo [patch] 경로를 쓴다; kit의 cargo 링크 행(cargo의 [patch] 경로, cargo 고유 링크)을 기다리며, kit이 등록하면 그 id를 적는다 | Cargo.lock | `make text-absent FILE=Cargo.lock TEXT=git+https://github.com/polyspec/` | [o] |
-| S-99-1 | Cargo.lock은 polyspec-ordered-json을 추적되는 Cargo.toml이 이름하는 release git tag v0.0.9로 기록하며, path 항목과 로컬 fetch의 [patch]를 두지 않는다. sibling은 make cargo-fetch DIR=.가 fetch할 때만 link한다(K448-5). 원인: S-99가 커밋한 lock은 polyspec-ordered-json 항목에 source가 없어 path 패키지가 되었고, 로컬 fetch의 patch.unused 항목도 받았다. | Cargo.lock | `make link-state-check`, `make cargo-fetch DIR=.`, and `git status --porcelain` empty after the fetch | [~] |
+| S-99-1 | Cargo.lock은 polyspec-ordered-json을 추적되는 Cargo.toml이 이름하는 release git tag v0.0.9로 기록하며, path 항목과 로컬 fetch의 [patch]를 두지 않는다. sibling은 make cargo-fetch DIR=.가 fetch할 때만 link한다(K448-5). 원인: S-99가 커밋한 lock은 polyspec-ordered-json 항목에 source가 없어 path 패키지가 되었고, 로컬 fetch의 patch.unused 항목도 받았다. | Cargo.lock | `make link-state-check`, `make cargo-fetch DIR=.`, and `git status --porcelain` empty after the fetch | [o] |
 | S-100 | Makefile의 cargo 레시피 check-examples와 ci-setup은 kit link(cargo-fetch와 link cargo --siblings)를 거쳐 fetch하고 build한다. sibling checkout 옆에서 잠긴 polyspec release를 git tag로 받는 plain cargo를 쓰지 않는다. 로컬 설치는 처음부터 sibling 패키지를 link하며(make npm-install), make link-state-check가 통과한다. | package-lock.json | `make npm-install DIR=.`, `make link-state-check` | [o] |
