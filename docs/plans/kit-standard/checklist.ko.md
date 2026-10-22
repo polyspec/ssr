@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: a51c37052b8b9487a4fd71cba59e1d444971ccb7b1c8b4c6deaa1329f0a28ec8 -->
+<!-- source-sha256: c1e56bd8f07cc58c429b52fa4abcede1600337bd4457268c63739cb5e29a99fe -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -56,5 +56,5 @@
 | S-100 | Makefile의 cargo 레시피 check-examples와 ci-setup은 kit link(cargo-fetch와 link cargo --siblings)를 거쳐 fetch하고 build한다. sibling checkout 옆에서 잠긴 polyspec release를 git tag로 받는 plain cargo를 쓰지 않는다. 로컬 설치는 처음부터 sibling 패키지를 link하며(make npm-install), make link-state-check가 통과한다. | package-lock.json | `make npm-install DIR=.`, `make link-state-check` | [o] |
 | S-101 | make polyspec-lock-check가 ssr에서 통과한다: 추적되는 package.json과 package-lock.json이 @polyspec/kit을 이름하며, config/polyspec.json이 프로젝트에 대해 이를 선언하므로 선언된 이름은 finding이 아니다(K509, K468 후속). 원인: 검사는 선언 여부와 무관하게 추적 매니페스트가 이름하는 모든 polyspec 이름을 finding으로 냈으므로, 선언이 이를 지우지 못했다. | config/polyspec.json | `make polyspec-lock-check` | [o] |
 | S-102 | 모든 다른 행이 닫힌 뒤 main의 최종 커밋에서 전체 테스트 실행(CI gates.yml)이 통과한다; 실행은 main의 최종 백업 push로 시작된다 | docs/plans/kit-standard/checklist.md, docs/plans/kit-standard/checklist.ko.md | `gh run view --exit-status $(gh run list --branch main --workflow gates.yml --limit 1 --json databaseId --jq '.[0].databaseId')` | [ ] |
-| S-103 | install 점검의 npm ci 레시피는 --install-links 복사 플래그를 넘기지 않는다(874a6d4의 변경): scripts/install-packages.mts가 그것 없이 npm ci를 실행한다 | scripts/install-packages.mts, tests/tools/install-packages.test.mts | `make text-absent FILE=scripts/install-packages.mts TEXT=--install-links` | [ ] |
+| S-103 | install 점검의 npm ci 레시피는 --install-links 복사 플래그를 넘기지 않는다(874a6d4의 변경): scripts/install-packages.mts가 그것 없이 npm ci를 실행한다 | scripts/install-packages.mts, tests/tools/install-packages.test.mts | `make text-absent FILE=scripts/install-packages.mts TEXT=--install-links` | [~] |
 | S-104 | AGENTS.md는 추적되는 생성 파일을 금지한다: 의존성 설치, 빌드 산출물, 캐시, 테스트 산출물, 도구 다운로드는 추적되지 않는다(2d1daae의 변경) | AGENTS.md, AGENTS.ko.md, .gitignore | `make text-present FILE=AGENTS.md TEXT="Generated files are never tracked in Git"` | [ ] |
