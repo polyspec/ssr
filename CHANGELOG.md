@@ -5,6 +5,7 @@
 
 ## Unreleased
 
+- S-99: Cargo.lock takes polyspec-ordered-json from the sibling checkout through a cargo [patch] path, not the git tag; Cargo.toml requires =0.0.9 (the version the sibling and orm provide), so the patch applies; make cargo-fetch DIR=. links it (S-99). Red: make text-absent FILE=Cargo.lock TEXT=git+https://github.com/polyspec/ failed at Cargo.lock:2589 before the change; green: exit 0.
 - S-98: runtime and server: json_text and rejection_text moved to engine.rs, Cancellation::lock_state to request.rs and runtime_status to server render.rs, each replacing its duplicated copies; red: make duplication-check exit 2 with 4 clones; green: it passes, and the runtime and server tests pass (runtime 23/23, server render and react_stream 12/12). (S-98).
 
 - S-97: ssr takes the copies of kit at f7c1f10c: make kit-sync writes scripts/kit/kit-bootstrap.mk. red: make kit-check exit 2 with the finding that scripts/kit/kit-bootstrap.mk differs from the installed @polyspec/kit, green: make kit-check exit 0. (S-97)

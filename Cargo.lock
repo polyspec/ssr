@@ -2585,11 +2585,9 @@ dependencies = [
 
 [[package]]
 name = "polyspec-ordered-json"
-version = "0.0.2"
-source = "git+https://github.com/polyspec/ordered-json?tag=v0.0.2#dcd1c4c924e38b9c26289577c9d5d0b87c7d14cd"
+version = "0.0.9"
 dependencies = [
  "serde",
- "serde_ignored",
  "serde_json",
 ]
 
@@ -3505,16 +3503,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.6",
-]
-
-[[package]]
-name = "serde_ignored"
-version = "0.1.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "115dffd5f3853e06e746965a20dcbae6ee747ae30b543d91b0e089668bb07798"
-dependencies = [
- "serde",
- "serde_core",
 ]
 
 [[package]]
@@ -4765,3 +4753,43 @@ dependencies = [
  "resb",
  "serde",
 ]
+
+[[patch.unused]]
+name = "polyspec-template"
+version = "0.0.11"
+
+[[patch.unused]]
+name = "polyspec-orm"
+version = "0.0.18"
+
+[[patch.unused]]
+name = "polyspec-orm-build"
+version = "0.0.18"
+
+[[patch.unused]]
+name = "polyspec-orm-case-clock"
+version = "0.0.18"
+
+[[patch.unused]]
+name = "polyspec-orm-case-database"
+version = "0.0.18"
+
+[[patch.unused]]
+name = "polyspec-orm-interface-symbols"
+version = "0.0.18"
+
+[[patch.unused]]
+name = "polyspec-orm-schema"
+version = "0.0.18"
+
+[[patch.unused]]
+name = "polyspec-orm-testcase"
+version = "0.0.18"
+
+[[patch.unused]]
+name = "polyspec-crudui-generator"
+version = "0.0.7"
+
+[[patch.unused]]
+name = "polyspec-crudui-validator"
+version = "0.0.7"
