@@ -1,0 +1,5 @@
+{
+  "packages": [
+    { "ecosystem": "npm", "project": ".", "name": "@polyspec/kit", "repository": "polyspec/kit" }
+  ]
+}

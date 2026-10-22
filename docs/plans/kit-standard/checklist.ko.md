@@ -1,5 +1,5 @@
 <!-- doc-id: checklist-kit-standard -->
-<!-- source-sha256: 8e75c7eefc11aa6e86af8e7d00917da3bc215fa33e811beed39dda48f8e41572 -->
+<!-- source-sha256: dc4cc2cc035c627114f360759c2d420b7019f1ab1cee77a94b6d021288da5659 -->
 # Kit 표준 체크리스트
 
 | ID | Task | Deliverables | Verification | State |
@@ -54,3 +54,4 @@
 | S-99-1 | Cargo.lock은 polyspec-ordered-json을 추적되는 Cargo.toml이 이름하는 release git tag v0.0.9로 기록하며, path 항목과 로컬 fetch의 [patch]를 두지 않는다. sibling은 make cargo-fetch DIR=.가 fetch할 때만 link한다(K448-5). 원인: S-99가 커밋한 lock은 polyspec-ordered-json 항목에 source가 없어 path 패키지가 되었고, 로컬 fetch의 patch.unused 항목도 받았다. | Cargo.lock | `make link-state-check`, `make cargo-fetch DIR=.`, and `git status --porcelain` empty after the fetch | [o] |
 | S-99-2 | 추적 Cargo.lock은 모든 polyspec crate의 release source를 이름하며, path나 link가 아니다. 그래서 lock은 release 기록으로 남고 로컬 link는 상태일 뿐이다(K507, S-99 후속). 원인: a786458의 lock은 polyspec-ordered-json을 source 없이(path 패키지) 가졌고, 이를 거부하는 gate가 없었다. | Cargo.lock | `make link-state-check` | [o] |
 | S-100 | Makefile의 cargo 레시피 check-examples와 ci-setup은 kit link(cargo-fetch와 link cargo --siblings)를 거쳐 fetch하고 build한다. sibling checkout 옆에서 잠긴 polyspec release를 git tag로 받는 plain cargo를 쓰지 않는다. 로컬 설치는 처음부터 sibling 패키지를 link하며(make npm-install), make link-state-check가 통과한다. | package-lock.json | `make npm-install DIR=.`, `make link-state-check` | [o] |
+| S-101 | make polyspec-lock-check가 ssr에서 통과한다: 추적되는 package.json과 package-lock.json이 @polyspec/kit을 이름하며, config/polyspec.json이 프로젝트에 대해 이를 선언하므로 선언된 이름은 finding이 아니다(K509, K468 후속). 원인: 검사는 선언 여부와 무관하게 추적 매니페스트가 이름하는 모든 polyspec 이름을 finding으로 냈으므로, 선언이 이를 지우지 못했다. | config/polyspec.json | `make polyspec-lock-check` | [o] |
