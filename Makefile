@@ -115,7 +115,8 @@ review-advisories:
 	cargo deny --manifest-path tests/test-ownership/Cargo.toml --config deny.toml --locked check --hide-inclusion-graph advisories
 
 check-examples:
-	cargo build -p polyspec-ssr-server --example development_process --example socket_process --locked
+	$(MAKE) --no-print-directory cargo-fetch DIR=.
+	$(ONLINE) $(NODE) $(KIT)/link.$(KIT_EXT) cargo --siblings . build -p polyspec-ssr-server --example development_process --example socket_process --locked
 
 check-nextest:
 	cargo nextest run --workspace --locked --no-tests fail
@@ -144,7 +145,7 @@ CI_PUSH_TARGETS = toolchain-check push-gate-commit check-records check-commit-re
 
 ci-setup:
 	$(NODE) scripts/fetch-v8.mts "$$(RUSTUP_AUTO_INSTALL=0 rustc -vV | sed -n 's/^host: //p')"
-	cargo fetch --locked
+	$(MAKE) --no-print-directory cargo-fetch DIR=.
 
 ci-lint:
 	$(MAKE) --no-print-directory toolchain-check
